@@ -55,8 +55,10 @@ Future<Map<String, Map<String, dynamic>>> _getLibraryManga() async {
 /// Fetches manga from the user's library that have new chapters since the
 /// last time the user read them. Compares the live chapter count with the
 /// stored count, then grabs each updated manga's latest chapter info.
+/// Each manga is checked against the source it was read from (its stored
+/// `sourceId`), falling back to the currently-active source for rows with no
+/// source recorded.
 final updatesProvider = FutureProvider<List<MangaUpdate>>((ref) async {
-  final source = ref.watch(currentSourceProvider);
   final library = await _getLibraryManga();
 
   final entries = library.entries.toList();
@@ -66,6 +68,11 @@ final updatesProvider = FutureProvider<List<MangaUpdate>>((ref) async {
         final row = e.value;
         final storedTotal = (row['totalChapters'] as int?) ?? 0;
         if (storedTotal <= 0) return null;
+
+        final mangaSourceId = row['sourceId']?.toString() ?? '';
+        final source = getSourceBySourceId(mangaSourceId) ??
+            ref.read(currentSourceProvider);
+        if (source == null) return null;
 
         final liveTotal = await source.getTotalChapters(e.key);
         final newCount = liveTotal - storedTotal;

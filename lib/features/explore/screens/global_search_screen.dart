@@ -12,6 +12,7 @@ import 'package:yomou/features/library/screens/manga_detail_screen.dart';
 import 'package:yomou/features/library/widgets/downloaded_badge.dart';
 import 'package:yomou/features/library/widgets/favorite_badge.dart';
 import 'package:yomou/core/widgets/empty_state.dart';
+import 'package:yomou/core/widgets/manga_grid_metrics.dart';
 import 'package:yomou/core/widgets/ios/ios_menu.dart';
 import 'package:yomou/features/suggestions/providers/suggestions_provider.dart';
 import 'package:yomou/l10n/generated/app_localizations.dart';
@@ -478,11 +479,11 @@ class _GlobalSearchScreenState extends ConsumerState<GlobalSearchScreen> {
           shrinkWrap: true,
           physics: const NeverScrollableScrollPhysics(),
           padding: const EdgeInsets.symmetric(horizontal: 16),
-          gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
+          gridDelegate: SliverGridDelegateWithFixedCrossAxisCount(
             crossAxisCount: 3,
-            childAspectRatio: 0.50,
-            crossAxisSpacing: 10,
-            mainAxisSpacing: 12,
+            childAspectRatio: mangaCellAspectRatio(context, columns: 3),
+            crossAxisSpacing: kMangaGridCrossSpacing,
+            mainAxisSpacing: kMangaGridRowSpacing,
           ),
           itemCount: results.length,
           itemBuilder: (context, index) {
@@ -533,7 +534,7 @@ class _GlobalSearchScreenState extends ConsumerState<GlobalSearchScreen> {
                       ],
                     ),
                   ),
-                  const SizedBox(height: 6),
+const SizedBox(height: kMangaCardTitleGap),
                   Text(
                     manga.title,
                     maxLines: 2,

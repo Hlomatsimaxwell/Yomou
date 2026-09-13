@@ -7,6 +7,7 @@ import 'package:yomou/features/library/widgets/downloaded_badge.dart';
 import 'package:yomou/features/library/widgets/favorite_badge.dart';
 import 'package:yomou/core/widgets/ios/ios_menu.dart';
 import 'package:yomou/core/widgets/ios/ios_sheet.dart';
+import 'package:yomou/core/widgets/manga_grid_metrics.dart';
 
 enum ListMode { compact, details, grid }
 
@@ -299,9 +300,12 @@ class _RelatedMangaScreenState extends State<RelatedMangaScreen> {
           padding: const EdgeInsets.symmetric(horizontal: 16),
           gridDelegate: SliverGridDelegateWithFixedCrossAxisCount(
             crossAxisCount: _gridSize.toInt(),
-            crossAxisSpacing: 12,
-            mainAxisSpacing: 16,
-            childAspectRatio: 0.58,
+            crossAxisSpacing: kMangaGridCrossSpacing,
+            mainAxisSpacing: kMangaGridRowSpacing,
+            childAspectRatio: mangaCellAspectRatio(
+              context,
+              columns: _gridSize.toInt(),
+            ),
           ),
           itemCount: items.length,
           itemBuilder: (context, index) {
@@ -365,6 +369,7 @@ class _RelatedMangaScreenState extends State<RelatedMangaScreen> {
                       color: dark ? Colors.white : onSurface,
                       fontSize: 12,
                       fontWeight: FontWeight.w500,
+                      height: 1.2,
                     ),
                   ),
                 ],

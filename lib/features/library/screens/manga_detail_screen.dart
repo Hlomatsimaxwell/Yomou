@@ -1055,7 +1055,7 @@ class _MangaDetailScreenState extends ConsumerState<MangaDetailScreen> {
 
     // "Sep 10, 2026" / "Sep 10,2026" / "Sep 10 2026"
     for (final m in RegExp(
-      r'^([A-Za-z]{3})[.]?[ ](\d{1,2}),?[ ](\d{4})$',
+      r'^([A-Za-z]{3})[.]?[ ](\d{1,2}),?\s*(\d{4})$',
     ).allMatches(s)) {
       final d = from(
         months[m.group(1)!.toLowerCase()],

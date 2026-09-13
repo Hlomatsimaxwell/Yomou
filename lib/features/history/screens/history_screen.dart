@@ -10,6 +10,7 @@ import 'package:yomou/features/settings/screens/settings_screen.dart';
 import 'package:yomou/core/database/database_helper.dart';
 import 'package:yomou/core/widgets/ios/ios_press.dart';
 import 'package:yomou/core/widgets/empty_state.dart';
+import 'package:yomou/core/widgets/manga_grid_metrics.dart';
 import 'package:yomou/core/widgets/ios/ios_sheet.dart';
 import 'package:yomou/features/history/providers/history_provider.dart';
 import 'package:yomou/features/library/providers/downloads_provider.dart';
@@ -1100,13 +1101,13 @@ class _HistoryScreenState extends ConsumerState<HistoryScreen> {
         physics: const NeverScrollableScrollPhysics(),
         gridDelegate: SliverGridDelegateWithFixedCrossAxisCount(
           crossAxisCount: _gridSize.toInt(),
-          childAspectRatio: _gridSize >= 5
-              ? 0.40
-              : _gridSize >= 4
-              ? 0.45
-              : 0.54,
-          crossAxisSpacing: 10,
-          mainAxisSpacing: 16,
+          childAspectRatio: mangaCellAspectRatio(
+            context,
+            columns: _gridSize.toInt(),
+            titleFontSize: _gridSize >= 4 ? 10 : 12,
+          ),
+          crossAxisSpacing: kMangaGridCrossSpacing,
+          mainAxisSpacing: kMangaGridRowSpacing,
         ),
         itemCount: items.length,
         itemBuilder: (context, index) {
@@ -1250,7 +1251,7 @@ class _GridHistoryCardState extends State<GridHistoryCard> {
               ],
             ),
           ),
-          const SizedBox(height: 6),
+          const SizedBox(height: kMangaCardTitleGap),
           Expanded(
             child: Text(
               widget.item['title'],

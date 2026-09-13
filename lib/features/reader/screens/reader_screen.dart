@@ -247,43 +247,13 @@ class _ReaderScreenState extends ConsumerState<ReaderScreen> {
     setState(() {});
   }
 
-  void _seekFromProgress(double fraction) {
-    if (_pages.isEmpty) return;
-    final clamped = fraction.clamp(0.0, 1.0);
-    final page = (clamped * (_pages.length - 1)).round();
-    _jumpToPage(page);
-  }
-
   Widget _buildProgressTrack() {
-    final total = _pages.isEmpty ? 1 : _pages.length;
-    final current = (_currentPageIndex + 1).clamp(1, total);
-    final progress = total > 1 ? (current - 1) / (total - 1) : 0.0;
-    final dotCount = total.clamp(1, 12);
-
-    return LayoutBuilder(
-      builder: (context, constraints) {
-        final dark = Theme.of(context).brightness == Brightness.dark;
-        return GestureDetector(
-          behavior: HitTestBehavior.opaque,
-          onTapDown: (details) => _seekFromProgress(
-            details.localPosition.dx / constraints.maxWidth,
-          ),
-          onHorizontalDragUpdate: (details) => _seekFromProgress(
-            details.localPosition.dx / constraints.maxWidth,
-          ),
-          child: CustomPaint(
-            size: Size(constraints.maxWidth, 36),
-            painter: _DottedProgressPainter(
-              progress: progress,
-              dotCount: dotCount,
-              activeDotColor: dark
-                  ? Colors.white
-                  : Theme.of(context).colorScheme.onSurface,
-              inactiveDotColor: dark ? Colors.white24 : Colors.black26,
-            ),
-          ),
-        );
-      },
+    return _ReaderProgressTrack(
+      totalPages: _pages.length,
+      isHorizontal: _isHorizontal,
+      scrollController: _scrollController,
+      pageController: _pageController,
+      onSeek: _jumpToPage,
     );
   }
 
@@ -3012,6 +2982,122 @@ class _ReaderScreenState extends ConsumerState<ReaderScreen> {
               AppLocalizations.of(context).readerReachedLatestChapter,
               style: const TextStyle(color: Colors.white54, fontSize: 14),
             ),
+    );
+  }
+}
+
+class _ReaderProgressTrack extends StatefulWidget {
+  const _ReaderProgressTrack({
+    required this.totalPages,
+    required this.isHorizontal,
+    required this.scrollController,
+    required this.pageController,
+    required this.onSeek,
+  });
+
+  final int totalPages;
+  final bool isHorizontal;
+  final ScrollController scrollController;
+  final PageController pageController;
+  final ValueChanged<int> onSeek;
+
+  @override
+  State<_ReaderProgressTrack> createState() => _ReaderProgressTrackState();
+}
+
+class _ReaderProgressTrackState extends State<_ReaderProgressTrack> {
+  // Cap the dots so a chapter with hundreds of pages doesn't turn the track
+  // into a solid line; most chapters (<= _maxDots pages) get one dot per page.
+  static const int _maxDots = 30;
+
+  int _currentIndex = 0;
+
+  @override
+  void initState() {
+    super.initState();
+    widget.scrollController.addListener(_onMoved);
+    widget.pageController.addListener(_onMoved);
+  }
+
+  @override
+  void didUpdateWidget(_ReaderProgressTrack oldWidget) {
+    super.didUpdateWidget(oldWidget);
+    if (oldWidget.scrollController != widget.scrollController) {
+      oldWidget.scrollController.removeListener(_onMoved);
+      widget.scrollController.addListener(_onMoved);
+    }
+    if (oldWidget.pageController != widget.pageController) {
+      oldWidget.pageController.removeListener(_onMoved);
+      widget.pageController.addListener(_onMoved);
+    }
+    if (oldWidget.totalPages != widget.totalPages && widget.totalPages > 0) {
+      _currentIndex = _currentIndex.clamp(0, widget.totalPages - 1);
+    }
+  }
+
+  @override
+  void dispose() {
+    widget.scrollController.removeListener(_onMoved);
+    widget.pageController.removeListener(_onMoved);
+    super.dispose();
+  }
+
+  void _onMoved() {
+    if (widget.totalPages <= 0) return;
+    final int idx;
+    if (widget.isHorizontal) {
+      if (!widget.pageController.hasClients) return;
+      final page = widget.pageController.page;
+      if (page == null) return;
+      idx = page.round().clamp(0, widget.totalPages - 1);
+    } else {
+      if (!widget.scrollController.hasClients) return;
+      const perPage = 600.0;
+      idx = (widget.scrollController.offset / perPage)
+          .floor()
+          .clamp(0, widget.totalPages - 1);
+    }
+    if (idx != _currentIndex) setState(() => _currentIndex = idx);
+  }
+
+  void _seek(double fraction) {
+    if (widget.totalPages <= 0) return;
+    final clamped = fraction.clamp(0.0, 1.0);
+    final page = (clamped * (widget.totalPages - 1)).round();
+    widget.onSeek(page);
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    final dark = Theme.of(context).brightness == Brightness.dark;
+    final total = widget.totalPages <= 0 ? 1 : widget.totalPages;
+    final current = (_currentIndex + 1).clamp(1, total);
+    final progress = total > 1 ? (current - 1) / (total - 1) : 0.0;
+    final dotCount = total.clamp(1, _maxDots);
+
+    return LayoutBuilder(
+      builder: (context, constraints) {
+        return GestureDetector(
+          behavior: HitTestBehavior.opaque,
+          onTapDown: (details) => _seek(
+            details.localPosition.dx / constraints.maxWidth,
+          ),
+          onHorizontalDragUpdate: (details) => _seek(
+            details.localPosition.dx / constraints.maxWidth,
+          ),
+          child: CustomPaint(
+            size: Size(constraints.maxWidth, 36),
+            painter: _DottedProgressPainter(
+              progress: progress,
+              dotCount: dotCount,
+              activeDotColor: dark
+                  ? Colors.white
+                  : Theme.of(context).colorScheme.onSurface,
+              inactiveDotColor: dark ? Colors.white24 : Colors.black26,
+            ),
+          ),
+        );
+      },
     );
   }
 }

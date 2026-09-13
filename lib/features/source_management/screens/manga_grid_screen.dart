@@ -7,6 +7,7 @@ import 'package:yomou/features/library/screens/manga_detail_screen.dart';
 import 'package:yomou/features/library/widgets/downloaded_badge.dart';
 import 'package:yomou/features/library/widgets/favorite_badge.dart';
 import 'package:yomou/core/widgets/empty_state.dart';
+import 'package:yomou/core/widgets/manga_grid_metrics.dart';
 import 'package:yomou/data/models/manga.dart';
 import 'package:yomou/data/providers/sources_provider.dart';
 import 'package:yomou/l10n/generated/app_localizations.dart';
@@ -376,11 +377,11 @@ class _MangaGridScreenState extends State<MangaGridScreen> {
       child: GridView.builder(
         shrinkWrap: true,
         physics: const NeverScrollableScrollPhysics(),
-        gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
+        gridDelegate: SliverGridDelegateWithFixedCrossAxisCount(
           crossAxisCount: 3,
-          childAspectRatio: 0.50,
-          crossAxisSpacing: 10,
-          mainAxisSpacing: 12,
+          childAspectRatio: mangaCellAspectRatio(context, columns: 3),
+          crossAxisSpacing: kMangaGridCrossSpacing,
+          mainAxisSpacing: kMangaGridRowSpacing,
         ),
         itemCount: items.length,
         itemBuilder: (context, index) {
@@ -455,7 +456,7 @@ class _MangaGridScreenState extends State<MangaGridScreen> {
               ],
             ),
           ),
-          const SizedBox(height: 6),
+          const SizedBox(height: kMangaCardTitleGap),
           Text(
             item.title,
             maxLines: 2,

@@ -9,6 +9,7 @@ import 'package:yomou/data/models/manga.dart';
 import 'package:yomou/data/models/manga_source.dart';
 import 'package:yomou/features/library/screens/manga_detail_screen.dart';
 import 'package:yomou/core/widgets/empty_state.dart';
+import 'package:yomou/core/widgets/manga_grid_metrics.dart';
 import 'package:yomou/features/library/widgets/downloaded_badge.dart';
 import 'package:yomou/features/library/widgets/favorite_badge.dart';
 import 'package:yomou/core/widgets/ios/ios_menu.dart';
@@ -743,11 +744,11 @@ class _SourceSearchResultsScreenState extends State<SourceSearchResultsScreen> {
               controller: _scrollController,
               physics: const AlwaysScrollableScrollPhysics(),
               padding: const EdgeInsets.symmetric(horizontal: 16),
-              gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
+              gridDelegate: SliverGridDelegateWithFixedCrossAxisCount(
                 crossAxisCount: 3,
-                childAspectRatio: 0.50,
-                crossAxisSpacing: 10,
-                mainAxisSpacing: 12,
+                childAspectRatio: mangaCellAspectRatio(context, columns: 3),
+                crossAxisSpacing: kMangaGridCrossSpacing,
+                mainAxisSpacing: kMangaGridRowSpacing,
               ),
               itemCount: _mangaList.length,
               itemBuilder: (context, index) {
@@ -812,7 +813,7 @@ class _SourceSearchResultsScreenState extends State<SourceSearchResultsScreen> {
               ],
             ),
           ),
-          const SizedBox(height: 6),
+          const SizedBox(height: kMangaCardTitleGap),
           Text(
             item.title,
             maxLines: 2,

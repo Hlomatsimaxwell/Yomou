@@ -10,6 +10,11 @@ import '../sources/manga_dex_source.dart'; // <--- 1. ADD THIS IMPORT
 import '../sources/weebcentral_source.dart';
 import '../sources/mangakatana_source.dart';
 import '../sources/mangatown_source.dart';
+import '../sources/arenascan_source.dart';
+import '../sources/asurascans_source.dart';
+import '../sources/comick_source.dart';
+import '../sources/mgeko_source.dart';
+import '../sources/likemanga_source.dart';
 
 // 1. THE SOURCE REGISTRY
 MangaSource getSourceByName(String name) {
@@ -26,6 +31,16 @@ MangaSource getSourceByName(String name) {
       return AnimeApiSource();
     case 'Manganato':
       return ManganatoService();
+    case 'Arenascan':
+      return ArenascanSource();
+    case 'Asura Scans':
+      return AsuraScansSource();
+    case 'ComicK':
+      return ComickSource();
+    case 'Mgeko':
+      return MgekoSource();
+    case 'Like Manga':
+      return LikeMangaSource();
     case 'Mock Source':
       return MockSource();
     default:
@@ -46,6 +61,16 @@ MangaSource? getSourceBySourceId(String sourceId) {
       return MangakatanaSource();
     case 'mangatown':
       return MangatownSource();
+    case 'arenascan':
+      return ArenascanSource();
+    case 'asurascans':
+      return AsuraScansSource();
+    case 'comick':
+      return ComickSource();
+    case 'mgeko':
+      return MgekoSource();
+    case 'likemanga':
+      return LikeMangaSource();
     case 'manganato':
       return ManganatoService();
     case 'mock':
@@ -117,6 +142,38 @@ class SourcesNotifier extends StateNotifier<List<Map<String, dynamic>>> {
       'text': 'M',
       'iconUrl': 'https://manganato.com/favicon.ico',
       'isPinned': true,
+    },
+    {
+      'name': 'Arenascan',
+      'language': 'Manhwa, Manhua, English',
+      'bgColor': const Color(0xFF5A2DA6),
+      'text': 'A',
+      'iconUrl': 'https://arenascan.com/favicon.ico',
+      'isPinned': false,
+    },
+    {
+      'name': 'Asura Scans',
+      'language': 'Manhwa, Manhua, English',
+      'bgColor': const Color(0xFFDB0032),
+      'text': 'A',
+      'iconUrl': 'https://asurascans.com/favicon.ico',
+      'isPinned': false,
+    },
+    {
+      'name': 'Mgeko',
+      'language': 'Manhwa, Manhua, English',
+      'bgColor': const Color(0xFF0F766E),
+      'text': 'M',
+      'iconUrl': 'https://mgeko.cc/static/img/logo_200x200.png',
+      'isPinned': false,
+    },
+    {
+      'name': 'Like Manga',
+      'language': 'Manhwa, Manhua, English',
+      'bgColor': const Color(0xFFB4345C),
+      'text': 'L',
+      'iconUrl': 'https://likemanga.ink/favicon.ico',
+      'isPinned': false,
     },
     {
       'name': 'Mock Source',

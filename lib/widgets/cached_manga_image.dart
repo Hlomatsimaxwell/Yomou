@@ -1,9 +1,9 @@
 import 'package:cached_network_image/cached_network_image.dart';
 import 'package:flutter/material.dart';
 
-/// [CachedNetworkImage] that automatically attaches the MangaTown referer
-/// header for images hosted on MangaTown's CDNs (fmcdn.mangahere.com,
-/// zjcdn.mangahere.org, etc.), which otherwise return 403.
+/// [CachedNetworkImage] that automatically attaches the referer header
+/// required by the CDNs behind hotlink-protected sources (MangaTown,
+/// ComicK, Like Manga, Arenascan, Mgeko, ...), which otherwise return 403.
 class CachedMangaImage extends StatelessWidget {
   const CachedMangaImage({
     super.key,
@@ -26,13 +26,30 @@ class CachedMangaImage extends StatelessWidget {
   final Duration? placeholderFadeInDuration;
   final Duration fadeInDuration;
 
-  static const Map<String, String> _mangatownHeaders = {
-    'Referer': 'https://www.mangatown.com/',
+  /// CDN host suffix -> the referer that host expects.
+  static const Map<String, String> _referers = {
+    'mangahere.com': 'https://www.mangatown.com/',
+    'mangahere.org': 'https://www.mangatown.com/',
+    'comicknew.pictures': 'https://comick.live/',
+    'comick.pictures': 'https://comick.live/',
+    'likemanga.ink': 'https://likemanga.ink/',
+    'mgread.io': 'https://likemanga.ink/',
+    'arenascan.com': 'https://arenascan.com/',
+    'asurascans.com': 'https://asurascans.com/',
+    'mgeko.cc': 'https://www.mgeko.cc/',
+    'imgsrv4.com': 'https://www.mgeko.cc/',
+    'imgsrv5.com': 'https://www.mgeko.cc/',
   };
 
-  bool get _isMangatownHosted {
+  Map<String, String>? get _headers {
     final host = Uri.tryParse(imageUrl)?.host ?? '';
-    return host.endsWith('mangahere.com') || host.endsWith('mangahere.org');
+    if (host.isEmpty) return null;
+    for (final entry in _referers.entries) {
+      if (host == entry.key || host.endsWith('.${entry.key}')) {
+        return {'Referer': entry.value};
+      }
+    }
+    return null;
   }
 
   @override
@@ -42,7 +59,7 @@ class CachedMangaImage extends StatelessWidget {
       width: width,
       height: height,
       fit: fit,
-      httpHeaders: _isMangatownHosted ? _mangatownHeaders : null,
+      httpHeaders: _headers,
       placeholder: placeholder,
       errorWidget:
           errorWidget ??
