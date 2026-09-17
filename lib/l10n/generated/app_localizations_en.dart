@@ -1131,4 +1131,77 @@ class AppLocalizationsEn extends AppLocalizations {
 
   @override
   String get destCacheFolder => 'Cache';
+
+  @override
+  String historySelectedCount(int count) {
+    return '$count selected';
+  }
+
+  @override
+  String historyRemovedCount(int count) {
+    return '$count removed from history';
+  }
+
+  @override
+  String get historyUndo => 'Undo';
+
+  @override
+  String get historyEdit => 'Edit';
+
+  @override
+  String get historyMarkCompleted => 'Mark as completed';
+
+  @override
+  String get historyComingSoon => 'Coming soon';
+
+  @override
+  String historyFavoritedCount(int count) {
+    return '$count added to favorites';
+  }
+
+  @override
+  String get historyAlreadyFavorite => 'Already in favorites';
+
+  @override
+  String get editPickFromFiles => 'Pick image file';
+
+  @override
+  String get editCoversFromSources => 'Covers from other sources';
+
+  @override
+  String get editUseDefaultCover => 'Use default cover';
+
+  @override
+  String get editCustomCover => 'Custom';
+
+  @override
+  String get editTitleHint => 'Manga title';
+
+  @override
+  String get editChangesNote =>
+      'These changes will affect how manga is displayed in the app.';
+
+  @override
+  String get editNoAltCovers =>
+      'No alternative covers available for this source.';
+
+  @override
+  String get editCoverSaveFailed => 'Could not save the picked image.';
+
+  @override
+  String get editSelectOneToEdit => 'Select exactly one manga to edit';
+
+  @override
+  String coversProgress(int done, int total) {
+    return '$done / $total sources';
+  }
+
+  @override
+  String get coversCurrent => 'Current cover';
+
+  @override
+  String get coversUseThis => 'Use this cover';
+
+  @override
+  String get coversNoResults => 'No alternative covers found';
 }

@@ -18,6 +18,11 @@ class MockSource implements MangaSource {
   String get readerBaseUrl => 'https://mock-reader.com';
 
   @override
+  Future<List<(String url, String? label)>> getAltCovers(String mangaId) async {
+    return [];
+  }
+
+  @override
   Map<String, String>? get headers => null;
 
   @override

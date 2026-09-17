@@ -1,9 +1,17 @@
-import 'package:cached_network_image/cached_network_image.dart';
+import 'dart:io';
+
 import 'package:flutter/material.dart';
 
-/// [CachedNetworkImage] that automatically attaches the referer header
-/// required by the CDNs behind hotlink-protected sources (MangaTown,
-/// ComicK, Like Manga, Arenascan, Mgeko, ...), which otherwise return 403.
+import 'package:yomou/widgets/safe_image.dart';
+
+/// Network image that renders manga covers with source-specific referer
+/// headers and survives Android's flaky platform decoder by falling back to a
+/// pure-Dart decode (see [SafeNetworkImage]).
+///
+/// Automatically attaches the referer header required by the CDNs behind
+/// hotlink-protected sources (MangaTown, ComicK, Like Manga, Arenascan,
+/// Mgeko, ...), which otherwise return 403. Also renders user-picked custom
+/// covers stored on disk via `local://<path>`.
 class CachedMangaImage extends StatelessWidget {
   const CachedMangaImage({
     super.key,
@@ -25,6 +33,10 @@ class CachedMangaImage extends StatelessWidget {
   final Widget Function(BuildContext, String, dynamic)? errorWidget;
   final Duration? placeholderFadeInDuration;
   final Duration fadeInDuration;
+
+  /// Prefix for covers that live in the app's own storage rather than on a
+  /// remote host. The value is a filesystem path.
+  static const String localScheme = 'local://';
 
   /// CDN host suffix -> the referer that host expects.
   static const Map<String, String> _referers = {
@@ -54,7 +66,18 @@ class CachedMangaImage extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return CachedNetworkImage(
+    if (imageUrl.startsWith(localScheme)) {
+      final path = imageUrl.substring(localScheme.length);
+      return SafeFileImage(
+        file: File(path),
+        width: width,
+        height: height,
+        fit: fit ?? BoxFit.cover,
+        errorWidget: errorWidget,
+      );
+    }
+
+    return SafeNetworkImage(
       imageUrl: imageUrl,
       width: width,
       height: height,

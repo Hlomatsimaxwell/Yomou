@@ -1142,4 +1142,79 @@ class AppLocalizationsEs extends AppLocalizations {
 
   @override
   String get destCacheFolder => 'Caché';
+
+  @override
+  String historySelectedCount(int count) {
+    return '$count seleccionados';
+  }
+
+  @override
+  String historyRemovedCount(int count) {
+    return '$count eliminados del historial';
+  }
+
+  @override
+  String get historyUndo => 'Deshacer';
+
+  @override
+  String get historyEdit => 'Editar';
+
+  @override
+  String get historyMarkCompleted => 'Marcar como completado';
+
+  @override
+  String get historyComingSoon => 'Próximamente';
+
+  @override
+  String historyFavoritedCount(int count) {
+    return '$count añadidos a favoritos';
+  }
+
+  @override
+  String get historyAlreadyFavorite => 'Ya está en favoritos';
+
+  @override
+  String get editPickFromFiles => 'Elegir archivo de imagen';
+
+  @override
+  String get editCoversFromSources => 'Portadas de otras fuentes';
+
+  @override
+  String get editUseDefaultCover => 'Usar portada original';
+
+  @override
+  String get editCustomCover => 'Personalizada';
+
+  @override
+  String get editTitleHint => 'Título del manga';
+
+  @override
+  String get editChangesNote =>
+      'Estos cambios afectarán cómo se muestra el manga en la app.';
+
+  @override
+  String get editNoAltCovers =>
+      'No hay portadas alternativas disponibles para esta fuente.';
+
+  @override
+  String get editCoverSaveFailed =>
+      'No se pudo guardar la imagen seleccionada.';
+
+  @override
+  String get editSelectOneToEdit =>
+      'Selecciona exactamente un manga para editar';
+
+  @override
+  String coversProgress(int done, int total) {
+    return '$done / $total fuentes';
+  }
+
+  @override
+  String get coversCurrent => 'Portada actual';
+
+  @override
+  String get coversUseThis => 'Usar esta portada';
+
+  @override
+  String get coversNoResults => 'No se encontraron portadas alternativas';
 }

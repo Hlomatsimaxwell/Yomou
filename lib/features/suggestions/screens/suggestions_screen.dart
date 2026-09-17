@@ -3,15 +3,21 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:remixicon/remixicon.dart';
 import 'package:yomou/data/models/manga.dart';
+import 'package:yomou/core/database/source_cache.dart';
+import 'package:yomou/data/providers/sources_provider.dart';
 import 'package:yomou/features/library/screens/manga_detail_screen.dart';
 import 'package:yomou/features/library/widgets/downloaded_badge.dart';
 import 'package:yomou/features/library/widgets/favorite_badge.dart';
 import 'package:yomou/features/suggestions/providers/suggestions_provider.dart';
 import 'package:yomou/core/theme/layout.dart';
 import 'package:yomou/core/widgets/empty_state.dart';
+import 'package:yomou/core/widgets/ios/ios_menu.dart';
+import 'package:yomou/core/widgets/ios/ios_press.dart';
 import 'package:yomou/core/widgets/manga_grid_metrics.dart';
 import 'package:yomou/l10n/generated/app_localizations.dart';
 import 'package:yomou/core/widgets/search_bar.dart';
+import 'package:yomou/features/settings/screens/settings_screen.dart';
+import 'package:yomou/features/source_management/screens/manga_sources_screen.dart';
 
 class SuggestionsScreen extends ConsumerStatefulWidget {
   const SuggestionsScreen({super.key});
@@ -24,11 +30,30 @@ class _SuggestionsScreenState extends ConsumerState<SuggestionsScreen> {
   String? _selectedGenre; // null: personalised, non-null: filter by genre
   final TextEditingController _searchController = TextEditingController();
   String _searchQuery = '';
+  bool _refreshing = false;
 
   @override
   void dispose() {
     _searchController.dispose();
     super.dispose();
+  }
+
+  /// Re-fetches suggestions (and the genre chip list) from the source, forcing
+  /// the disk cache to be bypassed so the user always sees fresh results.
+  Future<void> _refresh() async {
+    if (_refreshing) return;
+    setState(() => _refreshing = true);
+
+    final source = ref.read(currentSourceProvider);
+    SourceCache.invalidatePrefix('${source.id}/list/');
+    SourceCache.invalidatePrefix('${source.id}/tags');
+    ref.invalidate(genreTagsProvider);
+    ref.invalidate(suggestionsProvider(_selectedGenre));
+    try {
+      await ref.read(suggestionsProvider(_selectedGenre).future);
+    } catch (_) {}
+
+    if (mounted) setState(() => _refreshing = false);
   }
 
   @override
@@ -40,49 +65,54 @@ class _SuggestionsScreenState extends ConsumerState<SuggestionsScreen> {
     return Scaffold(
       backgroundColor: Theme.of(context).scaffoldBackgroundColor,
       body: SafeArea(
-        child: SingleChildScrollView(
-          padding: EdgeInsets.only(bottom: bottomBarClearance(context)),
-          child: Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              const SizedBox(height: 8),
-              _buildSearchBar(),
-              const SizedBox(height: 12),
-              genreTagsAsync.when(
-                data: (tags) => tags.isNotEmpty
-                    ? _buildGenreChips(tags)
-                    : const SizedBox.shrink(),
-                loading: () => const SizedBox.shrink(),
-                error: (_, __) => const SizedBox.shrink(),
-              ),
-              const SizedBox(height: 16),
-              suggestionsAsync.when(
-                data: (mangaList) => _buildMangaGrid(mangaList),
-                loading: () => Padding(
-                  padding: const EdgeInsets.symmetric(vertical: 60),
-                  child: Center(
-                    child: CircularProgressIndicator(
-                      color: Theme.of(context).colorScheme.primary,
+        child: RefreshIndicator(
+          onRefresh: _refresh,
+          color: Theme.of(context).colorScheme.primary,
+          backgroundColor: Theme.of(context).scaffoldBackgroundColor,
+          child: SingleChildScrollView(
+            physics: const AlwaysScrollableScrollPhysics(),
+            padding: EdgeInsets.only(bottom: bottomBarClearance(context)),
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                const SizedBox(height: 8),
+                _buildSearchBar(),
+                const SizedBox(height: 12),
+                genreTagsAsync.when(
+                  data: (tags) => tags.isNotEmpty
+                      ? _buildGenreChips(tags)
+                      : const SizedBox.shrink(),
+                  loading: () => const SizedBox.shrink(),
+                  error: (_, __) => const SizedBox.shrink(),
+                ),
+                const SizedBox(height: 16),
+                suggestionsAsync.when(
+                  data: (mangaList) => _buildMangaGrid(mangaList),
+                  loading: () => Padding(
+                    padding: const EdgeInsets.symmetric(vertical: 60),
+                    child: Center(
+                      child: CircularProgressIndicator(
+                        color: Theme.of(context).colorScheme.primary,
+                      ),
                     ),
                   ),
-                ),
-                error: (e, _) => Padding(
-                  padding: const EdgeInsets.symmetric(vertical: 60),
-                  child: Center(
-                    child: Text(
-                      AppLocalizations.of(context).failedToLoadSuggestions,
-                      style: TextStyle(
-                        color:
-                            Theme.of(context).brightness == Brightness.dark
-                                ? Colors.white54
-                                : const Color(0xFF49454F),
-                        fontSize: 16,
+                  error: (e, _) => Padding(
+                    padding: const EdgeInsets.symmetric(vertical: 60),
+                    child: Center(
+                      child: Text(
+                        AppLocalizations.of(context).failedToLoadSuggestions,
+                        style: TextStyle(
+                          color: Theme.of(context).brightness == Brightness.dark
+                              ? Colors.white54
+                              : const Color(0xFF49454F),
+                          fontSize: 16,
+                        ),
                       ),
                     ),
                   ),
                 ),
-              ),
-            ],
+              ],
+            ),
           ),
         ),
       ),
@@ -106,15 +136,74 @@ class _SuggestionsScreenState extends ConsumerState<SuggestionsScreen> {
           _searchQuery = '';
         });
       },
-      trailing: Padding(
-        padding: const EdgeInsets.all(8),
-        child: Icon(
-          RemixIcons.more_2_line,
-          color: dark ? Colors.white70 : Colors.black54,
-          size: 22,
-        ),
+      trailing: Row(
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          AppPress(
+            onTap: _refresh,
+            child: Padding(
+              padding: const EdgeInsets.all(6),
+              child: _refreshing
+                  ? SizedBox(
+                      width: 20,
+                      height: 20,
+                      child: CircularProgressIndicator(
+                        strokeWidth: 2,
+                        color: dark ? Colors.white70 : Colors.black54,
+                      ),
+                    )
+                  : Icon(
+                      RemixIcons.refresh_line,
+                      color: dark ? Colors.white70 : Colors.black54,
+                      size: 22,
+                    ),
+            ),
+          ),
+          AppSheetPress(
+            onTap: _showMenu,
+            child: Padding(
+              padding: const EdgeInsets.all(6),
+              child: Icon(
+                RemixIcons.more_2_line,
+                color: dark ? Colors.white70 : Colors.black54,
+                size: 22,
+              ),
+            ),
+          ),
+        ],
       ),
     );
+  }
+
+  Future<void> _showMenu() async {
+    final action = await showIosMenuPanel<String>(
+      context,
+      children: [
+        IosMenuRow(
+          icon: RemixIcons.equalizer_line,
+          label: AppLocalizations.of(context).manageSources,
+          onTap: () => Navigator.pop(context, 'manage'),
+        ),
+        const IosMenuDivider(),
+        IosMenuRow(
+          icon: RemixIcons.settings_3_line,
+          label: AppLocalizations.of(context).settings,
+          onTap: () => Navigator.pop(context, 'settings'),
+        ),
+      ],
+    );
+    if (!mounted || action == null) return;
+    if (action == 'manage') {
+      Navigator.push(
+        context,
+        MaterialPageRoute(builder: (_) => const ManageSourcesScreen()),
+      );
+    } else if (action == 'settings') {
+      Navigator.push(
+        context,
+        MaterialPageRoute(builder: (_) => const SettingsScreen()),
+      );
+    }
   }
 
   Widget _buildGenreChips(List<String> tags) {
@@ -163,11 +252,7 @@ class _SuggestionsScreenState extends ConsumerState<SuggestionsScreen> {
                 child: Row(
                   mainAxisSize: MainAxisSize.min,
                   children: [
-                    Icon(
-                      RemixIcons.price_tag_3_line,
-                      size: 16,
-                      color: fg,
-                    ),
+                    Icon(RemixIcons.price_tag_3_line, size: 16, color: fg),
                     const SizedBox(width: 6),
                     Text(
                       tag,
@@ -270,7 +355,7 @@ class _SuggestionsScreenState extends ConsumerState<SuggestionsScreen> {
                   ),
                 ),
                 DownloadedMangaBadge(mangaId: manga.id),
-                            FavoriteBadge(mangaId: manga.id),
+                FavoriteBadge(mangaId: manga.id),
               ],
             ),
           ),

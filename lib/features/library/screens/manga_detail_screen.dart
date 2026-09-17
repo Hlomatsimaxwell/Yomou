@@ -11,6 +11,7 @@ import 'package:yomou/features/library/providers/favorites_provider.dart';
 import 'package:yomou/features/library/providers/downloads_provider.dart';
 import 'package:yomou/features/library/widgets/downloaded_badge.dart';
 import 'package:yomou/features/library/screens/related_manga_screen.dart';
+import 'package:yomou/features/library/screens/edit_manga_screen.dart';
 import 'package:yomou/features/reader/screens/reader_screen.dart';
 import 'package:yomou/features/reader/services/chapter_downloader.dart';
 import 'package:yomou/data/models/chapter.dart';
@@ -24,6 +25,7 @@ import 'package:yomou/features/explore/screens/source_search_results_screen.dart
 import 'package:yomou/features/explore/screens/global_search_results_screen.dart';
 import 'package:yomou/features/settings/providers/appearance_provider.dart';
 import 'package:yomou/l10n/generated/app_localizations.dart';
+import 'package:yomou/widgets/safe_image.dart';
 
 class MangaDetailScreen extends ConsumerStatefulWidget {
   final String mangaId;
@@ -136,9 +138,7 @@ class _MangaDetailScreenState extends ConsumerState<MangaDetailScreen> {
   }
 
   double _chapterNum(Chapter ch) {
-    final num = RegExp(r'(\d+(\.\d+)?)')
-        .firstMatch(ch.chapterNumber)
-        ?.group(1);
+    final num = RegExp(r'(\d+(\.\d+)?)').firstMatch(ch.chapterNumber)?.group(1);
     return num != null ? double.tryParse(num) ?? 0 : 0;
   }
 
@@ -151,8 +151,11 @@ class _MangaDetailScreenState extends ConsumerState<MangaDetailScreen> {
       _chapterError = null;
     });
     try {
-      final source = sourceOverride ??
-          (widget.sourceId != null ? getSourceBySourceId(widget.sourceId!) : null);
+      final source =
+          sourceOverride ??
+          (widget.sourceId != null
+              ? getSourceBySourceId(widget.sourceId!)
+              : null);
       if (source == null) {
         setState(() {
           _chapters = [];
@@ -413,8 +416,7 @@ class _MangaDetailScreenState extends ConsumerState<MangaDetailScreen> {
     if (sc == null || !sc.hasClients) return;
     final pos = sc.position;
     final atBottom =
-        pos.maxScrollExtent <= 0 ||
-        pos.pixels >= pos.maxScrollExtent - 400;
+        pos.maxScrollExtent <= 0 || pos.pixels >= pos.maxScrollExtent - 400;
     if (atBottom != _trayAtBottom) {
       setState(() => _trayAtBottom = atBottom);
     }
@@ -568,7 +570,9 @@ class _MangaDetailScreenState extends ConsumerState<MangaDetailScreen> {
                       ScaffoldMessenger.of(context).showSnackBar(
                         SnackBar(
                           content: Text(
-                            AppLocalizations.of(context).searchEverywhereBusy(tagName),
+                            AppLocalizations.of(
+                              context,
+                            ).searchEverywhereBusy(tagName),
                           ),
                         ),
                       );
@@ -590,8 +594,9 @@ class _MangaDetailScreenState extends ConsumerState<MangaDetailScreen> {
                     child: Row(
                       children: [
                         Text(
-                          AppLocalizations.of(context)
-                              .searchOnSource(_sourceName ?? ''),
+                          AppLocalizations.of(
+                            context,
+                          ).searchOnSource(_sourceName ?? ''),
                           style: TextStyle(
                             color: textColor,
                             fontSize: 15,
@@ -647,7 +652,6 @@ class _MangaDetailScreenState extends ConsumerState<MangaDetailScreen> {
               ],
             ),
           ),
-
         );
       },
     );
@@ -736,7 +740,8 @@ class _MangaDetailScreenState extends ConsumerState<MangaDetailScreen> {
                             hasRead: _lastReadChapter >= 0,
                             isSelectionMode: _selectionMode,
                             selectedCount: _selectedIds.length,
-                            isAllSelected: _selectedIds.length == _chapters.length &&
+                            isAllSelected:
+                                _selectedIds.length == _chapters.length &&
                                 _chapters.isNotEmpty,
                             hasSelectionGap: _hasSelectionGap,
                             onContinuePressed: _openReader,
@@ -801,8 +806,7 @@ class _MangaDetailScreenState extends ConsumerState<MangaDetailScreen> {
                   curve: Curves.easeOut,
                   child: _TrayJumpButton(
                     atBottom: _trayAtBottom,
-                    onTap:
-                        _trayAtBottom ? _jumpTrayToTop : _jumpTrayToBottom,
+                    onTap: _trayAtBottom ? _jumpTrayToTop : _jumpTrayToBottom,
                   ),
                 ),
               ),
@@ -870,12 +874,12 @@ class _MangaDetailScreenState extends ConsumerState<MangaDetailScreen> {
       padding: const EdgeInsets.symmetric(horizontal: 16),
       sliver: SliverList(
         delegate: SliverChildBuilderDelegate((context, index) {
-          final originalIndex =
-              _reverseOrder ? _chapters.length - 1 - index : index;
+          final originalIndex = _reverseOrder
+              ? _chapters.length - 1 - index
+              : index;
           final ch = _chapters[originalIndex];
           final isRead =
-              _lastReadChapter >= 0 &&
-              (originalIndex + 1) <= _lastReadChapter;
+              _lastReadChapter >= 0 && (originalIndex + 1) <= _lastReadChapter;
           final isCurrent = originalIndex == _currentDisplayIndex;
           final downloaded = downloadedChapterIds.contains(ch.id);
           final isSelected = _selectedIds.contains(ch.id);
@@ -910,11 +914,15 @@ class _MangaDetailScreenState extends ConsumerState<MangaDetailScreen> {
                   child: Text(
                     ch.chapterNumber == 'Chapter'
                         ? ch.title
-                        : AppLocalizations.of(context).chapterNum(ch.chapterNumber),
+                        : AppLocalizations.of(
+                            context,
+                          ).chapterNum(ch.chapterNumber),
                     maxLines: 1,
                     overflow: TextOverflow.ellipsis,
                     style: TextStyle(
-                      color: isRead ? Colors.grey : (dark ? Colors.white : onSurface),
+                      color: isRead
+                          ? Colors.grey
+                          : (dark ? Colors.white : onSurface),
                       fontWeight: isCurrent
                           ? FontWeight.bold
                           : FontWeight.normal,
@@ -924,20 +932,17 @@ class _MangaDetailScreenState extends ConsumerState<MangaDetailScreen> {
                 ),
               ],
             ),
-            subtitle: Text(
-              () {
-                final metadata = _chapterMetadataSubtitle(ch);
-                if (metadata.isNotEmpty) return metadata;
-                final l = AppLocalizations.of(context);
-                if (isRead && downloaded) {
-                  return l.chapterStatusReadDownloaded;
-                }
-                if (isRead) return l.chapterStatusRead;
-                if (downloaded) return l.chapterStatusDownloaded;
-                return '';
-              }(),
-              style: const TextStyle(color: Colors.grey, fontSize: 13),
-            ),
+            subtitle: Text(() {
+              final metadata = _chapterMetadataSubtitle(ch);
+              if (metadata.isNotEmpty) return metadata;
+              final l = AppLocalizations.of(context);
+              if (isRead && downloaded) {
+                return l.chapterStatusReadDownloaded;
+              }
+              if (isRead) return l.chapterStatusRead;
+              if (downloaded) return l.chapterStatusDownloaded;
+              return '';
+            }(), style: const TextStyle(color: Colors.grey, fontSize: 13)),
             trailing: Row(
               mainAxisSize: MainAxisSize.min,
               children: [
@@ -967,8 +972,8 @@ class _MangaDetailScreenState extends ConsumerState<MangaDetailScreen> {
                       child: CircularProgressIndicator(
                         value: _downloadingChapters[ch.id]!.total > 0
                             ? (_downloadingChapters[ch.id]!.done /
-                                    _downloadingChapters[ch.id]!.total)
-                                .clamp(0.0, 1.0)
+                                      _downloadingChapters[ch.id]!.total)
+                                  .clamp(0.0, 1.0)
                             : null,
                         strokeWidth: 2.5,
                         color: dark
@@ -1013,8 +1018,7 @@ class _MangaDetailScreenState extends ConsumerState<MangaDetailScreen> {
   // Formats an ISO chapter date as relative text for recent entries and a
   // human-readable date (e.g. "Aug 22, 2026") for older ones.
   String _formatChapterDate(String iso) {
-    final dt =
-        DateTime.tryParse(iso)?.toLocal() ?? _parseRawChapterDate(iso);
+    final dt = DateTime.tryParse(iso)?.toLocal() ?? _parseRawChapterDate(iso);
     if (dt == null) return '';
     final l = AppLocalizations.of(context);
     final now = DateTime.now();
@@ -1023,8 +1027,18 @@ class _MangaDetailScreenState extends ConsumerState<MangaDetailScreen> {
     if (days == 1) return l.chapterDateYesterday;
     if (days < 7) return l.chapterDaysAgo(days);
     final months = [
-      l.jan, l.feb, l.mar, l.apr, l.may, l.jun,
-      l.jul, l.aug, l.sep, l.oct, l.nov, l.dec,
+      l.jan,
+      l.feb,
+      l.mar,
+      l.apr,
+      l.may,
+      l.jun,
+      l.jul,
+      l.aug,
+      l.sep,
+      l.oct,
+      l.nov,
+      l.dec,
     ];
     return l.dateLong(months[dt.month - 1], dt.day, dt.year);
   }
@@ -1066,7 +1080,9 @@ class _MangaDetailScreenState extends ConsumerState<MangaDetailScreen> {
     }
 
     // "Sep-05-2026"
-    for (final m in RegExp(r'^([A-Za-z]{3})-(\d{1,2})-(\d{4})$').allMatches(s)) {
+    for (final m in RegExp(
+      r'^([A-Za-z]{3})-(\d{1,2})-(\d{4})$',
+    ).allMatches(s)) {
       final d = from(
         months[m.group(1)!.toLowerCase()],
         int.tryParse(m.group(2)!),
@@ -1128,11 +1144,7 @@ class _MangaDetailScreenState extends ConsumerState<MangaDetailScreen> {
     setState(() {
       _selectedIds
         ..clear()
-        ..addAll(
-          _chapters
-              .sublist(minIndex, maxIndex + 1)
-              .map((c) => c.id),
-        );
+        ..addAll(_chapters.sublist(minIndex, maxIndex + 1).map((c) => c.id));
     });
   }
 
@@ -1174,22 +1186,21 @@ class _MangaDetailScreenState extends ConsumerState<MangaDetailScreen> {
     if (_selectedIds.isEmpty) return false;
     for (var i = 0; i < _chapters.length; i++) {
       if (!_selectedIds.contains(_chapters[i].id)) continue;
-      final isRead =
-          _lastReadChapter >= 0 &&
-          (i + 1) <= _lastReadChapter;
+      final isRead = _lastReadChapter >= 0 && (i + 1) <= _lastReadChapter;
       if (!isRead) return false;
     }
     return true;
   }
 
   bool get _isSelectedDownloaded {
-    final downloadedIds =
-        ref.read(downloadedChaptersForMangaProvider(widget.mangaId)).valueOrNull;
+    final downloadedIds = ref
+        .read(downloadedChaptersForMangaProvider(widget.mangaId))
+        .valueOrNull;
     if (downloadedIds == null) return false;
     return _selectedIds.any(downloadedIds.contains);
   }
 
-void _toggleSelectedRead() {
+  void _toggleSelectedRead() {
     // Batch read/unread toggle — flips the last-read threshold so all
     // selected chapters fall on the opposite side. Newest chapter = highest
     // number; a chapter index i is read when it maps to a chapter number
@@ -1200,9 +1211,7 @@ void _toggleSelectedRead() {
     ];
     if (selectedIndices.isEmpty) return;
 
-    final targetChapterNumbers = selectedIndices
-        .map((i) => i + 1)
-        .toList();
+    final targetChapterNumbers = selectedIndices.map((i) => i + 1).toList();
     final double newThreshold = _isAllSelectedRead
         // Mark unread: drop threshold below the lowest (oldest) selected.
         ? (targetChapterNumbers.reduce((a, b) => a < b ? a : b) - 1).toDouble()
@@ -1225,8 +1234,9 @@ void _toggleSelectedRead() {
   }
 
   Future<void> _downloadSelectedChapters() async {
-    final chapters =
-        _chapters.where((c) => _selectedIds.contains(c.id)).toList();
+    final chapters = _chapters
+        .where((c) => _selectedIds.contains(c.id))
+        .toList();
     _exitSelection();
     await _downloadChapters(chapters);
   }
@@ -1262,10 +1272,7 @@ void _toggleSelectedRead() {
           },
         );
         if (saved == null || saved.isEmpty) continue;
-        final dir = await ChapterDownloader.chapterDir(
-          widget.mangaId,
-          ch.id,
-        );
+        final dir = await ChapterDownloader.chapterDir(widget.mangaId, ch.id);
         await DatabaseHelper.instance.addDownload(
           mangaId: widget.mangaId,
           chapterId: ch.id,
@@ -1305,8 +1312,7 @@ void _toggleSelectedRead() {
   List<Chapter> _buildUnreadChapters(int count) {
     final unread = <Chapter>[];
     for (var i = 0; i < _chapters.length; i++) {
-      final isRead = _lastReadChapter >= 0 &&
-          (i + 1) <= _lastReadChapter;
+      final isRead = _lastReadChapter >= 0 && (i + 1) <= _lastReadChapter;
       if (!isRead) {
         unread.add(_chapters[i]);
         if (unread.length == count) break;
@@ -1327,9 +1333,7 @@ void _toggleSelectedRead() {
     bumpDownloadsRevision(ref);
     ScaffoldMessenger.of(context).showSnackBar(
       SnackBar(
-        content: Text(
-          AppLocalizations.of(context).deletedSelectedDownloads,
-        ),
+        content: Text(AppLocalizations.of(context).deletedSelectedDownloads),
       ),
     );
   }
@@ -1468,8 +1472,9 @@ void _toggleSelectedRead() {
               ),
             ),
             title: Text(
-              AppLocalizations.of(context)
-                  .mangaDetailBookmarkItem(bm.chapterTitle, bm.pageIndex + 1),
+              AppLocalizations.of(
+                context,
+              ).mangaDetailBookmarkItem(bm.chapterTitle, bm.pageIndex + 1),
               style: TextStyle(
                 color: dark ? Colors.white : onSurface,
                 fontSize: 15,
@@ -1538,8 +1543,9 @@ void _toggleSelectedRead() {
     final l = AppLocalizations.of(context);
     final dark = Theme.of(context).brightness == Brightness.dark;
     final scheme = Theme.of(context).colorScheme;
-    final textColor =
-        dark ? Colors.white : Theme.of(context).colorScheme.onSurface;
+    final textColor = dark
+        ? Colors.white
+        : Theme.of(context).colorScheme.onSurface;
 
     final action = await showModalBottomSheet<String>(
       context: context,
@@ -1580,14 +1586,35 @@ void _toggleSelectedRead() {
             ),
             _buildOverflowRow(ctx, RemixIcons.edit_2_line, l.mangaEdit, 'edit'),
             _buildOverflowRow(
-                ctx, RemixIcons.earth_line, l.findSimilar, 'similar'),
+              ctx,
+              RemixIcons.earth_line,
+              l.findSimilar,
+              'similar',
+            ),
             _buildOverflowRow(
-                ctx, RemixIcons.git_branch_line, l.alternatives, 'alternatives'),
-            _buildOverflowRow(ctx, RemixIcons.globe_line, l.openInBrowser, 'web'),
+              ctx,
+              RemixIcons.git_branch_line,
+              l.alternatives,
+              'alternatives',
+            ),
             _buildOverflowRow(
-                ctx, RemixIcons.external_link_line, l.createShortcut, 'shortcut'),
+              ctx,
+              RemixIcons.globe_line,
+              l.openInBrowser,
+              'web',
+            ),
             _buildOverflowRow(
-                ctx, RemixIcons.swap_line, l.replaceSource, 'replace'),
+              ctx,
+              RemixIcons.external_link_line,
+              l.createShortcut,
+              'shortcut',
+            ),
+            _buildOverflowRow(
+              ctx,
+              RemixIcons.swap_line,
+              l.replaceSource,
+              'replace',
+            ),
             const SizedBox(height: 8),
           ],
         ),
@@ -1596,7 +1623,7 @@ void _toggleSelectedRead() {
     if (action == null || !context.mounted) return;
     switch (action) {
       case 'edit':
-        _showEditMetadataSheet(context);
+        await _openEditMetadata(context);
       case 'similar':
         _openSimilarSearch();
       case 'alternatives':
@@ -1638,8 +1665,7 @@ void _toggleSelectedRead() {
     Navigator.push(
       context,
       MaterialPageRoute(
-        builder: (context) =>
-            GlobalSearchResultsScreen(searchQuery: query),
+        builder: (context) => GlobalSearchResultsScreen(searchQuery: query),
       ),
     );
   }
@@ -1651,8 +1677,7 @@ void _toggleSelectedRead() {
     Navigator.push(
       context,
       MaterialPageRoute(
-        builder: (context) =>
-            GlobalSearchResultsScreen(searchQuery: query),
+        builder: (context) => GlobalSearchResultsScreen(searchQuery: query),
       ),
     );
   }
@@ -1666,8 +1691,10 @@ void _toggleSelectedRead() {
     }
     final uri = Uri.parse(base);
     try {
-      final launched =
-          await launchUrl(uri, mode: LaunchMode.externalApplication);
+      final launched = await launchUrl(
+        uri,
+        mode: LaunchMode.externalApplication,
+      );
       if (!launched) _showMessage(l.urlUnavailable);
     } catch (_) {
       _showMessage(l.urlUnavailable);
@@ -1678,129 +1705,31 @@ void _toggleSelectedRead() {
     _showMessage(AppLocalizations.of(context).shortcutCreated);
   }
 
-  Future<void> _showEditMetadataSheet(BuildContext context) async {
-    final l = AppLocalizations.of(context);
-    final dark = Theme.of(context).brightness == Brightness.dark;
-    final textColor =
-        dark ? Colors.white : Theme.of(context).colorScheme.onSurface;
-    final details = _details;
-    await showModalBottomSheet<void>(
-      context: context,
-      isScrollControlled: true,
-      backgroundColor: dark ? const Color(0xFF2E2E33) : Colors.white,
-      shape: const RoundedRectangleBorder(
-        borderRadius: BorderRadius.vertical(top: Radius.circular(20)),
-      ),
-      builder: (ctx) => SafeArea(
-        child: Padding(
-          padding: const EdgeInsets.fromLTRB(16, 10, 16, 16),
-          child: Column(
-            mainAxisSize: MainAxisSize.min,
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              Center(
-                child: Container(
-                  width: 36,
-                  height: 4,
-                  decoration: BoxDecoration(
-                    color: dark ? Colors.white38 : Colors.black26,
-                    borderRadius: BorderRadius.circular(2),
-                  ),
-                ),
-              ),
-              const SizedBox(height: 16),
-              Text(
-                l.mangaEdit,
-                style: TextStyle(
-                  color: textColor,
-                  fontSize: 18,
-                  fontWeight: FontWeight.bold,
-                ),
-              ),
-              const SizedBox(height: 8),
-              _buildEditRow(
-                  ctx, l.editMangaTitle, widget.title, RemixIcons.edit_2_line),
-              _buildEditRow(
-                  ctx, l.editMangaCover, widget.imageUrl, RemixIcons.image_2_line),
-              _buildEditRow(
-                  ctx,
-                  l.editMangaTags,
-                  (details?.tags ?? const <String>[]).join(', '),
-                  RemixIcons.price_tag_3_line),
-              const SizedBox(height: 16),
-              Row(
-                mainAxisAlignment: MainAxisAlignment.end,
-                children: [
-                  TextButton(
-                    onPressed: () => Navigator.pop(ctx),
-                    child: Text(
-                      l.cancel,
-                      style: TextStyle(
-                        color: Theme.of(context).colorScheme.primary,
-                        fontWeight: FontWeight.bold,
-                      ),
-                    ),
-                  ),
-                  const SizedBox(width: 8),
-                  FilledButton(
-                    onPressed: () {
-                      Navigator.pop(ctx);
-                      _showMessage(l.metadataSaved);
-                    },
-                    child: Text(l.save),
-                  ),
-                ],
-              ),
-            ],
-          ),
+  Future<void> _openEditMetadata(BuildContext context) async {
+    final edited = await Navigator.push<bool>(
+      context,
+      MaterialPageRoute(
+        builder: (_) => EditMangaScreen(
+          mangaId: widget.mangaId,
+          title: widget.title,
+          imageUrl: widget.imageUrl,
+          sourceId: widget.sourceId,
         ),
       ),
     );
-  }
-
-  Widget _buildEditRow(
-      BuildContext ctx, String label, String value, IconData icon) {
-    final subtitleColor = Theme.of(ctx).brightness == Brightness.dark
-        ? Colors.white70
-        : const Color(0xFF49454F);
-    return Padding(
-      padding: const EdgeInsets.symmetric(vertical: 8),
-      child: Row(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          Icon(icon, size: 20, color: Theme.of(ctx).colorScheme.primary),
-          const SizedBox(width: 12),
-          Expanded(
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                Text(
-                  label,
-                  style: TextStyle(color: subtitleColor, fontSize: 13),
-                ),
-                const SizedBox(height: 2),
-                Text(
-                  value.isEmpty ? '—' : value,
-                  maxLines: 2,
-                  overflow: TextOverflow.ellipsis,
-                  style: TextStyle(
-                    color: Theme.of(ctx).colorScheme.onSurface,
-                    fontSize: 15,
-                  ),
-                ),
-              ],
-            ),
-          ),
-        ],
-      ),
-    );
+    if (edited == true && context.mounted) {
+      setState(() {});
+      bumpFavoritesRevision(ref);
+      _showMessage(AppLocalizations.of(context).metadataSaved);
+    }
   }
 
   Future<void> _showReplaceSourceSheet(BuildContext context) async {
     final l = AppLocalizations.of(context);
     final dark = Theme.of(context).brightness == Brightness.dark;
-    final textColor =
-        dark ? Colors.white : Theme.of(context).colorScheme.onSurface;
+    final textColor = dark
+        ? Colors.white
+        : Theme.of(context).colorScheme.onSurface;
     final sources = ref.read(sourcesProvider);
     if (sources.isEmpty) {
       _showMessage(l.noSourceToReplace);
@@ -1846,8 +1775,9 @@ void _toggleSelectedRead() {
                 children: [
                   for (final source in sources)
                     ListTile(
-                      contentPadding:
-                          const EdgeInsets.symmetric(horizontal: 16),
+                      contentPadding: const EdgeInsets.symmetric(
+                        horizontal: 16,
+                      ),
                       leading: Icon(
                         RemixIcons.stack_line,
                         color: Theme.of(ctx).colorScheme.primary,
@@ -1891,348 +1821,375 @@ void _toggleSelectedRead() {
   Future<void> _showSaveMangaDialog(BuildContext context) async {
     final l = AppLocalizations.of(context);
     final dark = Theme.of(context).brightness == Brightness.dark;
-    final textColor =
-        dark ? Colors.white : Theme.of(context).colorScheme.onSurface;
+    final textColor = dark
+        ? Colors.white
+        : Theme.of(context).colorScheme.onSurface;
     final accent = Theme.of(context).colorScheme.primary;
     final chapterTotal = _chapters.length;
 
-    final config = await showDialog<
-        ({String target, int count, bool startNow})>(
-      context: context,
-      builder: (ctx) => StatefulBuilder(
-        builder: (ctx, setDialogState) {
-          var target = 'all';
-          var firstCount = 5;
-          var unreadCount = 5;
-          var startNow = true;
-          var destIndex = 0;
-          var formatIndex = 0;
+    final config =
+        await showDialog<({String target, int count, bool startNow})>(
+          context: context,
+          builder: (ctx) => StatefulBuilder(
+            builder: (ctx, setDialogState) {
+              var target = 'all';
+              var firstCount = 5;
+              var unreadCount = 5;
+              var startNow = true;
+              var destIndex = 0;
+              var formatIndex = 0;
 
-          final counts = [1, 2, 3, 5, 10, 15, 20, 30, 50, 100]
-              .where((c) => c <= chapterTotal)
-              .toList();
-          final countChoices =
-              counts.isEmpty ? const [5, 10, 20, 30, 50] : counts;
-          if (!countChoices.contains(firstCount)) {
-            firstCount = countChoices.last;
-          }
-          if (!countChoices.contains(unreadCount)) {
-            unreadCount = countChoices.last;
-          }
+              final counts = [
+                1,
+                2,
+                3,
+                5,
+                10,
+                15,
+                20,
+                30,
+                50,
+                100,
+              ].where((c) => c <= chapterTotal).toList();
+              final countChoices = counts.isEmpty
+                  ? const [5, 10, 20, 30, 50]
+                  : counts;
+              if (!countChoices.contains(firstCount)) {
+                firstCount = countChoices.last;
+              }
+              if (!countChoices.contains(unreadCount)) {
+                unreadCount = countChoices.last;
+              }
 
-          final destOptions = [
-            l.destInternalStorage,
-            l.destAppFiles,
-            l.destCacheFolder,
-          ];
-          final formatOptions = [
-            l.formatAutomatic,
-            l.formatCbz,
-            l.formatImages,
-          ];
+              final destOptions = [
+                l.destInternalStorage,
+                l.destAppFiles,
+                l.destCacheFolder,
+              ];
+              final formatOptions = [
+                l.formatAutomatic,
+                l.formatCbz,
+                l.formatImages,
+              ];
 
-          Widget countPicker(int value, void Function(int) onChanged) {
-            return DropdownButton<int>(
-              value: value,
-              isDense: true,
-              underline: const SizedBox(),
-              style: TextStyle(
-                color: accent,
-                fontSize: 14,
-                fontWeight: FontWeight.bold,
-              ),
-              dropdownColor: dark ? const Color(0xFF2E2E33) : Colors.white,
-              items: [
-                for (final n in countChoices)
-                  DropdownMenuItem(
-                    value: n,
-                    child: Text(
-                      '$n',
-                      style: TextStyle(
-                        color: dark ? Colors.white : const Color(0xFF1C1B1F),
-                        fontWeight: FontWeight.bold,
-                      ),
-                    ),
+              Widget countPicker(int value, void Function(int) onChanged) {
+                return DropdownButton<int>(
+                  value: value,
+                  isDense: true,
+                  underline: const SizedBox(),
+                  style: TextStyle(
+                    color: accent,
+                    fontSize: 14,
+                    fontWeight: FontWeight.bold,
                   ),
-              ],
-              onChanged: (v) {
-                if (v != null) onChanged(v);
-              },
-            );
-          }
-
-          Widget labeledPicker(
-            String label,
-            int index,
-            List<String> options,
-            void Function(int) onChanged,
-          ) {
-            return Padding(
-              padding: const EdgeInsets.only(top: 8),
-              child: Row(
-                children: [
-                  Expanded(
-                    child: Text(
-                      label,
-                      style: TextStyle(
-                        color: dark ? Colors.white70 : const Color(0xFF49454F),
-                        fontSize: 14,
-                      ),
-                    ),
-                  ),
-                  DropdownButton<int>(
-                    value: index,
-                    isDense: true,
-                    underline: const SizedBox(),
-                    style: TextStyle(
-                      color: accent,
-                      fontSize: 14,
-                      fontWeight: FontWeight.bold,
-                    ),
-                    dropdownColor:
-                        dark ? const Color(0xFF2E2E33) : Colors.white,
-                    items: [
-                      for (var i = 0; i < options.length; i++)
-                        DropdownMenuItem(
-                          value: i,
-                          child: Text(
-                            options[i],
-                            style: TextStyle(
-                              color:
-                                  dark ? Colors.white : const Color(0xFF1C1B1F),
-                              fontWeight: FontWeight.bold,
-                            ),
+                  dropdownColor: dark ? const Color(0xFF2E2E33) : Colors.white,
+                  items: [
+                    for (final n in countChoices)
+                      DropdownMenuItem(
+                        value: n,
+                        child: Text(
+                          '$n',
+                          style: TextStyle(
+                            color: dark
+                                ? Colors.white
+                                : const Color(0xFF1C1B1F),
+                            fontWeight: FontWeight.bold,
                           ),
                         ),
-                    ],
-                    onChanged: (v) {
-                      if (v != null) onChanged(v);
-                    },
-                  ),
-                ],
-              ),
-            );
-          }
+                      ),
+                  ],
+                  onChanged: (v) {
+                    if (v != null) onChanged(v);
+                  },
+                );
+              }
 
-          return AlertDialog(
-            backgroundColor: dark ? const Color(0xFF2E2E33) : Colors.white,
-            shape: RoundedRectangleBorder(
-              borderRadius: BorderRadius.circular(24),
-            ),
-            title: Text(
-              l.saveManga,
-              style: TextStyle(
-                color: textColor,
-                fontSize: 18,
-                fontWeight: FontWeight.bold,
-              ),
-            ),
-            content: SingleChildScrollView(
-              child: Column(
-                mainAxisSize: MainAxisSize.min,
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  RadioGroup<String>(
-                    groupValue: target,
-                    onChanged: (v) {
-                      if (v != null) setDialogState(() => target = v);
-                    },
-                    child: Column(
-                      crossAxisAlignment: CrossAxisAlignment.start,
-                      children: [
-                        RadioListTile<String>(
-                          value: 'all',
-                          activeColor: accent,
-                          contentPadding: EdgeInsets.zero,
+              Widget labeledPicker(
+                String label,
+                int index,
+                List<String> options,
+                void Function(int) onChanged,
+              ) {
+                return Padding(
+                  padding: const EdgeInsets.only(top: 8),
+                  child: Row(
+                    children: [
+                      Expanded(
+                        child: Text(
+                          label,
+                          style: TextStyle(
+                            color: dark
+                                ? Colors.white70
+                                : const Color(0xFF49454F),
+                            fontSize: 14,
+                          ),
+                        ),
+                      ),
+                      DropdownButton<int>(
+                        value: index,
+                        isDense: true,
+                        underline: const SizedBox(),
+                        style: TextStyle(
+                          color: accent,
+                          fontSize: 14,
+                          fontWeight: FontWeight.bold,
+                        ),
+                        dropdownColor: dark
+                            ? const Color(0xFF2E2E33)
+                            : Colors.white,
+                        items: [
+                          for (var i = 0; i < options.length; i++)
+                            DropdownMenuItem(
+                              value: i,
+                              child: Text(
+                                options[i],
+                                style: TextStyle(
+                                  color: dark
+                                      ? Colors.white
+                                      : const Color(0xFF1C1B1F),
+                                  fontWeight: FontWeight.bold,
+                                ),
+                              ),
+                            ),
+                        ],
+                        onChanged: (v) {
+                          if (v != null) onChanged(v);
+                        },
+                      ),
+                    ],
+                  ),
+                );
+              }
+
+              return AlertDialog(
+                backgroundColor: dark ? const Color(0xFF2E2E33) : Colors.white,
+                shape: RoundedRectangleBorder(
+                  borderRadius: BorderRadius.circular(24),
+                ),
+                title: Text(
+                  l.saveManga,
+                  style: TextStyle(
+                    color: textColor,
+                    fontSize: 18,
+                    fontWeight: FontWeight.bold,
+                  ),
+                ),
+                content: SingleChildScrollView(
+                  child: Column(
+                    mainAxisSize: MainAxisSize.min,
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      RadioGroup<String>(
+                        groupValue: target,
+                        onChanged: (v) {
+                          if (v != null) setDialogState(() => target = v);
+                        },
+                        child: Column(
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          children: [
+                            RadioListTile<String>(
+                              value: 'all',
+                              activeColor: accent,
+                              contentPadding: EdgeInsets.zero,
+                              title: Text(
+                                l.downloadWholeManga(chapterTotal),
+                                style: TextStyle(
+                                  color: textColor,
+                                  fontWeight: FontWeight.w600,
+                                ),
+                              ),
+                            ),
+                            RadioListTile<String>(
+                              value: 'first',
+                              activeColor: accent,
+                              contentPadding: EdgeInsets.zero,
+                              title: Row(
+                                children: [
+                                  Expanded(
+                                    child: Text(
+                                      l.downloadFirstChapters(firstCount),
+                                      style: TextStyle(
+                                        color: textColor,
+                                        fontWeight: FontWeight.w600,
+                                      ),
+                                    ),
+                                  ),
+                                  countPicker(firstCount, (v) {
+                                    setDialogState(() => firstCount = v);
+                                    target = 'first';
+                                  }),
+                                ],
+                              ),
+                            ),
+                            RadioListTile<String>(
+                              value: 'unread',
+                              activeColor: accent,
+                              contentPadding: EdgeInsets.zero,
+                              title: Row(
+                                children: [
+                                  Expanded(
+                                    child: Text(
+                                      l.downloadNextUnread(unreadCount),
+                                      style: TextStyle(
+                                        color: textColor,
+                                        fontWeight: FontWeight.w600,
+                                      ),
+                                    ),
+                                  ),
+                                  countPicker(unreadCount, (v) {
+                                    setDialogState(() => unreadCount = v);
+                                    target = 'unread';
+                                  }),
+                                ],
+                              ),
+                            ),
+                          ],
+                        ),
+                      ),
+                      const SizedBox(height: 8),
+                      Container(
+                        padding: const EdgeInsets.symmetric(
+                          horizontal: 12,
+                          vertical: 10,
+                        ),
+                        decoration: BoxDecoration(
+                          color: dark
+                              ? Colors.white.withValues(alpha: 0.06)
+                              : accent.withValues(alpha: 0.08),
+                          borderRadius: BorderRadius.circular(12),
+                        ),
+                        child: Row(
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          children: [
+                            Icon(
+                              RemixIcons.information_line,
+                              size: 18,
+                              color: dark
+                                  ? Colors.white54
+                                  : const Color(0xFF49454F),
+                            ),
+                            const SizedBox(width: 8),
+                            Expanded(
+                              child: Text(
+                                l.downloadHint,
+                                style: TextStyle(
+                                  color: dark
+                                      ? Colors.white70
+                                      : const Color(0xFF49454F),
+                                  fontSize: 12,
+                                  height: 1.35,
+                                ),
+                              ),
+                            ),
+                          ],
+                        ),
+                      ),
+                      SwitchListTile(
+                        value: startNow,
+                        onChanged: (v) => setDialogState(() => startNow = v),
+                        activeThumbColor: accent,
+                        contentPadding: EdgeInsets.zero,
+                        title: Text(
+                          l.startDownload,
+                          style: TextStyle(
+                            color: textColor,
+                            fontWeight: FontWeight.w600,
+                          ),
+                        ),
+                        subtitle: Text(
+                          l.startDownloadQueueHint,
+                          style: TextStyle(
+                            color: dark
+                                ? Colors.white54
+                                : const Color(0xFF6B6B6B),
+                            fontSize: 12,
+                          ),
+                        ),
+                      ),
+                      const Divider(height: 16, color: Colors.white24),
+                      Theme(
+                        data: Theme.of(
+                          ctx,
+                        ).copyWith(dividerColor: Colors.transparent),
+                        child: ExpansionTile(
+                          tilePadding: EdgeInsets.zero,
+                          childrenPadding: EdgeInsets.zero,
+                          iconColor: textColor,
+                          collapsedIconColor: textColor,
+                          textColor: textColor,
+                          collapsedTextColor: textColor,
                           title: Text(
-                            l.downloadWholeManga(chapterTotal),
+                            l.moreOptions,
                             style: TextStyle(
                               color: textColor,
                               fontWeight: FontWeight.w600,
                             ),
                           ),
-                        ),
-                        RadioListTile<String>(
-                          value: 'first',
-                          activeColor: accent,
-                          contentPadding: EdgeInsets.zero,
-                          title: Row(
-                            children: [
-                              Expanded(
-                                child: Text(
-                                  l.downloadFirstChapters(firstCount),
-                                  style: TextStyle(
-                                    color: textColor,
-                                    fontWeight: FontWeight.w600,
-                                  ),
-                                ),
-                              ),
-                              countPicker(firstCount, (v) {
-                                setDialogState(() => firstCount = v);
-                                target = 'first';
-                              }),
-                            ],
-                          ),
-                        ),
-                        RadioListTile<String>(
-                          value: 'unread',
-                          activeColor: accent,
-                          contentPadding: EdgeInsets.zero,
-                          title: Row(
-                            children: [
-                              Expanded(
-                                child: Text(
-                                  l.downloadNextUnread(unreadCount),
-                                  style: TextStyle(
-                                    color: textColor,
-                                    fontWeight: FontWeight.w600,
-                                  ),
-                                ),
-                              ),
-                              countPicker(unreadCount, (v) {
-                                setDialogState(() => unreadCount = v);
-                                target = 'unread';
-                              }),
-                            ],
-                          ),
-                        ),
-                      ],
-                    ),
-                  ),
-                  const SizedBox(height: 8),
-                  Container(
-                    padding: const EdgeInsets.symmetric(
-                      horizontal: 12,
-                      vertical: 10,
-                    ),
-                    decoration: BoxDecoration(
-                      color: dark
-                          ? Colors.white.withValues(alpha: 0.06)
-                          : accent.withValues(alpha: 0.08),
-                      borderRadius: BorderRadius.circular(12),
-                    ),
-                    child: Row(
-                      crossAxisAlignment: CrossAxisAlignment.start,
-                      children: [
-                        Icon(RemixIcons.information_line,
-                            size: 18,
-                            color:
-                                dark ? Colors.white54 : const Color(0xFF49454F)),
-                        const SizedBox(width: 8),
-                        Expanded(
-                          child: Text(
-                            l.downloadHint,
-                            style: TextStyle(
-                              color: dark
-                                  ? Colors.white70
-                                  : const Color(0xFF49454F),
-                              fontSize: 12,
-                              height: 1.35,
+                          children: [
+                            labeledPicker(
+                              l.destinationDirectory,
+                              destIndex,
+                              destOptions,
+                              (v) {
+                                setDialogState(() => destIndex = v);
+                              },
                             ),
-                          ),
-                        ),
-                      ],
-                    ),
-                  ),
-                  SwitchListTile(
-                    value: startNow,
-                    onChanged: (v) => setDialogState(() => startNow = v),
-                    activeThumbColor: accent,
-                    contentPadding: EdgeInsets.zero,
-                    title: Text(
-                      l.startDownload,
-                      style: TextStyle(
-                        color: textColor,
-                        fontWeight: FontWeight.w600,
-                      ),
-                    ),
-                    subtitle: Text(
-                      l.startDownloadQueueHint,
-                      style: TextStyle(
-                        color:
-                            dark ? Colors.white54 : const Color(0xFF6B6B6B),
-                        fontSize: 12,
-                      ),
-                    ),
-                  ),
-                  const Divider(height: 16, color: Colors.white24),
-                  Theme(
-                    data: Theme.of(ctx).copyWith(
-                      dividerColor: Colors.transparent,
-                    ),
-                    child: ExpansionTile(
-                      tilePadding: EdgeInsets.zero,
-                      childrenPadding: EdgeInsets.zero,
-                      iconColor: textColor,
-                      collapsedIconColor: textColor,
-                      textColor: textColor,
-                      collapsedTextColor: textColor,
-                      title: Text(
-                        l.moreOptions,
-                        style: TextStyle(
-                          color: textColor,
-                          fontWeight: FontWeight.w600,
+                            labeledPicker(
+                              l.preferredFormat,
+                              formatIndex,
+                              formatOptions,
+                              (v) {
+                                setDialogState(() => formatIndex = v);
+                              },
+                            ),
+                            const SizedBox(height: 8),
+                          ],
                         ),
                       ),
-                      children: [
-                        labeledPicker(l.destinationDirectory, destIndex,
-                            destOptions, (v) {
-                          setDialogState(() => destIndex = v);
-                        }),
-                        labeledPicker(l.preferredFormat, formatIndex,
-                            formatOptions, (v) {
-                          setDialogState(() => formatIndex = v);
-                        }),
-                        const SizedBox(height: 8),
-                      ],
+                    ],
+                  ),
+                ),
+                actionsPadding: const EdgeInsets.fromLTRB(16, 0, 16, 16),
+                actionsAlignment: MainAxisAlignment.end,
+                actions: [
+                  TextButton(
+                    onPressed: () => Navigator.pop(ctx),
+                    style: TextButton.styleFrom(foregroundColor: accent),
+                    child: Text(
+                      l.cancel,
+                      style: const TextStyle(fontWeight: FontWeight.bold),
+                    ),
+                  ),
+                  FilledButton(
+                    onPressed: chapterTotal == 0
+                        ? null
+                        : () => Navigator.pop(ctx, (
+                            target: target,
+                            count: target == 'first' ? firstCount : unreadCount,
+                            startNow: startNow,
+                          )),
+                    style: FilledButton.styleFrom(
+                      foregroundColor: dark
+                          ? const Color(0xFF1C1B1F)
+                          : Colors.white,
+                      backgroundColor: accent,
+                    ),
+                    child: Text(
+                      l.download,
+                      style: const TextStyle(fontWeight: FontWeight.bold),
                     ),
                   ),
                 ],
-              ),
-            ),
-            actionsPadding:
-                const EdgeInsets.fromLTRB(16, 0, 16, 16),
-            actionsAlignment: MainAxisAlignment.end,
-            actions: [
-              TextButton(
-                onPressed: () => Navigator.pop(ctx),
-                style: TextButton.styleFrom(
-                  foregroundColor: accent,
-                ),
-                child: Text(
-                  l.cancel,
-                  style: const TextStyle(fontWeight: FontWeight.bold),
-                ),
-              ),
-              FilledButton(
-                onPressed: chapterTotal == 0
-                    ? null
-                    : () => Navigator.pop(
-                          ctx,
-                          (target: target, count: target == 'first'
-                              ? firstCount
-                              : unreadCount, startNow: startNow),
-                        ),
-                style: FilledButton.styleFrom(
-                  foregroundColor: dark ? const Color(0xFF1C1B1F) : Colors.white,
-                  backgroundColor: accent,
-                ),
-                child: Text(
-                  l.download,
-                  style: const TextStyle(fontWeight: FontWeight.bold),
-                ),
-              ),
-            ],
-          );
-        },
-      ),
-    );
+              );
+            },
+          ),
+        );
 
     if (config == null || !context.mounted) return;
     if (!config.startNow) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text(l.downloadsQueued)),
-      );
+      ScaffoldMessenger.of(
+        context,
+      ).showSnackBar(SnackBar(content: Text(l.downloadsQueued)));
       return;
     }
     final List<Chapter> targets;
@@ -2245,9 +2202,9 @@ void _toggleSelectedRead() {
         targets = _chapters.toList();
     }
     if (targets.isEmpty) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text(l.downloadNotReady)),
-      );
+      ScaffoldMessenger.of(
+        context,
+      ).showSnackBar(SnackBar(content: Text(l.downloadNotReady)));
       return;
     }
     await _downloadChapters(targets);
@@ -2255,9 +2212,9 @@ void _toggleSelectedRead() {
 
   void _showMessage(String message) {
     if (!mounted) return;
-    ScaffoldMessenger.of(context).showSnackBar(
-      SnackBar(content: Text(message)),
-    );
+    ScaffoldMessenger.of(
+      context,
+    ).showSnackBar(SnackBar(content: Text(message)));
   }
 
   Widget _buildHeaderSection() {
@@ -2350,9 +2307,9 @@ void _toggleSelectedRead() {
                                     ? Colors.redAccent
                                     : (dark
                                           ? Colors.white
-                                          : Theme.of(context)
-                                                .colorScheme
-                                                .onSurface),
+                                          : Theme.of(
+                                              context,
+                                            ).colorScheme.onSurface),
                                 size: 18,
                               ),
                               const SizedBox(width: 8),
@@ -2491,8 +2448,12 @@ void _toggleSelectedRead() {
     for (final c in name.codeUnits) {
       hash = (hash * 31 + c) & 0x7FFFFFFF;
     }
-    final bg = HSLColor.fromAHSL(1, (hash % 360).toDouble(), 0.35, 0.35)
-        .toColor();
+    final bg = HSLColor.fromAHSL(
+      1,
+      (hash % 360).toDouble(),
+      0.35,
+      0.35,
+    ).toColor();
 
     Widget fallback() => Center(
       child: Text(
@@ -2513,10 +2474,10 @@ void _toggleSelectedRead() {
           width: 20,
           height: 20,
           child: iconUrl.isNotEmpty
-              ? Image.network(
-                  iconUrl,
+              ? SafeNetworkImage(
+                  imageUrl: iconUrl,
                   fit: BoxFit.cover,
-                  errorBuilder: (_, _, _) => fallback(),
+                  errorWidget: (context, url, error) => fallback(),
                 )
               : fallback(),
         ),
@@ -2586,7 +2547,8 @@ void _toggleSelectedRead() {
 
     return LayoutBuilder(
       builder: (context, constraints) {
-        final canShowToggle = collapseByDefault &&
+        final canShowToggle =
+            collapseByDefault &&
             _exceedsLineLimit(description, constraints.maxWidth - 32);
         return Padding(
           padding: const EdgeInsets.symmetric(horizontal: 16),
@@ -2609,7 +2571,8 @@ void _toggleSelectedRead() {
                   if (canShowToggle)
                     GestureDetector(
                       onTap: () => setState(
-                          () => _descriptionExpanded = !_descriptionExpanded),
+                        () => _descriptionExpanded = !_descriptionExpanded,
+                      ),
                       child: Text(
                         _descriptionExpanded ? l.showLess : l.showMore,
                         style: TextStyle(
@@ -2625,7 +2588,8 @@ void _toggleSelectedRead() {
               GestureDetector(
                 onTap: canShowToggle
                     ? () => setState(
-                        () => _descriptionExpanded = !_descriptionExpanded)
+                        () => _descriptionExpanded = !_descriptionExpanded,
+                      )
                     : null,
                 child: AnimatedSize(
                   duration: const Duration(milliseconds: 250),
@@ -2799,9 +2763,7 @@ void _toggleSelectedRead() {
                       errorWidget: (context, url, error) => Container(
                         height: 120,
                         width: 100,
-                        color: dark
-                            ? const Color(0xFF2C2C2E)
-                            : Colors.white,
+                        color: dark ? const Color(0xFF2C2C2E) : Colors.white,
                         child: Icon(
                           RemixIcons.book_open_line,
                           color: dark ? Colors.white38 : Colors.black38,
@@ -2829,7 +2791,6 @@ void _toggleSelectedRead() {
     );
   }
 }
-
 
 class _SheetDragHandle extends StatelessWidget {
   const _SheetDragHandle();
@@ -2938,16 +2899,8 @@ class _SheetHeaderDelegate extends SliverPersistentHeaderDelegate {
             AnimatedSwitcher(
               duration: const Duration(milliseconds: 200),
               child: isSelectionMode
-                  ? _buildSelectionHeader(
-                      context,
-                      dark: dark,
-                      scheme: scheme,
-                    )
-                  : _buildDefaultHeader(
-                      context,
-                      dark: dark,
-                      scheme: scheme,
-                    ),
+                  ? _buildSelectionHeader(context, dark: dark, scheme: scheme)
+                  : _buildDefaultHeader(context, dark: dark, scheme: scheme),
             ),
           ],
         ),
@@ -3016,11 +2969,7 @@ class _SheetHeaderDelegate extends SliverPersistentHeaderDelegate {
         ] else ...[
           // Continue/Read action, only for the chapter list tab.
           if (showContinueButton) ...[
-            _buildPrimaryButton(
-              context: context,
-              dark: dark,
-              scheme: scheme,
-            ),
+            _buildPrimaryButton(context: context, dark: dark, scheme: scheme),
             const SizedBox(width: 6),
           ],
           _buildExpandButton(dark: dark, scheme: scheme),
@@ -3055,7 +3004,10 @@ class _SheetHeaderDelegate extends SliverPersistentHeaderDelegate {
         const Spacer(),
         if (isAllSelected)
           IconButton(
-            icon: Icon(RemixIcons.checkbox_multiple_blank_line, color: iconColor),
+            icon: Icon(
+              RemixIcons.checkbox_multiple_blank_line,
+              color: iconColor,
+            ),
             tooltip: AppLocalizations.of(context).deselectAll,
             onPressed: onDeselectAll,
           )
@@ -3127,8 +3079,7 @@ class _SheetHeaderDelegate extends SliverPersistentHeaderDelegate {
             ),
           ),
           // Badge sits on the button's top-right corner, clear of the icon.
-          if (badge != null)
-            Positioned(top: -5, right: -5, child: badge),
+          if (badge != null) Positioned(top: -5, right: -5, child: badge),
         ],
       ),
     );
@@ -3156,10 +3107,7 @@ class _SheetHeaderDelegate extends SliverPersistentHeaderDelegate {
   }
 
   // Subtle chevron that expands the tray.
-  Widget _buildExpandButton({
-    required bool dark,
-    required ColorScheme scheme,
-  }) {
+  Widget _buildExpandButton({required bool dark, required ColorScheme scheme}) {
     return GestureDetector(
       onTap: onBarTap,
       child: Container(
@@ -3170,7 +3118,9 @@ class _SheetHeaderDelegate extends SliverPersistentHeaderDelegate {
           border: dark ? null : Border.all(color: Colors.black12),
         ),
         child: Icon(
-          isExpanded ? RemixIcons.arrow_down_s_line : RemixIcons.arrow_up_s_line,
+          isExpanded
+              ? RemixIcons.arrow_down_s_line
+              : RemixIcons.arrow_up_s_line,
           color: dark ? Colors.white : scheme.onSurface,
           size: 16,
         ),

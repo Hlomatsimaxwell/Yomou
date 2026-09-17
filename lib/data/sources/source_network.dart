@@ -8,11 +8,7 @@ import 'package:shared_preferences/shared_preferences.dart';
 /// user-agent, the domain (mirrors/CDNs) and the HTTP timeouts a source uses,
 /// without touching code. Sources built on [DioSource] pick these values up.
 class SourceNetworkConfig {
-  SourceNetworkConfig({
-    this.userAgent,
-    this.baseUrlOverride,
-    this.timeout,
-  });
+  SourceNetworkConfig({this.userAgent, this.baseUrlOverride, this.timeout});
 
   static const String _uaKeyPrefix = 'source_network_ua_';
   static const String _domainKeyPrefix = 'source_network_domain_';
@@ -72,11 +68,16 @@ abstract class DioSource {
   /// Identifier used to scope per-source network overrides.
   String get networkSourceId;
 
+  /// Source has no alternative cover artwork by default (subclasses that do
+  /// expose alternate covers override this, e.g. MangaDex volume art).
+  Future<List<(String url, String? label)>> getAltCovers(String mangaId) async {
+    return [];
+  }
+
   /// Effective base URL, possibly overridden by the user's domain override.
-  Future<String> get effectiveBaseUrl =>
-      SourceNetworkConfig.forSource(networkSourceId).then(
-        (c) => c.baseUrlOverride?.replaceAll(RegExp(r'/$'), '') ?? baseUrl,
-      );
+  Future<String> get effectiveBaseUrl => SourceNetworkConfig.forSource(
+    networkSourceId,
+  ).then((c) => c.baseUrlOverride?.replaceAll(RegExp(r'/$'), '') ?? baseUrl);
 
   String get baseUrl;
 
@@ -89,8 +90,10 @@ abstract class DioSource {
     if (existing != null) return existing;
 
     final config = await SourceNetworkConfig.forSource(networkSourceId);
-    final effectiveBaseUrl = (config.baseUrlOverride ?? baseUrl)
-        .replaceAll(RegExp(r'/$'), '');
+    final effectiveBaseUrl = (config.baseUrlOverride ?? baseUrl).replaceAll(
+      RegExp(r'/$'),
+      '',
+    );
 
     final mergedHeaders = <String, dynamic>{
       if (headers != null) ...headers!,

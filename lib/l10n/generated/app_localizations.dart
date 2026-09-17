@@ -2173,6 +2173,132 @@ abstract class AppLocalizations {
   /// In en, this message translates to:
   /// **'Cache'**
   String get destCacheFolder;
+
+  /// No description provided for @historySelectedCount.
+  ///
+  /// In en, this message translates to:
+  /// **'{count} selected'**
+  String historySelectedCount(int count);
+
+  /// No description provided for @historyRemovedCount.
+  ///
+  /// In en, this message translates to:
+  /// **'{count} removed from history'**
+  String historyRemovedCount(int count);
+
+  /// No description provided for @historyUndo.
+  ///
+  /// In en, this message translates to:
+  /// **'Undo'**
+  String get historyUndo;
+
+  /// No description provided for @historyEdit.
+  ///
+  /// In en, this message translates to:
+  /// **'Edit'**
+  String get historyEdit;
+
+  /// No description provided for @historyMarkCompleted.
+  ///
+  /// In en, this message translates to:
+  /// **'Mark as completed'**
+  String get historyMarkCompleted;
+
+  /// No description provided for @historyComingSoon.
+  ///
+  /// In en, this message translates to:
+  /// **'Coming soon'**
+  String get historyComingSoon;
+
+  /// No description provided for @historyFavoritedCount.
+  ///
+  /// In en, this message translates to:
+  /// **'{count} added to favorites'**
+  String historyFavoritedCount(int count);
+
+  /// No description provided for @historyAlreadyFavorite.
+  ///
+  /// In en, this message translates to:
+  /// **'Already in favorites'**
+  String get historyAlreadyFavorite;
+
+  /// No description provided for @editPickFromFiles.
+  ///
+  /// In en, this message translates to:
+  /// **'Pick image file'**
+  String get editPickFromFiles;
+
+  /// No description provided for @editCoversFromSources.
+  ///
+  /// In en, this message translates to:
+  /// **'Covers from other sources'**
+  String get editCoversFromSources;
+
+  /// No description provided for @editUseDefaultCover.
+  ///
+  /// In en, this message translates to:
+  /// **'Use default cover'**
+  String get editUseDefaultCover;
+
+  /// No description provided for @editCustomCover.
+  ///
+  /// In en, this message translates to:
+  /// **'Custom'**
+  String get editCustomCover;
+
+  /// No description provided for @editTitleHint.
+  ///
+  /// In en, this message translates to:
+  /// **'Manga title'**
+  String get editTitleHint;
+
+  /// No description provided for @editChangesNote.
+  ///
+  /// In en, this message translates to:
+  /// **'These changes will affect how manga is displayed in the app.'**
+  String get editChangesNote;
+
+  /// No description provided for @editNoAltCovers.
+  ///
+  /// In en, this message translates to:
+  /// **'No alternative covers available for this source.'**
+  String get editNoAltCovers;
+
+  /// No description provided for @editCoverSaveFailed.
+  ///
+  /// In en, this message translates to:
+  /// **'Could not save the picked image.'**
+  String get editCoverSaveFailed;
+
+  /// No description provided for @editSelectOneToEdit.
+  ///
+  /// In en, this message translates to:
+  /// **'Select exactly one manga to edit'**
+  String get editSelectOneToEdit;
+
+  /// No description provided for @coversProgress.
+  ///
+  /// In en, this message translates to:
+  /// **'{done} / {total} sources'**
+  String coversProgress(int done, int total);
+
+  /// No description provided for @coversCurrent.
+  ///
+  /// In en, this message translates to:
+  /// **'Current cover'**
+  String get coversCurrent;
+
+  /// No description provided for @coversUseThis.
+  ///
+  /// In en, this message translates to:
+  /// **'Use this cover'**
+  String get coversUseThis;
+
+  /// No description provided for @coversNoResults.
+  ///
+  /// In en, this message translates to:
+  /// **'No alternative covers found'**
+  String get coversNoResults;
 }
 
 class _AppLocalizationsDelegate

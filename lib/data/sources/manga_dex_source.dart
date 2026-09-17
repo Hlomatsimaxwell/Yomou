@@ -260,6 +260,37 @@ class MangaDexSource implements MangaSource {
     return 'Unknown Title';
   }
 
+  // Fetch alternative cover artworks (one per volume) via the cover_art
+  // endpoint, as (url, label) pairs.
+  @override
+  Future<List<(String url, String? label)>> getAltCovers(String mangaId) async {
+    try {
+      final response = await _dio.get(
+        '/manga/$mangaId/covers',
+        queryParameters: {'limit': 96},
+      );
+      final data = response.data['data'] as List? ?? [];
+      final covers = <(String, String?)>[];
+      for (final item in data) {
+        final attrs = item['attributes'] ?? {};
+        final fileName = attrs['fileName']?.toString() ?? '';
+        if (fileName.isEmpty) continue;
+        final volume = attrs['volume']?.toString() ?? '';
+        final description = _extractLocalized(attrs['description'] ?? {});
+        final label = description.isNotEmpty
+            ? description
+            : (volume.isNotEmpty ? 'Volume $volume' : null);
+        covers.add((
+          'https://uploads.mangadex.org/covers/$mangaId/$fileName.256.jpg',
+          label,
+        ));
+      }
+      return covers;
+    } catch (_) {
+      return [];
+    }
+  }
+
   // Fetch the full tag list from MangaDex and build a name→id map.
   Future<Map<String, String>> _getTagNameToId() async {
     if (_tagNameToId != null) return _tagNameToId!;

@@ -527,5 +527,57 @@
   "formatImages": "Images",
   "destInternalStorage": "Internal shared storage",
   "destAppFiles": "App external files",
-  "destCacheFolder": "Cache"
+  "destCacheFolder": "Cache",
+  "historySelectedCount": "{count} selected",
+  "@historySelectedCount": {
+    "placeholders": {
+      "count": {
+        "type": "int"
+      }
+    }
+  },
+  "historyRemovedCount": "{count} removed from history",
+  "@historyRemovedCount": {
+    "placeholders": {
+      "count": {
+        "type": "int"
+      }
+    }
+  },
+  "historyUndo": "Undo",
+  "historyEdit": "Edit",
+  "historyMarkCompleted": "Mark as completed",
+  "historyComingSoon": "Coming soon",
+  "historyFavoritedCount": "{count} added to favorites",
+  "@historyFavoritedCount": {
+    "placeholders": {
+      "count": {
+        "type": "int"
+      }
+    }
+  },
+  "historyAlreadyFavorite": "Already in favorites",
+  "editPickFromFiles": "Pick image file",
+  "editCoversFromSources": "Covers from other sources",
+  "editUseDefaultCover": "Use default cover",
+  "editCustomCover": "Custom",
+  "editTitleHint": "Manga title",
+  "editChangesNote": "These changes will affect how manga is displayed in the app.",
+  "editNoAltCovers": "No alternative covers available for this source.",
+  "editCoverSaveFailed": "Could not save the picked image.",
+  "editSelectOneToEdit": "Select exactly one manga to edit",
+  "coversProgress": "{done} / {total} sources",
+  "@coversProgress": {
+    "placeholders": {
+      "done": {
+        "type": "int"
+      },
+      "total": {
+        "type": "int"
+      }
+    }
+  },
+  "coversCurrent": "Current cover",
+  "coversUseThis": "Use this cover",
+  "coversNoResults": "No alternative covers found"
 }

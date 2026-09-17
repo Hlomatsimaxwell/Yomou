@@ -6,14 +6,18 @@ import 'package:remixicon/remixicon.dart';
 import 'package:yomou/features/explore/screens/global_search_screen.dart';
 import 'package:yomou/core/theme/layout.dart';
 import 'package:yomou/features/library/screens/manga_detail_screen.dart';
+import 'package:yomou/features/library/screens/edit_manga_screen.dart';
 import 'package:yomou/features/settings/screens/settings_screen.dart';
 import 'package:yomou/core/database/database_helper.dart';
-import 'package:yomou/core/widgets/ios/ios_press.dart';
 import 'package:yomou/core/widgets/empty_state.dart';
-import 'package:yomou/core/widgets/manga_grid_metrics.dart';
+import 'package:yomou/core/widgets/ios/ios_nav_bar.dart';
+import 'package:yomou/core/widgets/ios/ios_press.dart';
 import 'package:yomou/core/widgets/ios/ios_sheet.dart';
+import 'package:yomou/core/widgets/ios/ios_toast.dart';
+import 'package:yomou/core/widgets/manga_grid_metrics.dart';
 import 'package:yomou/features/history/providers/history_provider.dart';
 import 'package:yomou/features/library/providers/downloads_provider.dart';
+import 'package:yomou/features/library/providers/favorites_provider.dart';
 import 'package:yomou/l10n/generated/app_localizations.dart';
 import 'package:yomou/core/widgets/search_bar.dart';
 
@@ -99,6 +103,8 @@ class _HistoryScreenState extends ConsumerState<HistoryScreen> {
 
   List<Map<String, dynamic>> _historyItems = [];
 
+  final Set<String> _selectedMangaIds = {};
+
   @override
   void initState() {
     super.initState();
@@ -159,12 +165,21 @@ class _HistoryScreenState extends ConsumerState<HistoryScreen> {
 
     // Older than a week: label by formatted calendar date.
     final monthNames = [
-      'January', 'February', 'March', 'April', 'May', 'June', 'July',
-      'August', 'September', 'October', 'November', 'December',
+      'January',
+      'February',
+      'March',
+      'April',
+      'May',
+      'June',
+      'July',
+      'August',
+      'September',
+      'October',
+      'November',
+      'December',
     ];
     final monthName = monthNames[date.month - 1];
-    final yearSuffix =
-        date.year == now.year ? '' : ', ${date.year}';
+    final yearSuffix = date.year == now.year ? '' : ', ${date.year}';
     return '$monthName ${date.day}$yearSuffix';
   }
 
@@ -235,17 +250,15 @@ class _HistoryScreenState extends ConsumerState<HistoryScreen> {
               backgroundColor: dark ? const Color(0xFF2C2C2E) : Colors.white,
               shape: RoundedRectangleBorder(
                 borderRadius: BorderRadius.circular(28),
-                side: dark ? BorderSide.none : const BorderSide(color: Colors.black12),
+                side: dark
+                    ? BorderSide.none
+                    : const BorderSide(color: Colors.black12),
               ),
               contentPadding: const EdgeInsets.only(top: 20, bottom: 8),
               content: Column(
                 mainAxisSize: MainAxisSize.min,
                 children: [
-                  Icon(
-                    RemixIcons.delete_bin_5_line,
-                    color: fg,
-                    size: 28,
-                  ),
+                  Icon(RemixIcons.delete_bin_5_line, color: fg, size: 28),
                   const SizedBox(height: 12),
                   Text(
                     AppLocalizations.of(context).historyClearTitle,
@@ -271,7 +284,9 @@ class _HistoryScreenState extends ConsumerState<HistoryScreen> {
                         setDialogState(() => selectedOption = val!),
                   ),
                   _buildRadioOption(
-                    title: AppLocalizations.of(context).historyClearNotFavorites,
+                    title: AppLocalizations.of(
+                      context,
+                    ).historyClearNotFavorites,
                     value: 2,
                     groupValue: selectedOption,
                     onChanged: (val) =>
@@ -305,7 +320,11 @@ class _HistoryScreenState extends ConsumerState<HistoryScreen> {
                     Navigator.pop(context);
                     _clearHistory(selectedOption);
                     ScaffoldMessenger.of(context).showSnackBar(
-                      SnackBar(content: Text(AppLocalizations.of(context).historyUpdated)),
+                      SnackBar(
+                        content: Text(
+                          AppLocalizations.of(context).historyUpdated,
+                        ),
+                      ),
                     );
                   },
                   child: Text(
@@ -332,8 +351,9 @@ class _HistoryScreenState extends ConsumerState<HistoryScreen> {
     required ValueChanged<int?> onChanged,
   }) {
     final dark = Theme.of(context).brightness == Brightness.dark;
-    final activeColor =
-        dark ? Colors.white : Theme.of(context).colorScheme.primary;
+    final activeColor = dark
+        ? Colors.white
+        : Theme.of(context).colorScheme.primary;
     return AppPress(
       onTap: () => onChanged(value),
       child: Padding(
@@ -438,13 +458,17 @@ class _HistoryScreenState extends ConsumerState<HistoryScreen> {
                       Text(
                         AppLocalizations.of(context).historyGridSize,
                         style: TextStyle(
-                          color: dark ? Colors.white70 : const Color(0xFF49454F),
+                          color: dark
+                              ? Colors.white70
+                              : const Color(0xFF49454F),
                           fontSize: 14,
                           fontWeight: FontWeight.w500,
                         ),
                       ),
                       Text(
-                        AppLocalizations.of(context).historyGridSizeColumns(_gridSize.toInt()),
+                        AppLocalizations.of(
+                          context,
+                        ).historyGridSizeColumns(_gridSize.toInt()),
                         style: TextStyle(
                           color: dark ? Colors.white54 : Colors.black54,
                           fontSize: 12,
@@ -459,8 +483,9 @@ class _HistoryScreenState extends ConsumerState<HistoryScreen> {
                       activeTrackColor: dark
                           ? Colors.white
                           : Theme.of(context).colorScheme.primary,
-                      inactiveTrackColor:
-                          dark ? Colors.white12 : Colors.black12,
+                      inactiveTrackColor: dark
+                          ? Colors.white12
+                          : Colors.black12,
                       thumbColor: dark
                           ? Colors.white
                           : Theme.of(context).colorScheme.primary,
@@ -477,8 +502,9 @@ class _HistoryScreenState extends ConsumerState<HistoryScreen> {
                         tickMarkRadius: 2,
                       ),
                       activeTickMarkColor: Colors.transparent,
-                      inactiveTickMarkColor:
-                          dark ? Colors.white30 : Colors.black26,
+                      inactiveTickMarkColor: dark
+                          ? Colors.white30
+                          : Colors.black26,
                     ),
                     child: Slider(
                       value: 7 - _gridSize,
@@ -530,12 +556,15 @@ class _HistoryScreenState extends ConsumerState<HistoryScreen> {
                     child: DropdownButtonHideUnderline(
                       child: DropdownButton<String>(
                         value: _sortingOrder,
-                        dropdownColor:
-                            dark ? const Color(0xFF2C2C2E) : Colors.white,
+                        dropdownColor: dark
+                            ? const Color(0xFF2C2C2E)
+                            : Colors.white,
                         isExpanded: true,
                         icon: Icon(
                           RemixIcons.arrow_drop_down_line,
-                          color: dark ? Colors.white70 : const Color(0xFF49454F),
+                          color: dark
+                              ? Colors.white70
+                              : const Color(0xFF49454F),
                         ),
                         style: TextStyle(
                           color: dark ? Colors.white : const Color(0xFF1C1B1F),
@@ -567,16 +596,18 @@ class _HistoryScreenState extends ConsumerState<HistoryScreen> {
                         children: [
                           Icon(
                             RemixIcons.list_unordered,
-                            color:
-                                dark ? Colors.white70 : const Color(0xFF49454F),
+                            color: dark
+                                ? Colors.white70
+                                : const Color(0xFF49454F),
                             size: 20,
                           ),
                           const SizedBox(width: 12),
                           Text(
                             AppLocalizations.of(context).historyGroup,
                             style: TextStyle(
-                              color:
-                                  dark ? Colors.white : const Color(0xFF1C1B1F),
+                              color: dark
+                                  ? Colors.white
+                                  : const Color(0xFF1C1B1F),
                               fontSize: 15,
                               fontWeight: FontWeight.w500,
                             ),
@@ -589,10 +620,12 @@ class _HistoryScreenState extends ConsumerState<HistoryScreen> {
                         activeTrackColor: dark
                             ? Colors.white
                             : Theme.of(context).colorScheme.primary,
-                        inactiveThumbColor:
-                            dark ? Colors.white54 : Colors.black54,
-                        inactiveTrackColor:
-                            dark ? const Color(0xFF2C2C2E) : Colors.black12,
+                        inactiveThumbColor: dark
+                            ? Colors.white54
+                            : Colors.black54,
+                        inactiveTrackColor: dark
+                            ? const Color(0xFF2C2C2E)
+                            : Colors.black12,
                         onChanged: (value) {
                           setSheetState(() {
                             _isGrouped = value;
@@ -647,10 +680,13 @@ class _HistoryScreenState extends ConsumerState<HistoryScreen> {
     final selectedBg = dark
         ? const Color(0xFF6B6F76)
         : Theme.of(context).colorScheme.primary;
-    final fg = isSelected ? Colors.white : (dark ? Colors.white : const Color(0xFF1C1B1F));
+    final fg = isSelected
+        ? Colors.white
+        : (dark ? Colors.white : const Color(0xFF1C1B1F));
     return Expanded(
       child: GestureDetector(
         onTap: () {
+          _exitSelection();
           setSheetState(() => _listMode = mode);
           setState(() {});
           _savePreference('history_list_mode', mode);
@@ -733,10 +769,10 @@ class _HistoryScreenState extends ConsumerState<HistoryScreen> {
                   activeTrackColor: dark
                       ? Colors.white
                       : Theme.of(context).colorScheme.primary,
-                  inactiveThumbColor:
-                      dark ? Colors.white54 : Colors.black54,
-                  inactiveTrackColor:
-                      dark ? const Color(0xFF2C2C2E) : Colors.black12,
+                  inactiveThumbColor: dark ? Colors.white54 : Colors.black54,
+                  inactiveTrackColor: dark
+                      ? const Color(0xFF2C2C2E)
+                      : Colors.black12,
                   onChanged: (value) {
                     setState(() => _isIncognitoMode = value);
                   },
@@ -869,8 +905,11 @@ class _HistoryScreenState extends ConsumerState<HistoryScreen> {
         ..sort((a, b) {
           final dtA = DateTime.parse(a.value.first['lastReadAt']);
           final dtB = DateTime.parse(b.value.first['lastReadAt']);
-          return DateTime(dtB.year, dtB.month, dtB.day)
-              .compareTo(DateTime(dtA.year, dtA.month, dtA.day));
+          return DateTime(
+            dtB.year,
+            dtB.month,
+            dtB.day,
+          ).compareTo(DateTime(dtA.year, dtA.month, dtA.day));
         });
       groupedHistory.clear();
       for (final entry in sortedEntries) {
@@ -878,55 +917,67 @@ class _HistoryScreenState extends ConsumerState<HistoryScreen> {
       }
     }
 
-    return Scaffold(
-      backgroundColor: Theme.of(context).scaffoldBackgroundColor,
-      body: SafeArea(
-        child: SingleChildScrollView(
-          padding: EdgeInsets.only(bottom: bottomBarClearance(context)),
-          child: Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              const SizedBox(height: 8),
-              _buildSearchBar(),
-              const SizedBox(height: 12),
-              _buildFilterChips(),
-              const SizedBox(height: 16),
-              if (filteredList.isEmpty)
-                EmptyState(
-                  icon: RemixIcons.history_line,
-                  title: AppLocalizations.of(context).historyEmptyTitle,
-                  subtitle: AppLocalizations.of(context).historyEmptySubtitle,
-                )
-              else if (_isGrouped)
-                ...groupedHistory.entries.map((entry) {
-                  return Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
-                      Padding(
-                        padding: const EdgeInsets.symmetric(
-                          horizontal: 16,
-                          vertical: 8,
-                        ),
-                        child: Text(
-                          entry.key,
-                          style: TextStyle(
-                            color:
-                                Theme.of(context).brightness == Brightness.dark
-                                    ? Colors.white
-                                    : const Color(0xFF1C1B1F),
-                            fontSize: 14,
-                            fontWeight: FontWeight.bold,
+    return PopScope(
+      canPop: !_isSelecting,
+      onPopInvokedWithResult: (didPop, result) {
+        if (didPop) return;
+        _exitSelection();
+      },
+      child: Scaffold(
+        backgroundColor: Theme.of(context).scaffoldBackgroundColor,
+        body: SafeArea(
+          child: SingleChildScrollView(
+            padding: EdgeInsets.only(bottom: bottomBarClearance(context)),
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                const SizedBox(height: 8),
+                if (_isSelecting)
+                  _buildSelectionBar(context)
+                else ...[
+                  _buildSearchBar(),
+                  const SizedBox(height: 12),
+                  _buildFilterChips(),
+                ],
+                const SizedBox(height: 16),
+                if (filteredList.isEmpty)
+                  EmptyState(
+                    icon: RemixIcons.history_line,
+                    title: AppLocalizations.of(context).historyEmptyTitle,
+                    subtitle: AppLocalizations.of(context).historyEmptySubtitle,
+                  )
+                else if (_isGrouped)
+                  ...groupedHistory.entries.map((entry) {
+                    return Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        Padding(
+                          padding: const EdgeInsets.symmetric(
+                            horizontal: 16,
+                            vertical: 8,
+                          ),
+                          child: Text(
+                            entry.key,
+                            style: TextStyle(
+                              color:
+                                  Theme.of(context).brightness ==
+                                      Brightness.dark
+                                  ? Colors.white
+                                  : const Color(0xFF1C1B1F),
+                              fontSize: 14,
+                              fontWeight: FontWeight.bold,
+                            ),
                           ),
                         ),
-                      ),
-                      _buildHistoryLayout(context, entry.value),
-                      const SizedBox(height: 12),
-                    ],
-                  );
-                })
-              else
-                _buildHistoryLayout(context, filteredList),
-            ],
+                        _buildHistoryLayout(context, entry.value),
+                        const SizedBox(height: 12),
+                      ],
+                    );
+                  })
+                else
+                  _buildHistoryLayout(context, filteredList),
+              ],
+            ),
           ),
         ),
       ),
@@ -941,9 +992,7 @@ class _HistoryScreenState extends ConsumerState<HistoryScreen> {
       onTap: () {
         Navigator.push(
           context,
-          MaterialPageRoute(
-            builder: (context) => const GlobalSearchScreen(),
-          ),
+          MaterialPageRoute(builder: (context) => const GlobalSearchScreen()),
         );
       },
       trailing: GestureDetector(
@@ -952,14 +1001,255 @@ class _HistoryScreenState extends ConsumerState<HistoryScreen> {
         },
         child: Padding(
           padding: const EdgeInsets.all(8),
-          child: Icon(
-            RemixIcons.more_2_line,
-            color: iconColor,
-            size: 22,
-          ),
+          child: Icon(RemixIcons.more_2_line, color: iconColor, size: 22),
         ),
       ),
     );
+  }
+
+  bool get _isSelecting => _selectedMangaIds.isNotEmpty;
+
+  void _enterSelection(String mangaId) {
+    setState(() => _selectedMangaIds.add(mangaId));
+  }
+
+  void _toggleSelect(String mangaId) {
+    setState(() {
+      if (!_selectedMangaIds.remove(mangaId)) {
+        _selectedMangaIds.add(mangaId);
+      }
+    });
+  }
+
+  void _exitSelection() {
+    if (!_isSelecting) return;
+    setState(_selectedMangaIds.clear);
+  }
+
+  void _handleGridCardTap(BuildContext context, Map<String, dynamic> item) {
+    final mangaId = item['mangaId'] as String;
+    if (_isSelecting) {
+      _toggleSelect(mangaId);
+    } else {
+      _navigateToDetail(context, item);
+    }
+  }
+
+  Widget _buildSelectionBar(BuildContext context) {
+    final dark = Theme.of(context).brightness == Brightness.dark;
+    final fg = dark ? Colors.white : const Color(0xFF1C1B1F);
+
+    Widget navAction(IconData icon, VoidCallback onTap) {
+      return Center(
+        child: AppPress(
+          onTap: onTap,
+          child: Padding(
+            padding: const EdgeInsets.all(8),
+            child: Icon(icon, color: fg, size: 22),
+          ),
+        ),
+      );
+    }
+
+    return IosNavBar(
+      showBack: false,
+      leading: navAction(RemixIcons.close_line, _exitSelection),
+      titleWidget: Text(
+        AppLocalizations.of(
+          context,
+        ).historySelectedCount(_selectedMangaIds.length),
+        style: TextStyle(color: fg, fontSize: 17, fontWeight: FontWeight.w600),
+      ),
+      actions: [
+        navAction(RemixIcons.delete_bin_5_line, _deleteSelected),
+        navAction(RemixIcons.share_2_line, _showComingSoon),
+        navAction(RemixIcons.more_2_line, _showSelectionActions),
+      ],
+    );
+  }
+
+  Future<void> _deleteSelected() async {
+    final ids = _selectedMangaIds.toList();
+    if (ids.isEmpty) return;
+
+    final removed = await DatabaseHelper.instance.deleteFromHistory(ids);
+    if (!mounted) return;
+
+    setState(_selectedMangaIds.clear);
+    await _loadFromProvider();
+    bumpHistoryRevision(ref);
+    if (!mounted) return;
+
+    final l = AppLocalizations.of(context);
+    showIosUndoToast(
+      context,
+      message: l.historyRemovedCount(ids.length),
+      undoLabel: l.historyUndo,
+      onUndo: () => _restoreRemoved(removed.manga, removed.progress),
+    );
+  }
+
+  Future<void> _restoreRemoved(
+    List<Map<String, dynamic>> mangaRows,
+    List<Map<String, dynamic>> progressRows,
+  ) async {
+    await DatabaseHelper.instance.restoreHistoryRows(mangaRows, progressRows);
+    if (!mounted) return;
+    await _loadFromProvider();
+    bumpHistoryRevision(ref);
+  }
+
+  void _showComingSoon() {
+    showIosToast(
+      context,
+      message: AppLocalizations.of(context).historyComingSoon,
+      duration: const Duration(seconds: 2),
+    );
+  }
+
+  void _showSelectionActions() {
+    final dark = Theme.of(context).brightness == Brightness.dark;
+    final fg = dark ? Colors.white : const Color(0xFF1C1B1F);
+    final l = AppLocalizations.of(context);
+
+    void stub() {
+      Navigator.pop(context);
+      _showComingSoon();
+    }
+
+    showIosSheet(
+      context,
+      builder: (sheetContext) {
+        return Padding(
+          padding: const EdgeInsets.fromLTRB(20, 6, 20, 16),
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              _buildSheetRow(
+                icon: RemixIcons.bookmark_3_line,
+                label: l.save,
+                color: fg,
+                onTap: stub,
+              ),
+              Divider(
+                color: dark ? Colors.white12 : Colors.black12,
+                height: 1,
+                thickness: 1,
+              ),
+              _buildSheetRow(
+                icon: RemixIcons.heart_3_line,
+                label: l.favorite,
+                color: fg,
+                onTap: () {
+                  Navigator.pop(context);
+                  _favoriteSelected();
+                },
+              ),
+              Divider(
+                color: dark ? Colors.white12 : Colors.black12,
+                height: 1,
+                thickness: 1,
+              ),
+              _buildSheetRow(
+                icon: RemixIcons.exchange_2_line,
+                label: l.replaceSource,
+                color: fg,
+                onTap: stub,
+              ),
+              Divider(
+                color: dark ? Colors.white12 : Colors.black12,
+                height: 1,
+                thickness: 1,
+              ),
+              _buildSheetRow(
+                icon: RemixIcons.edit_line,
+                label: l.historyEdit,
+                color: fg,
+                onTap: () {
+                  Navigator.pop(context);
+                  if (_selectedMangaIds.length == 1) {
+                    _openEditForSelected();
+                  } else {
+                    showIosToast(
+                      context,
+                      message: l.editSelectOneToEdit,
+                      duration: const Duration(seconds: 2),
+                    );
+                  }
+                },
+              ),
+              Divider(
+                color: dark ? Colors.white12 : Colors.black12,
+                height: 1,
+                thickness: 1,
+              ),
+              _buildSheetRow(
+                icon: RemixIcons.check_double_line,
+                label: l.historyMarkCompleted,
+                color: fg,
+                onTap: stub,
+              ),
+            ],
+          ),
+        );
+      },
+    );
+  }
+
+  Future<void> _favoriteSelected() async {
+    final ids = _selectedMangaIds.toList();
+    if (ids.isEmpty) return;
+
+    var added = 0;
+    for (final mangaId in ids) {
+      if (await DatabaseHelper.instance.getIsFavorite(mangaId)) continue;
+      final row = await DatabaseHelper.instance.getManga(mangaId);
+      if (row == null) continue;
+      await DatabaseHelper.instance.setFavorite(
+        mangaId: mangaId,
+        title: (row['title'] as String?) ?? '',
+        coverUrl: row['coverUrl'] as String?,
+        sourceId: row['sourceId'] as String?,
+        isFavorite: true,
+      );
+      added++;
+    }
+    if (!mounted) return;
+
+    final l = AppLocalizations.of(context);
+    setState(_selectedMangaIds.clear);
+    if (added > 0) {
+      bumpFavoritesRevision(ref);
+    }
+    showIosToast(
+      context,
+      message: added > 0
+          ? l.historyFavoritedCount(added)
+          : l.historyAlreadyFavorite,
+      duration: const Duration(seconds: 2),
+    );
+  }
+
+  Future<void> _openEditForSelected() async {
+    final mangaId = _selectedMangaIds.first;
+    final row = await DatabaseHelper.instance.getManga(mangaId);
+    if (!mounted) return;
+
+    await Navigator.push(
+      context,
+      MaterialPageRoute(
+        builder: (_) => EditMangaScreen(
+          mangaId: mangaId,
+          title: (row?['title'] as String?) ?? '',
+          imageUrl: (row?['coverUrl'] as String?) ?? '',
+          sourceId: (row?['sourceId'] as String?) ?? '',
+        ),
+      ),
+    );
+    _exitSelection();
+    if (!mounted) return;
+    await _loadFromProvider();
+    bumpHistoryRevision(ref);
   }
 
   Widget _buildFilterChips() {
@@ -970,7 +1260,11 @@ class _HistoryScreenState extends ConsumerState<HistoryScreen> {
     ];
 
     final l = AppLocalizations.of(context);
-    final labels = [l.historyOnDevice, l.historyNewChapters, l.historyCompleted];
+    final labels = [
+      l.historyOnDevice,
+      l.historyNewChapters,
+      l.historyCompleted,
+    ];
 
     final dark = Theme.of(context).brightness == Brightness.dark;
     final primary = Theme.of(context).colorScheme.primary;
@@ -1010,11 +1304,7 @@ class _HistoryScreenState extends ConsumerState<HistoryScreen> {
               ),
               child: Row(
                 children: [
-                  Icon(
-                    filter['icon'] as IconData,
-                    size: 16,
-                    color: fg,
-                  ),
+                  Icon(filter['icon'] as IconData, size: 16, color: fg),
                   const SizedBox(width: 6),
                   Text(
                     labels[index],
@@ -1115,7 +1405,9 @@ class _HistoryScreenState extends ConsumerState<HistoryScreen> {
           return GridHistoryCard(
             item: item,
             gridSize: _gridSize,
-            onTap: () => _navigateToDetail(context, item),
+            isSelected: _selectedMangaIds.contains(item['mangaId']),
+            onTap: () => _handleGridCardTap(context, item),
+            onLongPress: () => _enterSelection(item['mangaId'] as String),
           );
         },
       ),
@@ -1126,13 +1418,17 @@ class _HistoryScreenState extends ConsumerState<HistoryScreen> {
 class GridHistoryCard extends StatefulWidget {
   final Map<String, dynamic> item;
   final double gridSize;
+  final bool isSelected;
   final VoidCallback onTap;
+  final VoidCallback onLongPress;
 
   const GridHistoryCard({
     super.key,
     required this.item,
     required this.gridSize,
+    this.isSelected = false,
     required this.onTap,
+    required this.onLongPress,
   });
 
   @override
@@ -1151,6 +1447,7 @@ class _GridHistoryCardState extends State<GridHistoryCard> {
 
     return GestureDetector(
       onTap: widget.onTap,
+      onLongPress: widget.onLongPress,
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         mainAxisSize: MainAxisSize.min,
@@ -1182,6 +1479,35 @@ class _GridHistoryCardState extends State<GridHistoryCard> {
                     ),
                   ),
                 ),
+                if (widget.isSelected)
+                  Positioned.fill(
+                    child: Container(
+                      decoration: BoxDecoration(
+                        color: Theme.of(
+                          context,
+                        ).colorScheme.primary.withValues(alpha: 0.35),
+                        borderRadius: BorderRadius.circular(14),
+                        border: Border.all(
+                          color: Theme.of(context).colorScheme.primary,
+                          width: 2.5,
+                        ),
+                      ),
+                      alignment: Alignment.center,
+                      child: Container(
+                        width: 26,
+                        height: 26,
+                        decoration: BoxDecoration(
+                          color: Theme.of(context).colorScheme.primary,
+                          shape: BoxShape.circle,
+                        ),
+                        child: const Icon(
+                          RemixIcons.check_line,
+                          color: Colors.white,
+                          size: 18,
+                        ),
+                      ),
+                    ),
+                  ),
                 Positioned(
                   top: 6,
                   left: 6,
@@ -1339,7 +1665,9 @@ class _DetailedHistoryCardState extends State<DetailedHistoryCard> {
                     ),
                     const SizedBox(height: 6),
                     Text(
-                      AppLocalizations.of(context).historyLastReadChapter(widget.item['lastReadChapter']),
+                      AppLocalizations.of(
+                        context,
+                      ).historyLastReadChapter(widget.item['lastReadChapter']),
                       style: TextStyle(
                         color: dark ? Colors.white70 : const Color(0xFF49454F),
                         fontSize: 13,
@@ -1414,7 +1742,9 @@ class _CompactHistoryCardState extends State<CompactHistoryCard> {
         ),
       ),
       subtitle: Text(
-        AppLocalizations.of(context).historyChapterShort(widget.item['lastReadChapter']),
+        AppLocalizations.of(
+          context,
+        ).historyChapterShort(widget.item['lastReadChapter']),
         style: TextStyle(
           color: dark ? Colors.white54 : const Color(0xFF49454F),
           fontSize: 12,

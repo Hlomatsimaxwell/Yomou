@@ -480,5 +480,57 @@
   "formatImages": "Imágenes",
   "destInternalStorage": "Almacenamiento interno compartido",
   "destAppFiles": "Archivos externos de la app",
-  "destCacheFolder": "Caché"
+  "destCacheFolder": "Caché",
+  "historySelectedCount": "{count} seleccionados",
+  "@historySelectedCount": {
+    "placeholders": {
+      "count": {
+        "type": "int"
+      }
+    }
+  },
+  "historyRemovedCount": "{count} eliminados del historial",
+  "@historyRemovedCount": {
+    "placeholders": {
+      "count": {
+        "type": "int"
+      }
+    }
+  },
+  "historyUndo": "Deshacer",
+  "historyEdit": "Editar",
+  "historyMarkCompleted": "Marcar como completado",
+  "historyComingSoon": "Próximamente",
+  "historyFavoritedCount": "{count} añadidos a favoritos",
+  "@historyFavoritedCount": {
+    "placeholders": {
+      "count": {
+        "type": "int"
+      }
+    }
+  },
+  "historyAlreadyFavorite": "Ya está en favoritos",
+  "editPickFromFiles": "Elegir archivo de imagen",
+  "editCoversFromSources": "Portadas de otras fuentes",
+  "editUseDefaultCover": "Usar portada original",
+  "editCustomCover": "Personalizada",
+  "editTitleHint": "Título del manga",
+  "editChangesNote": "Estos cambios afectarán cómo se muestra el manga en la app.",
+  "editNoAltCovers": "No hay portadas alternativas disponibles para esta fuente.",
+  "editCoverSaveFailed": "No se pudo guardar la imagen seleccionada.",
+  "editSelectOneToEdit": "Selecciona exactamente un manga para editar",
+  "coversProgress": "{done} / {total} fuentes",
+  "@coversProgress": {
+    "placeholders": {
+      "done": {
+        "type": "int"
+      },
+      "total": {
+        "type": "int"
+      }
+    }
+  },
+  "coversCurrent": "Portada actual",
+  "coversUseThis": "Usar esta portada",
+  "coversNoResults": "No se encontraron portadas alternativas"
 }

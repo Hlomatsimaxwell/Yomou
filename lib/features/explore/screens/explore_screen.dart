@@ -15,6 +15,7 @@ import 'package:yomou/features/source_management/screens/manga_sources_screen.da
 import 'package:yomou/data/providers/sources_provider.dart';
 import 'package:yomou/core/theme/layout.dart';
 import 'package:yomou/l10n/generated/app_localizations.dart';
+import 'package:yomou/widgets/safe_image.dart';
 
 class ExploreScreen extends ConsumerStatefulWidget {
   const ExploreScreen({super.key});
@@ -33,7 +34,11 @@ class _ExploreScreenState extends ConsumerState<ExploreScreen> {
       'labelKey': 'storage',
       'type': 'downloads',
     },
-    {'icon': RemixIcons.bookmark_3_line, 'labelKey': 'bookmarks', 'type': 'bookmarks'},
+    {
+      'icon': RemixIcons.bookmark_3_line,
+      'labelKey': 'bookmarks',
+      'type': 'bookmarks',
+    },
     {'icon': RemixIcons.dice_line, 'labelKey': 'random', 'type': 'random'},
     {
       'icon': RemixIcons.download_line,
@@ -128,9 +133,7 @@ class _ExploreScreenState extends ConsumerState<ExploreScreen> {
           } else if (action == 'settings') {
             Navigator.push(
               context,
-              MaterialPageRoute(
-                builder: (context) => const SettingsScreen(),
-              ),
+              MaterialPageRoute(builder: (context) => const SettingsScreen()),
             );
           }
         },
@@ -146,9 +149,7 @@ class _ExploreScreenState extends ConsumerState<ExploreScreen> {
       onTap: () {
         Navigator.push(
           context,
-          MaterialPageRoute(
-            builder: (context) => const GlobalSearchScreen(),
-          ),
+          MaterialPageRoute(builder: (context) => const GlobalSearchScreen()),
         );
       },
     );
@@ -156,8 +157,7 @@ class _ExploreScreenState extends ConsumerState<ExploreScreen> {
 
   Widget _buildQuickButtonsGrid() {
     final dark = Theme.of(context).brightness == Brightness.dark;
-    final cardColor =
-        dark ? const Color(0xFF2C2C2E) : Colors.white;
+    final cardColor = dark ? const Color(0xFF2C2C2E) : Colors.white;
     final fgColor = dark ? Colors.white : const Color(0xFF1C1B1F);
     return Padding(
       padding: const EdgeInsets.symmetric(horizontal: 16),
@@ -196,11 +196,7 @@ class _ExploreScreenState extends ConsumerState<ExploreScreen> {
                         ),
                       )
                     else
-                      Icon(
-                        btn['icon'] as IconData,
-                        color: fgColor,
-                        size: 22,
-                      ),
+                      Icon(btn['icon'] as IconData, color: fgColor, size: 22),
                     const SizedBox(width: 12),
                     Expanded(
                       child: Text(
@@ -316,8 +312,7 @@ class _ExploreScreenState extends ConsumerState<ExploreScreen> {
           TextButton(
             onPressed: onMorePressed,
             style: TextButton.styleFrom(
-              foregroundColor:
-                  dark ? Colors.white70 : const Color(0xFF49454F),
+              foregroundColor: dark ? Colors.white70 : const Color(0xFF49454F),
               padding: EdgeInsets.zero,
               minimumSize: const Size(0, 0),
               tapTargetSize: MaterialTapTargetSize.shrinkWrap,
@@ -376,12 +371,12 @@ class _ExploreScreenState extends ConsumerState<ExploreScreen> {
               borderRadius: BorderRadius.circular(16),
               child: ColoredBox(
                 color: fallbackColor,
-                child: Image.network(
-                  iconUrl,
+                child: SafeNetworkImage(
+                  imageUrl: iconUrl,
                   fit: BoxFit.cover,
                   width: double.infinity,
                   height: double.infinity,
-                  errorBuilder: (context, error, stackTrace) => fallbackTile(),
+                  errorWidget: (context, url, error) => fallbackTile(),
                 ),
               ),
             );
@@ -408,10 +403,7 @@ class _ExploreScreenState extends ConsumerState<ExploreScreen> {
                       decoration: BoxDecoration(
                         color: iconUrl.isNotEmpty ? tileBg : fallbackColor,
                         borderRadius: BorderRadius.circular(16),
-                        border: Border.all(
-                          color: tileBorder,
-                          width: 1,
-                        ),
+                        border: Border.all(color: tileBorder, width: 1),
                       ),
                       child: tileIcon,
                     ),
@@ -424,8 +416,7 @@ class _ExploreScreenState extends ConsumerState<ExploreScreen> {
                           child: Icon(
                             RemixIcons.pushpin_2_fill,
                             size: 14,
-                            color:
-                                dark ? Colors.white70 : Colors.black54,
+                            color: dark ? Colors.white70 : Colors.black54,
                           ),
                         ),
                       ),

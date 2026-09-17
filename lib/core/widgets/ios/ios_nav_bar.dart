@@ -26,7 +26,7 @@ class IosNavBar extends StatelessWidget {
          'IosNavBar requires either [title] or [titleWidget]',
        ),
        assert(
-         showBack || leading == null,
+         !showBack || leading == null,
          'Pass [leading] instead of [showBack] for custom leading widgets',
        );
 
@@ -43,10 +43,11 @@ class IosNavBar extends StatelessWidget {
                   child: Icon(
                     RemixIcons.arrow_left_s_line,
                     size: 32,
-                    color: (dark
-                            ? Colors.white
-                            : Theme.of(context).colorScheme.onSurface)
-                        .withValues(alpha: 0.9),
+                    color:
+                        (dark
+                                ? Colors.white
+                                : Theme.of(context).colorScheme.onSurface)
+                            .withValues(alpha: 0.9),
                   ),
                 ),
               )

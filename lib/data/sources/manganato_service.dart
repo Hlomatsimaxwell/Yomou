@@ -10,6 +10,12 @@ import '../models/manga_details.dart';
 class ManganatoService implements MangaSource {
   @override
   String get id => 'manganato';
+
+  @override
+  Future<List<(String url, String? label)>> getAltCovers(String mangaId) async {
+    return [];
+  }
+
   @override
   String get name => 'Manganato';
   @override

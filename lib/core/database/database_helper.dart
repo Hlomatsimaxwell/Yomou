@@ -23,7 +23,7 @@ class DatabaseHelper {
 
     return await openDatabase(
       path,
-      version: 8,
+      version: 9,
       onCreate: _createDB,
       onUpgrade: _onUpgrade,
     );
@@ -71,6 +71,10 @@ class DatabaseHelper {
       await db.execute('ALTER TABLE downloads ADD COLUMN pageUrls TEXT');
       await _createSourceCacheTable(db);
     }
+    if (oldVersion < 9) {
+      await db.execute('ALTER TABLE manga ADD COLUMN originalTitle TEXT');
+      await db.execute('ALTER TABLE manga ADD COLUMN originalCoverUrl TEXT');
+    }
   }
 
   Future _createDB(Database db, int version) async {
@@ -99,7 +103,9 @@ class DatabaseHelper {
         lastReadAt TEXT,
         isFavorite INTEGER DEFAULT 0,
         isReadLater INTEGER DEFAULT 0,
-        tags TEXT DEFAULT '[]'
+        tags TEXT DEFAULT '[]',
+        originalTitle TEXT,
+        originalCoverUrl TEXT
       )
     ''');
 
@@ -223,12 +229,20 @@ class DatabaseHelper {
     if (existing.isNotEmpty) {
       final row = existing.first;
       final newChapter = lastReadChapter;
+      // A user-customized title/cover (set via Edit metadata) must survive
+      // progress updates coming in from the source.
+      final keepCustomTitle =
+          (row['originalTitle'] as String?)?.isNotEmpty == true;
+      final keepCustomCover =
+          (row['originalCoverUrl'] as String?)?.isNotEmpty == true;
 
       await db.update(
         'manga',
         {
-          'title': title,
-          'coverUrl': coverUrl ?? row['coverUrl'],
+          'title': keepCustomTitle ? (row['title'] ?? title) : title,
+          'coverUrl': keepCustomCover
+              ? (row['coverUrl'])
+              : (coverUrl ?? row['coverUrl']),
           'sourceId': sourceId ?? row['sourceId'],
           'totalChapters': totalChapters > 0
               ? totalChapters
@@ -280,6 +294,69 @@ class DatabaseHelper {
       limit: 1,
     );
     return result.isNotEmpty ? result.first : null;
+  }
+
+  // Applies a user's "Edit metadata" changes (custom title/cover or resets).
+  // The first customization snapshots the source values (originalTitle/
+  // originalCoverUrl) so "use default" can restore them later. Writing a value
+  // that equals the original clears the override automatically.
+  Future<void> saveMangaMetadata({
+    required String mangaId,
+    String? newTitle,
+    String? newCoverUrl,
+    bool resetTitle = false,
+    bool resetCover = false,
+  }) async {
+    final db = await instance.database;
+    final existing = await db.query(
+      'manga',
+      where: 'mangaId = ?',
+      whereArgs: [mangaId],
+      limit: 1,
+    );
+    if (existing.isEmpty) return;
+
+    final row = existing.first;
+    final updates = <String, dynamic>{};
+
+    if (resetTitle) {
+      updates['title'] = (row['originalTitle'] as String?) ?? row['title'];
+      updates['originalTitle'] = null;
+    } else if (newTitle != null && newTitle != row['title']) {
+      if ((row['originalTitle'] as String?) == null) {
+        updates['originalTitle'] = row['title'];
+      }
+      updates['title'] = newTitle;
+    }
+
+    if (resetCover) {
+      updates['coverUrl'] =
+          (row['originalCoverUrl'] as String?) ?? row['coverUrl'];
+      updates['originalCoverUrl'] = null;
+    } else if (newCoverUrl != null && newCoverUrl != row['coverUrl']) {
+      if ((row['originalCoverUrl'] as String?) == null) {
+        updates['originalCoverUrl'] = row['coverUrl'];
+      }
+      updates['coverUrl'] = newCoverUrl;
+    }
+
+    // If the edited value matches the original, drop the override entirely.
+    if (row['originalTitle'] is String &&
+        updates['title'] == row['originalTitle']) {
+      updates['originalTitle'] = null;
+    }
+    if (row['originalCoverUrl'] is String &&
+        updates['coverUrl'] == row['originalCoverUrl']) {
+      updates['originalCoverUrl'] = null;
+    }
+
+    if (updates.isEmpty) return;
+    await db.update(
+      'manga',
+      updates,
+      where: 'mangaId = ?',
+      whereArgs: [mangaId],
+    );
   }
 
   // ---- Favorites ----
@@ -363,6 +440,63 @@ class DatabaseHelper {
     final db = await instance.database;
     await db.delete('manga', where: 'lastReadChapter >= 0');
     await db.delete('reading_progress');
+  }
+
+  // Removes the given manga from history (manga row + per-chapter progress),
+  // snapshotting the deleted rows so they can be restored via undo.
+  Future<
+    ({List<Map<String, dynamic>> manga, List<Map<String, dynamic>> progress})
+  >
+  deleteFromHistory(List<String> mangaIds) async {
+    final db = await instance.database;
+    final placeholders = List.filled(mangaIds.length, '?').join(',');
+    final mangaRows = List<Map<String, dynamic>>.from(
+      await db.query(
+        'manga',
+        where: 'mangaId IN ($placeholders)',
+        whereArgs: mangaIds,
+      ),
+    );
+    final progressRows = List<Map<String, dynamic>>.from(
+      await db.query(
+        'reading_progress',
+        where: 'mangaId IN ($placeholders)',
+        whereArgs: mangaIds,
+      ),
+    );
+    await db.delete(
+      'manga',
+      where: 'mangaId IN ($placeholders)',
+      whereArgs: mangaIds,
+    );
+    await db.delete(
+      'reading_progress',
+      where: 'mangaId IN ($placeholders)',
+      whereArgs: mangaIds,
+    );
+    return (manga: mangaRows, progress: progressRows);
+  }
+
+  // Re-inserts rows captured by [deleteFromHistory] (used by the undo action).
+  Future<void> restoreHistoryRows(
+    List<Map<String, dynamic>> mangaRows,
+    List<Map<String, dynamic>> progressRows,
+  ) async {
+    final db = await instance.database;
+    for (final row in mangaRows) {
+      await db.insert(
+        'manga',
+        Map<String, dynamic>.of(row),
+        conflictAlgorithm: ConflictAlgorithm.replace,
+      );
+    }
+    for (final row in progressRows) {
+      await db.insert(
+        'reading_progress',
+        Map<String, dynamic>.of(row),
+        conflictAlgorithm: ConflictAlgorithm.replace,
+      );
+    }
   }
 
   Future<void> close() async {
@@ -527,11 +661,17 @@ class DatabaseHelper {
 
     if (existing.isNotEmpty) {
       final row = existing.first;
+      final keepCustomTitle =
+          (row['originalTitle'] as String?)?.isNotEmpty == true;
+      final keepCustomCover =
+          (row['originalCoverUrl'] as String?)?.isNotEmpty == true;
       await db.update(
         'manga',
         {
-          'title': title,
-          'coverUrl': coverUrl ?? row['coverUrl'],
+          'title': keepCustomTitle ? (row['title'] ?? title) : title,
+          'coverUrl': keepCustomCover
+              ? (row['coverUrl'])
+              : (coverUrl ?? row['coverUrl']),
           'sourceId': sourceId ?? row['sourceId'],
           'totalChapters': totalChapters > 0
               ? totalChapters

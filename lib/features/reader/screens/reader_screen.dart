@@ -2,13 +2,14 @@ import 'package:remixicon/remixicon.dart';
 import 'dart:async';
 import 'dart:convert';
 import 'dart:io';
-import 'package:cached_network_image/cached_network_image.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
+import 'package:flutter_cache_manager/flutter_cache_manager.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:http/http.dart' as http;
 import 'package:path_provider/path_provider.dart';
 import 'package:shared_preferences/shared_preferences.dart';
+import 'package:yomou/widgets/safe_image.dart';
 import '../../../core/database/database_helper.dart';
 import '../../../core/database/source_cache.dart';
 import '../../../core/widgets/ios/ios_press.dart';
@@ -112,6 +113,10 @@ class _ReaderScreenState extends ConsumerState<ReaderScreen> {
   // have a local file path when its chapter has been downloaded.
   final List<int> _pagesChapters = [];
   final List<String?> _pageFiles = [];
+
+  // Bumped per page to force a reload after the user taps "Retry" on a failed
+  // page (the new value becomes part of the image widget's key).
+  final Map<int, int> _pageRetryTokens = {};
 
   // Refresh callback for the open chapter tray sheet.
   bool _trayOpen = false;
@@ -466,7 +471,9 @@ class _ReaderScreenState extends ConsumerState<ReaderScreen> {
     final url = _pages[pageIndex];
 
     try {
-      final readerSource = widget.sourceId != null ? getSourceBySourceId(widget.sourceId!) : null;
+      final readerSource = widget.sourceId != null
+          ? getSourceBySourceId(widget.sourceId!)
+          : null;
       final headers =
           readerSource?.headers ?? ref.read(currentSourceProvider).headers;
       final response = await http.get(Uri.parse(url), headers: headers);
@@ -532,6 +539,7 @@ class _ReaderScreenState extends ConsumerState<ReaderScreen> {
       _pagesChapters.clear();
       _pageFiles.clear();
       _loadedChapterIndices.clear();
+      _pageRetryTokens.clear();
       _hasMoreChapters = true;
     });
     _loadChapter(_currentChapterIndex);
@@ -702,7 +710,10 @@ class _ReaderScreenState extends ConsumerState<ReaderScreen> {
                   const Spacer(),
                   if (_isAllSelectedInTray)
                     IconButton(
-                      icon: Icon(RemixIcons.checkbox_multiple_blank_line, color: iconColor),
+                      icon: Icon(
+                        RemixIcons.checkbox_multiple_blank_line,
+                        color: iconColor,
+                      ),
                       tooltip: AppLocalizations.of(context).deselectAll,
                       onPressed: _deselectAllChapters,
                     )
@@ -714,7 +725,10 @@ class _ReaderScreenState extends ConsumerState<ReaderScreen> {
                         onPressed: _selectChapterRange,
                       ),
                     IconButton(
-                      icon: Icon(RemixIcons.checkbox_multiple_line, color: iconColor),
+                      icon: Icon(
+                        RemixIcons.checkbox_multiple_line,
+                        color: iconColor,
+                      ),
                       tooltip: AppLocalizations.of(context).selectAll,
                       onPressed: _selectAllChapters,
                     ),
@@ -731,8 +745,13 @@ class _ReaderScreenState extends ConsumerState<ReaderScreen> {
                   ),
                   if (_isSelectedDownloaded)
                     IconButton(
-                      icon: Icon(RemixIcons.delete_bin_6_line, color: iconColor),
-                      tooltip: AppLocalizations.of(context).removeDownloadTooltip,
+                      icon: Icon(
+                        RemixIcons.delete_bin_6_line,
+                        color: iconColor,
+                      ),
+                      tooltip: AppLocalizations.of(
+                        context,
+                      ).removeDownloadTooltip,
                       onPressed: _deleteSelectedDownloads,
                     )
                   else
@@ -880,13 +899,9 @@ class _ReaderScreenState extends ConsumerState<ReaderScreen> {
                         ? (dark
                               ? Colors.white
                               : Theme.of(context).colorScheme.onSurface)
-                        : (dark
-                              ? Colors.white70
-                              : const Color(0xFF49454F)),
+                        : (dark ? Colors.white70 : const Color(0xFF49454F)),
                     fontSize: 14,
-                    fontWeight: isCurrent
-                        ? FontWeight.bold
-                        : FontWeight.w400,
+                    fontWeight: isCurrent ? FontWeight.bold : FontWeight.w400,
                   ),
                 ),
               ),
@@ -1273,10 +1288,10 @@ class _ReaderScreenState extends ConsumerState<ReaderScreen> {
             child: ClipRRect(
               borderRadius: BorderRadius.circular(8),
               child: localPath != null && File(localPath).existsSync()
-                  ? Image.file(
-                      File(localPath),
+                  ? SafeFileImage(
+                      file: File(localPath),
                       fit: BoxFit.cover,
-                      errorBuilder: (context, error, stack) {
+                      errorWidget: (context, path, error) {
                         final dark =
                             Theme.of(context).brightness == Brightness.dark;
                         return Container(
@@ -1289,7 +1304,7 @@ class _ReaderScreenState extends ConsumerState<ReaderScreen> {
                         );
                       },
                     )
-                  : CachedNetworkImage(
+                  : SafeNetworkImage(
                       imageUrl: imageUrl,
                       fit: BoxFit.cover,
                       httpHeaders: headers,
@@ -2040,9 +2055,7 @@ class _ReaderScreenState extends ConsumerState<ReaderScreen> {
   void _maybeShowToast() {
     if (_pages.isEmpty || _pagesChapters.isEmpty) return;
     final ci = _pagesChapters[_currentPageIndex];
-    if (ci == _toastShownChapter ||
-        ci < 0 ||
-        ci >= widget.allChapters.length) {
+    if (ci == _toastShownChapter || ci < 0 || ci >= widget.allChapters.length) {
       return;
     }
     _toastShownChapter = ci;
@@ -2081,9 +2094,7 @@ class _ReaderScreenState extends ConsumerState<ReaderScreen> {
           opacity: _toastOpacity,
           duration: const Duration(milliseconds: 250),
           curve: Curves.easeOut,
-          child: Center(
-            child: _ChapterPageToast(label: label),
-          ),
+          child: Center(child: _ChapterPageToast(label: label)),
         ),
       ),
     );
@@ -2459,8 +2470,9 @@ class _ReaderScreenState extends ConsumerState<ReaderScreen> {
   }
 
   Future<void> _downloadSelectedChapters() async {
-    final chapters =
-        widget.allChapters.where((c) => _selectedIds.contains(c.id)).toList();
+    final chapters = widget.allChapters
+        .where((c) => _selectedIds.contains(c.id))
+        .toList();
     _exitSelection();
     var success = 0;
     for (final ch in chapters) {
@@ -2470,7 +2482,9 @@ class _ReaderScreenState extends ConsumerState<ReaderScreen> {
     if (!mounted) return;
     ScaffoldMessenger.of(context).showSnackBar(
       SnackBar(
-        content: Text(AppLocalizations.of(context).downloadedChaptersCount(success)),
+        content: Text(
+          AppLocalizations.of(context).downloadedChaptersCount(success),
+        ),
       ),
     );
   }
@@ -2662,7 +2676,9 @@ class _ReaderScreenState extends ConsumerState<ReaderScreen> {
     final activeSource = ref.watch(currentSourceProvider);
     final Map<String, String>? activeHeaders = activeSource.headers;
 
-    final readerSource = widget.sourceId != null ? getSourceBySourceId(widget.sourceId!) : null;
+    final readerSource = widget.sourceId != null
+        ? getSourceBySourceId(widget.sourceId!)
+        : null;
     final headers = readerSource?.headers ?? activeHeaders;
 
     return PopScope(
@@ -2791,8 +2807,7 @@ class _ReaderScreenState extends ConsumerState<ReaderScreen> {
                               color: iconColor,
                               size: 28,
                             ),
-                            onPressed:
-                                _currentChapterIndex > 0
+                            onPressed: _currentChapterIndex > 0
                                 ? () => _changeChapterExplicitly(
                                     _currentChapterIndex - 1,
                                   )
@@ -2815,7 +2830,8 @@ class _ReaderScreenState extends ConsumerState<ReaderScreen> {
                               color: iconColor,
                               size: 28,
                             ),
-                            onPressed: _currentChapterIndex <
+                            onPressed:
+                                _currentChapterIndex <
                                     widget.allChapters.length - 1
                                 ? () => _changeChapterExplicitly(
                                     _currentChapterIndex + 1,
@@ -2877,6 +2893,7 @@ class _ReaderScreenState extends ConsumerState<ReaderScreen> {
             return _buildPageImage(
               _pages[index],
               headers,
+              index: index,
               localPath: _pageFiles[index],
             );
           }
@@ -2898,6 +2915,7 @@ class _ReaderScreenState extends ConsumerState<ReaderScreen> {
         final page = _buildPageImage(
           _pages[index],
           headers,
+          index: index,
           localPath: _pageFiles[index],
         );
         // Un-mirror each page when the reader itself is mirrored for RTL.
@@ -2916,18 +2934,25 @@ class _ReaderScreenState extends ConsumerState<ReaderScreen> {
   Widget _buildPageImage(
     String url,
     Map<String, String>? headers, {
+    required int index,
     String? localPath,
   }) {
+    // Changing the key (via retry token) recreates the image widget, which
+    // re-triggers the network request.
+    final key = ValueKey('$url#${_pageRetryTokens[index] ?? 0}');
     final Widget image;
     if (localPath != null && File(localPath).existsSync()) {
-      image = Image.file(
-        File(localPath),
+      image = SafeFileImage(
+        key: key,
+        file: File(localPath),
         fit: BoxFit.fitWidth,
         gaplessPlayback: true,
-        errorBuilder: (context, error, stack) => _buildPageError(),
+        errorWidget: (context, path, error) =>
+            _buildPageError(index: index, localPath: localPath),
       );
     } else {
-      image = CachedNetworkImage(
+      image = SafeNetworkImage(
+        key: key,
         imageUrl: url,
         fit: BoxFit.fitWidth,
         httpHeaders: headers,
@@ -2938,13 +2963,29 @@ class _ReaderScreenState extends ConsumerState<ReaderScreen> {
             child: CircularProgressIndicator(color: Colors.white24),
           ),
         ),
-        errorWidget: (context, url, error) => _buildPageError(),
+        errorWidget: (context, url, error) => _buildPageError(index: index),
       );
     }
     return _applyColorFilter(image);
   }
 
-  Widget _buildPageError() {
+  Future<void> _retryPage(int index, String? localPath) async {
+    if (index < 0 || index >= _pages.length) return;
+
+    // Drop any cached (possibly corrupt/partial) download so the retry starts
+    // from a fresh request. Local files are re-read from disk instead.
+    if (localPath == null) {
+      try {
+        await DefaultCacheManager().removeFile(_pages[index]);
+      } catch (_) {}
+    }
+    if (!mounted) return;
+    setState(() {
+      _pageRetryTokens[index] = (_pageRetryTokens[index] ?? 0) + 1;
+    });
+  }
+
+  Widget _buildPageError({required int index, String? localPath}) {
     return Container(
       height: 200,
       color: const Color(0xFF1E1E20),
@@ -2956,6 +2997,13 @@ class _ReaderScreenState extends ConsumerState<ReaderScreen> {
           Text(
             AppLocalizations.of(context).readerFailedLoadPage,
             style: const TextStyle(color: Colors.white54, fontSize: 12),
+          ),
+          const SizedBox(height: 12),
+          TextButton.icon(
+            onPressed: () => _retryPage(index, localPath),
+            icon: const Icon(RemixIcons.refresh_line, size: 18),
+            label: Text(AppLocalizations.of(context).retry),
+            style: TextButton.styleFrom(foregroundColor: Colors.white),
           ),
         ],
       ),
@@ -3053,9 +3101,10 @@ class _ReaderProgressTrackState extends State<_ReaderProgressTrack> {
     } else {
       if (!widget.scrollController.hasClients) return;
       const perPage = 600.0;
-      idx = (widget.scrollController.offset / perPage)
-          .floor()
-          .clamp(0, widget.totalPages - 1);
+      idx = (widget.scrollController.offset / perPage).floor().clamp(
+        0,
+        widget.totalPages - 1,
+      );
     }
     if (idx != _currentIndex) setState(() => _currentIndex = idx);
   }
@@ -3079,12 +3128,10 @@ class _ReaderProgressTrackState extends State<_ReaderProgressTrack> {
       builder: (context, constraints) {
         return GestureDetector(
           behavior: HitTestBehavior.opaque,
-          onTapDown: (details) => _seek(
-            details.localPosition.dx / constraints.maxWidth,
-          ),
-          onHorizontalDragUpdate: (details) => _seek(
-            details.localPosition.dx / constraints.maxWidth,
-          ),
+          onTapDown: (details) =>
+              _seek(details.localPosition.dx / constraints.maxWidth),
+          onHorizontalDragUpdate: (details) =>
+              _seek(details.localPosition.dx / constraints.maxWidth),
           child: CustomPaint(
             size: Size(constraints.maxWidth, 36),
             painter: _DottedProgressPainter(
@@ -3176,7 +3223,9 @@ class _ChapterPageToast extends StatelessWidget {
   Widget build(BuildContext context) {
     final dark = Theme.of(context).brightness == Brightness.dark;
     final fg = dark ? Colors.white : const Color(0xFF1C1B1F);
-    final accent = dark ? Colors.white70 : Theme.of(context).colorScheme.primary;
+    final accent = dark
+        ? Colors.white70
+        : Theme.of(context).colorScheme.primary;
     final border = dark ? Colors.white24 : Colors.black12;
     return Container(
       padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 9),
@@ -3199,7 +3248,11 @@ class _ChapterPageToast extends StatelessWidget {
           const SizedBox(width: 7),
           Text(
             label,
-            style: TextStyle(color: fg, fontSize: 13, fontWeight: FontWeight.w600),
+            style: TextStyle(
+              color: fg,
+              fontSize: 13,
+              fontWeight: FontWeight.w600,
+            ),
           ),
         ],
       ),

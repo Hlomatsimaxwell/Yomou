@@ -52,4 +52,11 @@ abstract class MangaSource {
   Future<List<Manga>> searchByTitle(String query, {int page = 1}) async {
     return [];
   }
+
+  /// Alternative cover artworks for a manga (e.g. volume art on MangaDex),
+  /// as `(url, optional label)` pairs. Returns an empty list when the source
+  /// exposes no alternative covers.
+  Future<List<(String url, String? label)>> getAltCovers(String mangaId) async {
+    return [];
+  }
 }
