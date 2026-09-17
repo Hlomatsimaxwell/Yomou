@@ -12,7 +12,6 @@ import 'package:yomou/features/suggestions/providers/suggestions_provider.dart';
 import 'package:yomou/core/theme/layout.dart';
 import 'package:yomou/core/widgets/empty_state.dart';
 import 'package:yomou/core/widgets/ios/ios_menu.dart';
-import 'package:yomou/core/widgets/ios/ios_press.dart';
 import 'package:yomou/core/widgets/manga_grid_metrics.dart';
 import 'package:yomou/l10n/generated/app_localizations.dart';
 import 'package:yomou/core/widgets/search_bar.dart';
@@ -42,7 +41,7 @@ class _SuggestionsScreenState extends ConsumerState<SuggestionsScreen> {
   /// the disk cache to be bypassed so the user always sees fresh results.
   Future<void> _refresh() async {
     if (_refreshing) return;
-    setState(() => _refreshing = true);
+    _refreshing = true;
 
     final source = ref.read(currentSourceProvider);
     SourceCache.invalidatePrefix('${source.id}/list/');
@@ -52,8 +51,7 @@ class _SuggestionsScreenState extends ConsumerState<SuggestionsScreen> {
     try {
       await ref.read(suggestionsProvider(_selectedGenre).future);
     } catch (_) {}
-
-    if (mounted) setState(() => _refreshing = false);
+    _refreshing = false;
   }
 
   @override
@@ -83,7 +81,7 @@ class _SuggestionsScreenState extends ConsumerState<SuggestionsScreen> {
                       ? _buildGenreChips(tags)
                       : const SizedBox.shrink(),
                   loading: () => const SizedBox.shrink(),
-                  error: (_, __) => const SizedBox.shrink(),
+                  error: (_, _) => const SizedBox.shrink(),
                 ),
                 const SizedBox(height: 16),
                 suggestionsAsync.when(
@@ -136,41 +134,16 @@ class _SuggestionsScreenState extends ConsumerState<SuggestionsScreen> {
           _searchQuery = '';
         });
       },
-      trailing: Row(
-        mainAxisSize: MainAxisSize.min,
-        children: [
-          AppPress(
-            onTap: _refresh,
-            child: Padding(
-              padding: const EdgeInsets.all(6),
-              child: _refreshing
-                  ? SizedBox(
-                      width: 20,
-                      height: 20,
-                      child: CircularProgressIndicator(
-                        strokeWidth: 2,
-                        color: dark ? Colors.white70 : Colors.black54,
-                      ),
-                    )
-                  : Icon(
-                      RemixIcons.refresh_line,
-                      color: dark ? Colors.white70 : Colors.black54,
-                      size: 22,
-                    ),
-            ),
+      trailing: AppSheetPress(
+        onTap: _showMenu,
+        child: Padding(
+          padding: const EdgeInsets.all(8),
+          child: Icon(
+            RemixIcons.more_2_line,
+            color: dark ? Colors.white70 : Colors.black54,
+            size: 22,
           ),
-          AppSheetPress(
-            onTap: _showMenu,
-            child: Padding(
-              padding: const EdgeInsets.all(6),
-              child: Icon(
-                RemixIcons.more_2_line,
-                color: dark ? Colors.white70 : Colors.black54,
-                size: 22,
-              ),
-            ),
-          ),
-        ],
+        ),
       ),
     );
   }
@@ -282,7 +255,9 @@ class _SuggestionsScreenState extends ConsumerState<SuggestionsScreen> {
       return EmptyState(
         icon: RemixIcons.lightbulb_line,
         title: AppLocalizations.of(context).suggestionsNoResults,
-        subtitle: AppLocalizations.of(context).tryDifferentSearch,
+        subtitle: _selectedGenre != null
+            ? AppLocalizations.of(context).suggestionsNoGenreResults
+            : AppLocalizations.of(context).tryDifferentSearch,
       );
     }
 

@@ -3,7 +3,6 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import 'package:remixicon/remixicon.dart';
-import 'package:yomou/features/explore/screens/global_search_screen.dart';
 import 'package:yomou/core/theme/layout.dart';
 import 'package:yomou/features/library/screens/manga_detail_screen.dart';
 import 'package:yomou/features/library/screens/edit_manga_screen.dart';
@@ -81,7 +80,7 @@ class _HistoryScreenState extends ConsumerState<HistoryScreen> {
   int _selectedFilter = -1;
   bool _isIncognitoMode = false;
   final TextEditingController _searchController = TextEditingController();
-  final String _searchQuery = '';
+  String _searchQuery = '';
 
   String _listMode = 'Grid';
   double _gridSize = 3;
@@ -827,7 +826,7 @@ class _HistoryScreenState extends ConsumerState<HistoryScreen> {
                 ),
               ),
             ),
-            if (trailing != null) trailing,
+            ?trailing,
           ],
         ),
       ),
@@ -843,25 +842,7 @@ class _HistoryScreenState extends ConsumerState<HistoryScreen> {
       if (next != prev) _loadFromProvider();
     });
 
-    final filteredList = _historyItems.where((item) {
-      if (_searchQuery.isNotEmpty &&
-          !item['title'].toString().toLowerCase().contains(
-            _searchQuery.toLowerCase(),
-          )) {
-        return false;
-      }
-
-      if (_selectedFilter == 0) {
-        return item['hasDownloadedChapters'] == true;
-      } else if (_selectedFilter == 1) {
-        final unread = (item['newChapters'] as int?) ?? 0;
-        return unread > 0;
-      } else if (_selectedFilter == 2) {
-        return (item['progress'] as int) >= 100;
-      }
-
-      return true;
-    }).toList();
+    final filteredList = _historyItems.where(_matchesHistoryFilter).toList();
 
     filteredList.sort((a, b) {
       final aTime = DateTime.parse(a['lastReadAt']);
@@ -942,9 +923,15 @@ class _HistoryScreenState extends ConsumerState<HistoryScreen> {
                 const SizedBox(height: 16),
                 if (filteredList.isEmpty)
                   EmptyState(
-                    icon: RemixIcons.history_line,
-                    title: AppLocalizations.of(context).historyEmptyTitle,
-                    subtitle: AppLocalizations.of(context).historyEmptySubtitle,
+                    icon: _searchQuery.isNotEmpty
+                        ? RemixIcons.search_line
+                        : RemixIcons.history_line,
+                    title: _searchQuery.isNotEmpty
+                        ? AppLocalizations.of(context).noResultsFound
+                        : AppLocalizations.of(context).historyEmptyTitle,
+                    subtitle: _searchQuery.isNotEmpty
+                        ? null
+                        : AppLocalizations.of(context).historyEmptySubtitle,
                   )
                 else if (_isGrouped)
                   ...groupedHistory.entries.map((entry) {
@@ -987,27 +974,88 @@ class _HistoryScreenState extends ConsumerState<HistoryScreen> {
   Widget _buildSearchBar() {
     final dark = Theme.of(context).brightness == Brightness.dark;
     final iconColor = dark ? Colors.white70 : Colors.black54;
-    return YomouSearchBar.tappable(
+    return YomouSearchBar.text(
       hintText: AppLocalizations.of(context).searchManga,
-      onTap: () {
-        Navigator.push(
-          context,
-          MaterialPageRoute(builder: (context) => const GlobalSearchScreen()),
-        );
-      },
-      trailing: GestureDetector(
-        onTapDown: (TapDownDetails details) {
-          _showOverflowMenu(context);
-        },
-        child: Padding(
-          padding: const EdgeInsets.all(8),
-          child: Icon(RemixIcons.more_2_line, color: iconColor, size: 22),
-        ),
+      controller: _searchController,
+      onChanged: (value) => setState(() => _searchQuery = value),
+      trailing: Row(
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          if (_searchQuery.isNotEmpty)
+            AppPress(
+              onTap: () {
+                _searchController.clear();
+                setState(() => _searchQuery = '');
+              },
+              child: Padding(
+                padding: const EdgeInsets.all(8),
+                child: Icon(RemixIcons.close_line, color: iconColor, size: 20),
+              ),
+            ),
+          GestureDetector(
+            onTapDown: (TapDownDetails details) {
+              _showOverflowMenu(context);
+            },
+            child: Padding(
+              padding: const EdgeInsets.all(8),
+              child: Icon(RemixIcons.more_2_line, color: iconColor, size: 22),
+            ),
+          ),
+        ],
       ),
     );
   }
 
   bool get _isSelecting => _selectedMangaIds.isNotEmpty;
+
+  // Whether a history entry passes the active search text and filter chip.
+  bool _matchesHistoryFilter(Map<String, dynamic> item) {
+    if (_searchQuery.isNotEmpty &&
+        !item['title'].toString().toLowerCase().contains(
+          _searchQuery.toLowerCase(),
+        )) {
+      return false;
+    }
+    if (_selectedFilter == 0) return item['hasDownloadedChapters'] == true;
+    if (_selectedFilter == 1) return ((item['newChapters'] as int?) ?? 0) > 0;
+    if (_selectedFilter == 2) return (item['progress'] as int) >= 100;
+    return true;
+  }
+
+  List<String> get _visibleHistoryIds => _historyItems
+      .where(_matchesHistoryFilter)
+      .map((e) => e['mangaId'] as String)
+      .toList();
+
+  bool get _allVisibleSelected {
+    final ids = _visibleHistoryIds;
+    return ids.isNotEmpty && ids.every(_selectedMangaIds.contains);
+  }
+
+  // Selects every visible entry, or clears the selection if they all are.
+  void _toggleSelectAll() {
+    final ids = _visibleHistoryIds;
+    setState(() {
+      if (_allVisibleSelected) {
+        _selectedMangaIds.clear();
+      } else {
+        _selectedMangaIds.addAll(ids);
+      }
+    });
+  }
+
+  // True when every selected history entry is already a favorite.
+  bool get _selectedAllFavorited {
+    if (_selectedMangaIds.isEmpty) return false;
+    for (final id in _selectedMangaIds) {
+      final item = _historyItems.firstWhere(
+        (e) => e['mangaId'] == id,
+        orElse: () => const <String, dynamic>{},
+      );
+      if (item['isFavorite'] != true) return false;
+    }
+    return true;
+  }
 
   void _enterSelection(String mangaId) {
     setState(() => _selectedMangaIds.add(mangaId));
@@ -1061,8 +1109,13 @@ class _HistoryScreenState extends ConsumerState<HistoryScreen> {
         style: TextStyle(color: fg, fontSize: 17, fontWeight: FontWeight.w600),
       ),
       actions: [
+        navAction(
+          _allVisibleSelected
+              ? RemixIcons.checkbox_multiple_fill
+              : RemixIcons.checkbox_multiple_line,
+          _toggleSelectAll,
+        ),
         navAction(RemixIcons.delete_bin_5_line, _deleteSelected),
-        navAction(RemixIcons.share_2_line, _showComingSoon),
         navAction(RemixIcons.more_2_line, _showSelectionActions),
       ],
     );
@@ -1099,23 +1152,11 @@ class _HistoryScreenState extends ConsumerState<HistoryScreen> {
     bumpHistoryRevision(ref);
   }
 
-  void _showComingSoon() {
-    showIosToast(
-      context,
-      message: AppLocalizations.of(context).historyComingSoon,
-      duration: const Duration(seconds: 2),
-    );
-  }
-
   void _showSelectionActions() {
     final dark = Theme.of(context).brightness == Brightness.dark;
     final fg = dark ? Colors.white : const Color(0xFF1C1B1F);
     final l = AppLocalizations.of(context);
-
-    void stub() {
-      Navigator.pop(context);
-      _showComingSoon();
-    }
+    final allFavorited = _selectedAllFavorited;
 
     showIosSheet(
       context,
@@ -1126,35 +1167,15 @@ class _HistoryScreenState extends ConsumerState<HistoryScreen> {
             mainAxisSize: MainAxisSize.min,
             children: [
               _buildSheetRow(
-                icon: RemixIcons.bookmark_3_line,
-                label: l.save,
-                color: fg,
-                onTap: stub,
-              ),
-              Divider(
-                color: dark ? Colors.white12 : Colors.black12,
-                height: 1,
-                thickness: 1,
-              ),
-              _buildSheetRow(
-                icon: RemixIcons.heart_3_line,
-                label: l.favorite,
+                icon: allFavorited
+                    ? RemixIcons.heart_3_fill
+                    : RemixIcons.heart_3_line,
+                label: allFavorited ? l.removeFromFavorites : l.favorite,
                 color: fg,
                 onTap: () {
                   Navigator.pop(context);
-                  _favoriteSelected();
+                  _favoriteSelected(remove: allFavorited);
                 },
-              ),
-              Divider(
-                color: dark ? Colors.white12 : Colors.black12,
-                height: 1,
-                thickness: 1,
-              ),
-              _buildSheetRow(
-                icon: RemixIcons.exchange_2_line,
-                label: l.replaceSource,
-                color: fg,
-                onTap: stub,
               ),
               Divider(
                 color: dark ? Colors.white12 : Colors.black12,
@@ -1178,17 +1199,6 @@ class _HistoryScreenState extends ConsumerState<HistoryScreen> {
                   }
                 },
               ),
-              Divider(
-                color: dark ? Colors.white12 : Colors.black12,
-                height: 1,
-                thickness: 1,
-              ),
-              _buildSheetRow(
-                icon: RemixIcons.check_double_line,
-                label: l.historyMarkCompleted,
-                color: fg,
-                onTap: stub,
-              ),
             ],
           ),
         );
@@ -1196,36 +1206,53 @@ class _HistoryScreenState extends ConsumerState<HistoryScreen> {
     );
   }
 
-  Future<void> _favoriteSelected() async {
+  Future<void> _favoriteSelected({bool remove = false}) async {
     final ids = _selectedMangaIds.toList();
     if (ids.isEmpty) return;
 
-    var added = 0;
+    var changed = 0;
     for (final mangaId in ids) {
-      if (await DatabaseHelper.instance.getIsFavorite(mangaId)) continue;
-      final row = await DatabaseHelper.instance.getManga(mangaId);
-      if (row == null) continue;
-      await DatabaseHelper.instance.setFavorite(
-        mangaId: mangaId,
-        title: (row['title'] as String?) ?? '',
-        coverUrl: row['coverUrl'] as String?,
-        sourceId: row['sourceId'] as String?,
-        isFavorite: true,
-      );
-      added++;
+      final isFav = await DatabaseHelper.instance.getIsFavorite(mangaId);
+      if (remove) {
+        if (!isFav) continue;
+        await DatabaseHelper.instance.setFavorite(
+          mangaId: mangaId,
+          title: '',
+          isFavorite: false,
+        );
+      } else {
+        if (isFav) continue;
+        final row = await DatabaseHelper.instance.getManga(mangaId);
+        if (row == null) continue;
+        await DatabaseHelper.instance.setFavorite(
+          mangaId: mangaId,
+          title: (row['title'] as String?) ?? '',
+          coverUrl: row['coverUrl'] as String?,
+          sourceId: row['sourceId'] as String?,
+          isFavorite: true,
+        );
+      }
+      changed++;
     }
     if (!mounted) return;
 
     final l = AppLocalizations.of(context);
     setState(_selectedMangaIds.clear);
-    if (added > 0) {
+    if (changed > 0) {
       bumpFavoritesRevision(ref);
+      await _loadFromProvider();
+      if (!mounted) return;
     }
+    final message = remove
+        ? (changed > 0
+              ? l.historyUnfavoritedCount(changed)
+              : l.historyNotFavorite)
+        : (changed > 0
+              ? l.historyFavoritedCount(changed)
+              : l.historyAlreadyFavorite);
     showIosToast(
       context,
-      message: added > 0
-          ? l.historyFavoritedCount(added)
-          : l.historyAlreadyFavorite,
+      message: message,
       duration: const Duration(seconds: 2),
     );
   }

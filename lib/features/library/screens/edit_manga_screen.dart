@@ -99,6 +99,61 @@ class _EditMangaScreenState extends ConsumerState<EditMangaScreen> {
 
   bool get _coverChanged => _effectiveCover != _dbCover && !_resetCover;
 
+  // Whether the pending values differ from what is stored.
+  bool get _hasChanges {
+    final title = _resetTitle ? _originalTitle : _titleController.text.trim();
+    final cover = _resetCover ? _originalCover : _effectiveCover;
+    return title != _dbTitle || cover != _dbCover;
+  }
+
+  Future<bool> _confirmDiscard() async {
+    final l = AppLocalizations.of(context);
+    final dark = Theme.of(context).brightness == Brightness.dark;
+    final result = await showDialog<bool>(
+      context: context,
+      builder: (dialogContext) => AlertDialog(
+        backgroundColor: dark ? const Color(0xFF2C2C2E) : Colors.white,
+        title: Text(
+          l.editDiscardTitle,
+          style: TextStyle(
+            color: dark
+                ? Colors.white
+                : Theme.of(dialogContext).colorScheme.onSurface,
+            fontSize: 17,
+          ),
+        ),
+        content: Text(
+          l.editDiscardContent,
+          style: TextStyle(
+            color: dark ? Colors.white70 : const Color(0xFF49454F),
+            fontSize: 14,
+          ),
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(dialogContext, false),
+            child: Text(
+              l.cancel,
+              style: TextStyle(
+                color: dark ? Colors.white70 : const Color(0xFF49454F),
+              ),
+            ),
+          ),
+          TextButton(
+            onPressed: () => Navigator.pop(dialogContext, true),
+            child: Text(
+              l.editDiscard,
+              style: TextStyle(
+                color: Theme.of(dialogContext).colorScheme.primary,
+              ),
+            ),
+          ),
+        ],
+      ),
+    );
+    return result ?? false;
+  }
+
   Future<void> _save() async {
     if (_saving) return;
 
@@ -200,7 +255,14 @@ class _EditMangaScreenState extends ConsumerState<EditMangaScreen> {
     final muted = dark ? Colors.white54 : Colors.black54;
 
     return PopScope(
-      canPop: !_saving,
+      canPop: !_saving && !_hasChanges,
+      onPopInvokedWithResult: (didPop, result) async {
+        if (didPop || _saving) return;
+        final navigator = Navigator.of(context);
+        if (!await _confirmDiscard()) return;
+        if (!mounted) return;
+        navigator.pop();
+      },
       child: Scaffold(
         backgroundColor: Theme.of(context).scaffoldBackgroundColor,
         body: SafeArea(
@@ -210,7 +272,7 @@ class _EditMangaScreenState extends ConsumerState<EditMangaScreen> {
                 showBack: false,
                 leading: Center(
                   child: AppPress(
-                    onTap: () => Navigator.pop(context),
+                    onTap: () => Navigator.maybePop(context),
                     child: Padding(
                       padding: const EdgeInsets.all(8),
                       child: Icon(RemixIcons.close_line, size: 22, color: fg),
@@ -240,7 +302,7 @@ class _EditMangaScreenState extends ConsumerState<EditMangaScreen> {
                     )
                   else
                     AppPress(
-                      onTap: _save,
+                      onTap: _hasChanges ? _save : null,
                       child: Padding(
                         padding: const EdgeInsets.symmetric(
                           horizontal: 14,
@@ -249,7 +311,7 @@ class _EditMangaScreenState extends ConsumerState<EditMangaScreen> {
                         child: Text(
                           l.save,
                           style: TextStyle(
-                            color: scheme.primary,
+                            color: _hasChanges ? scheme.primary : muted,
                             fontSize: 17,
                             fontWeight: FontWeight.w600,
                           ),

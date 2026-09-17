@@ -107,10 +107,22 @@ class _MangaDetailScreenState extends ConsumerState<MangaDetailScreen> {
   List<String> _previewPages = [];
   bool _isLoadingPages = false;
 
+  // Local metadata overrides (custom title/cover) loaded from the database, so
+  // edits made on the Edit screen are reflected here without re-entering.
+  String? _customTitle;
+  String? _customCover;
+
+  // Displayed title/cover: prefer the local override, else the passed-in value.
+  String get _title =>
+      (_customTitle?.isNotEmpty ?? false) ? _customTitle! : widget.title;
+  String get _coverUrl =>
+      (_customCover?.isNotEmpty ?? false) ? _customCover! : widget.imageUrl;
+
   @override
   void initState() {
     super.initState();
     _loadFavoriteStatus();
+    _loadMetadataOverrides();
     _loadChapters();
     _loadProgress();
     _loadBookmarks();
@@ -348,13 +360,23 @@ class _MangaDetailScreenState extends ConsumerState<MangaDetailScreen> {
     });
   }
 
+  // Load any custom title/cover saved for this manga (from the Edit screen).
+  Future<void> _loadMetadataOverrides() async {
+    final row = await DatabaseHelper.instance.getManga(widget.mangaId);
+    if (!mounted) return;
+    setState(() {
+      _customTitle = (row?['title'] as String?)?.trim();
+      _customCover = (row?['coverUrl'] as String?)?.trim();
+    });
+  }
+
   // Toggle favorite status in the database and refresh the favorites tab.
   Future<void> _toggleFavorite() async {
     final newValue = !_isFavorite;
     await DatabaseHelper.instance.setFavorite(
       mangaId: widget.mangaId,
-      title: widget.title,
-      coverUrl: widget.imageUrl,
+      title: _title,
+      coverUrl: _coverUrl,
       sourceId: widget.sourceId,
       isFavorite: newValue,
     );
@@ -463,8 +485,8 @@ class _MangaDetailScreenState extends ConsumerState<MangaDetailScreen> {
           initialPageIndex: _lastReadPage,
           mangaId: widget.mangaId,
           sourceId: _source?.id,
-          mangaTitle: widget.title,
-          mangaCoverUrl: widget.imageUrl,
+          mangaTitle: _title,
+          mangaCoverUrl: _coverUrl,
           totalChapters: _resolvedTotalChapters,
         ),
       ),
@@ -1224,8 +1246,8 @@ class _MangaDetailScreenState extends ConsumerState<MangaDetailScreen> {
     });
     DatabaseHelper.instance.saveMangaProgress(
       mangaId: widget.mangaId,
-      title: widget.title,
-      coverUrl: widget.imageUrl,
+      title: _title,
+      coverUrl: _coverUrl,
       sourceId: widget.sourceId,
       lastReadChapter: newThreshold,
       lastTrayTotalChapters: _resolvedTotalChapters,
@@ -1291,20 +1313,18 @@ class _MangaDetailScreenState extends ConsumerState<MangaDetailScreen> {
       }
     }
     if (!mounted) return;
+    final messenger = ScaffoldMessenger.of(context);
+    final downloadedMessage = AppLocalizations.of(
+      context,
+    ).downloadedChaptersCount(success);
     bumpDownloadsRevision(ref);
     await DatabaseHelper.instance.upsertManga(
       mangaId: widget.mangaId,
-      title: widget.title,
-      coverUrl: widget.imageUrl,
+      title: _title,
+      coverUrl: _coverUrl,
       sourceId: widget.sourceId,
     );
-    ScaffoldMessenger.of(context).showSnackBar(
-      SnackBar(
-        content: Text(
-          AppLocalizations.of(context).downloadedChaptersCount(success),
-        ),
-      ),
-    );
+    messenger.showSnackBar(SnackBar(content: Text(downloadedMessage)));
   }
 
   // Chapters not yet read (oldest-first based on read position), capped at
@@ -1574,7 +1594,7 @@ class _MangaDetailScreenState extends ConsumerState<MangaDetailScreen> {
             Padding(
               padding: const EdgeInsets.fromLTRB(16, 14, 16, 8),
               child: Text(
-                widget.title,
+                _title,
                 maxLines: 1,
                 overflow: TextOverflow.ellipsis,
                 style: TextStyle(
@@ -1661,7 +1681,7 @@ class _MangaDetailScreenState extends ConsumerState<MangaDetailScreen> {
     final tags = _details?.tags ?? const <String>[];
     final query = tags.isNotEmpty
         ? tags.join(' ')
-        : (_details?.title.isNotEmpty == true ? _details!.title : widget.title);
+        : (_details?.title.isNotEmpty == true ? _details!.title : _title);
     Navigator.push(
       context,
       MaterialPageRoute(
@@ -1671,9 +1691,7 @@ class _MangaDetailScreenState extends ConsumerState<MangaDetailScreen> {
   }
 
   void _openAlternativesSearch() {
-    final query = _details?.title.isNotEmpty == true
-        ? _details!.title
-        : widget.title;
+    final query = _details?.title.isNotEmpty == true ? _details!.title : _title;
     Navigator.push(
       context,
       MaterialPageRoute(
@@ -1711,13 +1729,15 @@ class _MangaDetailScreenState extends ConsumerState<MangaDetailScreen> {
       MaterialPageRoute(
         builder: (_) => EditMangaScreen(
           mangaId: widget.mangaId,
-          title: widget.title,
-          imageUrl: widget.imageUrl,
+          title: _title,
+          imageUrl: _coverUrl,
           sourceId: widget.sourceId,
         ),
       ),
     );
     if (edited == true && context.mounted) {
+      await _loadMetadataOverrides();
+      if (!context.mounted) return;
       setState(() {});
       bumpFavoritesRevision(ref);
       _showMessage(AppLocalizations.of(context).metadataSaved);
@@ -2234,7 +2254,7 @@ class _MangaDetailScreenState extends ConsumerState<MangaDetailScreen> {
                 child: ClipRRect(
                   borderRadius: BorderRadius.circular(16),
                   child: CachedMangaImage(
-                    imageUrl: widget.imageUrl,
+                    imageUrl: _coverUrl,
                     width: 125,
                     height: 175,
                     fit: BoxFit.cover,
@@ -2250,7 +2270,7 @@ class _MangaDetailScreenState extends ConsumerState<MangaDetailScreen> {
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
                 Text(
-                  widget.title,
+                  _title,
                   maxLines: 3,
                   style: TextStyle(
                     color: dark

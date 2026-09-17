@@ -1856,6 +1856,12 @@ abstract class AppLocalizations {
   /// **'No suggestions found'**
   String get suggestionsNoResults;
 
+  /// No description provided for @suggestionsNoGenreResults.
+  ///
+  /// In en, this message translates to:
+  /// **'No manga found for this genre on this source'**
+  String get suggestionsNoGenreResults;
+
   /// No description provided for @clearSearchHistory.
   ///
   /// In en, this message translates to:
@@ -2222,6 +2228,24 @@ abstract class AppLocalizations {
   /// **'Already in favorites'**
   String get historyAlreadyFavorite;
 
+  /// No description provided for @removeFromFavorites.
+  ///
+  /// In en, this message translates to:
+  /// **'Remove from favorites'**
+  String get removeFromFavorites;
+
+  /// No description provided for @historyUnfavoritedCount.
+  ///
+  /// In en, this message translates to:
+  /// **'{count} removed from favorites'**
+  String historyUnfavoritedCount(int count);
+
+  /// No description provided for @historyNotFavorite.
+  ///
+  /// In en, this message translates to:
+  /// **'Not in favorites'**
+  String get historyNotFavorite;
+
   /// No description provided for @editPickFromFiles.
   ///
   /// In en, this message translates to:
@@ -2257,6 +2281,24 @@ abstract class AppLocalizations {
   /// In en, this message translates to:
   /// **'These changes will affect how manga is displayed in the app.'**
   String get editChangesNote;
+
+  /// No description provided for @editDiscardTitle.
+  ///
+  /// In en, this message translates to:
+  /// **'Discard changes?'**
+  String get editDiscardTitle;
+
+  /// No description provided for @editDiscardContent.
+  ///
+  /// In en, this message translates to:
+  /// **'You have unsaved changes. They will be lost if you leave now.'**
+  String get editDiscardContent;
+
+  /// No description provided for @editDiscard.
+  ///
+  /// In en, this message translates to:
+  /// **'Discard'**
+  String get editDiscard;
 
   /// No description provided for @editNoAltCovers.
   ///

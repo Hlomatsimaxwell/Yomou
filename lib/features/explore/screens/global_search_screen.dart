@@ -110,6 +110,7 @@ class _GlobalSearchScreenState extends ConsumerState<GlobalSearchScreen> {
           mangaId: manga.id,
           title: manga.title,
           imageUrl: manga.coverUrl,
+          sourceId: manga.sourceId,
         ),
       ),
     );
@@ -187,10 +188,7 @@ class _GlobalSearchScreenState extends ConsumerState<GlobalSearchScreen> {
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            Divider(
-              color: dark ? Colors.white24 : Colors.black26,
-              height: 1,
-            ),
+            Divider(color: dark ? Colors.white24 : Colors.black26, height: 1),
             const SizedBox(height: 12),
             _currentQuery.isEmpty
                 ? _buildInitialView()
@@ -234,7 +232,9 @@ class _GlobalSearchScreenState extends ConsumerState<GlobalSearchScreen> {
                     ),
                     decoration: BoxDecoration(
                       borderRadius: BorderRadius.circular(12),
-                      color: dark ? Colors.transparent : const Color(0xFFE2E8F0),
+                      color: dark
+                          ? Colors.transparent
+                          : const Color(0xFFE2E8F0),
                       border: dark ? Border.all(color: Colors.white38) : null,
                     ),
                     child: Text(
@@ -261,7 +261,9 @@ class _GlobalSearchScreenState extends ConsumerState<GlobalSearchScreen> {
               : Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
-                    _buildSectionLabel(AppLocalizations.of(context).suggestionTrending),
+                    _buildSectionLabel(
+                      AppLocalizations.of(context).suggestionTrending,
+                    ),
                     const SizedBox(height: 12),
                     SizedBox(
                       height: 180,
@@ -321,9 +323,7 @@ class _GlobalSearchScreenState extends ConsumerState<GlobalSearchScreen> {
       child: Text(
         label,
         style: TextStyle(
-          color: dark
-              ? Colors.white
-              : Theme.of(context).colorScheme.onSurface,
+          color: dark ? Colors.white : Theme.of(context).colorScheme.onSurface,
           fontSize: 15,
           fontWeight: FontWeight.bold,
         ),
@@ -356,9 +356,7 @@ class _GlobalSearchScreenState extends ConsumerState<GlobalSearchScreen> {
                       width: 100,
                       fit: BoxFit.cover,
                       errorWidget: (context, url, error) => Container(
-                        color: dark
-                            ? const Color(0xFF2C2C2E)
-                            : Colors.black12,
+                        color: dark ? const Color(0xFF2C2C2E) : Colors.black12,
                         height: 140,
                         width: 100,
                         child: Icon(
@@ -370,7 +368,7 @@ class _GlobalSearchScreenState extends ConsumerState<GlobalSearchScreen> {
                   ),
                 ),
                 DownloadedMangaBadge(mangaId: manga.id, size: 20, iconSize: 12),
-                              FavoriteBadge(mangaId: manga.id, size: 20, iconSize: 12),
+                FavoriteBadge(mangaId: manga.id, size: 20, iconSize: 12),
               ],
             ),
             const SizedBox(height: 6),
@@ -520,9 +518,7 @@ class _GlobalSearchScreenState extends ConsumerState<GlobalSearchScreen> {
                                     : Colors.black12,
                                 child: Icon(
                                   RemixIcons.book_open_line,
-                                  color: dark
-                                      ? Colors.white38
-                                      : Colors.black38,
+                                  color: dark ? Colors.white38 : Colors.black38,
                                   size: 28,
                                 ),
                               ),
@@ -530,11 +526,11 @@ class _GlobalSearchScreenState extends ConsumerState<GlobalSearchScreen> {
                           ),
                         ),
                         DownloadedMangaBadge(mangaId: manga.id),
-                              FavoriteBadge(mangaId: manga.id),
+                        FavoriteBadge(mangaId: manga.id),
                       ],
                     ),
                   ),
-const SizedBox(height: kMangaCardTitleGap),
+                  const SizedBox(height: kMangaCardTitleGap),
                   Text(
                     manga.title,
                     maxLines: 2,

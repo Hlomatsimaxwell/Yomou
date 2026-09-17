@@ -421,6 +421,7 @@
   "randomMangaTooltip": "Manga aleatorio",
   "feedNoNewUpdates": "Aún no hay actualizaciones nuevas",
   "suggestionsNoResults": "No se encontraron sugerencias",
+  "suggestionsNoGenreResults": "No se encontró manga de este género en esta fuente",
   "clearSearchHistory": "Borrar historial de búsqueda",
   "failedToSearch": "Error al buscar",
   "refreshResults": "Actualizar resultados",
@@ -510,12 +511,25 @@
     }
   },
   "historyAlreadyFavorite": "Ya está en favoritos",
+  "removeFromFavorites": "Quitar de favoritos",
+  "historyUnfavoritedCount": "{count} eliminados de favoritos",
+  "@historyUnfavoritedCount": {
+    "placeholders": {
+      "count": {
+        "type": "int"
+      }
+    }
+  },
+  "historyNotFavorite": "No está en favoritos",
   "editPickFromFiles": "Elegir archivo de imagen",
   "editCoversFromSources": "Portadas de otras fuentes",
   "editUseDefaultCover": "Usar portada original",
   "editCustomCover": "Personalizada",
   "editTitleHint": "Título del manga",
   "editChangesNote": "Estos cambios afectarán cómo se muestra el manga en la app.",
+  "editDiscardTitle": "¿Descartar cambios?",
+  "editDiscardContent": "Tienes cambios sin guardar. Se perderán si sales ahora.",
+  "editDiscard": "Descartar",
   "editNoAltCovers": "No hay portadas alternativas disponibles para esta fuente.",
   "editCoverSaveFailed": "No se pudo guardar la imagen seleccionada.",
   "editSelectOneToEdit": "Selecciona exactamente un manga para editar",

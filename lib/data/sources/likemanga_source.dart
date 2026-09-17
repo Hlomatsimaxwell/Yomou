@@ -42,7 +42,7 @@ class LikeMangaSource extends DioSource implements MangaSource {
     for (final card in document.querySelectorAll('div.card')) {
       final link = card.querySelector('.title-manga a');
       final href = link?.attributes['href'] ?? '';
-      if (!RegExp(r'^/[a-z0-9-]+-\d+/$').hasMatch(href)) continue;
+      if (!RegExp(r'^/[^/?#]+-\d+/$').hasMatch(href)) continue;
       final title = link?.text.trim() ?? '';
       if (title.isEmpty) continue;
       final img = card.querySelector('a img');
@@ -61,7 +61,9 @@ class LikeMangaSource extends DioSource implements MangaSource {
   @override
   Future<List<Manga>> getPopularManga({int page = 1}) async {
     try {
-      final html = await grabText(page <= 1 ? '$baseUrl/' : '$baseUrl/?page=$page');
+      final html = await grabText(
+        page <= 1 ? '$baseUrl/' : '$baseUrl/?page=$page',
+      );
       if (html.isEmpty) return [];
       return _parseCards(html);
     } catch (e) {
@@ -106,7 +108,8 @@ class LikeMangaSource extends DioSource implements MangaSource {
   }
 
   String _rowText(dynamic document, String rowClass) {
-    final selector = 'li.${rowClass.split(' ').where((s) => s.isNotEmpty).join('.')}';
+    final selector =
+        'li.${rowClass.split(' ').where((s) => s.isNotEmpty).join('.')}';
     for (final row in document.querySelectorAll(selector)) {
       final value = row.querySelector('.col-8')?.text.trim() ?? '';
       if (value.isNotEmpty && value.toLowerCase() != 'updating') return value;
@@ -121,7 +124,9 @@ class LikeMangaSource extends DioSource implements MangaSource {
       if (html.isEmpty) return [];
       final document = parser.parse(html);
       final chapters = <Chapter>[];
-      for (final li in document.querySelectorAll('#list_chapter_id_detail li')) {
+      for (final li in document.querySelectorAll(
+        '#list_chapter_id_detail li',
+      )) {
         final a = li.querySelector('a');
         final href = a?.attributes['href'] ?? '';
         if (href.isEmpty) continue;
@@ -191,8 +196,11 @@ class LikeMangaSource extends DioSource implements MangaSource {
   @override
   Future<List<Manga>> searchByTitle(String query, {int page = 1}) async {
     try {
+      final keyword = Uri.encodeQueryComponent(query.trim());
+      final pageParam = page > 1 ? '&page=$page' : '';
       final html = await grabText(
-        '$baseUrl/search/${Uri.encodeComponent(query.replaceAll(RegExp(r'\s+'), '-'))}',
+        '$baseUrl/?act=search&f%5Bstatus%5D=all&f%5Bsortby%5D=lastest-chap'
+        '&f%5Bkeyword%5D=$keyword$pageParam',
       );
       if (html.isEmpty) return [];
       return _parseCards(html);

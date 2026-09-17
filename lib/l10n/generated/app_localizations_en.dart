@@ -960,6 +960,10 @@ class AppLocalizationsEn extends AppLocalizations {
   String get suggestionsNoResults => 'No suggestions found';
 
   @override
+  String get suggestionsNoGenreResults =>
+      'No manga found for this genre on this source';
+
+  @override
   String get clearSearchHistory => 'Clear search history';
 
   @override
@@ -1163,6 +1167,17 @@ class AppLocalizationsEn extends AppLocalizations {
   String get historyAlreadyFavorite => 'Already in favorites';
 
   @override
+  String get removeFromFavorites => 'Remove from favorites';
+
+  @override
+  String historyUnfavoritedCount(int count) {
+    return '$count removed from favorites';
+  }
+
+  @override
+  String get historyNotFavorite => 'Not in favorites';
+
+  @override
   String get editPickFromFiles => 'Pick image file';
 
   @override
@@ -1180,6 +1195,16 @@ class AppLocalizationsEn extends AppLocalizations {
   @override
   String get editChangesNote =>
       'These changes will affect how manga is displayed in the app.';
+
+  @override
+  String get editDiscardTitle => 'Discard changes?';
+
+  @override
+  String get editDiscardContent =>
+      'You have unsaved changes. They will be lost if you leave now.';
+
+  @override
+  String get editDiscard => 'Discard';
 
   @override
   String get editNoAltCovers =>

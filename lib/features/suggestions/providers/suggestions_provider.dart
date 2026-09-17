@@ -6,9 +6,11 @@ import 'package:yomou/data/providers/sources_provider.dart';
 
 /// Returns manga suggestions, optionally filtered by [genre].
 ///
-/// When [genre] is null, picks the user's top 5 tags from history/favorites.
-/// When [genre] is set, fetches manga matching that specific genre.
-/// Falls back to popular manga when the source doesn't support tag search.
+/// When [genre] is set, returns manga matching that specific genre (possibly
+/// empty), so the UI can show a "no results for this genre" state instead of
+/// silently substituting unrelated results.
+/// When [genre] is null, picks the user's top 5 tags from history/favorites,
+/// falling back to popular manga when the source has no usable tags.
 final suggestionsProvider = FutureProvider.family<List<Manga>, String?>((
   ref,
   genre,
@@ -16,14 +18,13 @@ final suggestionsProvider = FutureProvider.family<List<Manga>, String?>((
   final source = ref.watch(currentSourceProvider);
 
   if (genre != null) {
-    final results = await SourceCache.mangaList(
+    return SourceCache.mangaList(
       sourceId: source.id,
       kind: 'tags',
       arg: genre.toLowerCase(),
       page: 1,
       fetch: () => source.searchMangaByTags([genre]),
     );
-    if (results.isNotEmpty) return results;
   }
 
   // Personalised: use the user's most-read tags.

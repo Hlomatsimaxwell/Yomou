@@ -468,6 +468,7 @@
   "randomMangaTooltip": "Random manga",
   "feedNoNewUpdates": "No new updates yet",
   "suggestionsNoResults": "No suggestions found",
+  "suggestionsNoGenreResults": "No manga found for this genre on this source",
   "clearSearchHistory": "Clear search history",
   "failedToSearch": "Failed to search",
   "refreshResults": "Refresh results",
@@ -557,12 +558,25 @@
     }
   },
   "historyAlreadyFavorite": "Already in favorites",
+  "removeFromFavorites": "Remove from favorites",
+  "historyUnfavoritedCount": "{count} removed from favorites",
+  "@historyUnfavoritedCount": {
+    "placeholders": {
+      "count": {
+        "type": "int"
+      }
+    }
+  },
+  "historyNotFavorite": "Not in favorites",
   "editPickFromFiles": "Pick image file",
   "editCoversFromSources": "Covers from other sources",
   "editUseDefaultCover": "Use default cover",
   "editCustomCover": "Custom",
   "editTitleHint": "Manga title",
   "editChangesNote": "These changes will affect how manga is displayed in the app.",
+  "editDiscardTitle": "Discard changes?",
+  "editDiscardContent": "You have unsaved changes. They will be lost if you leave now.",
+  "editDiscard": "Discard",
   "editNoAltCovers": "No alternative covers available for this source.",
   "editCoverSaveFailed": "Could not save the picked image.",
   "editSelectOneToEdit": "Select exactly one manga to edit",

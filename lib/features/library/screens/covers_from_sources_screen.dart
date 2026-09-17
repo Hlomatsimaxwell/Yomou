@@ -115,28 +115,55 @@ class _CoversFromSourcesScreenState
     } catch (_) {}
 
     // Otherwise fall back to a title search so we still surface this source's
-    // cover for the same title.
+    // cover for the same title. Results are validated against the title so a
+    // source whose search returns unrelated/junk cards (e.g. it redirects to
+    // its homepage) does not contribute bogus covers.
     if (found.isEmpty) {
       try {
         final results = await source
             .searchByTitle(widget.title)
             .timeout(const Duration(seconds: 10), onTimeout: () => const []);
         for (final manga in results) {
-          if (manga.coverUrl.isNotEmpty) {
-            found.add(
-              _CoverOption(
-                url: manga.coverUrl,
-                label: source.name,
-                sourceId: source.id,
-              ),
-            );
-            break;
-          }
+          if (manga.coverUrl.isEmpty) continue;
+          if (!_titleMatches(manga.title, widget.title)) continue;
+          found.add(
+            _CoverOption(
+              url: manga.coverUrl,
+              label: source.name,
+              sourceId: source.id,
+            ),
+          );
+          if (found.length >= 3) break;
         }
       } catch (_) {}
     }
 
     return found;
+  }
+
+  String _normalizeTitle(String value) =>
+      value.toLowerCase().replaceAll(RegExp(r'[^a-z0-9]'), '');
+
+  bool _titleMatches(String candidate, String target) {
+    final c = _normalizeTitle(candidate);
+    final t = _normalizeTitle(target);
+    if (c.isEmpty || t.isEmpty) return false;
+    return c.contains(t) || t.contains(c);
+  }
+
+  void _retry() {
+    final sources = _activeSources();
+    setState(() {
+      _options.removeWhere((o) => !o.isCurrent);
+      _seenUrls
+        ..clear()
+        ..addAll(_options.map((o) => o.url));
+      _done = 0;
+      _total = sources.length;
+    });
+    for (final source in sources) {
+      _fetchForSource(source).then(_onSourceDone);
+    }
   }
 
   void _onSourceDone(List<_CoverOption> found) {
@@ -292,12 +319,46 @@ class _CoversFromSourcesScreenState
       return SizedBox(
         height: 150,
         child: Center(
-          child: Text(
-            l.coversNoResults,
-            style: TextStyle(
-              color: dark ? Colors.white54 : Colors.black54,
-              fontSize: 13,
-            ),
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              Text(
+                l.coversNoResults,
+                style: TextStyle(
+                  color: dark ? Colors.white54 : Colors.black54,
+                  fontSize: 13,
+                ),
+              ),
+              const SizedBox(height: 8),
+              AppPress(
+                onTap: _retry,
+                child: Padding(
+                  padding: const EdgeInsets.symmetric(
+                    horizontal: 14,
+                    vertical: 8,
+                  ),
+                  child: Row(
+                    mainAxisSize: MainAxisSize.min,
+                    children: [
+                      Icon(
+                        RemixIcons.refresh_line,
+                        size: 16,
+                        color: scheme.primary,
+                      ),
+                      const SizedBox(width: 6),
+                      Text(
+                        l.retry,
+                        style: TextStyle(
+                          color: scheme.primary,
+                          fontSize: 13,
+                          fontWeight: FontWeight.w600,
+                        ),
+                      ),
+                    ],
+                  ),
+                ),
+              ),
+            ],
           ),
         ),
       );
