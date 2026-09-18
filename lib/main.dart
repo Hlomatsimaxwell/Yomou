@@ -144,27 +144,20 @@ class YomouApp extends ConsumerWidget {
       locale: language == 'system' ? null : Locale(language),
       supportedLocales: AppLocalizations.supportedLocales,
       localizationsDelegates: AppLocalizations.localizationsDelegates,
-      builder: (context, child) => MediaQuery.withClampedTextScaling(
-        // Respect the device font-size setting but cap it so large
-        // accessibility sizes can't break fixed-height UI (nav bar labels,
-        // carousels, bottom sheets, reader chrome).
-        minScaleFactor: 1.0,
-        maxScaleFactor: 1.3,
-        child: Stack(
-          children: [
-            child!,
-            // Sits above every route so the PIN lock covers the whole app
-            // (reader, detail views, settings) whenever it's active.
-            Consumer(
-              builder: (context, ref, _) {
-                final lock = ref.watch(appLockProvider);
-                return lock.locked
-                    ? const PinLockScreen()
-                    : const SizedBox.shrink();
-              },
-            ),
-          ],
-        ),
+      builder: (context, child) => Stack(
+        children: [
+          child!,
+          // Sits above every route so the PIN lock covers the whole app
+          // (reader, detail views, settings) whenever it's active.
+          Consumer(
+            builder: (context, ref, _) {
+              final lock = ref.watch(appLockProvider);
+              return lock.locked
+                  ? const PinLockScreen()
+                  : const SizedBox.shrink();
+            },
+          ),
+        ],
       ),
       home: const HomeScreen(),
     );
