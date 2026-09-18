@@ -97,7 +97,7 @@ final globalSearchProvider =
         final tags = await SourceCache.tags(
           sourceId: 'mangadex',
           fetch: () => getSourceByName('MangaDex').getAvailableTags(),
-        );
+        ).timeout(const Duration(seconds: 25));
         final match = tags
             .where((t) => t.toLowerCase() == trimmed.toLowerCase())
             .toList();
@@ -119,7 +119,7 @@ final globalSearchProvider =
               fetch: () => exactTag != null
                   ? source.searchMangaByTags(exactTag)
                   : source.searchByTitle(trimmed),
-            );
+            ).timeout(const Duration(seconds: 25));
             return SourceSearchResult(
               sourceId: source.id,
               sourceName: source.name,

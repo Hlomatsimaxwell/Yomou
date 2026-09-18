@@ -28,6 +28,9 @@ class MangaDexSource implements MangaSource {
     BaseOptions(
       baseUrl: 'https://api.mangadex.org',
       headers: {'User-Agent': 'MangaReader/1.0'},
+      connectTimeout: const Duration(seconds: 20),
+      receiveTimeout: const Duration(seconds: 20),
+      sendTimeout: const Duration(seconds: 20),
     ),
   );
 
