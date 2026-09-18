@@ -63,6 +63,8 @@ class _ReaderScreenState extends ConsumerState<ReaderScreen>
 
   int _currentChapterIndex = 0;
   bool _isLoadingNextChapter = false;
+  bool _isLoadingPreviousChapter = false;
+  int _lastPageIndex = -1;
   bool _hasMoreChapters = true;
   bool _showControls = true;
 
@@ -76,6 +78,9 @@ class _ReaderScreenState extends ConsumerState<ReaderScreen>
   int? _pendingJumpPage;
   final Set<String> _bookmarkedKeys = {};
 
+  // Set to false to render pages without the zoom wrapper (A/B diagnostic).
+  static const bool _zoomEnabled = false;
+
   // Per-page double-tap zoom state.
   final Map<int, TransformationController> _zoomControllers = {};
   final Map<int, bool> _zoomed = {};
@@ -83,6 +88,8 @@ class _ReaderScreenState extends ConsumerState<ReaderScreen>
   int? _zoomSeenPageCount;
   late final AnimationController _zoomAnimController;
   VoidCallback? _zoomAnimListener;
+
+  Size? _lastViewportSize; // page box size in horizontal mode
 
   String _bookmarkKey(String chapterId, int pageIndex) =>
       '$chapterId:$pageIndex';
@@ -662,6 +669,7 @@ class _ReaderScreenState extends ConsumerState<ReaderScreen>
       _loadedChapterIndices.clear();
       _pageRetryTokens.clear();
       _hasMoreChapters = true;
+      _lastPageIndex = -1;
     });
     _loadChapter(_currentChapterIndex);
   }
@@ -2156,10 +2164,110 @@ class _ReaderScreenState extends ConsumerState<ReaderScreen>
     }
   }
 
+  /// Loads the chapter before the frontmost loaded one and PREPENDS its pages
+  /// to the list, then shifts the view back to what the reader was showing.
+  /// `_currentChapterIndex` stays unchanged (it tracks the newest loaded
+  /// chapter, which forward-navigation and progress-saving depend on).
+  Future<void> _loadPreviousChapter() async {
+    if (_isLoadingPreviousChapter) return;
+    final frontChapter =
+        _pagesChapters.isNotEmpty ? _pagesChapters.first : _currentChapterIndex;
+    final prevIndex = frontChapter - 1;
+    if (prevIndex < 0 || prevIndex >= widget.allChapters.length) return;
+    if (_loadedChapterIndices.contains(prevIndex)) return;
+    _isLoadingPreviousChapter = true;
+
+    final chapter = widget.allChapters[prevIndex];
+    MangaSource? source;
+    if (widget.sourceId != null) {
+      source = getSourceBySourceId(widget.sourceId!);
+    }
+    source ??= ref.read(currentSourceProvider);
+    if (source == null) {
+      _isLoadingPreviousChapter = false;
+      return;
+    }
+    final src = source;
+
+    try {
+      final List<String> newPages;
+      if (_downloadedChapters.contains(chapter.id)) {
+        final download = await DatabaseHelper.instance.getDownload(
+          widget.mangaId,
+          chapter.id,
+        );
+        final stored = download?['pageUrls'];
+        final storedList = stored is String && stored.isNotEmpty
+            ? (jsonDecode(stored) as List).cast<String>()
+            : null;
+        if (storedList != null && storedList.isNotEmpty) {
+          newPages = storedList;
+        } else {
+          newPages = await SourceCache.pageUrls(
+            sourceId: src.id,
+            chapterId: chapter.id,
+            fetch: () => src.getPageUrls(chapter.id),
+          );
+        }
+      } else {
+        newPages = await SourceCache.pageUrls(
+          sourceId: src.id,
+          chapterId: chapter.id,
+          fetch: () => src.getPageUrls(chapter.id),
+        );
+      }
+      if (!mounted) return;
+
+      List<String?>? locals;
+      if (_downloadedChapters.contains(chapter.id)) {
+        locals = await ChapterDownloader.localPathsForChapter(
+          mangaId: widget.mangaId,
+          chapterId: chapter.id,
+          pages: newPages,
+        );
+        if (!mounted) return;
+      }
+
+      final wasAt = _currentPageIndex;
+      final inserted = newPages.length;
+
+      setState(() {
+        _pages.insertAll(0, newPages);
+        _pagesChapters.insertAll(0, List.filled(inserted, prevIndex));
+        _pageFiles.insertAll(0, locals ?? List.filled(inserted, null));
+        _loadedChapterIndices.add(prevIndex);
+      });
+
+      // The page under the reader moved forward by [inserted] slots; keep the
+      // view on it. Vertical mode estimates page height at 600 (matches the
+      // jump-to-page math used elsewhere).
+      WidgetsBinding.instance.addPostFrameCallback((_) {
+        if (!mounted) return;
+        if (_isHorizontal) {
+          if (_pageController.hasClients) {
+            _pageController.jumpToPage(wasAt + inserted);
+          }
+        } else if (_scrollController.hasClients) {
+          _scrollController.jumpTo((wasAt + inserted) * 600.0);
+        }
+        if (mounted) _maybeShowToast();
+      });
+    } catch (e) {
+      debugPrint('Error loading previous chapter: $e');
+    } finally {
+      _isLoadingPreviousChapter = false;
+    }
+  }
+
   // --- CHAPTER TRANSITION TOAST ---
 
   void _handleScrollTicker() {
     final pos = _scrollController.position;
+    // Near the top -> load the previous chapter (backward symmetry with the
+    // next-chapter load at the bottom).
+    if (pos.pixels <= 800 && !_isLoadingPreviousChapter) {
+      _loadPreviousChapter();
+    }
     if (pos.pixels >= pos.maxScrollExtent - 800 &&
         !_isLoadingNextChapter &&
         _hasMoreChapters) {
@@ -3041,7 +3149,20 @@ class _ReaderScreenState extends ConsumerState<ReaderScreen>
     Widget pageView = PageView.builder(
       controller: _pageController,
       itemCount: _pages.length,
-      onPageChanged: (_) => _maybeShowToast(),
+      onPageChanged: (index) {
+        _maybeShowToast();
+        // Swiping back into page 0 -> load the previous chapter so the pager
+        // can keep going backward across the chapter boundary.
+        if (_lastPageIndex > 0 && index == 0) {
+          _loadPreviousChapter();
+        }
+        _lastPageIndex = index;
+      },
+      // Mangayomi-style: while the current page is zoomed, give the page
+      // gesture ownership (swipe is disabled until the user zooms back out).
+      physics: (_zoomed[_currentPageIndex] ?? false)
+          ? const NeverScrollableScrollPhysics()
+          : null,
       itemBuilder: (context, index) {
         final page = _buildPageImage(
           _pages[index],
@@ -3103,41 +3224,67 @@ class _ReaderScreenState extends ConsumerState<ReaderScreen>
     );
   }
 
-  // --- DOUBLE-TAP ZOOM / PAN WRAPPER ---
+  // --- DOUBLE-TAP ZOOM WRAPPER (Mangayomi-style, no pinch) ---
   Widget _buildZoomablePage({required int index, required Widget child}) {
     _maybeResetZoomState();
-    final zoomed = _zoomed[index] ?? false;
-    final controller = _zoomControllers[index];
+    // A/B kill-switch: rendering the page image directly (no zoom layer)
+    // isolates the wrapper from page-load/source issues.
+    if (!_zoomEnabled) return child;
+    // Keep a single controller per page alive from first build so the double
+    // tap always operates on the SAME matrix that is displayed. The page is
+    // drawn with a plain Transform of that matrix (identity when idle), so
+    // rendering is identical to the zoom-off path.
+    final controller =
+        _zoomControllers.putIfAbsent(index, TransformationController.new);
     return GestureDetector(
+      behavior: HitTestBehavior.opaque,
       onDoubleTapDown: (details) => _zoomFocal[index] = details.localPosition,
       onDoubleTap: () => _togglePageZoom(index),
-      child: InteractiveViewer(
-        transformationController: controller,
-        // In horizontal mode each page fills the viewport; in vertical mode
-        // pages keep their natural height so the ListView can scroll them.
-        constrained: !_isHorizontal,
-        // Vertical/webtoon keeps full gesture ownership so the strip can
-        // always scroll normally — even while zoomed (Kotatsu-style). Only
-        // horizontal pages pan when zoomed.
-        panEnabled: _isHorizontal && zoomed,
-        scaleEnabled: true,
-        minScale: 1.0,
-        maxScale: 5.0,
-        onInteractionEnd: (_) => _syncZoomedAfterGesture(index),
-        child: child,
+      // Single tap still toggles the reader chrome; Flutter disambiguates it
+      // from the double-tap above (single tap fires only after the double-tap
+      // window elapses).
+      onTap: _toggleControls,
+      child: LayoutBuilder(
+        builder: (context, constraints) {
+          _lastViewportSize = constraints.biggest;
+          return ValueListenableBuilder<Matrix4>(
+            valueListenable: controller,
+            builder: (context, value, _) =>
+                Transform(transform: value, child: child),
+          );
+        },
       ),
     );
+  }
+
+  Matrix4 _zoomClampTranslation(Matrix4 matrix) {
+    if (!_isHorizontal) return matrix.clone();
+    final size = _lastViewportSize;
+    final s = matrix.getMaxScaleOnAxis();
+    if (s <= 1.0) return Matrix4.identity();
+    if (size == null || size.width <= 0 || size.height <= 0) return matrix.clone();
+    final t = matrix.getTranslation();
+    final dx = t.x.clamp(-(s - 1) * size.width, 0.0).toDouble();
+    final dy = t.y.clamp(-(s - 1) * size.height, 0.0).toDouble();
+    if (dx == t.x && dy == t.y) return matrix.clone();
+    return matrix.clone()..setTranslationRaw(dx, dy, t.z);
   }
 
   void _maybeResetZoomState() {
     if (_zoomSeenPageCount != _pages.length) {
       _zoomSeenPageCount = _pages.length;
-      for (final controller in _zoomControllers.values) {
-        controller.dispose();
-      }
+      final oldControllers = _zoomControllers.values.toList();
       _zoomControllers.clear();
       _zoomed.clear();
       _zoomFocal.clear();
+      // Dispose outside of the build phase: _maybeResetZoomState runs from
+      // _buildZoomablePage while a frame builds, and disposing an attached
+      // controller fires its notifier listener during build.
+      WidgetsBinding.instance.addPostFrameCallback((_) {
+        for (final controller in oldControllers) {
+          controller.dispose();
+        }
+      });
     }
   }
 
@@ -3147,9 +3294,18 @@ class _ReaderScreenState extends ConsumerState<ReaderScreen>
       index,
       TransformationController.new,
     );
-    final focal = _zoomFocal[index] ?? Offset.zero;
+    // The tap focal is reported in the *viewport* (widget) coordinate space,
+    // but the matrix operates on the *child* space. Map it to child
+    // coordinates under the current transform so the zoom anchor stays where
+    // the finger is when the page is already zoomed.
+    final viewportFocal = _zoomFocal[index] ?? Offset.zero;
+    final childFocal = MatrixUtils.transformPoint(
+      Matrix4.inverted(controller.value),
+      viewportFocal,
+    );
     final currentScale = controller.value.getMaxScaleOnAxis();
-    final target = currentScale > 1.5 ? 1.0 : 4.0;
+    // Mangayomi-style: toggle between fit and a fixed 2.5x zoom on the tap.
+    final target = currentScale > 1.5 ? 1.0 : 2.5;
 
     setState(() => _zoomed[index] = target > 1.5);
 
@@ -3163,28 +3319,19 @@ class _ReaderScreenState extends ConsumerState<ReaderScreen>
     // Animate scale while keeping the tapped point fixed under the finger.
     void updateZoomMatrix() {
       if (!mounted) return;
-      final t = Curves.easeOutCubic.transform(_zoomAnimController.value);
+      final t = Curves.easeInOutCubic.transform(_zoomAnimController.value);
       final scale = currentScale + (target - currentScale) * t;
-      final tx = (1 - scale) * focal.dx;
-      final ty = (1 - scale) * focal.dy;
+      final tx = viewportFocal.dx - scale * childFocal.dx;
+      final ty = viewportFocal.dy - scale * childFocal.dy;
       controller.value = Matrix4.identity()
         ..translateByDouble(tx, ty, 0, 1)
         ..scaleByDouble(scale, scale, 1, 1);
+      controller.value = _zoomClampTranslation(controller.value);
     }
 
     _zoomAnimListener = updateZoomMatrix;
     _zoomAnimController.addListener(updateZoomMatrix);
     _zoomAnimController.forward();
-  }
-
-  void _syncZoomedAfterGesture(int index) {
-    final controller = _zoomControllers[index];
-    if (controller == null || !mounted) return;
-    final scale = controller.value.getMaxScaleOnAxis();
-    final shouldZoom = scale > 1.02;
-    if (shouldZoom != (_zoomed[index] ?? false)) {
-      setState(() => _zoomed[index] = shouldZoom);
-    }
   }
 
   Future<void> _retryPage(int index, String? localPath) async {

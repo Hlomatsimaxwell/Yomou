@@ -694,7 +694,9 @@ class _MangaDetailScreenState extends ConsumerState<MangaDetailScreen> {
               },
               child: SafeArea(
                 child: SingleChildScrollView(
-                  padding: const EdgeInsets.only(bottom: 90),
+                  padding: EdgeInsets.only(
+                    bottom: 90 + MediaQuery.of(context).padding.bottom,
+                  ),
                   child: Column(
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
@@ -756,6 +758,7 @@ class _MangaDetailScreenState extends ConsumerState<MangaDetailScreen> {
                             isExpanded: _isExpanded,
                             activeTab: _activeTab,
                             topPadding: MediaQuery.of(context).padding.top,
+                            bottomPadding: MediaQuery.of(context).padding.bottom,
                             unreadCount: _unreadCount,
                             showContinueButton:
                                 _activeTab == 0 && _chapters.isNotEmpty,
@@ -819,7 +822,7 @@ class _MangaDetailScreenState extends ConsumerState<MangaDetailScreen> {
           if (_showSheetContent && _trayCanScroll && !_selectionMode)
             Positioned(
               right: 14,
-              bottom: 90,
+              bottom: 90 + MediaQuery.of(context).padding.bottom,
               child: IgnorePointer(
                 ignoring: !_isExpanded,
                 child: AnimatedOpacity(
@@ -893,7 +896,12 @@ class _MangaDetailScreenState extends ConsumerState<MangaDetailScreen> {
     }
 
     return SliverPadding(
-      padding: const EdgeInsets.symmetric(horizontal: 16),
+      padding: EdgeInsets.fromLTRB(
+        16,
+        0,
+        16,
+        16 + MediaQuery.of(context).padding.bottom,
+      ),
       sliver: SliverList(
         delegate: SliverChildBuilderDelegate((context, index) {
           final originalIndex = _reverseOrder
@@ -1395,7 +1403,12 @@ class _MangaDetailScreenState extends ConsumerState<MangaDetailScreen> {
     }
 
     return SliverPadding(
-      padding: const EdgeInsets.all(16),
+      padding: EdgeInsets.fromLTRB(
+        16,
+        16,
+        16,
+        16 + MediaQuery.of(context).padding.bottom,
+      ),
       sliver: SliverGrid(
         gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
           crossAxisCount: 3,
@@ -1467,7 +1480,12 @@ class _MangaDetailScreenState extends ConsumerState<MangaDetailScreen> {
     }
 
     return SliverPadding(
-      padding: const EdgeInsets.symmetric(horizontal: 16),
+      padding: EdgeInsets.fromLTRB(
+        16,
+        0,
+        16,
+        16 + MediaQuery.of(context).padding.bottom,
+      ),
       sliver: SliverList(
         delegate: SliverChildBuilderDelegate((context, index) {
           final bm = _bookmarks[index];
@@ -2837,6 +2855,7 @@ class _SheetHeaderDelegate extends SliverPersistentHeaderDelegate {
   final bool isExpanded;
   final int activeTab;
   final double topPadding;
+  final double bottomPadding;
   final int unreadCount;
   final bool showContinueButton;
   final bool hasRead;
@@ -2863,6 +2882,7 @@ class _SheetHeaderDelegate extends SliverPersistentHeaderDelegate {
     required this.isExpanded,
     required this.activeTab,
     required this.topPadding,
+    this.bottomPadding = 0,
     this.unreadCount = 0,
     this.showContinueButton = false,
     this.hasRead = false,
@@ -2908,7 +2928,7 @@ class _SheetHeaderDelegate extends SliverPersistentHeaderDelegate {
           left: 10,
           right: 10,
           top: isExpanded ? (topPadding + 6) : 6,
-          bottom: 6,
+          bottom: isExpanded ? 6 : (6 + bottomPadding),
         ),
         alignment: Alignment.center,
         child: Column(
@@ -3178,16 +3198,17 @@ class _SheetHeaderDelegate extends SliverPersistentHeaderDelegate {
   }
 
   @override
-  double get maxExtent => 72 + (isExpanded ? topPadding : 0);
+  double get maxExtent => 72 + (isExpanded ? topPadding : bottomPadding);
 
   @override
-  double get minExtent => 72 + (isExpanded ? topPadding : 0);
+  double get minExtent => 72 + (isExpanded ? topPadding : bottomPadding);
 
   @override
   bool shouldRebuild(covariant _SheetHeaderDelegate oldDelegate) {
     return oldDelegate.isExpanded != isExpanded ||
         oldDelegate.activeTab != activeTab ||
         oldDelegate.topPadding != topPadding ||
+        oldDelegate.bottomPadding != bottomPadding ||
         oldDelegate.unreadCount != unreadCount ||
         oldDelegate.showContinueButton != showContinueButton ||
         oldDelegate.hasRead != hasRead ||
