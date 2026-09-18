@@ -17,16 +17,20 @@ import 'package:yomou/core/widgets/manga_grid_metrics.dart';
 import 'package:yomou/features/history/providers/history_provider.dart';
 import 'package:yomou/features/library/providers/downloads_provider.dart';
 import 'package:yomou/features/library/providers/favorites_provider.dart';
+import 'package:yomou/features/settings/providers/appearance_provider.dart';
 import 'package:yomou/l10n/generated/app_localizations.dart';
 import 'package:yomou/core/widgets/search_bar.dart';
 
-class ProgressBadge extends StatelessWidget {
+class ProgressBadge extends ConsumerWidget {
   final int progress;
 
   const ProgressBadge({super.key, required this.progress});
 
   @override
-  Widget build(BuildContext context) {
+  Widget build(BuildContext context, WidgetRef ref) {
+    if (!ref.watch(appearanceSettingsProvider).showReadingProgress) {
+      return const SizedBox.shrink();
+    }
     final double value = (progress / 100).clamp(0.0, 1.0);
 
     return SizedBox(
@@ -842,6 +846,8 @@ class _HistoryScreenState extends ConsumerState<HistoryScreen> {
       if (next != prev) _loadFromProvider();
     });
 
+    final appearance = ref.watch(appearanceSettingsProvider);
+
     final filteredList = _historyItems.where(_matchesHistoryFilter).toList();
 
     filteredList.sort((a, b) {
@@ -918,7 +924,7 @@ class _HistoryScreenState extends ConsumerState<HistoryScreen> {
                 else ...[
                   _buildSearchBar(),
                   const SizedBox(height: 12),
-                  _buildFilterChips(),
+                  if (appearance.showQuickFilters) _buildFilterChips(),
                 ],
                 const SizedBox(height: 16),
                 if (filteredList.isEmpty)
@@ -1544,7 +1550,14 @@ class _GridHistoryCardState extends State<GridHistoryCard> {
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
                       Expanded(
-                        child: Wrap(
+                        child: Consumer(
+                          builder: (context, ref, _) {
+                            if (!ref
+                                .watch(appearanceSettingsProvider)
+                                .showListBadges) {
+                              return const SizedBox.shrink();
+                            }
+                            return Wrap(
                           spacing: 4,
                           runSpacing: 4,
                           crossAxisAlignment: WrapCrossAlignment.center,
@@ -1595,9 +1608,11 @@ class _GridHistoryCardState extends State<GridHistoryCard> {
                                 ),
                               ),
                           ],
-                        ),
+                          );
+                        },
                       ),
-                      ProgressBadge(progress: progress),
+                    ),
+                    ProgressBadge(progress: progress),
                     ],
                   ),
                 ),
@@ -1701,15 +1716,26 @@ class _DetailedHistoryCardState extends State<DetailedHistoryCard> {
                       ),
                     ),
                     const SizedBox(height: 8),
-                    LinearProgressIndicator(
-                      value: (widget.item['progress'] as int) / 100,
-                      backgroundColor: dark ? Colors.white12 : Colors.black12,
-                      valueColor: AlwaysStoppedAnimation<Color>(
-                        dark
-                            ? Colors.white
-                            : Theme.of(context).colorScheme.primary,
-                      ),
-                      minHeight: 3,
+                    Consumer(
+                      builder: (context, ref, _) {
+                        if (!ref
+                            .watch(appearanceSettingsProvider)
+                            .showReadingProgress) {
+                          return const SizedBox.shrink();
+                        }
+                        return LinearProgressIndicator(
+                          value: (widget.item['progress'] as int) / 100,
+                          backgroundColor: dark
+                              ? Colors.white12
+                              : Colors.black12,
+                          valueColor: AlwaysStoppedAnimation<Color>(
+                            dark
+                                ? Colors.white
+                                : Theme.of(context).colorScheme.primary,
+                          ),
+                          minHeight: 3,
+                        );
+                      },
                     ),
                   ],
                 ),
@@ -1777,18 +1803,20 @@ class _CompactHistoryCardState extends State<CompactHistoryCard> {
           fontSize: 12,
         ),
       ),
-      trailing: Row(
-        mainAxisSize: MainAxisSize.min,
-        children: [
-          Text(
+      trailing: Consumer(
+        builder: (context, ref, _) {
+          if (!ref.watch(appearanceSettingsProvider).showReadingProgress) {
+            return const SizedBox.shrink();
+          }
+          return Text(
             '${widget.item['progress']}%',
             style: const TextStyle(
               color: Colors.white70,
               fontSize: 12,
               fontWeight: FontWeight.bold,
             ),
-          ),
-        ],
+          );
+        },
       ),
       onTap: widget.onTap,
     );

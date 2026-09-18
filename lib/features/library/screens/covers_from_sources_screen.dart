@@ -61,18 +61,8 @@ class _CoversFromSourcesScreenState
     _load();
   }
 
-  List<MangaSource> _activeSources() {
-    final rows = ref.read(sourcesProvider);
-    final seenIds = <String>{};
-    final sources = <MangaSource>[];
-    for (final row in rows) {
-      final name = row['name'] as String? ?? '';
-      if (name.isEmpty || name == 'Mock Source') continue;
-      final source = getSourceByName(name);
-      if (seenIds.add(source.id)) sources.add(source);
-    }
-    return sources;
-  }
+  List<MangaSource> _activeSources() =>
+      resolveActiveSources(ref.read(sourcesProvider));
 
   void _load() {
     if (widget.currentCover.isNotEmpty) {

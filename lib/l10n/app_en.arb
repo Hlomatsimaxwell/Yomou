@@ -127,6 +127,15 @@
   "appearanceScreenshotPolicyTitle": "Screenshot policy",
   "screenshotPolicyAllow": "Allow",
   "screenshotPolicyBlock": "Block",
+  "appLockEnterTitle": "Enter PIN",
+  "appLockEnterSubtitle": "Enter your 4-digit PIN to open Yomou",
+  "appLockSetTitle": "Set PIN",
+  "appLockSetSubtitle": "Choose a 4-digit PIN to protect the app",
+  "appLockVerifyTitle": "Enter current PIN",
+  "appLockVerifySubtitle": "Confirm your current PIN",
+  "appLockWrongPin": "Wrong PIN, try again",
+  "appLockCancel": "Cancel",
+  "homeRecent": "Recent",
   "suggestionHistory": "History",
   "suggestionTrending": "Trending",
   "suggestionNew": "New",
@@ -456,8 +465,98 @@
   },
   "toTop": "To top",
   "pin": "Pin",
+  "enableSource": "Enable source",
+  "disableSource": "Disable source",
+  "disabled": "Disabled",
+  "cannotDisableActiveSource": "Switch to another source before disabling this one",
+  "cannotSelectDisabledSource": "Enable this source before browsing it",
   "createShortcut": "Create shortcut",
   "disableNsfw": "Disable NSFW",
+  "notificationSettingsDescription": "Checks your library in the background and alerts you when a series you follow gets a new chapter.",
+  "notificationSettingsEnable": "New chapter notifications",
+  "notificationSettingsOn": "Checking in the background",
+  "notificationSettingsOff": "Off",
+  "notificationPermissionDenied": "Notification permission was denied. Enable it in system settings.",
+  "notificationPreviewSection": "Preview",
+  "notificationPreviewNewChapters": "New chapters notification",
+  "notificationPreviewSuggested": "Suggested manga notification",
+  "notificationOptionsSection": "Options",
+  "notificationWifiOnly": "Only on Wi-Fi",
+  "notificationWifiOnlySubtitle": "Do not check using metered network connections",
+  "notificationFrequency": "Frequency of check",
+  "frequencyManual": "Manual",
+  "frequencyLess": "Less frequently",
+  "frequencyDefault": "Default",
+  "frequencyMore": "More frequently",
+  "notificationScope": "Look for updates",
+  "notificationScopeSubtitle": "{enabled} of {total} on",
+  "@notificationScopeSubtitle": {
+    "placeholders": {
+      "enabled": {
+        "type": "int"
+      },
+      "total": {
+        "type": "int"
+      }
+    }
+  },
+  "notificationScopeFavorites": "Favorites",
+  "notificationScopeHistory": "History",
+  "notificationCategories": "Favorite categories",
+  "notificationCategoriesSubtitle": "{enabled} of {total} on",
+  "@notificationCategoriesSubtitle": {
+    "placeholders": {
+      "enabled": {
+        "type": "int"
+      },
+      "total": {
+        "type": "int"
+      }
+    }
+  },
+  "notificationCategoriesNone": "No favorite categories yet",
+  "notificationNsfw": "Disable NSFW notifications",
+  "notificationNsfwSubtitle": "Skip mature content when checking and suggesting",
+  "notificationDownload": "Download new chapters",
+  "autoDownloadNever": "Never",
+  "autoDownloadDownloaded": "Manga with downloaded chapters",
+  "autoDownloadRecentlyRead": "Recently read manga",
+  "notificationCheckLogSection": "Debug & System",
+  "notificationCheckNow": "Check for new chapters now",
+  "notificationCheckRunning": "Checking...",
+  "notificationCheckDone": "Check completed",
+  "notificationCheckFailed": "Check failed",
+  "notificationLog": "Checking for new chapters log",
+  "notificationLogEmpty": "No checks have run yet",
+  "notificationBattery": "Disable battery optimization",
+  "notificationBatterySubtitle": "Android may kill background workers unless you whitelist this app",
+  "notificationLogChecked": "Checked {scanned} series",
+  "@notificationLogChecked": {
+    "placeholders": {
+      "scanned": {
+        "type": "int"
+      }
+    }
+  },
+  "notificationLogFound": "{series} series, {chapters} new chapters",
+  "@notificationLogFound": {
+    "placeholders": {
+      "series": {
+        "type": "int"
+      },
+      "chapters": {
+        "type": "int"
+      }
+    }
+  },
+  "notificationLogSuggested": "Suggested {title}",
+  "@notificationLogSuggested": {
+    "placeholders": {
+      "title": {
+        "type": "String"
+      }
+    }
+  },
   "searchCatalog": "Search catalog...",
   "noMangaFound": "No manga found",
   "noResultsFound": "No results found",

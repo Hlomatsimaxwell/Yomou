@@ -2,6 +2,7 @@ import 'dart:convert';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:shared_preferences/shared_preferences.dart';
+import 'package:yomou/core/security/screenshot_policy.dart';
 
 /// Named color schemes matching Kotatsu's preset themes.
 enum AppColorScheme { totoro, dynamic, expressive, miku, monochrome }
@@ -327,6 +328,8 @@ class AppearanceSettingsNotifier extends StateNotifier<AppearanceSettings> {
 
   Future<void> _load() async {
     state = await _AppearancePersistence.load();
+    // Re-apply per start: the native FLAG_SECURE is process-scoped.
+    applyScreenshotPolicy(block: state.screenshotPolicy == 'Block');
   }
 
   Future<void> _persist() async => _AppearancePersistence.save(state);
@@ -397,8 +400,10 @@ class AppearanceSettingsNotifier extends StateNotifier<AppearanceSettings> {
   Future<void> setProtectApp(bool value) async =>
       set((s) => s.copyWith(protectApp: value));
 
-  Future<void> setScreenshotPolicy(String policy) async =>
-      set((s) => s.copyWith(screenshotPolicy: policy));
+  Future<void> setScreenshotPolicy(String policy) async {
+    set((s) => s.copyWith(screenshotPolicy: policy));
+    await applyScreenshotPolicy(block: policy == 'Block');
+  }
 }
 
 final appearanceSettingsProvider =

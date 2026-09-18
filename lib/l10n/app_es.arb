@@ -108,6 +108,15 @@
   "appearanceScreenshotPolicyTitle": "Política de capturas de pantalla",
   "screenshotPolicyAllow": "Permitir",
   "screenshotPolicyBlock": "Bloquear",
+  "appLockEnterTitle": "Introduce el PIN",
+  "appLockEnterSubtitle": "Introduce tu PIN de 4 dígitos para abrir Yomou",
+  "appLockSetTitle": "Establece un PIN",
+  "appLockSetSubtitle": "Elige un PIN de 4 dígitos para proteger la app",
+  "appLockVerifyTitle": "Introduce el PIN actual",
+  "appLockVerifySubtitle": "Confirma tu PIN actual",
+  "appLockWrongPin": "PIN incorrecto, inténtalo de nuevo",
+  "appLockCancel": "Cancelar",
+  "homeRecent": "Recientes",
   "suggestionHistory": "Historial",
   "suggestionTrending": "Tendencias",
   "suggestionNew": "Nuevo",
@@ -409,8 +418,98 @@
   },
   "toTop": "Subir arriba",
   "pin": "Fijar",
+  "enableSource": "Activar fuente",
+  "disableSource": "Desactivar fuente",
+  "disabled": "Desactivada",
+  "cannotDisableActiveSource": "Cambia a otra fuente antes de desactivar esta",
+  "cannotSelectDisabledSource": "Activa esta fuente antes de explorarla",
   "createShortcut": "Crear acceso directo",
   "disableNsfw": "Desactivar NSFW",
+  "notificationSettingsDescription": "Revisa tu biblioteca en segundo plano y te avisa cuando una serie que sigues recibe un capítulo nuevo.",
+  "notificationSettingsEnable": "Notificaciones de capítulos nuevos",
+  "notificationSettingsOn": "Revisando en segundo plano",
+  "notificationSettingsOff": "Desactivadas",
+  "notificationPermissionDenied": "Se denegó el permiso de notificaciones. Actívalo en los ajustes del sistema.",
+  "notificationPreviewSection": "Vista previa",
+  "notificationPreviewNewChapters": "Notificación de capítulos nuevos",
+  "notificationPreviewSuggested": "Notificación de manga sugerido",
+  "notificationOptionsSection": "Opciones",
+  "notificationWifiOnly": "Solo con Wi-Fi",
+  "notificationWifiOnlySubtitle": "No revisar usando conexiones con datos móviles",
+  "notificationFrequency": "Frecuencia de revisión",
+  "frequencyManual": "Manual",
+  "frequencyLess": "Con menos frecuencia",
+  "frequencyDefault": "Predeterminada",
+  "frequencyMore": "Con más frecuencia",
+  "notificationScope": "Buscar actualizaciones en",
+  "notificationScopeSubtitle": "{enabled} de {total} activadas",
+  "@notificationScopeSubtitle": {
+    "placeholders": {
+      "enabled": {
+        "type": "int"
+      },
+      "total": {
+        "type": "int"
+      }
+    }
+  },
+  "notificationScopeFavorites": "Favoritos",
+  "notificationScopeHistory": "Historial",
+  "notificationCategories": "Categorías favoritas",
+  "notificationCategoriesSubtitle": "{enabled} de {total} activadas",
+  "@notificationCategoriesSubtitle": {
+    "placeholders": {
+      "enabled": {
+        "type": "int"
+      },
+      "total": {
+        "type": "int"
+      }
+    }
+  },
+  "notificationCategoriesNone": "Aún no hay categorías favoritas",
+  "notificationNsfw": "Desactivar notificaciones NSFW",
+  "notificationNsfwSubtitle": "Omitir contenido para adultos al revisar y sugerir",
+  "notificationDownload": "Descargar capítulos nuevos",
+  "autoDownloadNever": "Nunca",
+  "autoDownloadDownloaded": "Manga con capítulos descargados",
+  "autoDownloadRecentlyRead": "Manga leído recientemente",
+  "notificationCheckLogSection": "Depuración y sistema",
+  "notificationCheckNow": "Buscar capítulos nuevos ahora",
+  "notificationCheckRunning": "Buscando...",
+  "notificationCheckDone": "Revisión completada",
+  "notificationCheckFailed": "Error en la revisión",
+  "notificationLog": "Registro de revisión de capítulos",
+  "notificationLogEmpty": "Todavía no se han realizado revisiones",
+  "notificationBattery": "Desactivar la optimización de batería",
+  "notificationBatterySubtitle": "Android puede detener los procesos en segundo plano a menos que marques esta app como excepción",
+  "notificationLogChecked": "{scanned} series revisadas",
+  "@notificationLogChecked": {
+    "placeholders": {
+      "scanned": {
+        "type": "int"
+      }
+    }
+  },
+  "notificationLogFound": "{series} series, {chapters} capítulos nuevos",
+  "@notificationLogFound": {
+    "placeholders": {
+      "series": {
+        "type": "int"
+      },
+      "chapters": {
+        "type": "int"
+      }
+    }
+  },
+  "notificationLogSuggested": "{title} sugerido",
+  "@notificationLogSuggested": {
+    "placeholders": {
+      "title": {
+        "type": "String"
+      }
+    }
+  },
   "searchCatalog": "Buscar en el catálogo...",
   "noMangaFound": "No se encontró manga",
   "noResultsFound": "No se encontraron resultados",

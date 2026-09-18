@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:remixicon/remixicon.dart';
 import '../providers/downloads_provider.dart';
+import 'package:yomou/features/settings/providers/appearance_provider.dart';
 
 /// Small SD-card badge shown on a manga cover when at least one chapter of
 /// that manga has been downloaded. Watches the downloads provider so it stays
@@ -25,6 +26,9 @@ class DownloadedMangaBadge extends ConsumerWidget {
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
+    if (!ref.watch(appearanceSettingsProvider).showListBadges) {
+      return const SizedBox.shrink();
+    }
     final downloaded = ref.watch(downloadedMangasProvider);
     final hasDownload = downloaded.valueOrNull?.contains(mangaId) ?? false;
     if (!hasDownload) return const SizedBox.shrink();

@@ -19,6 +19,7 @@ import 'package:yomou/data/models/chapter.dart';
 import 'package:yomou/data/models/manga_source.dart';
 import 'package:yomou/features/history/providers/history_provider.dart';
 import 'package:yomou/features/library/providers/downloads_provider.dart';
+import 'package:yomou/features/settings/providers/appearance_provider.dart';
 import 'package:yomou/core/widgets/empty_state.dart';
 import 'package:yomou/features/settings/screens/settings_screen.dart';
 import 'package:yomou/l10n/generated/app_localizations.dart';
@@ -53,7 +54,8 @@ class ReaderScreen extends ConsumerStatefulWidget {
   ConsumerState<ReaderScreen> createState() => _ReaderScreenState();
 }
 
-class _ReaderScreenState extends ConsumerState<ReaderScreen> {
+class _ReaderScreenState extends ConsumerState<ReaderScreen>
+    with SingleTickerProviderStateMixin {
   final ScrollController _scrollController = ScrollController();
   PageController _pageController = PageController();
   final List<String> _pages = [];
@@ -73,6 +75,14 @@ class _ReaderScreenState extends ConsumerState<ReaderScreen> {
   bool _needsRestore = false;
   int? _pendingJumpPage;
   final Set<String> _bookmarkedKeys = {};
+
+  // Per-page double-tap zoom state.
+  final Map<int, TransformationController> _zoomControllers = {};
+  final Map<int, bool> _zoomed = {};
+  final Map<int, Offset> _zoomFocal = {};
+  int? _zoomSeenPageCount;
+  late final AnimationController _zoomAnimController;
+  VoidCallback? _zoomAnimListener;
 
   String _bookmarkKey(String chapterId, int pageIndex) =>
       '$chapterId:$pageIndex';
@@ -137,6 +147,10 @@ class _ReaderScreenState extends ConsumerState<ReaderScreen> {
     super.initState();
     _currentChapterIndex = widget.initialChapterIndex;
     _needsRestore = widget.initialPageIndex > 0;
+    _zoomAnimController = AnimationController(
+      vsync: this,
+      duration: const Duration(milliseconds: 220),
+    );
     _loadPrefs();
     _loadBookmarks();
     _loadProgress();
@@ -212,9 +226,13 @@ class _ReaderScreenState extends ConsumerState<ReaderScreen> {
     _scrollController.dispose();
     _pageController.dispose();
     _trayExtentController.dispose();
+    for (final controller in _zoomControllers.values) {
+      controller.dispose();
+    }
     _toastTimer?.cancel();
     _scrollStopTimer?.cancel();
     _autoScrollTimer?.cancel();
+    _zoomAnimController.dispose();
     super.dispose();
   }
 
@@ -250,6 +268,109 @@ class _ReaderScreenState extends ConsumerState<ReaderScreen> {
       }
     }
     setState(() {});
+  }
+
+  // Horizontal strip of chapter page thumbnails shown above the bottom capsule
+  // while the controls are visible. Honors the "Show pages thumbnails" setting.
+  Widget _buildPageThumbnailStrip() {
+    if (!ref.watch(appearanceSettingsProvider).showPagesThumbnails) {
+      return const SizedBox.shrink();
+    }
+    final pages = _pages;
+    if (pages.isEmpty) return const SizedBox.shrink();
+    final current = _currentPageIndex;
+    final isDark = Theme.of(context).brightness == Brightness.dark;
+    final activeColor = Theme.of(context).colorScheme.primary;
+
+    return Container(
+      height: 84,
+      padding: const EdgeInsets.symmetric(vertical: 8),
+      decoration: BoxDecoration(
+        color: isDark
+            ? const Color(0xE6212124)
+            : Colors.white.withValues(alpha: 0.95),
+        borderRadius: BorderRadius.circular(20),
+        border: Border.all(
+          color: isDark ? Colors.white12 : Colors.black12,
+        ),
+      ),
+      child: ListView.builder(
+        scrollDirection: Axis.horizontal,
+        padding: const EdgeInsets.symmetric(horizontal: 8),
+        itemCount: pages.length,
+        itemBuilder: (context, index) {
+          final active = index == current;
+          return GestureDetector(
+            onTap: () => _jumpToPage(index),
+            child: Container(
+              width: 36,
+              height: 64,
+              margin: const EdgeInsets.symmetric(horizontal: 3),
+              decoration: BoxDecoration(
+                borderRadius: BorderRadius.circular(6),
+                border: Border.all(
+                  color: active
+                      ? activeColor
+                      : isDark
+                          ? Colors.white24
+                          : Colors.black26,
+                  width: active ? 2.5 : 1,
+                ),
+              ),
+              child: ClipRRect(
+                borderRadius: BorderRadius.circular(5),
+                child: Stack(
+                  fit: StackFit.expand,
+                  children: [
+                    _pageThumb(pages[index]),
+                    Positioned(
+                      bottom: 2,
+                      right: 4,
+                      child: Text(
+                        '${index + 1}',
+                        style: TextStyle(
+                          color: isDark ? Colors.white : Colors.black87,
+                          fontSize: 9,
+                          fontWeight: FontWeight.bold,
+                          shadows: [
+                            Shadow(
+                              color: isDark ? Colors.black87 : Colors.white70,
+                              blurRadius: 3,
+                            ),
+                          ],
+                        ),
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+            ),
+          );
+        },
+      ),
+    );
+  }
+
+  Widget _pageThumb(String ref) {
+    if (ref.startsWith('http')) {
+      return SafeNetworkImage(
+        imageUrl: ref,
+        fit: BoxFit.cover,
+        placeholder: (context, url) => const ColoredBox(
+          color: Colors.black26,
+        ),
+        errorWidget: (context, url, error) => const ColoredBox(
+          color: Colors.black26,
+        ),
+      );
+    }
+    return SafeFileImage(
+      file: File(ref),
+      fit: BoxFit.cover,
+      errorWidget: (context, url, error) => const ColoredBox(
+        color: Colors.black26,
+      ),
+    );
   }
 
   Widget _buildProgressTrack() {
@@ -2692,6 +2813,7 @@ class _ReaderScreenState extends ConsumerState<ReaderScreen> {
         backgroundColor: Colors.black,
         body: GestureDetector(
           onTap: _toggleControls,
+          onLongPress: _showSettingsSheet,
           child: Stack(
             children: [
               // --- VIEWPORT AREA ---
@@ -2769,6 +2891,15 @@ class _ReaderScreenState extends ConsumerState<ReaderScreen> {
                     ],
                   ),
                 ),
+              ),
+
+              // --- PAGE THUMBNAIL STRIP (opt-in) ---
+              AnimatedPositioned(
+                duration: const Duration(milliseconds: 200),
+                bottom: _showControls ? 92 : -150,
+                left: 16,
+                right: 16,
+                child: _buildPageThumbnailStrip(),
               ),
 
               // --- BOTTOM CAPSULE BAR ---
@@ -2966,7 +3097,94 @@ class _ReaderScreenState extends ConsumerState<ReaderScreen> {
         errorWidget: (context, url, error) => _buildPageError(index: index),
       );
     }
-    return _applyColorFilter(image);
+    return _buildZoomablePage(
+      index: index,
+      child: _applyColorFilter(image),
+    );
+  }
+
+  // --- DOUBLE-TAP ZOOM / PAN WRAPPER ---
+  Widget _buildZoomablePage({required int index, required Widget child}) {
+    _maybeResetZoomState();
+    final zoomed = _zoomed[index] ?? false;
+    final controller = _zoomControllers[index];
+    return GestureDetector(
+      onDoubleTapDown: (details) => _zoomFocal[index] = details.localPosition,
+      onDoubleTap: () => _togglePageZoom(index),
+      child: InteractiveViewer(
+        transformationController: controller,
+        // In horizontal mode each page fills the viewport; in vertical mode
+        // pages keep their natural height so the ListView can scroll them.
+        constrained: !_isHorizontal,
+        // Vertical/webtoon keeps full gesture ownership so the strip can
+        // always scroll normally — even while zoomed (Kotatsu-style). Only
+        // horizontal pages pan when zoomed.
+        panEnabled: _isHorizontal && zoomed,
+        scaleEnabled: true,
+        minScale: 1.0,
+        maxScale: 5.0,
+        onInteractionEnd: (_) => _syncZoomedAfterGesture(index),
+        child: child,
+      ),
+    );
+  }
+
+  void _maybeResetZoomState() {
+    if (_zoomSeenPageCount != _pages.length) {
+      _zoomSeenPageCount = _pages.length;
+      for (final controller in _zoomControllers.values) {
+        controller.dispose();
+      }
+      _zoomControllers.clear();
+      _zoomed.clear();
+      _zoomFocal.clear();
+    }
+  }
+
+  void _togglePageZoom(int index) {
+    if (!mounted) return;
+    final controller = _zoomControllers.putIfAbsent(
+      index,
+      TransformationController.new,
+    );
+    final focal = _zoomFocal[index] ?? Offset.zero;
+    final currentScale = controller.value.getMaxScaleOnAxis();
+    final target = currentScale > 1.5 ? 1.0 : 4.0;
+
+    setState(() => _zoomed[index] = target > 1.5);
+
+    _zoomAnimController.stop();
+    if (_zoomAnimListener != null) {
+      _zoomAnimController.removeListener(_zoomAnimListener!);
+      _zoomAnimListener = null;
+    }
+    _zoomAnimController.value = 0.0;
+
+    // Animate scale while keeping the tapped point fixed under the finger.
+    void updateZoomMatrix() {
+      if (!mounted) return;
+      final t = Curves.easeOutCubic.transform(_zoomAnimController.value);
+      final scale = currentScale + (target - currentScale) * t;
+      final tx = (1 - scale) * focal.dx;
+      final ty = (1 - scale) * focal.dy;
+      controller.value = Matrix4.identity()
+        ..translateByDouble(tx, ty, 0, 1)
+        ..scaleByDouble(scale, scale, 1, 1);
+    }
+
+    _zoomAnimListener = updateZoomMatrix;
+    _zoomAnimController.addListener(updateZoomMatrix);
+    _zoomAnimController.forward();
+  }
+
+  void _syncZoomedAfterGesture(int index) {
+    final controller = _zoomControllers[index];
+    if (controller == null || !mounted) return;
+    final scale = controller.value.getMaxScaleOnAxis();
+    final shouldZoom = scale > 1.02;
+    if (shouldZoom != (_zoomed[index] ?? false)) {
+      setState(() => _zoomed[index] = shouldZoom);
+    }
   }
 
   Future<void> _retryPage(int index, String? localPath) async {

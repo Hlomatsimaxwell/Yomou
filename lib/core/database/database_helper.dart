@@ -23,7 +23,7 @@ class DatabaseHelper {
 
     return await openDatabase(
       path,
-      version: 9,
+      version: 11,
       onCreate: _createDB,
       onUpgrade: _onUpgrade,
     );
@@ -75,6 +75,14 @@ class DatabaseHelper {
       await db.execute('ALTER TABLE manga ADD COLUMN originalTitle TEXT');
       await db.execute('ALTER TABLE manga ADD COLUMN originalCoverUrl TEXT');
     }
+    if (oldVersion < 10) {
+      await db.execute(
+        'ALTER TABLE manga ADD COLUMN lastNotifiedChapters INTEGER DEFAULT 0',
+      );
+    }
+    if (oldVersion < 11) {
+      await _createNotificationLogTable(db);
+    }
   }
 
   Future _createDB(Database db, int version) async {
@@ -105,13 +113,26 @@ class DatabaseHelper {
         isReadLater INTEGER DEFAULT 0,
         tags TEXT DEFAULT '[]',
         originalTitle TEXT,
-        originalCoverUrl TEXT
+        originalCoverUrl TEXT,
+        lastNotifiedChapters INTEGER DEFAULT 0
       )
     ''');
 
     await _createBookmarksTable(db);
     await _createDownloadsTable(db);
     await _createSourceCacheTable(db);
+    await _createNotificationLogTable(db);
+  }
+
+  Future _createNotificationLogTable(Database db) async {
+    await db.execute('''
+      CREATE TABLE IF NOT EXISTS notification_log (
+        id INTEGER PRIMARY KEY AUTOINCREMENT,
+        at TEXT NOT NULL,
+        type TEXT NOT NULL,
+        summary TEXT NOT NULL
+      )
+    ''');
   }
 
   Future _createSourceCacheTable(Database db) async {
@@ -531,6 +552,18 @@ class DatabaseHelper {
     }
   }
 
+  // Records the chapter total that was last surfaced in a notification, so a
+  // background check only reports chapters newer than the previous check.
+  Future<void> setLastNotifiedChapters(String mangaId, int total) async {
+    final db = await instance.database;
+    await db.update(
+      'manga',
+      {'lastNotifiedChapters': total},
+      where: 'mangaId = ?',
+      whereArgs: [mangaId],
+    );
+  }
+
   // Get the top N most frequent tags across all history + favorites manga.
   Future<List<String>> getUserTopTags({int limit = 5}) async {
     final db = await instance.database;
@@ -689,6 +722,44 @@ class DatabaseHelper {
         'totalChapters': totalChapters,
       }, conflictAlgorithm: ConflictAlgorithm.replace);
     }
+  }
+
+  // Records one background update check for the "check log" screen.
+  Future<void> addNotificationLog({
+    required String type,
+    required String summary,
+    DateTime? at,
+  }) async {
+    final db = await instance.database;
+    await db.insert('notification_log', {
+      'at': (at ?? DateTime.now()).toIso8601String(),
+      'type': type,
+      'summary': summary,
+    });
+  }
+
+  // Most-recent background check entries, newest first.
+  Future<List<Map<String, dynamic>>> getNotificationLogs({
+    int limit = 100,
+  }) async {
+    final db = await instance.database;
+    return db.query('notification_log', orderBy: 'id DESC', limit: limit);
+  }
+
+  // Library manga ids that were read within [within].
+  Future<Set<String>> getRecentlyReadMangaIds(
+    Duration within, {
+    DateTime? now,
+  }) async {
+    final db = await instance.database;
+    final cutoff = ((now ?? DateTime.now()).subtract(within)).toIso8601String();
+    final rows = await db.query(
+      'reading_progress',
+      columns: ['mangaId'],
+      where: 'lastReadAt >= ?',
+      whereArgs: [cutoff],
+    );
+    return rows.map((r) => r['mangaId']?.toString() ?? '').toSet();
   }
 
   Future<List<Map<String, dynamic>>> getDownloads(String mangaId) async {

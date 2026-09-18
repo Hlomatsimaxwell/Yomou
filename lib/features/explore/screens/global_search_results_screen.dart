@@ -76,12 +76,10 @@ class _GlobalSearchResultsScreenState
   }
 
   Future<void> _refresh() async {
-    final sourceList = ref.read(sourcesProvider);
-    for (final entry in sourceList) {
-      final name = entry['name'] as String;
-      SourceCache.invalidatePrefix('${getSourceByName(name).id}/list/');
+    final sources = resolveActiveSources(ref.read(sourcesProvider));
+    for (final source in sources) {
+      SourceCache.invalidatePrefix('${source.id}/list/');
     }
-    SourceCache.invalidatePrefix('mangadex/list/');
     ref.invalidate(globalSearchProvider(_activeQuery));
     await ref.read(globalSearchProvider(_activeQuery).future);
     if (mounted) setState(() {});
@@ -139,7 +137,9 @@ class _GlobalSearchResultsScreenState
                 ? AppLocalizations.of(context).hideFailedSources
                 : AppLocalizations.of(context).showFailedSources,
             icon: Icon(
-              _showFailedSources ? RemixIcons.globe_line : RemixIcons.global_off_line,
+              _showFailedSources
+                  ? RemixIcons.globe_line
+                  : RemixIcons.global_off_line,
               color: _showFailedSources
                   ? Colors.orange
                   : (dark ? Colors.white : const Color(0xFF1C1B1F)),
@@ -254,12 +254,13 @@ class _GlobalSearchResultsScreenState
                     mainAxisSize: MainAxisSize.min,
                     children: [
                       Text(
-                        AppLocalizations.of(context).showAllCount(
-                          result.manga.length,
-                        ),
+                        AppLocalizations.of(
+                          context,
+                        ).showAllCount(result.manga.length),
                         style: TextStyle(
-                          color:
-                              dark ? Colors.white70 : const Color(0xFF49454F),
+                          color: dark
+                              ? Colors.white70
+                              : const Color(0xFF49454F),
                           fontSize: 13,
                           fontWeight: FontWeight.w600,
                         ),
@@ -267,8 +268,7 @@ class _GlobalSearchResultsScreenState
                       const SizedBox(width: 4),
                       Icon(
                         RemixIcons.arrow_right_s_line,
-                        color:
-                            dark ? Colors.white70 : const Color(0xFF49454F),
+                        color: dark ? Colors.white70 : const Color(0xFF49454F),
                         size: 18,
                       ),
                     ],
@@ -330,9 +330,7 @@ class _GlobalSearchResultsScreenState
                               width: 100,
                               child: Icon(
                                 RemixIcons.book_open_line,
-                                color: dark
-                                    ? Colors.white38
-                                    : Colors.black38,
+                                color: dark ? Colors.white38 : Colors.black38,
                               ),
                             ),
                           ),
@@ -343,11 +341,7 @@ class _GlobalSearchResultsScreenState
                         size: 20,
                         iconSize: 12,
                       ),
-                      FavoriteBadge(
-                        mangaId: item.id,
-                        size: 20,
-                        iconSize: 12,
-                      ),
+                      FavoriteBadge(mangaId: item.id, size: 20, iconSize: 12),
                     ],
                   ),
                   const SizedBox(height: 6),
@@ -382,15 +376,15 @@ class _GlobalSearchResultsScreenState
         decoration: BoxDecoration(
           color: dark ? const Color(0xFF1C1C1E) : Colors.white,
           borderRadius: BorderRadius.circular(12),
-          border: Border.all(
-            color: dark ? Colors.white12 : Colors.black12,
-          ),
+          border: Border.all(color: dark ? Colors.white12 : Colors.black12),
         ),
         child: Row(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
             Icon(
-              result.hasError ? RemixIcons.error_warning_line : RemixIcons.search_2_line,
+              result.hasError
+                  ? RemixIcons.error_warning_line
+                  : RemixIcons.search_2_line,
               color: dark ? Colors.white38 : Colors.black38,
               size: 20,
             ),

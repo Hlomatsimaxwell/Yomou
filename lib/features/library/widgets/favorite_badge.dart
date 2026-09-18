@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:remixicon/remixicon.dart';
 import '../providers/favorites_provider.dart';
+import 'package:yomou/features/settings/providers/appearance_provider.dart';
 
 /// Small heart badge shown on a manga cover when the manga is in the
 /// user's favorites. Watches the favorites provider so it stays in sync
@@ -25,6 +26,9 @@ class FavoriteBadge extends ConsumerWidget {
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
+    if (!ref.watch(appearanceSettingsProvider).showListBadges) {
+      return const SizedBox.shrink();
+    }
     final favorites = ref.watch(favoritesProvider);
     final isFavorite =
         favorites.valueOrNull?.any((m) => m.id == mangaId) ?? false;

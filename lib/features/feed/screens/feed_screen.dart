@@ -84,10 +84,9 @@ class _FeedScreenState extends ConsumerState<FeedScreen> {
                     child: Text(
                       AppLocalizations.of(context).failedToLoadUpdates,
                       style: TextStyle(
-                        color:
-                            Theme.of(context).brightness == Brightness.dark
-                                ? Colors.white54
-                                : const Color(0xFF49454F),
+                        color: Theme.of(context).brightness == Brightness.dark
+                            ? Colors.white54
+                            : const Color(0xFF49454F),
                         fontSize: 16,
                       ),
                     ),
@@ -383,7 +382,10 @@ class _FeedScreenState extends ConsumerState<FeedScreen> {
                       fit: BoxFit.cover,
                       errorWidget: (context, url, error) => Container(
                         color: const Color(0xFF2C2C2E),
-                        child: const Icon(RemixIcons.book_open_line, color: Colors.white38),
+                        child: const Icon(
+                          RemixIcons.book_open_line,
+                          color: Colors.white38,
+                        ),
                       ),
                     ),
                   ),
@@ -393,11 +395,7 @@ class _FeedScreenState extends ConsumerState<FeedScreen> {
                   size: 16,
                   iconSize: 10,
                 ),
-                FavoriteBadge(
-                  mangaId: update.mangaId,
-                  size: 16,
-                  iconSize: 10,
-                ),
+                FavoriteBadge(mangaId: update.mangaId, size: 16, iconSize: 10),
               ],
             ),
             title: Text(
@@ -405,7 +403,9 @@ class _FeedScreenState extends ConsumerState<FeedScreen> {
               maxLines: 1,
               overflow: TextOverflow.ellipsis,
               style: TextStyle(
-                color: dark ? Colors.white : Theme.of(context).colorScheme.onSurface,
+                color: dark
+                    ? Colors.white
+                    : Theme.of(context).colorScheme.onSurface,
                 fontSize: 14,
                 fontWeight: FontWeight.bold,
               ),

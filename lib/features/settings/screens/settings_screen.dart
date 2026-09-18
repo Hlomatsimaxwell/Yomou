@@ -2,39 +2,17 @@ import 'package:flutter/material.dart';
 import 'package:remixicon/remixicon.dart';
 import 'package:yomou/l10n/generated/app_localizations.dart';
 import 'package:yomou/features/settings/screens/appearance_settings_screen.dart';
+import 'package:yomou/features/settings/screens/notification_settings_screen.dart';
+import 'package:yomou/widgets/m3_components.dart';
 
 class SettingsScreen extends StatelessWidget {
   const SettingsScreen({super.key});
 
   @override
   Widget build(BuildContext context) {
-    final dark = Theme.of(context).brightness == Brightness.dark;
-    final appBarContentColor = dark ? Colors.white : const Color(0xFF1C1B1F);
     final l = AppLocalizations.of(context);
     return Scaffold(
-      backgroundColor: Theme.of(context).scaffoldBackgroundColor,
-      appBar: AppBar(
-        backgroundColor: Theme.of(context).scaffoldBackgroundColor,
-        elevation: 0,
-        leading: IconButton(
-          icon: Icon(RemixIcons.arrow_left_line, color: appBarContentColor),
-          onPressed: () => Navigator.pop(context),
-        ),
-        title: Text(
-          l.settings,
-          style: TextStyle(
-            color: appBarContentColor,
-            fontSize: 22,
-            fontWeight: FontWeight.w400,
-          ),
-        ),
-        actions: [
-          IconButton(
-            icon: Icon(RemixIcons.search_line, color: appBarContentColor),
-            onPressed: () {},
-          ),
-        ],
-      ),
+      appBar: SettingsAppBar(title: l.settings),
       body: ListView(
         padding: const EdgeInsets.symmetric(vertical: 8),
         children: [
@@ -85,7 +63,14 @@ class SettingsScreen extends StatelessWidget {
             icon: RemixIcons.rss_line,
             title: l.settingsNewChapters,
             subtitle: l.settingsNewChaptersSubtitle,
-            onTap: () {},
+            onTap: () {
+              Navigator.push(
+                context,
+                MaterialPageRoute(
+                  builder: (_) => const NotificationSettingsScreen(),
+                ),
+              );
+            },
           ),
           _buildSettingTile(
             context: context,
@@ -120,31 +105,19 @@ class SettingsScreen extends StatelessWidget {
     required String subtitle,
     required VoidCallback onTap,
   }) {
-    final dark = Theme.of(context).brightness == Brightness.dark;
     return ListTile(
       contentPadding: const EdgeInsets.symmetric(horizontal: 20, vertical: 6),
       leading: Padding(
         padding: const EdgeInsets.only(top: 4),
-        child: Icon(
-          icon,
-          color: dark ? Colors.white : Theme.of(context).colorScheme.onSurface,
-          size: 26,
-        ),
+        child: Icon(icon, size: 26),
       ),
       title: Text(
         title,
-        style: TextStyle(
-          color: dark ? Colors.white : Theme.of(context).colorScheme.onSurface,
-          fontSize: 17,
-          fontWeight: FontWeight.w500,
-        ),
+        style: const TextStyle(fontWeight: FontWeight.w500),
       ),
       subtitle: Padding(
         padding: const EdgeInsets.only(top: 4),
-        child: Text(
-          subtitle,
-          style: TextStyle(color: dark ? Colors.white54 : Colors.black54, fontSize: 14),
-        ),
+        child: Text(subtitle),
       ),
       onTap: onTap,
     );

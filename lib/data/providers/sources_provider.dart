@@ -86,14 +86,60 @@ final currentSourceProvider = StateProvider<MangaSource>((ref) {
   return MangaDexSource();
 });
 
+/// A source is enabled unless explicitly disabled. Older saved preference
+/// lists have no `isEnabled` key, so they default to enabled.
+bool isSourceEnabled(Map<String, dynamic> source) =>
+    source['isEnabled'] != false;
+
+/// Resolves the usable source objects from the registry rows: enabled only,
+/// skipping the mock source and collapsing rows that map to the same id.
+List<MangaSource> resolveActiveSources(List<Map<String, dynamic>> rows) {
+  final seen = <String>{};
+  final list = <MangaSource>[];
+  for (final row in rows) {
+    if (!isSourceEnabled(row)) continue;
+    final name = row['name'] as String? ?? '';
+    if (name.isEmpty || name == 'Mock Source') continue;
+    final source = getSourceByName(name);
+    if (seen.add(source.id)) list.add(source);
+  }
+  return list;
+}
+
+/// Source ids that the user has explicitly disabled in the registry rows.
+Set<String> disabledSourceIds(List<Map<String, dynamic>> rows) {
+  final ids = <String>{};
+  for (final row in rows) {
+    if (isSourceEnabled(row)) continue;
+    final name = row['name'] as String? ?? '';
+    if (name.isNotEmpty) ids.add(getSourceByName(name).id);
+  }
+  return ids;
+}
+
+/// Resolves the source registry rows saved in prefs, falling back to the
+/// built-in defaults when the user never customized the list. Background
+/// tasks rely on this so they work on a fresh install.
+List<Map<String, dynamic>> sourceRowsFromPrefs(SharedPreferences prefs) {
+  final raw = prefs.getString('pinned_sources_list');
+  if (raw != null) {
+    try {
+      return (jsonDecode(raw) as List).cast<Map<String, dynamic>>();
+    } catch (_) {}
+  }
+  return SourcesNotifier.defaultSources;
+}
+
 class SourcesNotifier extends StateNotifier<List<Map<String, dynamic>>> {
-  SourcesNotifier() : super(_defaultSources) {
+  SourcesNotifier() : super(defaultSources) {
     _loadFromPrefs();
   }
 
   static const String _prefsKey = 'pinned_sources_list';
 
-  static final List<Map<String, dynamic>> _defaultSources = [
+  /// The built-in source list used before the user customizes the registry
+  /// (or when nothing was saved yet).
+  static final List<Map<String, dynamic>> defaultSources = [
     {
       'name': 'MangaDex', // Moved to top for easier testing
       'language': 'Manga, Various languages',
@@ -200,14 +246,20 @@ class SourcesNotifier extends StateNotifier<List<Map<String, dynamic>>> {
     if (savedJson != null) {
       final List<dynamic> decoded = jsonDecode(savedJson);
       final pinnedMap = <String, bool>{};
+      final enabledMap = <String, bool>{};
 
       for (var item in decoded) {
         pinnedMap[item['name']] = item['isPinned'] ?? false;
+        enabledMap[item['name']] = item['isEnabled'] ?? true;
       }
 
       final updatedList = state.map((source) {
         final name = source['name'] as String;
-        return {...source, 'isPinned': pinnedMap[name] ?? false};
+        return {
+          ...source,
+          'isPinned': pinnedMap[name] ?? false,
+          'isEnabled': enabledMap[name] ?? true,
+        };
       }).toList();
 
       state = _sortSources(updatedList);
@@ -218,7 +270,11 @@ class SourcesNotifier extends StateNotifier<List<Map<String, dynamic>>> {
     final prefs = await SharedPreferences.getInstance();
     final dataToSave = state
         .map(
-          (source) => {'name': source['name'], 'isPinned': source['isPinned']},
+          (source) => {
+            'name': source['name'],
+            'isPinned': source['isPinned'],
+            'isEnabled': isSourceEnabled(source),
+          },
         )
         .toList();
 
@@ -230,6 +286,18 @@ class SourcesNotifier extends StateNotifier<List<Map<String, dynamic>>> {
       if (source['name'] == sourceName) {
         final currentPinned = source['isPinned'] == true;
         return {...source, 'isPinned': !currentPinned};
+      }
+      return source;
+    }).toList();
+
+    state = _sortSources(updatedList);
+    _saveToPrefs();
+  }
+
+  void toggleEnabled(String sourceName) {
+    final updatedList = state.map((source) {
+      if (source['name'] == sourceName) {
+        return {...source, 'isEnabled': !isSourceEnabled(source)};
       }
       return source;
     }).toList();

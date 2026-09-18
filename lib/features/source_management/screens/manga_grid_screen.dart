@@ -2,6 +2,7 @@ import 'package:remixicon/remixicon.dart';
 import 'dart:math';
 import 'package:yomou/widgets/cached_manga_image.dart';
 import 'package:flutter/material.dart';
+import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:yomou/core/database/source_cache.dart';
 import 'package:yomou/features/library/screens/manga_detail_screen.dart';
 import 'package:yomou/features/library/widgets/downloaded_badge.dart';
@@ -10,18 +11,19 @@ import 'package:yomou/core/widgets/empty_state.dart';
 import 'package:yomou/core/widgets/manga_grid_metrics.dart';
 import 'package:yomou/data/models/manga.dart';
 import 'package:yomou/data/providers/sources_provider.dart';
+import 'package:yomou/features/settings/providers/appearance_provider.dart';
 import 'package:yomou/l10n/generated/app_localizations.dart';
 
-class MangaGridScreen extends StatefulWidget {
+class MangaGridScreen extends ConsumerStatefulWidget {
   final String sourceName;
 
   const MangaGridScreen({super.key, required this.sourceName});
 
   @override
-  State<MangaGridScreen> createState() => _MangaGridScreenState();
+  ConsumerState<MangaGridScreen> createState() => _MangaGridScreenState();
 }
 
-class _MangaGridScreenState extends State<MangaGridScreen> {
+class _MangaGridScreenState extends ConsumerState<MangaGridScreen> {
   int _selectedFilterIndex = -1;
   final TextEditingController _searchController = TextEditingController();
   bool _isSearching = false;
@@ -229,7 +231,8 @@ class _MangaGridScreenState extends State<MangaGridScreen> {
                 ),
               ),
               const SizedBox(height: 12),
-              _buildFilterChips(),
+              if (ref.watch(appearanceSettingsProvider).showQuickFilters)
+                _buildFilterChips(),
               const SizedBox(height: 16),
               if (_isLoading)
                 Padding(

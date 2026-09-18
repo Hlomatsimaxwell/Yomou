@@ -30,6 +30,8 @@ class _ManageSourcesScreenState extends ConsumerState<ManageSourcesScreen> {
     final dark = Theme.of(context).brightness == Brightness.dark;
     final scheme = Theme.of(context).colorScheme;
     final sources = ref.watch(sourcesProvider);
+    final activeSourceId = ref.watch(currentSourceProvider).id;
+    final l = AppLocalizations.of(context);
 
     final filteredSources = sources.where((source) {
       if (_searchQuery.isEmpty) return true;
@@ -126,10 +128,24 @@ class _ManageSourcesScreenState extends ConsumerState<ManageSourcesScreen> {
           final source = filteredSources[index];
           final sourceName = source['name'] as String;
           final isPinned = source['isPinned'] == true;
+          final isEnabled = isSourceEnabled(source);
+          final isActive = getSourceByName(sourceName).id == activeSourceId;
+          final titleColor = dark ? Colors.white : scheme.onSurface;
+          final subtitleColor = dark ? Colors.white54 : Colors.black54;
 
           return ListTile(
             // --- ADDED ONTAP LOGIC HERE ---
             onTap: () {
+              if (!isEnabled) {
+                ScaffoldMessenger.of(context).showSnackBar(
+                  SnackBar(
+                    content: Text(l.cannotSelectDisabledSource),
+                    duration: const Duration(seconds: 2),
+                  ),
+                );
+                return;
+              }
+
               // 1. Switch the active source using our new registry
               ref.read(currentSourceProvider.notifier).state = getSourceByName(
                 sourceName,
@@ -154,20 +170,23 @@ class _ManageSourcesScreenState extends ConsumerState<ManageSourcesScreen> {
               horizontal: 16,
               vertical: 4,
             ),
-            leading: Container(
-              width: 48,
-              height: 48,
-              decoration: BoxDecoration(
-                color: source['bgColor'] as Color,
-                borderRadius: BorderRadius.circular(14),
-              ),
-              child: Center(
-                child: Text(
-                  source['text'] as String,
-                  style: TextStyle(
-                    fontSize: 22,
-                    fontWeight: FontWeight.bold,
-                    color: source['textColor'] as Color? ?? Colors.white,
+            leading: Opacity(
+              opacity: isEnabled ? 1 : 0.4,
+              child: Container(
+                width: 48,
+                height: 48,
+                decoration: BoxDecoration(
+                  color: source['bgColor'] as Color,
+                  borderRadius: BorderRadius.circular(14),
+                ),
+                child: Center(
+                  child: Text(
+                    source['text'] as String,
+                    style: TextStyle(
+                      fontSize: 22,
+                      fontWeight: FontWeight.bold,
+                      color: source['textColor'] as Color? ?? Colors.white,
+                    ),
                   ),
                 ),
               ),
@@ -175,11 +194,7 @@ class _ManageSourcesScreenState extends ConsumerState<ManageSourcesScreen> {
             title: Row(
               children: [
                 if (isPinned) ...[
-                  Icon(
-                    RemixIcons.pushpin_2_fill,
-                    color: dark ? Colors.white : scheme.onSurface,
-                    size: 14,
-                  ),
+                  Icon(RemixIcons.pushpin_2_fill, color: titleColor, size: 14),
                   const SizedBox(width: 6),
                 ],
                 Expanded(
@@ -187,7 +202,7 @@ class _ManageSourcesScreenState extends ConsumerState<ManageSourcesScreen> {
                     sourceName,
                     overflow: TextOverflow.ellipsis,
                     style: TextStyle(
-                      color: dark ? Colors.white : scheme.onSurface,
+                      color: titleColor.withValues(alpha: isEnabled ? 1 : 0.4),
                       fontSize: 15,
                       fontWeight: FontWeight.w600,
                     ),
@@ -196,9 +211,9 @@ class _ManageSourcesScreenState extends ConsumerState<ManageSourcesScreen> {
               ],
             ),
             subtitle: Text(
-              source['language'] as String,
+              isEnabled ? source['language'] as String : l.disabled,
               style: TextStyle(
-                color: dark ? Colors.white54 : Colors.black54,
+                color: subtitleColor.withValues(alpha: isEnabled ? 1 : 0.4),
                 fontSize: 13,
               ),
             ),
@@ -217,6 +232,13 @@ class _ManageSourcesScreenState extends ConsumerState<ManageSourcesScreen> {
                       : RemixIcons.checkbox_blank_line,
                 ),
                 IosMenuItem(
+                  value: 'enabled',
+                  label: isEnabled ? l.disableSource : l.enableSource,
+                  icon: isEnabled
+                      ? RemixIcons.pause_circle_line
+                      : RemixIcons.play_circle_line,
+                ),
+                IosMenuItem(
                   value: 'shortcut',
                   label: AppLocalizations.of(context).createShortcut,
                   icon: RemixIcons.external_link_line,
@@ -232,6 +254,19 @@ class _ManageSourcesScreenState extends ConsumerState<ManageSourcesScreen> {
                   ref.read(sourcesProvider.notifier).moveToTop(sourceName);
                 } else if (value == 'pin') {
                   ref.read(sourcesProvider.notifier).togglePin(sourceName);
+                } else if (value == 'enabled') {
+                  if (isEnabled && isActive) {
+                    ScaffoldMessenger.of(context).showSnackBar(
+                      SnackBar(
+                        content: Text(l.cannotDisableActiveSource),
+                        duration: const Duration(seconds: 2),
+                      ),
+                    );
+                  } else {
+                    ref
+                        .read(sourcesProvider.notifier)
+                        .toggleEnabled(sourceName);
+                  }
                 }
               },
             ),

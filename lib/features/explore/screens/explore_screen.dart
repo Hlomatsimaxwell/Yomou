@@ -1,10 +1,12 @@
 import 'package:flutter/material.dart';
+import 'dart:math';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:remixicon/remixicon.dart';
 import 'package:yomou/core/database/source_cache.dart';
 import 'package:yomou/core/widgets/ios/ios_menu.dart';
 import 'package:yomou/core/widgets/ios/ios_press.dart';
 import 'package:yomou/core/widgets/search_bar.dart';
+import 'package:yomou/data/models/manga.dart';
 import 'package:yomou/features/explore/screens/global_search_screen.dart';
 import 'package:yomou/features/library/screens/bookmarks_screen.dart';
 import 'package:yomou/features/library/screens/downloads_screen.dart';
@@ -15,6 +17,7 @@ import 'package:yomou/features/source_management/screens/manga_sources_screen.da
 import 'package:yomou/data/providers/sources_provider.dart';
 import 'package:yomou/core/theme/layout.dart';
 import 'package:yomou/l10n/generated/app_localizations.dart';
+import 'package:yomou/widgets/recent_manga_shelf.dart';
 import 'package:yomou/widgets/safe_image.dart';
 
 class ExploreScreen extends ConsumerStatefulWidget {
@@ -74,6 +77,8 @@ class _ExploreScreenState extends ConsumerState<ExploreScreen> {
               const SizedBox(height: 16),
               _buildQuickButtonsGrid(),
               const SizedBox(height: 24),
+              const RecentMangaShelf(),
+              const SizedBox(height: 20),
               _buildSectionHeader(
                 AppLocalizations.of(context).mangaSources,
                 actionLabel: AppLocalizations.of(context).exploreManage,
@@ -87,7 +92,7 @@ class _ExploreScreenState extends ConsumerState<ExploreScreen> {
                 },
               ),
               const SizedBox(height: 16),
-              _buildSourcesGrid(sources),
+              _buildSourcesGrid(sources.where(isSourceEnabled).toList()),
             ],
           ),
         ),
@@ -243,14 +248,8 @@ class _ExploreScreenState extends ConsumerState<ExploreScreen> {
     if (_loadingRandom) return;
     setState(() => _loadingRandom = true);
     try {
-      final source = ref.read(currentSourceProvider);
-      final pool = await SourceCache.mangaList(
-        sourceId: source.id,
-        kind: 'popular',
-        page: 1,
-        fetch: () => source.getPopularManga(page: 1),
-      );
-      if (pool.isEmpty || !mounted) {
+      final sources = resolveActiveSources(ref.read(sourcesProvider));
+      if (sources.isEmpty) {
         if (mounted) {
           ScaffoldMessenger.of(context).showSnackBar(
             SnackBar(
@@ -261,9 +260,42 @@ class _ExploreScreenState extends ConsumerState<ExploreScreen> {
         }
         return;
       }
-      final index = DateTime.now().millisecondsSinceEpoch % pool.length;
-      final manga = pool[index];
-      if (!mounted) return;
+
+      // Pick a random source, then a random manga from its popular pool. If a
+      // source yields nothing (down, rate-limited, empty), try the next one.
+      final random = Random();
+      final order = [...sources]..shuffle(random);
+      Manga? pick;
+      for (final source in order) {
+        try {
+          final pool = await SourceCache.mangaList(
+            sourceId: source.id,
+            kind: 'popular',
+            page: 1,
+            fetch: () => source.getPopularManga(page: 1),
+          ).timeout(const Duration(seconds: 10), onTimeout: () => const []);
+          if (pool.isNotEmpty) {
+            pick = pool[random.nextInt(pool.length)];
+            break;
+          }
+        } catch (_) {
+          // Try the next source.
+        }
+      }
+
+      if (pick == null || !mounted) {
+        if (mounted) {
+          ScaffoldMessenger.of(context).showSnackBar(
+            SnackBar(
+              content: Text(AppLocalizations.of(context).noRandomRightNow),
+              duration: const Duration(seconds: 2),
+            ),
+          );
+        }
+        return;
+      }
+
+      final manga = pick;
       await Navigator.push(
         context,
         MaterialPageRoute(

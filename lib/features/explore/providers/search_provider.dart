@@ -1,7 +1,6 @@
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:yomou/core/database/source_cache.dart';
 import 'package:yomou/data/models/manga.dart';
-import 'package:yomou/data/models/manga_source.dart';
 import 'package:yomou/data/providers/sources_provider.dart';
 
 /// Searches manga by query text against the active source.
@@ -88,19 +87,8 @@ final globalSearchProvider =
       final trimmed = query.trim();
       if (trimmed.isEmpty) return [];
 
-      // Resolve implemented sources (dedupe by id; ComicK falls back to MangaDex).
-      final sourceList = ref.watch(sourcesProvider);
-      final seenIds = <String>{};
-      final sources = <MangaSource>[];
-      for (final entry in sourceList) {
-        final name = entry['name'] as String;
-        final source = getSourceByName(name);
-        if (seenIds.add(source.id)) sources.add(source);
-      }
-      // Always include MangaDex even if it got unpinned.
-      if (!seenIds.add('mangadex')) {
-        sources.add(getSourceByName('MangaDex'));
-      }
+      // Resolve enabled sources (dedupe by id).
+      final sources = resolveActiveSources(ref.watch(sourcesProvider));
 
       // Tag detection: if the query exactly matches a genre/theme tag, search by
       // tag on every source; otherwise fall back to free-text title search.

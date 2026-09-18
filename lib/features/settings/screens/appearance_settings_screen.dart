@@ -2,7 +2,10 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:remixicon/remixicon.dart';
 import 'package:yomou/features/settings/providers/appearance_provider.dart';
+import 'package:yomou/core/security/app_lock.dart';
+import 'package:yomou/core/security/pin_lock_screen.dart';
 import 'package:yomou/l10n/generated/app_localizations.dart';
+import 'package:yomou/widgets/m3_components.dart';
 
 class AppearanceSettingsScreen extends ConsumerWidget {
   const AppearanceSettingsScreen({super.key});
@@ -11,36 +14,15 @@ class AppearanceSettingsScreen extends ConsumerWidget {
   Widget build(BuildContext context, WidgetRef ref) {
     final settings = ref.watch(appearanceSettingsProvider);
     final notifier = ref.read(appearanceSettingsProvider.notifier);
-    final dark = Theme.of(context).brightness == Brightness.dark;
     final l = AppLocalizations.of(context);
-    final titleColor =
-        dark ? Colors.white : Theme.of(context).colorScheme.onSurface;
-    final subtitleColor = dark ? Colors.white54 : Colors.black54;
-    final appBarContentColor = dark ? Colors.white : const Color(0xFF1C1B1F);
 
     return Scaffold(
-      backgroundColor: Theme.of(context).scaffoldBackgroundColor,
-      appBar: AppBar(
-        backgroundColor: Theme.of(context).scaffoldBackgroundColor,
-        elevation: 0,
-        leading: IconButton(
-          icon: Icon(RemixIcons.arrow_left_line, color: appBarContentColor),
-          onPressed: () => Navigator.pop(context),
-        ),
-        title: Text(
-          l.appearanceTitle,
-          style: TextStyle(
-            color: appBarContentColor,
-            fontSize: 22,
-            fontWeight: FontWeight.w400,
-          ),
-        ),
-      ),
+      appBar: SettingsAppBar(title: l.appearanceTitle),
       body: ListView(
         padding: const EdgeInsets.symmetric(vertical: 8),
         children: [
           // Color Scheme Carousel
-          _SectionHeader(title: l.appearanceColorScheme),
+          M3SectionHeader(title: l.appearanceColorScheme),
           SizedBox(
             height: 90,
             child: ListView(
@@ -83,32 +65,23 @@ class AppearanceSettingsScreen extends ConsumerWidget {
           ),
 
           // Theme Options
-          _SectionHeader(title: l.appearanceSectionThemeOptions),
+          M3SectionHeader(title: l.appearanceSectionThemeOptions),
           ListTile(
-            title: Text(l.appearanceThemeTitle, style: TextStyle(color: titleColor)),
-            subtitle: Text(
-              _themeModeLabel(l, settings.themeMode),
-              style: TextStyle(color: subtitleColor),
-            ),
+            title: Text(l.appearanceThemeTitle),
+            subtitle: Text(_themeModeLabel(l, settings.themeMode)),
             onTap: () => _showThemeModeSelector(context, ref, settings, notifier),
           ),
           ListTile(
-            title: Text(l.appearanceLanguageTitle, style: TextStyle(color: titleColor)),
-            subtitle: Text(
-              _languageLabel(l, settings.language),
-              style: TextStyle(color: subtitleColor),
-            ),
+            title: Text(l.appearanceLanguageTitle),
+            subtitle: Text(_languageLabel(l, settings.language)),
             onTap: () => _showLanguageSelector(context, ref, settings, notifier),
           ),
 
           // Manga List Section
-          _SectionHeader(title: l.appearanceSectionMangaList),
+          M3SectionHeader(title: l.appearanceSectionMangaList),
           ListTile(
-            title: Text(l.appearanceListModeTitle, style: TextStyle(color: titleColor)),
-            subtitle: Text(
-              _listModeLabel(l, settings.listMode),
-              style: TextStyle(color: subtitleColor),
-            ),
+            title: Text(l.appearanceListModeTitle),
+            subtitle: Text(_listModeLabel(l, settings.listMode)),
             onTap: () => _showListModeSelector(context, ref, settings, notifier),
           ),
           Padding(
@@ -116,146 +89,111 @@ class AppearanceSettingsScreen extends ConsumerWidget {
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                Text(
-                  l.appearanceGridSize(settings.gridSize.round()),
-                  style: TextStyle(color: titleColor),
-                ),
+                Text(l.appearanceGridSize(settings.gridSize.round())),
                 Slider(
                   value: settings.gridSize,
                   min: 50,
                   max: 150,
                   onChanged: (v) => notifier.setGridSize(v),
-                  activeColor: Theme.of(context).colorScheme.primary,
                 ),
               ],
             ),
           ),
           SwitchListTile(
-            title: Text(l.appearanceQuickFilters, style: TextStyle(color: titleColor)),
+            title: Text(l.appearanceQuickFilters),
             value: settings.showQuickFilters,
             onChanged: (_) => notifier.toggleBool('showQuickFilters'),
-            activeThumbColor: Theme.of(context).colorScheme.primary,
           ),
           SwitchListTile(
-            title: Text(l.appearanceReadingProgress, style: TextStyle(color: titleColor)),
+            title: Text(l.appearanceReadingProgress),
             value: settings.showReadingProgress,
             onChanged: (_) => notifier.toggleBool('showReadingProgress'),
-            activeThumbColor: Theme.of(context).colorScheme.primary,
           ),
           SwitchListTile(
-            title: Text(l.appearanceBadges, style: TextStyle(color: titleColor)),
+            title: Text(l.appearanceBadges),
             value: settings.showListBadges,
             onChanged: (_) => notifier.toggleBool('showListBadges'),
-            activeThumbColor: Theme.of(context).colorScheme.primary,
           ),
 
           // Details Section
-          _SectionHeader(title: l.appearanceDetails),
+          M3SectionHeader(title: l.appearanceDetails),
           SwitchListTile(
-            title: Text(l.appearanceCollapseDescription, style: TextStyle(color: titleColor)),
+            title: Text(l.appearanceCollapseDescription),
             value: settings.collapseDescription,
             onChanged: (_) => notifier.toggleBool('collapseDescription'),
-            activeThumbColor: Theme.of(context).colorScheme.primary,
           ),
           SwitchListTile(
-            title: Text(l.appearancePagesThumbnails, style: TextStyle(color: titleColor)),
+            title: Text(l.appearancePagesThumbnails),
             value: settings.showPagesThumbnails,
             onChanged: (_) => notifier.toggleBool('showPagesThumbnails'),
-            activeThumbColor: Theme.of(context).colorScheme.primary,
           ),
           ListTile(
-            title: Text(l.appearanceDefaultTabTitle, style: TextStyle(color: titleColor)),
-            subtitle: Text(
-              _tabLabel(l, settings.defaultTab),
-              style: TextStyle(color: subtitleColor),
-            ),
+            title: Text(l.appearanceDefaultTabTitle),
+            subtitle: Text(_tabLabel(l, settings.defaultTab)),
             onTap: () => _showDefaultTabSelector(context, ref, settings, notifier),
           ),
 
           // Main Screen Section
-          _SectionHeader(title: l.appearanceSectionMainScreen),
+          M3SectionHeader(title: l.appearanceSectionMainScreen),
           ListTile(
-            title: Text(l.appearanceSearchSuggestionsTitle, style: TextStyle(color: titleColor)),
-            subtitle: Text(
-              _suggestionSummary(context, settings),
-              style: TextStyle(color: subtitleColor),
-            ),
+            title: Text(l.appearanceSearchSuggestionsTitle),
+            subtitle: Text(_suggestionSummary(context, settings)),
             onTap: () => _showSearchSuggestionsSheet(context, ref, settings, notifier),
           ),
           ListTile(
-            title: Text(l.appearanceMainSectionsTitle, style: TextStyle(color: titleColor)),
-            subtitle: Text(l.appearanceMainSectionsSubtitle, style: TextStyle(color: subtitleColor)),
+            title: Text(l.appearanceMainSectionsTitle),
+            subtitle: Text(l.appearanceMainSectionsSubtitle),
             onTap: () => _showMainSectionsSheet(context, ref, settings, notifier),
           ),
           SwitchListTile(
-            title: Text(l.appearanceFloatingContinue, style: TextStyle(color: titleColor)),
+            title: Text(l.appearanceFloatingContinue),
             value: settings.showFloatingContinueButton,
             onChanged: (_) => notifier.toggleBool('showFloatingContinueButton'),
-            activeThumbColor: Theme.of(context).colorScheme.primary,
           ),
           SwitchListTile(
-            title: Text(l.appearanceNavLabels, style: TextStyle(color: titleColor)),
+            title: Text(l.appearanceNavLabels),
             value: settings.showNavLabels,
             onChanged: (_) => notifier.toggleBool('showNavLabels'),
-            activeThumbColor: Theme.of(context).colorScheme.primary,
           ),
           SwitchListTile(
-            title: Text(l.appearanceFloatingNav, style: TextStyle(color: titleColor)),
+            title: Text(l.appearanceFloatingNav),
             value: settings.useFloatingNavBar,
             onChanged: (_) => notifier.toggleBool('useFloatingNavBar'),
-            activeThumbColor: Theme.of(context).colorScheme.primary,
           ),
           SwitchListTile(
-            title: Text(l.appearancePinNav, style: TextStyle(color: titleColor)),
-            subtitle: Text(
-              l.appearancePinNavSubtitle,
-              style: TextStyle(color: subtitleColor),
-            ),
+            title: Text(l.appearancePinNav),
+            subtitle: Text(l.appearancePinNavSubtitle),
             value: settings.pinNavUiOnScroll,
             onChanged: (_) => notifier.toggleBool('pinNavUiOnScroll'),
-            activeThumbColor: Theme.of(context).colorScheme.primary,
           ),
           SwitchListTile(
-            title: Text(l.appearanceExitConfirmation, style: TextStyle(color: titleColor)),
-            subtitle: Text(
-              l.appearanceExitConfirmationSubtitle,
-              style: TextStyle(color: subtitleColor),
-            ),
+            title: Text(l.appearanceExitConfirmation),
+            subtitle: Text(l.appearanceExitConfirmationSubtitle),
             value: settings.exitConfirmation,
             onChanged: (_) => notifier.toggleBool('exitConfirmation'),
-            activeThumbColor: Theme.of(context).colorScheme.primary,
           ),
           SwitchListTile(
-            title: Text(l.appearanceRecentShortcuts, style: TextStyle(color: titleColor)),
+            title: Text(l.appearanceRecentShortcuts),
             value: settings.showRecentShortcuts,
             onChanged: (_) => notifier.toggleBool('showRecentShortcuts'),
-            activeThumbColor: Theme.of(context).colorScheme.primary,
           ),
           SwitchListTile(
-            title: Text(l.appearanceHideNsfwShortcuts, style: TextStyle(color: titleColor)),
+            title: Text(l.appearanceHideNsfwShortcuts),
             value: settings.hideNsfwFromShortcuts,
             onChanged: (_) => notifier.toggleBool('hideNsfwFromShortcuts'),
-            activeThumbColor: Theme.of(context).colorScheme.primary,
           ),
 
           // Privacy Section
-          _SectionHeader(title: l.appearancePrivacy),
+          M3SectionHeader(title: l.appearancePrivacy),
           SwitchListTile(
-            title: Text(l.appearanceProtectApp, style: TextStyle(color: titleColor)),
-            subtitle: Text(
-              l.appearanceProtectAppSubtitle,
-              style: TextStyle(color: subtitleColor),
-            ),
+            title: Text(l.appearanceProtectApp),
+            subtitle: Text(l.appearanceProtectAppSubtitle),
             value: settings.protectApp,
-            onChanged: (v) => notifier.setProtectApp(v),
-            activeThumbColor: Theme.of(context).colorScheme.primary,
+            onChanged: (v) => _handleProtectAppToggle(context, ref, v),
           ),
           ListTile(
-            title: Text(l.appearanceScreenshotPolicyTitle, style: TextStyle(color: titleColor)),
-            subtitle: Text(
-              settings.screenshotPolicy,
-              style: TextStyle(color: subtitleColor),
-            ),
+            title: Text(l.appearanceScreenshotPolicyTitle),
+            subtitle: Text(settings.screenshotPolicy),
             onTap: () => _showScreenshotPolicySheet(context, ref, settings, notifier),
           ),
 
@@ -271,42 +209,33 @@ class AppearanceSettingsScreen extends ConsumerWidget {
     AppearanceSettings settings,
     AppearanceSettingsNotifier notifier,
   ) {
-    final dark = Theme.of(context).brightness == Brightness.dark;
-    final sheetTitleColor =
-        dark ? Colors.white : Theme.of(context).colorScheme.onSurface;
-    showModalBottomSheet(
-      context: context,
-      backgroundColor: dark ? const Color(0xFF2E2E33) : Colors.white,
-      shape: const RoundedRectangleBorder(
-        borderRadius: BorderRadius.vertical(top: Radius.circular(20)),
-      ),
-      builder: (ctx) => SafeArea(
-        child: Column(
-          mainAxisSize: MainAxisSize.min,
-          children: [
-            Container(
-              margin: const EdgeInsets.only(top: 10),
-              width: 36,
-              height: 4,
-              decoration: BoxDecoration(
-                color: dark ? Colors.white38 : Colors.black26,
-                borderRadius: BorderRadius.circular(2),
-              ),
-            ),
-            Padding(
-              padding: EdgeInsets.all(16),
-              child: Text(
-                AppLocalizations.of(context).appearanceThemeTitle,
-                style: TextStyle(color: sheetTitleColor, fontSize: 17, fontWeight: FontWeight.w600),
-              ),
-            ),
-            _buildThemeOption(context, AppLocalizations.of(context).appearanceThemeSystem, ThemeMode.system, settings.themeMode, notifier),
-            _buildThemeOption(context, AppLocalizations.of(context).appearanceThemeLight, ThemeMode.light, settings.themeMode, notifier),
-            _buildThemeOption(context, AppLocalizations.of(context).appearanceThemeDark, ThemeMode.dark, settings.themeMode, notifier),
-            const SizedBox(height: 16),
-          ],
+    final l = AppLocalizations.of(context);
+    showM3ModalSheet(
+      context,
+      title: l.appearanceThemeTitle,
+      children: [
+        _buildThemeOption(
+          context,
+          l.appearanceThemeSystem,
+          ThemeMode.system,
+          settings.themeMode,
+          notifier,
         ),
-      ),
+        _buildThemeOption(
+          context,
+          l.appearanceThemeLight,
+          ThemeMode.light,
+          settings.themeMode,
+          notifier,
+        ),
+        _buildThemeOption(
+          context,
+          l.appearanceThemeDark,
+          ThemeMode.dark,
+          settings.themeMode,
+          notifier,
+        ),
+      ],
     );
   }
 
@@ -317,9 +246,8 @@ class AppearanceSettingsScreen extends ConsumerWidget {
     ThemeMode current,
     AppearanceSettingsNotifier notifier,
   ) {
-    final dark = Theme.of(context).brightness == Brightness.dark;
     return ListTile(
-      title: Text(label, style: TextStyle(color: dark ? Colors.white : Theme.of(context).colorScheme.onSurface)),
+      title: Text(label),
       trailing: mode == current
           ? Icon(RemixIcons.check_line, color: Theme.of(context).colorScheme.primary)
           : null,
@@ -345,65 +273,24 @@ class AppearanceSettingsScreen extends ConsumerWidget {
       l.languagePt, l.languageIt, l.languageRu, l.languageJa, l.languageKo, l.languageZh,
       l.languageAr, l.languageHi,
     ];
-    final dark = Theme.of(context).brightness == Brightness.dark;
-    final sheetTitleColor =
-        dark ? Colors.white : Theme.of(context).colorScheme.onSurface;
 
-    showModalBottomSheet(
-      context: context,
-      isScrollControlled: true,
-      useSafeArea: true,
-      backgroundColor: dark ? const Color(0xFF2E2E33) : Colors.white,
-      shape: const RoundedRectangleBorder(
-        borderRadius: BorderRadius.vertical(top: Radius.circular(20)),
-      ),
-      builder: (ctx) => SafeArea(
-        child: Column(
-          mainAxisSize: MainAxisSize.min,
-          children: [
-            Container(
-              margin: const EdgeInsets.only(top: 10),
-              width: 36,
-              height: 4,
-              decoration: BoxDecoration(
-                color: dark ? Colors.white38 : Colors.black26,
-                borderRadius: BorderRadius.circular(2),
-              ),
-            ),
-            Padding(
-              padding: EdgeInsets.all(16),
-              child: Text(
-                AppLocalizations.of(context).appearanceLanguageTitle,
-                style: TextStyle(color: sheetTitleColor, fontSize: 17, fontWeight: FontWeight.w600),
-              ),
-            ),
-            Flexible(
-              child: ConstrainedBox(
-                constraints: BoxConstraints(
-                  maxHeight: MediaQuery.sizeOf(ctx).height * 0.5,
-                ),
-                child: ListView(
-                  shrinkWrap: true,
-                  children: [
-                    for (var i = 0; i < languages.length; i++)
-                      ListTile(
-                        title: Text(labels[i], style: TextStyle(color: dark ? Colors.white : Theme.of(context).colorScheme.onSurface)),
-                        trailing: languages[i] == settings.language
-                            ? Icon(RemixIcons.check_line, color: Theme.of(context).colorScheme.primary)
-                            : null,
-                        onTap: () {
-                          notifier.setLanguage(languages[i]);
-                          Navigator.pop(ctx);
-                        },
-                      ),
-                  ],
-                ),
-              ),
-            ),
-            const SizedBox(height: 16),
-          ],
-        ),
-      ),
+    showM3ModalSheet(
+      context,
+      title: l.appearanceLanguageTitle,
+      maxHeightFactor: 0.5,
+      children: [
+        for (var i = 0; i < languages.length; i++)
+          ListTile(
+            title: Text(labels[i]),
+            trailing: languages[i] == settings.language
+                ? Icon(RemixIcons.check_line, color: Theme.of(context).colorScheme.primary)
+                : null,
+            onTap: () {
+              notifier.setLanguage(languages[i]);
+              Navigator.pop(context);
+            },
+          ),
+      ],
     );
   }
 
@@ -413,41 +300,14 @@ class AppearanceSettingsScreen extends ConsumerWidget {
     AppearanceSettings settings,
     AppearanceSettingsNotifier notifier,
   ) {
-    final dark = Theme.of(context).brightness == Brightness.dark;
-    final sheetTitleColor =
-        dark ? Colors.white : Theme.of(context).colorScheme.onSurface;
-    showModalBottomSheet(
-      context: context,
-      backgroundColor: dark ? const Color(0xFF2E2E33) : Colors.white,
-      shape: const RoundedRectangleBorder(
-        borderRadius: BorderRadius.vertical(top: Radius.circular(20)),
-      ),
-      builder: (ctx) => SafeArea(
-        child: Column(
-          mainAxisSize: MainAxisSize.min,
-          children: [
-            Container(
-              margin: const EdgeInsets.only(top: 10),
-              width: 36,
-              height: 4,
-              decoration: BoxDecoration(
-                color: dark ? Colors.white38 : Colors.black26,
-                borderRadius: BorderRadius.circular(2),
-              ),
-            ),
-            Padding(
-              padding: EdgeInsets.all(16),
-              child: Text(
-                AppLocalizations.of(context).appearanceListModeTitle,
-                style: TextStyle(color: sheetTitleColor, fontSize: 17, fontWeight: FontWeight.w600),
-              ),
-            ),
-            _buildListModeOption(context, AppLocalizations.of(context).listModeGrid, 'Grid', settings.listMode, notifier),
-            _buildListModeOption(context, AppLocalizations.of(context).listModeList, 'List', settings.listMode, notifier),
-            const SizedBox(height: 16),
-          ],
-        ),
-      ),
+    final l = AppLocalizations.of(context);
+    showM3ModalSheet(
+      context,
+      title: l.appearanceListModeTitle,
+      children: [
+        _buildListModeOption(context, l.listModeGrid, 'Grid', settings.listMode, notifier),
+        _buildListModeOption(context, l.listModeList, 'List', settings.listMode, notifier),
+      ],
     );
   }
 
@@ -458,9 +318,8 @@ class AppearanceSettingsScreen extends ConsumerWidget {
     String current,
     AppearanceSettingsNotifier notifier,
   ) {
-    final dark = Theme.of(context).brightness == Brightness.dark;
     return ListTile(
-      title: Text(label, style: TextStyle(color: dark ? Colors.white : Theme.of(context).colorScheme.onSurface)),
+      title: Text(label),
       trailing: mode == current
           ? Icon(RemixIcons.check_line, color: Theme.of(context).colorScheme.primary)
           : null,
@@ -486,51 +345,22 @@ class AppearanceSettingsScreen extends ConsumerWidget {
       ('Explore', l.defaultTabExplore),
       ('Updates', l.defaultTabUpdates),
     ];
-    final dark = Theme.of(context).brightness == Brightness.dark;
-    final sheetTitleColor =
-        dark ? Colors.white : Theme.of(context).colorScheme.onSurface;
-
-    showModalBottomSheet(
-      context: context,
-      backgroundColor: dark ? const Color(0xFF2E2E33) : Colors.white,
-      shape: const RoundedRectangleBorder(
-        borderRadius: BorderRadius.vertical(top: Radius.circular(20)),
-      ),
-      builder: (ctx) => SafeArea(
-        child: Column(
-          mainAxisSize: MainAxisSize.min,
-          children: [
-            Container(
-              margin: const EdgeInsets.only(top: 10),
-              width: 36,
-              height: 4,
-              decoration: BoxDecoration(
-                color: dark ? Colors.white38 : Colors.black26,
-                borderRadius: BorderRadius.circular(2),
-              ),
-            ),
-            Padding(
-              padding: EdgeInsets.all(16),
-              child: Text(
-                l.appearanceDefaultTabTitle,
-                style: TextStyle(color: sheetTitleColor, fontSize: 17, fontWeight: FontWeight.w600),
-              ),
-            ),
-            for (final tab in tabs)
-              ListTile(
-                title: Text(tab.$2, style: TextStyle(color: dark ? Colors.white : Theme.of(context).colorScheme.onSurface)),
-                trailing: tab.$1 == settings.defaultTab
-                    ? Icon(RemixIcons.check_line, color: Theme.of(context).colorScheme.primary)
-                    : null,
-                onTap: () {
-                  notifier.setDefaultTab(tab.$1);
-                  Navigator.pop(ctx);
-                },
-              ),
-            const SizedBox(height: 16),
-          ],
-        ),
-      ),
+    showM3ModalSheet(
+      context,
+      title: l.appearanceDefaultTabTitle,
+      children: [
+        for (final tab in tabs)
+          ListTile(
+            title: Text(tab.$2),
+            trailing: tab.$1 == settings.defaultTab
+                ? Icon(RemixIcons.check_line, color: Theme.of(context).colorScheme.primary)
+                : null,
+            onTap: () {
+              notifier.setDefaultTab(tab.$1);
+              Navigator.pop(context);
+            },
+          ),
+      ],
     );
   }
 
@@ -601,47 +431,17 @@ class AppearanceSettingsScreen extends ConsumerWidget {
       l.suggestionNew,
       l.suggestionPopular,
     ];
-    final dark = Theme.of(context).brightness == Brightness.dark;
-    final sheetTitleColor =
-        dark ? Colors.white : Theme.of(context).colorScheme.onSurface;
-
-    showModalBottomSheet(
-      context: context,
-      backgroundColor: dark ? const Color(0xFF2E2E33) : Colors.white,
-      shape: const RoundedRectangleBorder(
-        borderRadius: BorderRadius.vertical(top: Radius.circular(20)),
-      ),
-      builder: (ctx) => SafeArea(
-        child: Column(
-          mainAxisSize: MainAxisSize.min,
-          children: [
-            Container(
-              margin: const EdgeInsets.only(top: 10),
-              width: 36,
-              height: 4,
-              decoration: BoxDecoration(
-                color: dark ? Colors.white38 : Colors.black26,
-                borderRadius: BorderRadius.circular(2),
-              ),
-            ),
-            Padding(
-              padding: EdgeInsets.all(16),
-              child: Text(
-                l.appearanceSearchSuggestionsTitle,
-                style: TextStyle(color: sheetTitleColor, fontSize: 17, fontWeight: FontWeight.w600),
-              ),
-            ),
-            for (var i = 0; i < optionKeys.length; i++)
-              SwitchListTile(
-                title: Text(optionLabels[i], style: TextStyle(color: dark ? Colors.white : Theme.of(context).colorScheme.onSurface)),
-                value: settings.searchSuggestions[optionKeys[i]] ?? true,
-                activeThumbColor: Theme.of(context).colorScheme.primary,
-                onChanged: (_) => notifier.toggleSearchSuggestion(optionKeys[i]),
-              ),
-            const SizedBox(height: 16),
-          ],
-        ),
-      ),
+    showM3ModalSheet(
+      context,
+      title: l.appearanceSearchSuggestionsTitle,
+      children: [
+        for (var i = 0; i < optionKeys.length; i++)
+          SwitchListTile(
+            title: Text(optionLabels[i]),
+            value: settings.searchSuggestions[optionKeys[i]] ?? true,
+            onChanged: (_) => notifier.toggleSearchSuggestion(optionKeys[i]),
+          ),
+      ],
     );
   }
 
@@ -651,54 +451,84 @@ class AppearanceSettingsScreen extends ConsumerWidget {
     AppearanceSettings settings,
     AppearanceSettingsNotifier notifier,
   ) {
-    final dark = Theme.of(context).brightness == Brightness.dark;
-    final sheetTitleColor =
-        dark ? Colors.white : Theme.of(context).colorScheme.onSurface;
     final l = AppLocalizations.of(context);
-    showModalBottomSheet(
+    showM3ModalSheet(
+      context,
+      title: l.appearanceMainSectionsTitle,
+      children: [
+        for (final entry in settings.mainScreenSections.entries)
+          SwitchListTile(
+            title: Text(_tabLabel(l, entry.key)),
+            value: entry.value,
+            onChanged: (_) => notifier.toggleMainSection(entry.key),
+          ),
+      ],
+    );
+  }
+
+  // Protecting the app requires a PIN: setting one on enable, verifying the
+  // current one before disabling.
+  Future<void> _handleProtectAppToggle(
+    BuildContext context,
+    WidgetRef ref,
+    bool enable,
+  ) async {
+    final controller = ref.read(appLockProvider.notifier);
+    final l = AppLocalizations.of(context);
+
+    if (enable) {
+      if (!controller.hasPin) {
+        final pin = await _promptPin(
+          context,
+          title: l.appLockSetTitle,
+          subtitle: l.appLockSetSubtitle,
+          onVerify: (_) => true,
+        );
+        if (pin == null) return;
+        await controller.setPin(pin);
+      }
+      await ref.read(appearanceSettingsProvider.notifier).setProtectApp(true);
+    } else {
+      final pin = await _promptPin(
+        context,
+        title: l.appLockVerifyTitle,
+        subtitle: l.appLockVerifySubtitle,
+        onVerify: controller.verify,
+      );
+      if (pin == null) return;
+      await ref.read(appearanceSettingsProvider.notifier).setProtectApp(false);
+    }
+  }
+
+  Future<String?> _promptPin(
+    BuildContext context, {
+    required String title,
+    required String subtitle,
+    required bool Function(String) onVerify,
+  }) {
+    return showModalBottomSheet<String>(
       context: context,
-      backgroundColor: dark ? const Color(0xFF2E2E33) : Colors.white,
-      shape: const RoundedRectangleBorder(
-        borderRadius: BorderRadius.vertical(top: Radius.circular(20)),
-      ),
-      builder: (ctx) => SafeArea(
-        child: Column(
-          mainAxisSize: MainAxisSize.min,
-          children: [
-            Container(
-              margin: const EdgeInsets.only(top: 10),
-              width: 36,
-              height: 4,
-              decoration: BoxDecoration(
-                color: dark ? Colors.white38 : Colors.black26,
-                borderRadius: BorderRadius.circular(2),
-              ),
+      backgroundColor: Theme.of(context).brightness == Brightness.dark
+          ? const Color(0xFF1C1C1E)
+          : Colors.white,
+      isScrollControlled: true,
+      showDragHandle: true,
+      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(28)),
+      builder: (context) {
+        final nav = Navigator.of(context);
+        return Padding(
+          padding: const EdgeInsets.fromLTRB(24, 0, 24, 16),
+          child: SingleChildScrollView(
+            child: PinEntryView(
+              title: title,
+              subtitle: subtitle,
+              onVerify: onVerify,
+              onSuccess: nav.pop,
+              onCancel: () => nav.pop(),
             ),
-            Padding(
-              padding: EdgeInsets.all(16),
-              child: Text(
-                AppLocalizations.of(context).appearanceMainSectionsTitle,
-                style: TextStyle(color: sheetTitleColor, fontSize: 17, fontWeight: FontWeight.w600),
-              ),
-            ),
-            for (final entry in settings.mainScreenSections.entries)
-              SwitchListTile(
-                title: Text(
-                  _tabLabel(l, entry.key),
-                  style: TextStyle(
-                    color: dark
-                        ? Colors.white
-                        : Theme.of(context).colorScheme.onSurface,
-                  ),
-                ),
-                value: entry.value,
-                activeThumbColor: Theme.of(context).colorScheme.primary,
-                onChanged: (_) => notifier.toggleMainSection(entry.key),
-              ),
-            const SizedBox(height: 16),
-          ],
-        ),
-      ),
+          ),
+        );
+      },
     );
   }
 
@@ -711,75 +541,22 @@ class AppearanceSettingsScreen extends ConsumerWidget {
     final l = AppLocalizations.of(context);
     const policyCodes = ['Allow', 'Block'];
     final policyLabels = [l.screenshotPolicyAllow, l.screenshotPolicyBlock];
-    final dark = Theme.of(context).brightness == Brightness.dark;
-    final sheetTitleColor =
-        dark ? Colors.white : Theme.of(context).colorScheme.onSurface;
-
-    showModalBottomSheet(
-      context: context,
-      backgroundColor: dark ? const Color(0xFF2E2E33) : Colors.white,
-      shape: const RoundedRectangleBorder(
-        borderRadius: BorderRadius.vertical(top: Radius.circular(20)),
-      ),
-      builder: (ctx) => SafeArea(
-        child: Column(
-          mainAxisSize: MainAxisSize.min,
-          children: [
-            Container(
-              margin: const EdgeInsets.only(top: 10),
-              width: 36,
-              height: 4,
-              decoration: BoxDecoration(
-                color: dark ? Colors.white38 : Colors.black26,
-                borderRadius: BorderRadius.circular(2),
-              ),
-            ),
-            Padding(
-              padding: EdgeInsets.all(16),
-              child: Text(
-                l.appearanceScreenshotPolicyTitle,
-                style: TextStyle(color: sheetTitleColor, fontSize: 17, fontWeight: FontWeight.w600),
-              ),
-            ),
-            for (var i = 0; i < policyCodes.length; i++)
-              ListTile(
-                title: Text(policyLabels[i], style: TextStyle(color: dark ? Colors.white : Theme.of(context).colorScheme.onSurface)),
-                trailing: policyCodes[i] == settings.screenshotPolicy
-                    ? Icon(RemixIcons.check_line, color: Theme.of(context).colorScheme.primary)
-                    : null,
-                onTap: () {
-                  notifier.setScreenshotPolicy(policyCodes[i]);
-                  Navigator.pop(ctx);
-                },
-              ),
-            const SizedBox(height: 16),
-          ],
-        ),
-      ),
-    );
-  }
-}
-
-// Helper widget for section headers
-class _SectionHeader extends StatelessWidget {
-  const _SectionHeader({required this.title});
-
-  final String title;
-
-  @override
-  Widget build(BuildContext context) {
-    final dark = Theme.of(context).brightness == Brightness.dark;
-    return Padding(
-      padding: const EdgeInsets.fromLTRB(16, 24, 16, 8),
-      child: Text(
-        title.toUpperCase(),
-        style: TextStyle(
-          color: dark ? Colors.white.withValues(alpha: 0.5) : Colors.black54,
-          fontSize: 13,
-          fontWeight: FontWeight.w600,
-          letterSpacing: 0.8,
-        ),
-      ),
+    showM3ModalSheet(
+      context,
+      title: l.appearanceScreenshotPolicyTitle,
+      children: [
+        for (var i = 0; i < policyCodes.length; i++)
+          ListTile(
+            title: Text(policyLabels[i]),
+            trailing: policyCodes[i] == settings.screenshotPolicy
+                ? Icon(RemixIcons.check_line, color: Theme.of(context).colorScheme.primary)
+                : null,
+            onTap: () {
+              notifier.setScreenshotPolicy(policyCodes[i]);
+              Navigator.pop(context);
+            },
+          ),
+      ],
     );
   }
 }
@@ -800,9 +577,8 @@ class _SchemePreset extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final cs = Theme.of(context).colorScheme;
     final dark = Theme.of(context).brightness == Brightness.dark;
-    final primary = Theme.of(context).colorScheme.primary;
-    final onPrimary = Theme.of(context).colorScheme.onPrimary;
     final isMonochrome = name == 'Monochrome';
     return GestureDetector(
       onTap: onTap,
@@ -811,12 +587,10 @@ class _SchemePreset extends StatelessWidget {
         height: 90,
         margin: const EdgeInsets.symmetric(horizontal: 8),
         decoration: BoxDecoration(
-          color: isActive
-              ? primary.withValues(alpha: 0.2)
-              : dark ? const Color(0xFF2B2B2B) : Colors.white,
+          color: isActive ? cs.secondaryContainer : cs.surfaceContainerLow,
           borderRadius: BorderRadius.circular(16),
           border: Border.all(
-            color: isActive ? primary : (dark ? Colors.white12 : Colors.black12),
+            color: isActive ? cs.primary : cs.outlineVariant,
             width: isActive ? 2 : 1,
           ),
         ),
@@ -829,12 +603,12 @@ class _SchemePreset extends StatelessWidget {
                 height: 28,
                 decoration: BoxDecoration(
                   shape: BoxShape.circle,
-                  color: primary,
+                  color: cs.primary,
                 ),
                 child: Icon(
                   RemixIcons.check_line,
                   size: 18,
-                  color: onPrimary,
+                  color: cs.onPrimary,
                 ),
               )
             else
@@ -858,9 +632,7 @@ class _SchemePreset extends StatelessWidget {
                   maxLines: 1,
                   textAlign: TextAlign.center,
                   style: TextStyle(
-                    color: dark
-                        ? Colors.white
-                        : Theme.of(context).colorScheme.onSurface,
+                    color: cs.onSurface,
                     fontSize: 12,
                     fontWeight: FontWeight.w500,
                   ),

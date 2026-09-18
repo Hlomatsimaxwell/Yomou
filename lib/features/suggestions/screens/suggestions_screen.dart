@@ -37,15 +37,18 @@ class _SuggestionsScreenState extends ConsumerState<SuggestionsScreen> {
     super.dispose();
   }
 
-  /// Re-fetches suggestions (and the genre chip list) from the source, forcing
-  /// the disk cache to be bypassed so the user always sees fresh results.
+  /// Re-fetches suggestions (and the genre chip list) across every active
+  /// source, forcing the disk cache to be bypassed so the user always sees
+  /// fresh results.
   Future<void> _refresh() async {
     if (_refreshing) return;
     _refreshing = true;
 
-    final source = ref.read(currentSourceProvider);
-    SourceCache.invalidatePrefix('${source.id}/list/');
-    SourceCache.invalidatePrefix('${source.id}/tags');
+    final sources = sourcesFromRows(ref.read(sourcesProvider));
+    for (final source in sources) {
+      SourceCache.invalidatePrefix('${source.id}/list/');
+      SourceCache.invalidatePrefix('${source.id}/tags');
+    }
     ref.invalidate(genreTagsProvider);
     ref.invalidate(suggestionsProvider(_selectedGenre));
     try {
@@ -295,6 +298,7 @@ class _SuggestionsScreenState extends ConsumerState<SuggestionsScreen> {
               mangaId: manga.id,
               title: manga.title,
               imageUrl: manga.coverUrl,
+              sourceId: manga.sourceId,
             ),
           ),
         );

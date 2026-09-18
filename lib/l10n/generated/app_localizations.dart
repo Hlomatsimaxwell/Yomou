@@ -746,6 +746,60 @@ abstract class AppLocalizations {
   /// **'Block'**
   String get screenshotPolicyBlock;
 
+  /// No description provided for @appLockEnterTitle.
+  ///
+  /// In en, this message translates to:
+  /// **'Enter PIN'**
+  String get appLockEnterTitle;
+
+  /// No description provided for @appLockEnterSubtitle.
+  ///
+  /// In en, this message translates to:
+  /// **'Enter your 4-digit PIN to open Yomou'**
+  String get appLockEnterSubtitle;
+
+  /// No description provided for @appLockSetTitle.
+  ///
+  /// In en, this message translates to:
+  /// **'Set PIN'**
+  String get appLockSetTitle;
+
+  /// No description provided for @appLockSetSubtitle.
+  ///
+  /// In en, this message translates to:
+  /// **'Choose a 4-digit PIN to protect the app'**
+  String get appLockSetSubtitle;
+
+  /// No description provided for @appLockVerifyTitle.
+  ///
+  /// In en, this message translates to:
+  /// **'Enter current PIN'**
+  String get appLockVerifyTitle;
+
+  /// No description provided for @appLockVerifySubtitle.
+  ///
+  /// In en, this message translates to:
+  /// **'Confirm your current PIN'**
+  String get appLockVerifySubtitle;
+
+  /// No description provided for @appLockWrongPin.
+  ///
+  /// In en, this message translates to:
+  /// **'Wrong PIN, try again'**
+  String get appLockWrongPin;
+
+  /// No description provided for @appLockCancel.
+  ///
+  /// In en, this message translates to:
+  /// **'Cancel'**
+  String get appLockCancel;
+
+  /// No description provided for @homeRecent.
+  ///
+  /// In en, this message translates to:
+  /// **'Recent'**
+  String get homeRecent;
+
   /// No description provided for @suggestionHistory.
   ///
   /// In en, this message translates to:
@@ -1784,6 +1838,36 @@ abstract class AppLocalizations {
   /// **'Pin'**
   String get pin;
 
+  /// No description provided for @enableSource.
+  ///
+  /// In en, this message translates to:
+  /// **'Enable source'**
+  String get enableSource;
+
+  /// No description provided for @disableSource.
+  ///
+  /// In en, this message translates to:
+  /// **'Disable source'**
+  String get disableSource;
+
+  /// No description provided for @disabled.
+  ///
+  /// In en, this message translates to:
+  /// **'Disabled'**
+  String get disabled;
+
+  /// No description provided for @cannotDisableActiveSource.
+  ///
+  /// In en, this message translates to:
+  /// **'Switch to another source before disabling this one'**
+  String get cannotDisableActiveSource;
+
+  /// No description provided for @cannotSelectDisabledSource.
+  ///
+  /// In en, this message translates to:
+  /// **'Enable this source before browsing it'**
+  String get cannotSelectDisabledSource;
+
   /// No description provided for @createShortcut.
   ///
   /// In en, this message translates to:
@@ -1795,6 +1879,252 @@ abstract class AppLocalizations {
   /// In en, this message translates to:
   /// **'Disable NSFW'**
   String get disableNsfw;
+
+  /// No description provided for @notificationSettingsDescription.
+  ///
+  /// In en, this message translates to:
+  /// **'Checks your library in the background and alerts you when a series you follow gets a new chapter.'**
+  String get notificationSettingsDescription;
+
+  /// No description provided for @notificationSettingsEnable.
+  ///
+  /// In en, this message translates to:
+  /// **'New chapter notifications'**
+  String get notificationSettingsEnable;
+
+  /// No description provided for @notificationSettingsOn.
+  ///
+  /// In en, this message translates to:
+  /// **'Checking in the background'**
+  String get notificationSettingsOn;
+
+  /// No description provided for @notificationSettingsOff.
+  ///
+  /// In en, this message translates to:
+  /// **'Off'**
+  String get notificationSettingsOff;
+
+  /// No description provided for @notificationPermissionDenied.
+  ///
+  /// In en, this message translates to:
+  /// **'Notification permission was denied. Enable it in system settings.'**
+  String get notificationPermissionDenied;
+
+  /// No description provided for @notificationPreviewSection.
+  ///
+  /// In en, this message translates to:
+  /// **'Preview'**
+  String get notificationPreviewSection;
+
+  /// No description provided for @notificationPreviewNewChapters.
+  ///
+  /// In en, this message translates to:
+  /// **'New chapters notification'**
+  String get notificationPreviewNewChapters;
+
+  /// No description provided for @notificationPreviewSuggested.
+  ///
+  /// In en, this message translates to:
+  /// **'Suggested manga notification'**
+  String get notificationPreviewSuggested;
+
+  /// No description provided for @notificationOptionsSection.
+  ///
+  /// In en, this message translates to:
+  /// **'Options'**
+  String get notificationOptionsSection;
+
+  /// No description provided for @notificationWifiOnly.
+  ///
+  /// In en, this message translates to:
+  /// **'Only on Wi-Fi'**
+  String get notificationWifiOnly;
+
+  /// No description provided for @notificationWifiOnlySubtitle.
+  ///
+  /// In en, this message translates to:
+  /// **'Do not check using metered network connections'**
+  String get notificationWifiOnlySubtitle;
+
+  /// No description provided for @notificationFrequency.
+  ///
+  /// In en, this message translates to:
+  /// **'Frequency of check'**
+  String get notificationFrequency;
+
+  /// No description provided for @frequencyManual.
+  ///
+  /// In en, this message translates to:
+  /// **'Manual'**
+  String get frequencyManual;
+
+  /// No description provided for @frequencyLess.
+  ///
+  /// In en, this message translates to:
+  /// **'Less frequently'**
+  String get frequencyLess;
+
+  /// No description provided for @frequencyDefault.
+  ///
+  /// In en, this message translates to:
+  /// **'Default'**
+  String get frequencyDefault;
+
+  /// No description provided for @frequencyMore.
+  ///
+  /// In en, this message translates to:
+  /// **'More frequently'**
+  String get frequencyMore;
+
+  /// No description provided for @notificationScope.
+  ///
+  /// In en, this message translates to:
+  /// **'Look for updates'**
+  String get notificationScope;
+
+  /// No description provided for @notificationScopeSubtitle.
+  ///
+  /// In en, this message translates to:
+  /// **'{enabled} of {total} on'**
+  String notificationScopeSubtitle(int enabled, int total);
+
+  /// No description provided for @notificationScopeFavorites.
+  ///
+  /// In en, this message translates to:
+  /// **'Favorites'**
+  String get notificationScopeFavorites;
+
+  /// No description provided for @notificationScopeHistory.
+  ///
+  /// In en, this message translates to:
+  /// **'History'**
+  String get notificationScopeHistory;
+
+  /// No description provided for @notificationCategories.
+  ///
+  /// In en, this message translates to:
+  /// **'Favorite categories'**
+  String get notificationCategories;
+
+  /// No description provided for @notificationCategoriesSubtitle.
+  ///
+  /// In en, this message translates to:
+  /// **'{enabled} of {total} on'**
+  String notificationCategoriesSubtitle(int enabled, int total);
+
+  /// No description provided for @notificationCategoriesNone.
+  ///
+  /// In en, this message translates to:
+  /// **'No favorite categories yet'**
+  String get notificationCategoriesNone;
+
+  /// No description provided for @notificationNsfw.
+  ///
+  /// In en, this message translates to:
+  /// **'Disable NSFW notifications'**
+  String get notificationNsfw;
+
+  /// No description provided for @notificationNsfwSubtitle.
+  ///
+  /// In en, this message translates to:
+  /// **'Skip mature content when checking and suggesting'**
+  String get notificationNsfwSubtitle;
+
+  /// No description provided for @notificationDownload.
+  ///
+  /// In en, this message translates to:
+  /// **'Download new chapters'**
+  String get notificationDownload;
+
+  /// No description provided for @autoDownloadNever.
+  ///
+  /// In en, this message translates to:
+  /// **'Never'**
+  String get autoDownloadNever;
+
+  /// No description provided for @autoDownloadDownloaded.
+  ///
+  /// In en, this message translates to:
+  /// **'Manga with downloaded chapters'**
+  String get autoDownloadDownloaded;
+
+  /// No description provided for @autoDownloadRecentlyRead.
+  ///
+  /// In en, this message translates to:
+  /// **'Recently read manga'**
+  String get autoDownloadRecentlyRead;
+
+  /// No description provided for @notificationCheckLogSection.
+  ///
+  /// In en, this message translates to:
+  /// **'Debug & System'**
+  String get notificationCheckLogSection;
+
+  /// No description provided for @notificationCheckNow.
+  ///
+  /// In en, this message translates to:
+  /// **'Check for new chapters now'**
+  String get notificationCheckNow;
+
+  /// No description provided for @notificationCheckRunning.
+  ///
+  /// In en, this message translates to:
+  /// **'Checking...'**
+  String get notificationCheckRunning;
+
+  /// No description provided for @notificationCheckDone.
+  ///
+  /// In en, this message translates to:
+  /// **'Check completed'**
+  String get notificationCheckDone;
+
+  /// No description provided for @notificationCheckFailed.
+  ///
+  /// In en, this message translates to:
+  /// **'Check failed'**
+  String get notificationCheckFailed;
+
+  /// No description provided for @notificationLog.
+  ///
+  /// In en, this message translates to:
+  /// **'Checking for new chapters log'**
+  String get notificationLog;
+
+  /// No description provided for @notificationLogEmpty.
+  ///
+  /// In en, this message translates to:
+  /// **'No checks have run yet'**
+  String get notificationLogEmpty;
+
+  /// No description provided for @notificationBattery.
+  ///
+  /// In en, this message translates to:
+  /// **'Disable battery optimization'**
+  String get notificationBattery;
+
+  /// No description provided for @notificationBatterySubtitle.
+  ///
+  /// In en, this message translates to:
+  /// **'Android may kill background workers unless you whitelist this app'**
+  String get notificationBatterySubtitle;
+
+  /// No description provided for @notificationLogChecked.
+  ///
+  /// In en, this message translates to:
+  /// **'Checked {scanned} series'**
+  String notificationLogChecked(int scanned);
+
+  /// No description provided for @notificationLogFound.
+  ///
+  /// In en, this message translates to:
+  /// **'{series} series, {chapters} new chapters'**
+  String notificationLogFound(int series, int chapters);
+
+  /// No description provided for @notificationLogSuggested.
+  ///
+  /// In en, this message translates to:
+  /// **'Suggested {title}'**
+  String notificationLogSuggested(String title);
 
   /// No description provided for @searchCatalog.
   ///

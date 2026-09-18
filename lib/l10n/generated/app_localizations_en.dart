@@ -348,6 +348,33 @@ class AppLocalizationsEn extends AppLocalizations {
   String get screenshotPolicyBlock => 'Block';
 
   @override
+  String get appLockEnterTitle => 'Enter PIN';
+
+  @override
+  String get appLockEnterSubtitle => 'Enter your 4-digit PIN to open Yomou';
+
+  @override
+  String get appLockSetTitle => 'Set PIN';
+
+  @override
+  String get appLockSetSubtitle => 'Choose a 4-digit PIN to protect the app';
+
+  @override
+  String get appLockVerifyTitle => 'Enter current PIN';
+
+  @override
+  String get appLockVerifySubtitle => 'Confirm your current PIN';
+
+  @override
+  String get appLockWrongPin => 'Wrong PIN, try again';
+
+  @override
+  String get appLockCancel => 'Cancel';
+
+  @override
+  String get homeRecent => 'Recent';
+
+  @override
   String get suggestionHistory => 'History';
 
   @override
@@ -924,10 +951,165 @@ class AppLocalizationsEn extends AppLocalizations {
   String get pin => 'Pin';
 
   @override
+  String get enableSource => 'Enable source';
+
+  @override
+  String get disableSource => 'Disable source';
+
+  @override
+  String get disabled => 'Disabled';
+
+  @override
+  String get cannotDisableActiveSource =>
+      'Switch to another source before disabling this one';
+
+  @override
+  String get cannotSelectDisabledSource =>
+      'Enable this source before browsing it';
+
+  @override
   String get createShortcut => 'Create shortcut';
 
   @override
   String get disableNsfw => 'Disable NSFW';
+
+  @override
+  String get notificationSettingsDescription =>
+      'Checks your library in the background and alerts you when a series you follow gets a new chapter.';
+
+  @override
+  String get notificationSettingsEnable => 'New chapter notifications';
+
+  @override
+  String get notificationSettingsOn => 'Checking in the background';
+
+  @override
+  String get notificationSettingsOff => 'Off';
+
+  @override
+  String get notificationPermissionDenied =>
+      'Notification permission was denied. Enable it in system settings.';
+
+  @override
+  String get notificationPreviewSection => 'Preview';
+
+  @override
+  String get notificationPreviewNewChapters => 'New chapters notification';
+
+  @override
+  String get notificationPreviewSuggested => 'Suggested manga notification';
+
+  @override
+  String get notificationOptionsSection => 'Options';
+
+  @override
+  String get notificationWifiOnly => 'Only on Wi-Fi';
+
+  @override
+  String get notificationWifiOnlySubtitle =>
+      'Do not check using metered network connections';
+
+  @override
+  String get notificationFrequency => 'Frequency of check';
+
+  @override
+  String get frequencyManual => 'Manual';
+
+  @override
+  String get frequencyLess => 'Less frequently';
+
+  @override
+  String get frequencyDefault => 'Default';
+
+  @override
+  String get frequencyMore => 'More frequently';
+
+  @override
+  String get notificationScope => 'Look for updates';
+
+  @override
+  String notificationScopeSubtitle(int enabled, int total) {
+    return '$enabled of $total on';
+  }
+
+  @override
+  String get notificationScopeFavorites => 'Favorites';
+
+  @override
+  String get notificationScopeHistory => 'History';
+
+  @override
+  String get notificationCategories => 'Favorite categories';
+
+  @override
+  String notificationCategoriesSubtitle(int enabled, int total) {
+    return '$enabled of $total on';
+  }
+
+  @override
+  String get notificationCategoriesNone => 'No favorite categories yet';
+
+  @override
+  String get notificationNsfw => 'Disable NSFW notifications';
+
+  @override
+  String get notificationNsfwSubtitle =>
+      'Skip mature content when checking and suggesting';
+
+  @override
+  String get notificationDownload => 'Download new chapters';
+
+  @override
+  String get autoDownloadNever => 'Never';
+
+  @override
+  String get autoDownloadDownloaded => 'Manga with downloaded chapters';
+
+  @override
+  String get autoDownloadRecentlyRead => 'Recently read manga';
+
+  @override
+  String get notificationCheckLogSection => 'Debug & System';
+
+  @override
+  String get notificationCheckNow => 'Check for new chapters now';
+
+  @override
+  String get notificationCheckRunning => 'Checking...';
+
+  @override
+  String get notificationCheckDone => 'Check completed';
+
+  @override
+  String get notificationCheckFailed => 'Check failed';
+
+  @override
+  String get notificationLog => 'Checking for new chapters log';
+
+  @override
+  String get notificationLogEmpty => 'No checks have run yet';
+
+  @override
+  String get notificationBattery => 'Disable battery optimization';
+
+  @override
+  String get notificationBatterySubtitle =>
+      'Android may kill background workers unless you whitelist this app';
+
+  @override
+  String notificationLogChecked(int scanned) {
+    return 'Checked $scanned series';
+  }
+
+  @override
+  String notificationLogFound(int series, int chapters) {
+    return '$series series, $chapters new chapters';
+  }
+
+  @override
+  String notificationLogSuggested(String title) {
+    return 'Suggested $title';
+  }
 
   @override
   String get searchCatalog => 'Search catalog...';

@@ -15,6 +15,7 @@ import 'package:yomou/core/widgets/empty_state.dart';
 import 'package:yomou/core/widgets/manga_grid_metrics.dart';
 import 'package:yomou/core/widgets/ios/ios_menu.dart';
 import 'package:yomou/features/suggestions/providers/suggestions_provider.dart';
+import 'package:yomou/features/settings/providers/appearance_provider.dart';
 import 'package:yomou/l10n/generated/app_localizations.dart';
 
 class GlobalSearchScreen extends ConsumerStatefulWidget {
@@ -204,6 +205,13 @@ class _GlobalSearchScreenState extends ConsumerState<GlobalSearchScreen> {
     final dark = Theme.of(context).brightness == Brightness.dark;
     final genreTagsAsync = ref.watch(genreTagsProvider);
     final trendingAsync = ref.watch(trendingMangaProvider);
+    final suggestions = ref.watch(appearanceSettingsProvider).searchSuggestions;
+
+    // "Trending" and "Popular" share the same popular-manga data; honoring
+    // either toggle keeps the row visible.
+    final showTrending =
+        (suggestions['trending'] ?? true) || (suggestions['popular'] ?? true);
+    final showHistory = suggestions['history'] ?? true;
 
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
@@ -255,7 +263,8 @@ class _GlobalSearchScreenState extends ConsumerState<GlobalSearchScreen> {
         ),
         const SizedBox(height: 16),
         // Trending (real popular manga).
-        trendingAsync.when(
+        if (showTrending)
+          trendingAsync.when(
           data: (trending) => trending.isEmpty
               ? const SizedBox.shrink()
               : Column(
@@ -285,7 +294,8 @@ class _GlobalSearchScreenState extends ConsumerState<GlobalSearchScreen> {
           error: (_, __) => const SizedBox.shrink(),
         ),
         // Search history.
-        ..._searchHistory.map(
+        if (showHistory)
+          ..._searchHistory.map(
           (query) => ListTile(
             contentPadding: const EdgeInsets.symmetric(horizontal: 16),
             leading: Icon(
@@ -397,11 +407,15 @@ class _GlobalSearchScreenState extends ConsumerState<GlobalSearchScreen> {
     final filteredHistory = _searchHistory
         .where((q) => q.toLowerCase().contains(queryLower))
         .toList();
+    final showHistory =
+        ref.watch(appearanceSettingsProvider).searchSuggestions['history'] ??
+        true;
 
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
-        ...filteredHistory.map(
+        if (showHistory)
+          ...filteredHistory.map(
           (query) => ListTile(
             contentPadding: const EdgeInsets.symmetric(horizontal: 16),
             leading: Icon(

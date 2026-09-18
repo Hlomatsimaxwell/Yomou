@@ -355,6 +355,35 @@ class AppLocalizationsEs extends AppLocalizations {
   String get screenshotPolicyBlock => 'Bloquear';
 
   @override
+  String get appLockEnterTitle => 'Introduce el PIN';
+
+  @override
+  String get appLockEnterSubtitle =>
+      'Introduce tu PIN de 4 dígitos para abrir Yomou';
+
+  @override
+  String get appLockSetTitle => 'Establece un PIN';
+
+  @override
+  String get appLockSetSubtitle =>
+      'Elige un PIN de 4 dígitos para proteger la app';
+
+  @override
+  String get appLockVerifyTitle => 'Introduce el PIN actual';
+
+  @override
+  String get appLockVerifySubtitle => 'Confirma tu PIN actual';
+
+  @override
+  String get appLockWrongPin => 'PIN incorrecto, inténtalo de nuevo';
+
+  @override
+  String get appLockCancel => 'Cancelar';
+
+  @override
+  String get homeRecent => 'Recientes';
+
+  @override
   String get suggestionHistory => 'Historial';
 
   @override
@@ -933,10 +962,166 @@ class AppLocalizationsEs extends AppLocalizations {
   String get pin => 'Fijar';
 
   @override
+  String get enableSource => 'Activar fuente';
+
+  @override
+  String get disableSource => 'Desactivar fuente';
+
+  @override
+  String get disabled => 'Desactivada';
+
+  @override
+  String get cannotDisableActiveSource =>
+      'Cambia a otra fuente antes de desactivar esta';
+
+  @override
+  String get cannotSelectDisabledSource =>
+      'Activa esta fuente antes de explorarla';
+
+  @override
   String get createShortcut => 'Crear acceso directo';
 
   @override
   String get disableNsfw => 'Desactivar NSFW';
+
+  @override
+  String get notificationSettingsDescription =>
+      'Revisa tu biblioteca en segundo plano y te avisa cuando una serie que sigues recibe un capítulo nuevo.';
+
+  @override
+  String get notificationSettingsEnable => 'Notificaciones de capítulos nuevos';
+
+  @override
+  String get notificationSettingsOn => 'Revisando en segundo plano';
+
+  @override
+  String get notificationSettingsOff => 'Desactivadas';
+
+  @override
+  String get notificationPermissionDenied =>
+      'Se denegó el permiso de notificaciones. Actívalo en los ajustes del sistema.';
+
+  @override
+  String get notificationPreviewSection => 'Vista previa';
+
+  @override
+  String get notificationPreviewNewChapters =>
+      'Notificación de capítulos nuevos';
+
+  @override
+  String get notificationPreviewSuggested => 'Notificación de manga sugerido';
+
+  @override
+  String get notificationOptionsSection => 'Opciones';
+
+  @override
+  String get notificationWifiOnly => 'Solo con Wi-Fi';
+
+  @override
+  String get notificationWifiOnlySubtitle =>
+      'No revisar usando conexiones con datos móviles';
+
+  @override
+  String get notificationFrequency => 'Frecuencia de revisión';
+
+  @override
+  String get frequencyManual => 'Manual';
+
+  @override
+  String get frequencyLess => 'Con menos frecuencia';
+
+  @override
+  String get frequencyDefault => 'Predeterminada';
+
+  @override
+  String get frequencyMore => 'Con más frecuencia';
+
+  @override
+  String get notificationScope => 'Buscar actualizaciones en';
+
+  @override
+  String notificationScopeSubtitle(int enabled, int total) {
+    return '$enabled de $total activadas';
+  }
+
+  @override
+  String get notificationScopeFavorites => 'Favoritos';
+
+  @override
+  String get notificationScopeHistory => 'Historial';
+
+  @override
+  String get notificationCategories => 'Categorías favoritas';
+
+  @override
+  String notificationCategoriesSubtitle(int enabled, int total) {
+    return '$enabled de $total activadas';
+  }
+
+  @override
+  String get notificationCategoriesNone => 'Aún no hay categorías favoritas';
+
+  @override
+  String get notificationNsfw => 'Desactivar notificaciones NSFW';
+
+  @override
+  String get notificationNsfwSubtitle =>
+      'Omitir contenido para adultos al revisar y sugerir';
+
+  @override
+  String get notificationDownload => 'Descargar capítulos nuevos';
+
+  @override
+  String get autoDownloadNever => 'Nunca';
+
+  @override
+  String get autoDownloadDownloaded => 'Manga con capítulos descargados';
+
+  @override
+  String get autoDownloadRecentlyRead => 'Manga leído recientemente';
+
+  @override
+  String get notificationCheckLogSection => 'Depuración y sistema';
+
+  @override
+  String get notificationCheckNow => 'Buscar capítulos nuevos ahora';
+
+  @override
+  String get notificationCheckRunning => 'Buscando...';
+
+  @override
+  String get notificationCheckDone => 'Revisión completada';
+
+  @override
+  String get notificationCheckFailed => 'Error en la revisión';
+
+  @override
+  String get notificationLog => 'Registro de revisión de capítulos';
+
+  @override
+  String get notificationLogEmpty => 'Todavía no se han realizado revisiones';
+
+  @override
+  String get notificationBattery => 'Desactivar la optimización de batería';
+
+  @override
+  String get notificationBatterySubtitle =>
+      'Android puede detener los procesos en segundo plano a menos que marques esta app como excepción';
+
+  @override
+  String notificationLogChecked(int scanned) {
+    return '$scanned series revisadas';
+  }
+
+  @override
+  String notificationLogFound(int series, int chapters) {
+    return '$series series, $chapters capítulos nuevos';
+  }
+
+  @override
+  String notificationLogSuggested(String title) {
+    return '$title sugerido';
+  }
 
   @override
   String get searchCatalog => 'Buscar en el catálogo...';
