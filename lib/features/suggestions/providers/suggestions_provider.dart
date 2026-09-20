@@ -19,20 +19,36 @@ List<MangaSource> sourcesFromRows(List<Map<String, dynamic>> rows) =>
 String _titleKey(String title) =>
     title.toLowerCase().replaceAll(RegExp(r'[^a-z0-9]'), '');
 
-/// De-duplicates by source+id and by normalized title, preserving order, and
-/// caps the result. This lets the same series coming from several sources
-/// collapse to one entry while keeping the first (highest-priority) hit.
-List<Manga> _dedupe(Iterable<Manga> items, {int limit = _suggestionLimit}) {
+/// Merges per-source results round-robin so no single (richest) source can
+/// fill the whole feed. Each pass takes one eligible item from every source,
+/// skipping already-seen ids/titles, until the cap is reached or all lists
+/// are exhausted. De-duplicating by title still collapses the same series
+/// coming from several sources, keeping the first hit in order.
+List<Manga> _mixSources(
+  List<List<Manga>> perSource, {
+  int limit = _suggestionLimit,
+}) {
+  final queues = perSource.map((l) => l.toList()).toList();
   final seenIds = <String>{};
   final seenTitles = <String>{};
   final out = <Manga>[];
-  for (final manga in items) {
-    if (manga.id.isEmpty) continue;
-    if (!seenIds.add('${manga.sourceId}:${manga.id}')) continue;
-    final key = _titleKey(manga.title);
-    if (key.isNotEmpty && !seenTitles.add(key)) continue;
-    out.add(manga);
-    if (out.length >= limit) break;
+
+  while (out.length < limit) {
+    var addedAny = false;
+    for (final queue in queues) {
+      if (out.length >= limit) break;
+      while (queue.isNotEmpty) {
+        final manga = queue.removeAt(0);
+        if (manga.id.isEmpty) continue;
+        if (!seenIds.add('${manga.sourceId}:${manga.id}')) continue;
+        final key = _titleKey(manga.title);
+        if (key.isNotEmpty && !seenTitles.add(key)) continue;
+        out.add(manga);
+        addedAny = true;
+        break;
+      }
+    }
+    if (!addedAny) break;
   }
   return out;
 }
@@ -82,7 +98,7 @@ final suggestionsProvider = FutureProvider.family<List<Manga>, String?>((
         }
       }),
     );
-    return _dedupe(perSource.expand((list) => list));
+    return _mixSources(perSource);
   }
 
   final topTags = await DatabaseHelper.instance.getUserTopTags(limit: 5);
@@ -93,20 +109,17 @@ final suggestionsProvider = FutureProvider.family<List<Manga>, String?>((
         if (topTags.isNotEmpty) {
           final matched = await _tags(source, topTags);
           if (matched.isNotEmpty) {
-            return (taste: matched, fill: const <Manga>[]);
+            return [matched];
           }
         }
-        return (taste: const <Manga>[], fill: await _popular(source));
+        return [await _popular(source)];
       } catch (_) {
-        return (taste: const <Manga>[], fill: const <Manga>[]);
+        return const <List<Manga>>[];
       }
     }),
   );
 
-  return _dedupe([
-    ...perSource.expand((r) => r.taste),
-    ...perSource.expand((r) => r.fill),
-  ]);
+  return _mixSources(perSource.expand((lists) => lists).toList());
 });
 
 /// Genre/theme chips unioned across all active sources, so the filter strip

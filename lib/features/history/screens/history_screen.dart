@@ -14,6 +14,7 @@ import 'package:yomou/core/widgets/ios/ios_press.dart';
 import 'package:yomou/core/widgets/ios/ios_sheet.dart';
 import 'package:yomou/core/widgets/ios/ios_toast.dart';
 import 'package:yomou/core/widgets/manga_grid_metrics.dart';
+import 'package:yomou/core/providers/incognito_provider.dart';
 import 'package:yomou/features/history/providers/history_provider.dart';
 import 'package:yomou/features/library/providers/downloads_provider.dart';
 import 'package:yomou/features/library/providers/favorites_provider.dart';
@@ -82,7 +83,6 @@ class HistoryScreen extends ConsumerStatefulWidget {
 
 class _HistoryScreenState extends ConsumerState<HistoryScreen> {
   int _selectedFilter = -1;
-  bool _isIncognitoMode = false;
   final TextEditingController _searchController = TextEditingController();
   String _searchQuery = '';
 
@@ -762,24 +762,28 @@ class _HistoryScreenState extends ConsumerState<HistoryScreen> {
                 },
               ),
               Divider(color: divider, height: 1, thickness: 1),
-              _buildSheetRow(
-                icon: RemixIcons.eye_off_line,
-                label: l.incognitoMode,
-                color: fg,
-                trailing: Switch(
-                  value: _isIncognitoMode,
-                  activeThumbColor: dark ? Colors.black : Colors.white,
-                  activeTrackColor: dark
-                      ? Colors.white
-                      : Theme.of(context).colorScheme.primary,
-                  inactiveThumbColor: dark ? Colors.white54 : Colors.black54,
-                  inactiveTrackColor: dark
-                      ? const Color(0xFF2C2C2E)
-                      : Colors.black12,
-                  onChanged: (value) {
-                    setState(() => _isIncognitoMode = value);
-                  },
-                ),
+              Consumer(
+                builder: (context, ref, _) {
+                  return _buildSheetRow(
+                    icon: RemixIcons.eye_off_line,
+                    label: l.incognitoMode,
+                    color: fg,
+                    trailing: Switch(
+                      value: ref.watch(incognitoProvider),
+                      activeThumbColor: dark ? Colors.black : Colors.white,
+                      activeTrackColor: dark
+                          ? Colors.white
+                          : Theme.of(context).colorScheme.primary,
+                      inactiveThumbColor: dark ? Colors.white54 : Colors.black54,
+                      inactiveTrackColor: dark
+                          ? const Color(0xFF2C2C2E)
+                          : Colors.black12,
+                      onChanged: (value) {
+                        ref.read(incognitoProvider.notifier).set(value);
+                      },
+                    ),
+                  );
+                },
               ),
               Divider(color: divider, height: 1, thickness: 1),
               _buildSheetRow(

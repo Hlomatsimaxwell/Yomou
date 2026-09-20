@@ -54,7 +54,7 @@ class ReaderScreen extends ConsumerStatefulWidget {
 }
 
 class _ReaderScreenState extends ConsumerState<ReaderScreen>
-    with SingleTickerProviderStateMixin {
+    with WidgetsBindingObserver, SingleTickerProviderStateMixin {
   final ScrollController _scrollController = ScrollController();
   PageController _pageController = PageController();
   final List<String> _pages = [];
@@ -84,6 +84,10 @@ class _ReaderScreenState extends ConsumerState<ReaderScreen>
   Timer? _toastTimer;
   Timer? _scrollStopTimer;
   bool _isSaving = false;
+  Timer? _autoSaveTimer;
+  // Guards the debounced autosave: only fire when the page actually moved.
+  int _autoSavedPage = -1;
+  int _autoSavedChapter = -1;
   bool _needsRestore = false;
   int? _pendingJumpPage;
   final Set<String> _bookmarkedKeys = {};
@@ -182,6 +186,14 @@ class _ReaderScreenState extends ConsumerState<ReaderScreen>
     _loadDownloads().then((_) => _loadChapter(_currentChapterIndex));
 
     _scrollController.addListener(_handleScrollTicker);
+    WidgetsBinding.instance.addObserver(this);
+    // Crash safety: while the reader is open, periodically persist the current
+    // position so a forced kill (force-stop, crash, OOM) doesn't lose the read.
+    // The debounce logic in _autosaveProgress skips no-op ticks.
+    _autoSaveTimer = Timer.periodic(
+      const Duration(seconds: 3),
+      (_) => _autosaveProgress(),
+    );
   }
 
   // --- PERSISTED READER SETTINGS ---
@@ -248,6 +260,8 @@ class _ReaderScreenState extends ConsumerState<ReaderScreen>
 
   @override
   void dispose() {
+    WidgetsBinding.instance.removeObserver(this);
+    _autoSaveTimer?.cancel();
     _scrollController.dispose();
     _pageController.dispose();
     _trayExtentController.dispose();
@@ -2337,6 +2351,27 @@ class _ReaderScreenState extends ConsumerState<ReaderScreen>
         ),
       ),
     );
+  }
+
+  Future<void> _autosaveProgress() async {
+    if (_pages.isEmpty || _loadedChapterIndices.isEmpty) return;
+    final page = _currentPageIndex;
+    final chapter = _readChapterIndex;
+    if (page == _autoSavedPage && chapter == _autoSavedChapter) return;
+    _autoSavedPage = page;
+    _autoSavedChapter = chapter;
+    await _saveCascadingReadProgress();
+  }
+
+  // Persist progress when the app is backgrounded or about to be killed, so a
+  // force-stop / OOM right after leaving the reader doesn't lose the position.
+  @override
+  void didChangeAppLifecycleState(AppLifecycleState state) {
+    if (state == AppLifecycleState.paused ||
+        state == AppLifecycleState.inactive ||
+        state == AppLifecycleState.detached) {
+      _autosaveProgress();
+    }
   }
 
   Future<void> _saveCascadingReadProgress() async {

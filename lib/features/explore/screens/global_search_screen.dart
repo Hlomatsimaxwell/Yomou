@@ -14,6 +14,7 @@ import 'package:yomou/features/library/widgets/favorite_badge.dart';
 import 'package:yomou/core/widgets/empty_state.dart';
 import 'package:yomou/core/widgets/manga_grid_metrics.dart';
 import 'package:yomou/core/widgets/ios/ios_menu.dart';
+import 'package:yomou/core/providers/incognito_provider.dart';
 import 'package:yomou/features/suggestions/providers/suggestions_provider.dart';
 import 'package:yomou/features/settings/providers/appearance_provider.dart';
 import 'package:yomou/l10n/generated/app_localizations.dart';
@@ -64,12 +65,14 @@ class _GlobalSearchScreenState extends ConsumerState<GlobalSearchScreen> {
     final trimmed = query.trim();
     if (trimmed.isEmpty) return;
 
-    final prefs = await SharedPreferences.getInstance();
-    setState(() {
-      _searchHistory.remove(trimmed);
-      _searchHistory.insert(0, trimmed);
-    });
-    await prefs.setString(_historyKey, jsonEncode(_searchHistory));
+    if (!incognitoActive) {
+      final prefs = await SharedPreferences.getInstance();
+      setState(() {
+        _searchHistory.remove(trimmed);
+        _searchHistory.insert(0, trimmed);
+      });
+      await prefs.setString(_historyKey, jsonEncode(_searchHistory));
+    }
 
     if (!mounted) return;
     Navigator.push(

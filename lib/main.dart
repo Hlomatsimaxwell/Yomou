@@ -25,6 +25,7 @@ import 'package:yomou/data/providers/sources_provider.dart';
 import 'package:yomou/features/settings/providers/appearance_provider.dart';
 import 'package:yomou/core/security/app_lock.dart';
 import 'package:yomou/core/security/pin_lock_screen.dart';
+import 'package:yomou/core/providers/incognito_provider.dart';
 import 'package:yomou/l10n/generated/app_localizations.dart';
 import 'package:remixicon/remixicon.dart';
 
@@ -277,6 +278,9 @@ class _HomeScreenState extends ConsumerState<HomeScreen>
     final updatesCount = ref.watch(updatesCountProvider);
     final accent = ref.watch(accentProvider);
     final settings = ref.watch(appearanceSettingsProvider);
+    // Keep the global incognito flag loaded from the very first frame so the
+    // DB/search layers never write during an incognito session.
+    ref.watch(incognitoProvider);
 
     final enabledTabs = _enabledTabIndices(settings);
     // If the current tab got disabled, jump to the first enabled one.

@@ -16,6 +16,7 @@ import 'package:yomou/features/source_management/screens/manga_grid_screen.dart'
 import 'package:yomou/features/source_management/screens/manga_sources_screen.dart';
 import 'package:yomou/data/providers/sources_provider.dart';
 import 'package:yomou/core/theme/layout.dart';
+import 'package:yomou/core/providers/incognito_provider.dart';
 import 'package:yomou/l10n/generated/app_localizations.dart';
 import 'package:yomou/widgets/recent_manga_shelf.dart';
 import 'package:yomou/widgets/safe_image.dart';
@@ -28,7 +29,6 @@ class ExploreScreen extends ConsumerStatefulWidget {
 }
 
 class _ExploreScreenState extends ConsumerState<ExploreScreen> {
-  bool _incognitoMode = false;
   bool _loadingRandom = false;
 
   final List<Map<String, dynamic>> _quickButtons = [
@@ -115,10 +115,13 @@ class _ExploreScreenState extends ConsumerState<ExploreScreen> {
                 onTap: () => Navigator.pop(context, 'manage'),
               ),
               const IosMenuDivider(),
-              MenuToggleRow(
-                label: AppLocalizations.of(context).incognitoMode,
-                value: _incognitoMode,
-                onChanged: (v) => setState(() => _incognitoMode = v),
+              Consumer(
+                builder: (context, ref, _) => MenuToggleRow(
+                  label: AppLocalizations.of(context).incognitoMode,
+                  value: ref.watch(incognitoProvider),
+                  onChanged: (v) =>
+                      ref.read(incognitoProvider.notifier).set(v),
+                ),
               ),
               const IosMenuDivider(),
               IosMenuRow(

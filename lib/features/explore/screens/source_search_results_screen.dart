@@ -13,6 +13,7 @@ import 'package:yomou/core/widgets/manga_grid_metrics.dart';
 import 'package:yomou/features/library/widgets/downloaded_badge.dart';
 import 'package:yomou/features/library/widgets/favorite_badge.dart';
 import 'package:yomou/core/widgets/ios/ios_menu.dart';
+import 'package:yomou/core/providers/incognito_provider.dart';
 import 'package:yomou/l10n/generated/app_localizations.dart';
 
 class SourceSearchResultsScreen extends StatefulWidget {
@@ -94,6 +95,7 @@ class _SourceSearchResultsScreenState extends State<SourceSearchResultsScreen> {
   Future<void> _saveToHistory(String query) async {
     final trimmed = query.trim();
     if (trimmed.isEmpty) return;
+    if (incognitoActive) return;
     setState(() {
       _searchHistory.remove(trimmed);
       _searchHistory.insert(0, trimmed);

@@ -2,6 +2,7 @@ import 'dart:async';
 import 'dart:convert';
 import 'package:path/path.dart';
 import 'package:sqflite/sqflite.dart';
+import 'package:yomou/core/providers/incognito_provider.dart';
 
 class DatabaseHelper {
   // Singleton pattern to ensure only one database connection exists
@@ -183,6 +184,7 @@ class DatabaseHelper {
     String chapterId,
     double chapterNum,
   ) async {
+    if (incognitoActive) return;
     final db = await instance.database;
 
     // We use 'conflictAlgorithm: ConflictAlgorithm.replace'
@@ -237,6 +239,7 @@ class DatabaseHelper {
     int lastReadPage = 0,
     int lastTrayTotalChapters = 0,
   }) async {
+    if (incognitoActive) return;
     final db = await instance.database;
     final now = DateTime.now().toIso8601String();
 
@@ -402,6 +405,7 @@ class DatabaseHelper {
     String? sourceId,
     required bool isFavorite,
   }) async {
+    if (incognitoActive) return;
     final db = await instance.database;
     final existing = await db.query(
       'manga',
@@ -527,6 +531,7 @@ class DatabaseHelper {
 
   // Save tags for a manga (JSON array string).
   Future<void> saveMangaTags(String mangaId, List<String> tags) async {
+    if (incognitoActive) return;
     final db = await instance.database;
     final existing = await db.query(
       'manga',
