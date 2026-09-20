@@ -19,7 +19,6 @@ import 'package:yomou/data/models/chapter.dart';
 import 'package:yomou/data/models/manga_source.dart';
 import 'package:yomou/features/history/providers/history_provider.dart';
 import 'package:yomou/features/library/providers/downloads_provider.dart';
-import 'package:yomou/features/settings/providers/appearance_provider.dart';
 import 'package:yomou/core/widgets/empty_state.dart';
 import 'package:yomou/features/settings/screens/settings_screen.dart';
 import 'package:yomou/l10n/generated/app_localizations.dart';
@@ -66,6 +65,17 @@ class _ReaderScreenState extends ConsumerState<ReaderScreen>
   bool _isLoadingPreviousChapter = false;
   int _lastPageIndex = -1;
   bool _hasMoreChapters = true;
+  // While true, the "scrolled back to page 0 of a chapter" triggers won't
+  // auto-load/prepend the adjacent chapter. Set after an explicit chapter
+  // switch (which lands at page 1) and cleared once the reader actually moves
+  // forward, so a fresh landing is never misread as a backward swipe.
+  bool _suppressAdjacentAutoLoad = true;
+  // Bumped on every explicit chapter switch so the progress-track widget can
+  // reset its thumb to page 1 even when jumpTo() no-ops (no listener fires).
+  int _trackSession = 0;
+  // Tracks scroll direction (backing up vs. advancing) inside the vertical
+  // ticker, since ScrollPosition exposes no direct velocity getter.
+  double _lastScrollPixels = 0;
   bool _showControls = true;
 
   // Chapter transition toast (Kotatsu-style chapter/page pill).
@@ -134,6 +144,14 @@ class _ReaderScreenState extends ConsumerState<ReaderScreen>
   // Bumped per page to force a reload after the user taps "Retry" on a failed
   // page (the new value becomes part of the image widget's key).
   final Map<int, int> _pageRetryTokens = {};
+
+  // Proactive preloading: keeps the last 8 network URLs we asked the cache
+  // manager to fetch so we don't schedule duplicate downloads, and remembers
+  // which page the preload window was centered on (so chapter loads and scroll
+  // ticks don't spam the cache).
+  final Set<String> _prefetchScheduled = {};
+  int _prefetchAnchorPage = -1;
+  Map<String, String>? _activeRequestHeaders;
 
   // Refresh callback for the open chapter tray sheet.
   bool _trayOpen = false;
@@ -263,6 +281,16 @@ class _ReaderScreenState extends ConsumerState<ReaderScreen>
     return 0;
   }
 
+  /// The chapter the reader is currently showing, accounting for chapters
+  /// prepended/appended by the adjacent-chapter loaders. Falls back to the
+  /// newest loaded chapter while pages are still loading.
+  int get _readChapterIndex {
+    if (_pagesChapters.isEmpty) return _currentChapterIndex;
+    final ci = _pagesChapters[_currentPageIndex];
+    if (ci < 0 || ci >= widget.allChapters.length) return _currentChapterIndex;
+    return ci;
+  }
+
   void _jumpToPage(int pageIndex) {
     if (_pages.isEmpty) return;
     final idx = pageIndex.clamp(0, _pages.length - 1);
@@ -277,112 +305,31 @@ class _ReaderScreenState extends ConsumerState<ReaderScreen>
     setState(() {});
   }
 
-  // Horizontal strip of chapter page thumbnails shown above the bottom capsule
-  // while the controls are visible. Honors the "Show pages thumbnails" setting.
-  Widget _buildPageThumbnailStrip() {
-    if (!ref.watch(appearanceSettingsProvider).showPagesThumbnails) {
-      return const SizedBox.shrink();
-    }
-    final pages = _pages;
-    if (pages.isEmpty) return const SizedBox.shrink();
-    final current = _currentPageIndex;
-    final isDark = Theme.of(context).brightness == Brightness.dark;
-    final activeColor = Theme.of(context).colorScheme.primary;
-
-    return Container(
-      height: 84,
-      padding: const EdgeInsets.symmetric(vertical: 8),
-      decoration: BoxDecoration(
-        color: isDark
-            ? const Color(0xE6212124)
-            : Colors.white.withValues(alpha: 0.95),
-        borderRadius: BorderRadius.circular(20),
-        border: Border.all(
-          color: isDark ? Colors.white12 : Colors.black12,
-        ),
-      ),
-      child: ListView.builder(
-        scrollDirection: Axis.horizontal,
-        padding: const EdgeInsets.symmetric(horizontal: 8),
-        itemCount: pages.length,
-        itemBuilder: (context, index) {
-          final active = index == current;
-          return GestureDetector(
-            onTap: () => _jumpToPage(index),
-            child: Container(
-              width: 36,
-              height: 64,
-              margin: const EdgeInsets.symmetric(horizontal: 3),
-              decoration: BoxDecoration(
-                borderRadius: BorderRadius.circular(6),
-                border: Border.all(
-                  color: active
-                      ? activeColor
-                      : isDark
-                          ? Colors.white24
-                          : Colors.black26,
-                  width: active ? 2.5 : 1,
-                ),
-              ),
-              child: ClipRRect(
-                borderRadius: BorderRadius.circular(5),
-                child: Stack(
-                  fit: StackFit.expand,
-                  children: [
-                    _pageThumb(pages[index]),
-                    Positioned(
-                      bottom: 2,
-                      right: 4,
-                      child: Text(
-                        '${index + 1}',
-                        style: TextStyle(
-                          color: isDark ? Colors.white : Colors.black87,
-                          fontSize: 9,
-                          fontWeight: FontWeight.bold,
-                          shadows: [
-                            Shadow(
-                              color: isDark ? Colors.black87 : Colors.white70,
-                              blurRadius: 3,
-                            ),
-                          ],
-                        ),
-                      ),
-                    ),
-                  ],
-                ),
-              ),
-            ),
-          );
-        },
-      ),
-    );
-  }
-
-  Widget _pageThumb(String ref) {
-    if (ref.startsWith('http')) {
-      return SafeNetworkImage(
-        imageUrl: ref,
-        fit: BoxFit.cover,
-        placeholder: (context, url) => const ColoredBox(
-          color: Colors.black26,
-        ),
-        errorWidget: (context, url, error) => const ColoredBox(
-          color: Colors.black26,
-        ),
-      );
-    }
-    return SafeFileImage(
-      file: File(ref),
-      fit: BoxFit.cover,
-      errorWidget: (context, url, error) => const ColoredBox(
-        color: Colors.black26,
-      ),
-    );
-  }
-
   Widget _buildProgressTrack() {
+    // Show the slider against the chapter under the reader, not the whole
+    // concatenated list (which grows when adjacent chapters are loaded).
+    final chapterIndex = _readChapterIndex;
+    int chapterStart = 0;
+    var chapterCount = _pages.length;
+    if (_pagesChapters.isNotEmpty) {
+      var start = -1;
+      var end = -1;
+      for (var i = 0; i < _pagesChapters.length; i++) {
+        if (_pagesChapters[i] == chapterIndex) {
+          if (start == -1) start = i;
+          end = i;
+        }
+      }
+      if (start != -1) {
+        chapterStart = start;
+        chapterCount = end - start + 1;
+      }
+    }
     return _ReaderProgressTrack(
+      session: _trackSession,
       totalPages: _pages.length,
+      chapterStart: chapterStart,
+      chapterPageCount: chapterCount,
       isHorizontal: _isHorizontal,
       scrollController: _scrollController,
       pageController: _pageController,
@@ -670,7 +617,16 @@ class _ReaderScreenState extends ConsumerState<ReaderScreen>
       _pageRetryTokens.clear();
       _hasMoreChapters = true;
       _lastPageIndex = -1;
+      _prefetchScheduled.clear();
     });
+    // Explicit chapter navigation always starts at the first page: the
+    // "resume at last page" restore applies only to the first chapter opened
+    // from the detail screen. (Bookmarks set [_pendingJumpPage] first.)
+    // Landing at page 1 must never be misread as "scrolled back a chapter".
+    _needsRestore = false;
+    _suppressAdjacentAutoLoad = true;
+    _trackSession += 1;
+    _pendingJumpPage ??= 0;
     _loadChapter(_currentChapterIndex);
   }
 
@@ -2133,6 +2089,9 @@ class _ReaderScreenState extends ConsumerState<ReaderScreen>
         }
         _loadedChapterIndices.add(chapterIndex);
       });
+      // New pages entered the list; let the next tick re-center the preload
+      // window on the reader's actual position.
+      _prefetchAnchorPage = -1;
       if (_needsRestore) {
         WidgetsBinding.instance.addPostFrameCallback((_) => _restorePosition());
       } else if (_pendingJumpPage != null) {
@@ -2143,7 +2102,10 @@ class _ReaderScreenState extends ConsumerState<ReaderScreen>
         );
       }
       WidgetsBinding.instance.addPostFrameCallback((_) {
-        if (mounted) _maybeShowToast();
+        if (mounted) {
+          _prefetchNearbyPages();
+          _maybeShowToast();
+        }
       });
     } catch (e) {
       debugPrint('Error loading chapter: $e');
@@ -2237,6 +2199,7 @@ class _ReaderScreenState extends ConsumerState<ReaderScreen>
         _pageFiles.insertAll(0, locals ?? List.filled(inserted, null));
         _loadedChapterIndices.add(prevIndex);
       });
+      _prefetchAnchorPage = -1;
 
       // The page under the reader moved forward by [inserted] slots; keep the
       // view on it. Vertical mode estimates page height at 600 (matches the
@@ -2261,11 +2224,58 @@ class _ReaderScreenState extends ConsumerState<ReaderScreen>
 
   // --- CHAPTER TRANSITION TOAST ---
 
+  Future<void> _prefetchNearbyPages({int lookahead = 6}) async {
+    if (_pages.isEmpty) return;
+    final current = _currentPageIndex;
+    // Re-center the window only when the anchor actually moved, otherwise a
+    // busy scroll ticker would re-schedule the same downloads repeatedly.
+    if (current == _prefetchAnchorPage) return;
+    _prefetchAnchorPage = current;
+
+    final start = (current - 2).clamp(0, _pages.length - 1);
+    final end = (current + lookahead).clamp(0, _pages.length - 1);
+    // Snapshot the URLs to prefetch up front: the loop below awaits downloads,
+    // and switching chapters mid-loop clears _pages, which would otherwise make
+    // _pages[i] throw a RangeError on the next iteration.
+    final targets = <String>[];
+    for (var i = start; i <= end && i < _pages.length; i++) {
+      final ref = _pages[i];
+      if (!ref.startsWith('http')) continue;
+      if (_prefetchScheduled.contains(ref)) continue;
+      targets.add(ref);
+    }
+    _prefetchScheduled.addAll(targets);
+    for (final ref in targets) {
+      try {
+        await DefaultCacheManager().getSingleFile(
+          ref,
+          headers: _activeRequestHeaders,
+        );
+      } catch (_) {
+        // Swallow: download failures are surfaced by the image widget itself.
+      }
+    }
+  }
+
   void _handleScrollTicker() {
     final pos = _scrollController.position;
-    // Near the top -> load the previous chapter (backward symmetry with the
-    // next-chapter load at the bottom).
-    if (pos.pixels <= 800 && !_isLoadingPreviousChapter) {
+    // Warm the on-disk cache for pages a little ahead while scrolling.
+    _prefetchNearbyPages();
+    // Once the reader moves off the landing page, re-arm the adjacent-chapter
+    // loaders so real backward swipes still work.
+    if (_suppressAdjacentAutoLoad && pos.pixels > 800) {
+      _suppressAdjacentAutoLoad = false;
+    }
+    // Load the previous chapter only on a real backward pull at the very top
+    // (scrolled below zero, moving further back). Floating within the first
+    // 800px must NOT trigger it: that's what used to prepend a whole chapter
+    // and shift the view under the reader "by itself".
+    final movingBack = pos.pixels < _lastScrollPixels;
+    _lastScrollPixels = pos.pixels;
+    if (!_suppressAdjacentAutoLoad &&
+        pos.pixels < 0 &&
+        movingBack &&
+        !_isLoadingPreviousChapter) {
       _loadPreviousChapter();
     }
     if (pos.pixels >= pos.maxScrollExtent - 800 &&
@@ -2898,10 +2908,11 @@ class _ReaderScreenState extends ConsumerState<ReaderScreen>
 
   @override
   Widget build(BuildContext context) {
-    final currentChapter = widget.allChapters[_currentChapterIndex];
+    final readChapterIndex = _readChapterIndex;
+    final currentChapter = widget.allChapters[readChapterIndex];
     final chLabel = currentChapter.chapterNumber.isNotEmpty
         ? currentChapter.chapterNumber
-        : '${_currentChapterIndex + 1}';
+        : '${readChapterIndex + 1}';
     final activeSource = ref.watch(currentSourceProvider);
     final Map<String, String>? activeHeaders = activeSource.headers;
 
@@ -2909,6 +2920,7 @@ class _ReaderScreenState extends ConsumerState<ReaderScreen>
         ? getSourceBySourceId(widget.sourceId!)
         : null;
     final headers = readerSource?.headers ?? activeHeaders;
+    _activeRequestHeaders = headers;
 
     return PopScope(
       canPop: false,
@@ -3001,14 +3013,7 @@ class _ReaderScreenState extends ConsumerState<ReaderScreen>
                 ),
               ),
 
-              // --- PAGE THUMBNAIL STRIP (opt-in) ---
-              AnimatedPositioned(
-                duration: const Duration(milliseconds: 200),
-                bottom: _showControls ? 92 : -150,
-                left: 16,
-                right: 16,
-                child: _buildPageThumbnailStrip(),
-              ),
+              // --- PAGE THUMBNAIL STRIP (removed) ---
 
               // --- BOTTOM CAPSULE BAR ---
               AnimatedPositioned(
@@ -3151,9 +3156,16 @@ class _ReaderScreenState extends ConsumerState<ReaderScreen>
       itemCount: _pages.length,
       onPageChanged: (index) {
         _maybeShowToast();
+        // Warm the on-disk cache for pages ahead of where the reader sits.
+        _prefetchNearbyPages();
+        // Once the reader moves off the landing page, re-arm the adjacent
+        // chapter loaders so real backward swipes still work.
+        if (_suppressAdjacentAutoLoad && index > 0) {
+          _suppressAdjacentAutoLoad = false;
+        }
         // Swiping back into page 0 -> load the previous chapter so the pager
         // can keep going backward across the chapter boundary.
-        if (_lastPageIndex > 0 && index == 0) {
+        if (!_suppressAdjacentAutoLoad && _lastPageIndex > 0 && index == 0) {
           _loadPreviousChapter();
         }
         _lastPageIndex = index;
@@ -3401,14 +3413,20 @@ class _ReaderScreenState extends ConsumerState<ReaderScreen>
 
 class _ReaderProgressTrack extends StatefulWidget {
   const _ReaderProgressTrack({
+    required this.session,
     required this.totalPages,
+    required this.chapterStart,
+    required this.chapterPageCount,
     required this.isHorizontal,
     required this.scrollController,
     required this.pageController,
     required this.onSeek,
   });
 
+  final int session;
   final int totalPages;
+  final int chapterStart;
+  final int chapterPageCount;
   final bool isHorizontal;
   final ScrollController scrollController;
   final PageController pageController;
@@ -3419,15 +3437,13 @@ class _ReaderProgressTrack extends StatefulWidget {
 }
 
 class _ReaderProgressTrackState extends State<_ReaderProgressTrack> {
-  // Cap the dots so a chapter with hundreds of pages doesn't turn the track
-  // into a solid line; most chapters (<= _maxDots pages) get one dot per page.
-  static const int _maxDots = 30;
-
   int _currentIndex = 0;
+  int _lastSession = -1;
 
   @override
   void initState() {
     super.initState();
+    _lastSession = widget.session;
     widget.scrollController.addListener(_onMoved);
     widget.pageController.addListener(_onMoved);
   }
@@ -3435,6 +3451,12 @@ class _ReaderProgressTrackState extends State<_ReaderProgressTrack> {
   @override
   void didUpdateWidget(_ReaderProgressTrack oldWidget) {
     super.didUpdateWidget(oldWidget);
+    // An explicit chapter switch resets the thumb to page 1 even when the
+    // controller listener never fires (jumpTo to the same offset no-ops).
+    if (widget.session != _lastSession) {
+      _lastSession = widget.session;
+      _currentIndex = widget.chapterStart;
+    }
     if (oldWidget.scrollController != widget.scrollController) {
       oldWidget.scrollController.removeListener(_onMoved);
       widget.scrollController.addListener(_onMoved);
@@ -3443,8 +3465,8 @@ class _ReaderProgressTrackState extends State<_ReaderProgressTrack> {
       oldWidget.pageController.removeListener(_onMoved);
       widget.pageController.addListener(_onMoved);
     }
-    if (oldWidget.totalPages != widget.totalPages && widget.totalPages > 0) {
-      _currentIndex = _currentIndex.clamp(0, widget.totalPages - 1);
+    if (oldWidget.chapterStart != widget.chapterStart) {
+      _currentIndex = widget.chapterStart;
     }
   }
 
@@ -3462,111 +3484,71 @@ class _ReaderProgressTrackState extends State<_ReaderProgressTrack> {
       if (!widget.pageController.hasClients) return;
       final page = widget.pageController.page;
       if (page == null) return;
-      idx = page.round().clamp(0, widget.totalPages - 1);
+      idx = page.round();
     } else {
       if (!widget.scrollController.hasClients) return;
       const perPage = 600.0;
-      idx = (widget.scrollController.offset / perPage).floor().clamp(
-        0,
-        widget.totalPages - 1,
-      );
+      idx = (widget.scrollController.offset / perPage).floor();
     }
-    if (idx != _currentIndex) setState(() => _currentIndex = idx);
-  }
-
-  void _seek(double fraction) {
-    if (widget.totalPages <= 0) return;
-    final clamped = fraction.clamp(0.0, 1.0);
-    final page = (clamped * (widget.totalPages - 1)).round();
-    widget.onSeek(page);
+    // Absolute page index within the concatenated list.
+    final absolute = idx.clamp(0, widget.totalPages - 1);
+    if (absolute != _currentIndex) setState(() => _currentIndex = absolute);
   }
 
   @override
   Widget build(BuildContext context) {
     final dark = Theme.of(context).brightness == Brightness.dark;
-    final total = widget.totalPages <= 0 ? 1 : widget.totalPages;
-    final current = (_currentIndex + 1).clamp(1, total);
-    final progress = total > 1 ? (current - 1) / (total - 1) : 0.0;
-    final dotCount = total.clamp(1, _maxDots);
-
-    return LayoutBuilder(
-      builder: (context, constraints) {
-        return GestureDetector(
-          behavior: HitTestBehavior.opaque,
-          onTapDown: (details) =>
-              _seek(details.localPosition.dx / constraints.maxWidth),
-          onHorizontalDragUpdate: (details) =>
-              _seek(details.localPosition.dx / constraints.maxWidth),
-          child: CustomPaint(
-            size: Size(constraints.maxWidth, 36),
-            painter: _DottedProgressPainter(
-              progress: progress,
-              dotCount: dotCount,
-              activeDotColor: dark
-                  ? Colors.white
-                  : Theme.of(context).colorScheme.onSurface,
-              inactiveDotColor: dark ? Colors.white24 : Colors.black26,
-            ),
-          ),
-        );
-      },
-    );
-  }
-}
-
-class _DottedProgressPainter extends CustomPainter {
-  final double progress;
-  final int dotCount;
-  final Color activeDotColor;
-  final Color inactiveDotColor;
-
-  _DottedProgressPainter({
-    required this.progress,
-    required this.dotCount,
-    this.activeDotColor = Colors.white,
-    this.inactiveDotColor = Colors.white24,
-  });
-
-  @override
-  void paint(Canvas canvas, Size size) {
-    final centerY = size.height / 2;
-    const activeRadius = 2.2;
-    const currentRadius = 3.8;
-    const baseGap = 5.0;
-
-    final occupied = dotCount * activeRadius * 2 + (dotCount - 1) * baseGap;
-    final spacing = occupied >= size.width && dotCount > 1
-        ? (size.width - dotCount * activeRadius * 2) / (dotCount - 1)
-        : baseGap;
-    final totalWidth = dotCount * activeRadius * 2 + (dotCount - 1) * spacing;
-    final startX = (size.width - totalWidth) / 2;
-
-    final currentIndex = dotCount > 1
-        ? (progress * (dotCount - 1)).round().clamp(0, dotCount - 1)
+    final relativeMax = widget.chapterPageCount > 1
+        ? widget.chapterPageCount - 1
         : 0;
+    final relative = (_currentIndex - widget.chapterStart).clamp(
+      0,
+      relativeMax,
+    );
+    final total = widget.chapterPageCount <= 0 ? 1 : widget.chapterPageCount;
+    final accent = dark
+        ? Colors.white
+        : Theme.of(context).colorScheme.primary;
+    final dim = dark ? Colors.white70 : const Color(0xFF49454F);
 
-    final activePaint = Paint()..color = activeDotColor;
-    final inactivePaint = Paint()..color = inactiveDotColor;
-
-    for (var i = 0; i < dotCount; i++) {
-      final x = startX + activeRadius + i * (activeRadius * 2 + spacing);
-      final isCurrent = i == currentIndex;
-      final isActive = i <= currentIndex;
-
-      canvas.drawCircle(
-        Offset(x, centerY),
-        isCurrent ? currentRadius : activeRadius,
-        isActive ? activePaint : inactivePaint,
-      );
-    }
-  }
-
-  @override
-  bool shouldRepaint(_DottedProgressPainter oldDelegate) {
-    return oldDelegate.progress != progress ||
-        oldDelegate.dotCount != dotCount ||
-        oldDelegate.activeDotColor != activeDotColor ||
-        oldDelegate.inactiveDotColor != inactiveDotColor;
+    return Column(
+      mainAxisSize: MainAxisSize.min,
+      children: [
+        SliderTheme(
+          data: SliderTheme.of(context).copyWith(
+            trackHeight: 3,
+            activeTrackColor: accent,
+            inactiveTrackColor: dark ? Colors.white24 : Colors.black26,
+            thumbColor: accent,
+            overlayColor: accent.withValues(alpha: 0.16),
+            thumbShape: const RoundSliderThumbShape(enabledThumbRadius: 6),
+            overlayShape: const RoundSliderOverlayShape(overlayRadius: 13),
+            padding: const EdgeInsets.symmetric(horizontal: 2),
+          ),
+          child: Slider(
+            min: 0,
+            max: relativeMax.toDouble(),
+            value: relative.toDouble(),
+            // Seek live while dragging (updates the reader as the thumb moves).
+            onChangeStart: (_) =>
+                widget.onSeek(widget.chapterStart + relative),
+            onChanged: (v) =>
+                widget.onSeek(widget.chapterStart + v.round()),
+          ),
+        ),
+        const SizedBox(height: 2),
+        // Small "page x / y" readout under the thumb.
+        Text(
+          '${relative + 1} / $total',
+          style: TextStyle(
+            color: dim,
+            fontSize: 11,
+            fontWeight: FontWeight.w500,
+            height: 1,
+          ),
+        ),
+      ],
+    );
   }
 }
 

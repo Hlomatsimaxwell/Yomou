@@ -17,34 +17,44 @@ import '../sources/mgeko_source.dart';
 import '../sources/likemanga_source.dart';
 
 // 1. THE SOURCE REGISTRY
+//
+// Sources are cached per id so a single instance (and its lazy Dio client,
+// HTTP connection pool and in-memory caches) is shared across every caller.
+// Recreating a source per call used to throw away the connection pool each
+// time, forcing a fresh TLS handshake + DNS lookup on every request.
+final Map<String, MangaSource> _sourceInstances = {};
+
+MangaSource _shared(String id, MangaSource Function() create) =>
+    _sourceInstances.putIfAbsent(id, create);
+
 MangaSource getSourceByName(String name) {
   switch (name) {
     case 'MangaDex': // <--- 2. ADD THIS CASE
-      return MangaDexSource();
+      return _shared('mangadex', MangaDexSource.new);
     case 'WeebCentral':
-      return WeebCentralSource();
+      return _shared('weebcentral', WeebCentralSource.new);
     case 'MangaKatana':
-      return MangakatanaSource();
+      return _shared('mangakatana', MangakatanaSource.new);
     case 'MangaTown':
-      return MangatownSource();
+      return _shared('mangatown', MangatownSource.new);
     case 'Anime-API':
-      return AnimeApiSource();
+      return _shared('anime_api', AnimeApiSource.new);
     case 'Manganato':
-      return ManganatoService();
+      return _shared('manganato', ManganatoService.new);
     case 'Arenascan':
-      return ArenascanSource();
+      return _shared('arenascan', ArenascanSource.new);
     case 'Asura Scans':
-      return AsuraScansSource();
+      return _shared('asurascans', AsuraScansSource.new);
     case 'ComicK':
-      return ComickSource();
+      return _shared('comick', ComickSource.new);
     case 'Mgeko':
-      return MgekoSource();
+      return _shared('mgeko', MgekoSource.new);
     case 'Like Manga':
-      return LikeMangaSource();
+      return _shared('likemanga', LikeMangaSource.new);
     case 'Mock Source':
-      return MockSource();
+      return _shared('mock', MockSource.new);
     default:
-      return MangaDexSource(); // Changed fallback to MangaDex
+      return _shared('mangadex', MangaDexSource.new); // Changed fallback to MangaDex
   }
 }
 
@@ -52,29 +62,29 @@ MangaSource getSourceByName(String name) {
 MangaSource? getSourceBySourceId(String sourceId) {
   switch (sourceId) {
     case 'mangadex':
-      return MangaDexSource();
+      return getSourceByName('MangaDex');
     case 'anime_api':
-      return AnimeApiSource();
+      return getSourceByName('Anime-API');
     case 'weebcentral':
-      return WeebCentralSource();
+      return getSourceByName('WeebCentral');
     case 'mangakatana':
-      return MangakatanaSource();
+      return getSourceByName('MangaKatana');
     case 'mangatown':
-      return MangatownSource();
+      return getSourceByName('MangaTown');
     case 'arenascan':
-      return ArenascanSource();
+      return getSourceByName('Arenascan');
     case 'asurascans':
-      return AsuraScansSource();
+      return getSourceByName('Asura Scans');
     case 'comick':
-      return ComickSource();
+      return getSourceByName('ComicK');
     case 'mgeko':
-      return MgekoSource();
+      return getSourceByName('Mgeko');
     case 'likemanga':
-      return LikeMangaSource();
+      return getSourceByName('Like Manga');
     case 'manganato':
-      return ManganatoService();
+      return getSourceByName('Manganato');
     case 'mock':
-      return MockSource();
+      return getSourceByName('Mock Source');
     default:
       return null;
   }
@@ -83,7 +93,7 @@ MangaSource? getSourceBySourceId(String sourceId) {
 // 2. DYNAMIC ACTIVE SOURCE
 final currentSourceProvider = StateProvider<MangaSource>((ref) {
   // 3. SET DEFAULT TO MANGADEX so you can test immediately!
-  return MangaDexSource();
+  return getSourceByName('MangaDex');
 });
 
 /// A source is enabled unless explicitly disabled. Older saved preference

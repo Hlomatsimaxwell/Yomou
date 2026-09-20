@@ -1,6 +1,7 @@
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:yomou/core/database/source_cache.dart';
 import 'package:yomou/data/models/manga.dart';
+import 'package:yomou/data/models/manga_source.dart';
 import 'package:yomou/data/providers/sources_provider.dart';
 
 /// Searches manga by query text against the active source.
@@ -16,33 +17,43 @@ final searchResultsProvider = FutureProvider.family<List<Manga>, String>((
   final trimmed = query.trim();
   if (trimmed.isEmpty) return [];
 
-  // Genre/theme match -> tag search.
-  final tags = await SourceCache.tags(
-    sourceId: source.id,
-    fetch: source.getAvailableTags,
-  );
-  final exactTag = tags
-      .where((t) => t.toLowerCase() == trimmed.toLowerCase())
-      .toList();
-  if (exactTag.isNotEmpty) {
-    final results = await SourceCache.mangaList(
-      sourceId: source.id,
-      kind: 'tags',
-      arg: exactTag.join(',').toLowerCase(),
-      page: 1,
-      fetch: () => source.searchMangaByTags(exactTag),
-    );
-    if (results.isNotEmpty) return results;
-  }
-
-  // Otherwise -> free-text title search.
-  return SourceCache.mangaList(
+  // Kick off the title search and the tag-based search concurrently. The tag
+  // lookup (and its genre results) only ever wins if it resolves *first*, so
+  // a cold tag cache can never delay the (common) free-text results.
+  final titleFuture = SourceCache.mangaList(
     sourceId: source.id,
     kind: 'title',
     arg: trimmed.toLowerCase(),
     page: 1,
     fetch: () => source.searchByTitle(trimmed),
   );
+  final tagFuture = SourceCache.tags(
+    sourceId: source.id,
+    fetch: source.getAvailableTags,
+  ).then<List<Manga>?>(
+    (tags) async {
+      final exactTag = tags
+          .where((t) => t.toLowerCase() == trimmed.toLowerCase())
+          .toList();
+      if (exactTag.isEmpty) return null;
+      final matches = await SourceCache.mangaList(
+        sourceId: source.id,
+        kind: 'tags',
+        arg: exactTag.join(',').toLowerCase(),
+        page: 1,
+        fetch: () => source.searchMangaByTags(exactTag),
+      );
+      return matches;
+    },
+    onError: (_, _) => null,
+  );
+
+  final winner = await Future.any<Object?>([
+    titleFuture,
+    tagFuture,
+  ]);
+  if (winner is List && winner.isNotEmpty) return winner as List<Manga>;
+  return titleFuture;
 });
 
 /// Popular manga from the active source (used for "Trending" on the search
@@ -90,51 +101,82 @@ final globalSearchProvider =
       // Resolve enabled sources (dedupe by id).
       final sources = resolveActiveSources(ref.watch(sourcesProvider));
 
-      // Tag detection: if the query exactly matches a genre/theme tag, search by
-      // tag on every source; otherwise fall back to free-text title search.
-      List<String>? exactTag;
-      try {
-        final tags = await SourceCache.tags(
-          sourceId: 'mangadex',
-          fetch: () => getSourceByName('MangaDex').getAvailableTags(),
-        ).timeout(const Duration(seconds: 25));
-        final match = tags
-            .where((t) => t.toLowerCase() == trimmed.toLowerCase())
-            .toList();
-        if (match.isNotEmpty) exactTag = match;
-      } catch (_) {
-        // Ignore tag detection failures; fall through to title search.
-      }
+      // Tag detection runs concurrently with the searches: if the query exactly
+      // matches a genre/theme tag we prefer the targeted tag search, but a cold
+      // tag cache must never delay the (common) free-text results.
+      final tagFuture = Future<List<String>?>.sync(() async {
+        try {
+          final tags = await SourceCache.tags(
+            sourceId: 'mangadex',
+            fetch: () => getSourceByName('MangaDex').getAvailableTags(),
+          );
+          final match = tags
+              .where((t) => t.toLowerCase() == trimmed.toLowerCase())
+              .toList();
+          return match.isNotEmpty ? match : null;
+        } catch (_) {
+          return null;
+        }
+      });
 
-      final results = await Future.wait(
-        sources.map((source) async {
-          try {
-            final manga = await SourceCache.mangaList(
-              sourceId: source.id,
-              kind: exactTag != null ? 'tags' : 'title',
-              arg: exactTag != null
-                  ? exactTag.join(',').toLowerCase()
-                  : trimmed.toLowerCase(),
-              page: 1,
-              fetch: () => exactTag != null
-                  ? source.searchMangaByTags(exactTag)
-                  : source.searchByTitle(trimmed),
-            ).timeout(const Duration(seconds: 25));
-            return SourceSearchResult(
-              sourceId: source.id,
-              sourceName: source.name,
-              manga: manga,
-            );
-          } catch (e) {
-            return SourceSearchResult(
-              sourceId: source.id,
-              sourceName: source.name,
-              hasError: true,
-              errorMessage: e.toString(),
-            );
-          }
-        }),
+      // Start the free-text fan-out immediately; it is the common path and
+      // must never wait on tag detection.
+      final titleResultsFuture = _searchAllSources(
+        sources,
+        kind: 'title',
+        arg: trimmed.toLowerCase(),
+        fetch: (source) => source.searchByTitle(trimmed),
       );
+      final titleResults = await titleResultsFuture;
 
-      return results;
+      // Tag detection is a 2-second-best courtesy: only when the query exactly
+      // matches a genre/theme tag do we re-run as a targeted tag search and
+      // prefer those results (e.g. "action", "romance").
+      final exactTag = await tagFuture.timeout(
+        const Duration(seconds: 2),
+        onTimeout: () => null,
+      );
+      if (exactTag == null) return titleResults;
+
+      final tagSearch = await _searchAllSources(
+        sources,
+        kind: 'tags',
+        arg: exactTag.join(',').toLowerCase(),
+        fetch: (source) => source.searchMangaByTags(exactTag),
+      );
+      if (tagSearch.any((s) => s.hasResults)) return tagSearch;
+      return titleResults;
     });
+
+Future<List<SourceSearchResult>> _searchAllSources(
+  List<MangaSource> sources, {
+  required String kind,
+  required String arg,
+  required Future<List<Manga>> Function(MangaSource source) fetch,
+}) async {
+  return Future.wait(
+    sources.map((source) async {
+      try {
+        final manga = await SourceCache.mangaList(
+          sourceId: source.id,
+          kind: kind,
+          arg: arg,
+          page: 1,
+          fetch: () => fetch(source),
+        ).timeout(const Duration(seconds: 25));
+        return SourceSearchResult(
+          sourceId: source.id,
+          sourceName: source.name,
+          manga: manga,
+        );
+      } catch (e) {
+        return SourceSearchResult(
+          sourceId: source.id,
+          sourceName: source.name,
+          hasError: true,
+          errorMessage: e.toString(),
+        );
+      }
+    }),
+  );
+}

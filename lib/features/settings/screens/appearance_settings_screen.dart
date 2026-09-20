@@ -122,11 +122,6 @@ class AppearanceSettingsScreen extends ConsumerWidget {
             value: settings.collapseDescription,
             onChanged: (_) => notifier.toggleBool('collapseDescription'),
           ),
-          SwitchListTile(
-            title: Text(l.appearancePagesThumbnails),
-            value: settings.showPagesThumbnails,
-            onChanged: (_) => notifier.toggleBool('showPagesThumbnails'),
-          ),
           ListTile(
             title: Text(l.appearanceDefaultTabTitle),
             subtitle: Text(_tabLabel(l, settings.defaultTab)),

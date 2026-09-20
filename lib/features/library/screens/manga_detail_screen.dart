@@ -175,34 +175,40 @@ class _MangaDetailScreenState extends ConsumerState<MangaDetailScreen> {
         });
         return;
       }
-      final chapters = await SourceCache.chapters(
+      // Fetch chapters and real details concurrently: chapters populate the
+      // list, details fill in the header as soon as they arrive.
+      final chaptersFuture = SourceCache.chapters(
         sourceId: source.id,
         mangaId: widget.mangaId,
         forceRefresh: forceRefresh,
         fetch: () => source.getChapters(widget.mangaId),
       );
-      if (mounted) {
-        setState(() {
-          _source = source;
-          _sourceName = source.name;
-          _chapters = _sortChaptersNewestFirst(chapters);
-          _isLoadingChapters = false;
-        });
-      }
-
-      // Fetch real manga details + preview pages (best-effort, don't block UI).
-      final details = await SourceCache.mangaDetails(
+      final detailsFuture = SourceCache.mangaDetails(
         sourceId: source.id,
         mangaId: widget.mangaId,
         forceRefresh: forceRefresh,
         fetch: () => source.getMangaDetails(widget.mangaId),
       );
+      if (mounted) {
+        setState(() {
+          _source = source;
+          _sourceName = source.name;
+        });
+      }
+      final details = await detailsFuture;
       if (details != null && mounted) {
         setState(() => _details = details);
         // Cache tags in the database for the suggestions engine.
         if (details.tags.isNotEmpty) {
           DatabaseHelper.instance.saveMangaTags(widget.mangaId, details.tags);
         }
+      }
+      final chapters = await chaptersFuture;
+      if (mounted) {
+        setState(() {
+          _chapters = _sortChaptersNewestFirst(chapters);
+          _isLoadingChapters = false;
+        });
       }
       if (chapters.isNotEmpty && mounted) {
         _loadPreviewPages();
@@ -303,7 +309,7 @@ class _MangaDetailScreenState extends ConsumerState<MangaDetailScreen> {
       );
       final candidates = popular
           .where((m) => m.id != widget.mangaId)
-          .take(16)
+          .take(8)
           .toList();
 
       // Fetch each candidate's tags in parallel and rank by overlap.
@@ -475,6 +481,9 @@ class _MangaDetailScreenState extends ConsumerState<MangaDetailScreen> {
   void _openReader({int? chapterIndex}) {
     if (_chapters.isEmpty) return;
     final indexToOpen = chapterIndex ?? _resumeChapterIndex;
+    // The saved page position belongs to the resume chapter only. Tapping a
+    // specific chapter in the list always starts it from page one.
+    final initialPage = chapterIndex == null ? _lastReadPage : 0;
 
     Navigator.push(
       context,
@@ -482,7 +491,7 @@ class _MangaDetailScreenState extends ConsumerState<MangaDetailScreen> {
         builder: (context) => ReaderScreen(
           allChapters: _chapters,
           initialChapterIndex: indexToOpen,
-          initialPageIndex: _lastReadPage,
+          initialPageIndex: initialPage,
           mangaId: widget.mangaId,
           sourceId: _source?.id,
           mangaTitle: _title,
