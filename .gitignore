@@ -12,6 +12,9 @@
 .swiftpm/
 migrate_working_dir/
 
+# opencode DB backups (keep local, never push)
+/restore-archive/
+
 # IntelliJ related
 *.iml
 *.ipr
