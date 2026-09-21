@@ -156,6 +156,7 @@ class _ManageSourcesScreenState extends ConsumerState<ManageSourcesScreen> {
                 SnackBar(
                   content: Text(
                     AppLocalizations.of(context).switchedToSource(sourceName),
+                    style: const TextStyle(color: Colors.white),
                   ),
                   backgroundColor: source['bgColor'] as Color,
                   duration: const Duration(seconds: 1),

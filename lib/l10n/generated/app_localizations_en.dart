@@ -1197,6 +1197,9 @@ class AppLocalizationsEn extends AppLocalizations {
   String get refresh => 'Refresh';
 
   @override
+  String get refreshed => 'Refreshed';
+
+  @override
   String get updatesTitle => 'Updates';
 
   @override

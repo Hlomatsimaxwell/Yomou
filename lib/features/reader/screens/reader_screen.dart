@@ -2,9 +2,11 @@ import 'package:remixicon/remixicon.dart';
 import 'dart:async';
 import 'dart:convert';
 import 'dart:io';
+import 'package:battery_plus/battery_plus.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_cache_manager/flutter_cache_manager.dart';
+import 'package:intl/intl.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:http/http.dart' as http;
 import 'package:path_provider/path_provider.dart';
@@ -77,6 +79,49 @@ class _ReaderScreenState extends ConsumerState<ReaderScreen>
   // ticker, since ScrollPosition exposes no direct velocity getter.
   double _lastScrollPixels = 0;
   bool _showControls = true;
+
+  // Kotatsu-style top info bar (shown while the system UI + controls are
+  // hidden): live clock and battery percentage.
+  Timer? _statusTimer;
+  String _clockText = '';
+  int _batteryLevel = -1;
+
+  void _startStatusTicker() {
+    _updateStatusBadges();
+    _statusTimer = Timer.periodic(const Duration(seconds: 30), (_) {
+      if (mounted) _updateStatusBadges();
+    });
+  }
+
+  Future<void> _updateStatusBadges() async {
+    final clock = DateFormat('HH:mm').format(DateTime.now());
+    var battery = _batteryLevel;
+    try {
+      battery = await Battery().batteryLevel;
+    } catch (_) {
+      // Emulator / unsupported platform: keep the previous value.
+    }
+    if (!mounted) return;
+    if (clock == _clockText && battery == _batteryLevel) return;
+    setState(() {
+      _clockText = clock;
+      _batteryLevel = battery;
+    });
+  }
+
+  void _applySystemUiMode() {
+    // Kotatsu behavior: while the controls are hidden the entire system UI is
+    // immersive (nothing drawn by the OS), so the reader renders its own slim
+    // status bar at the top edge. Tapping the controls restores the native
+    // system status bar/navigation bars.
+    SystemChrome.setEnabledSystemUIMode(
+      _showControls ? SystemUiMode.edgeToEdge : SystemUiMode.immersiveSticky,
+    );
+  }
+
+  void _restoreSystemUi() {
+    SystemChrome.setEnabledSystemUIMode(SystemUiMode.edgeToEdge);
+  }
 
   // Chapter transition toast (Kotatsu-style chapter/page pill).
   double _toastOpacity = 0;
@@ -187,6 +232,7 @@ class _ReaderScreenState extends ConsumerState<ReaderScreen>
 
     _scrollController.addListener(_handleScrollTicker);
     WidgetsBinding.instance.addObserver(this);
+    _startStatusTicker();
     // Crash safety: while the reader is open, periodically persist the current
     // position so a forced kill (force-stop, crash, OOM) doesn't lose the read.
     // The debounce logic in _autosaveProgress skips no-op ticks.
@@ -261,6 +307,9 @@ class _ReaderScreenState extends ConsumerState<ReaderScreen>
   @override
   void dispose() {
     WidgetsBinding.instance.removeObserver(this);
+    _statusTimer?.cancel();
+    // The immersive overlay on every exit path restores the normal system UI.
+    _restoreSystemUi();
     _autoSaveTimer?.cancel();
     _scrollController.dispose();
     _pageController.dispose();
@@ -279,6 +328,20 @@ class _ReaderScreenState extends ConsumerState<ReaderScreen>
     setState(() {
       _showControls = !_showControls;
     });
+    _applySystemUiMode();
+  }
+
+  /// Kotatsu-style left-hand status text: "Ch. 26/205 Pg. 3/16 12%".
+  String _immersiveStatusText(int chapterIndex, String chapterLabel) {
+    final page = _currentPageIndex;
+    final totalPages = _pages.length;
+    final progress = widget.totalChapters > 0
+        ? (((chapterIndex + 1) / widget.totalChapters) * 100).round()
+        : (totalPages > 0 ? (((page + 1) / totalPages) * 100).round() : 0);
+    final ch = chapterLabel.isNotEmpty
+        ? chapterLabel
+        : '${chapterIndex + 1}';
+    return 'Ch. $ch/${widget.totalChapters} Pg. ${page + 1}/$totalPages $progress%';
   }
 
   int get _currentPageIndex {
@@ -2372,6 +2435,10 @@ class _ReaderScreenState extends ConsumerState<ReaderScreen>
         state == AppLifecycleState.detached) {
       _autosaveProgress();
     }
+    // Returning to a backgrounded immersive reader re-hides the system bars.
+    if (state == AppLifecycleState.resumed && !_showControls) {
+      _applySystemUiMode();
+    }
   }
 
   Future<void> _saveCascadingReadProgress() async {
@@ -2943,6 +3010,7 @@ class _ReaderScreenState extends ConsumerState<ReaderScreen>
 
   @override
   Widget build(BuildContext context) {
+    final dark = Theme.of(context).brightness == Brightness.dark;
     final readChapterIndex = _readChapterIndex;
     final currentChapter = widget.allChapters[readChapterIndex];
     final chLabel = currentChapter.chapterNumber.isNotEmpty
@@ -2980,75 +3048,248 @@ class _ReaderScreenState extends ConsumerState<ReaderScreen>
                   ? _buildHorizontalReader(headers)
                   : _buildVerticalReader(headers),
 
-              // --- TOP APP BAR OVERLAY ---
+              // --- TOP APP BAR OVERLAY (theme-aware card) ---
               AnimatedPositioned(
                 duration: const Duration(milliseconds: 200),
                 top: _showControls ? 0 : -100,
                 left: 0,
                 right: 0,
-                child: Container(
+                child: Padding(
                   padding: EdgeInsets.only(
-                    top: MediaQuery.of(context).padding.top + 4,
-                    bottom: 12,
-                    left: 8,
-                    right: 16,
+                    top: MediaQuery.of(context).padding.top + 8,
+                    left: 12,
+                    right: 12,
                   ),
-                  decoration: const BoxDecoration(
-                    gradient: LinearGradient(
-                      colors: [Colors.black87, Colors.transparent],
-                      begin: Alignment.topCenter,
-                      end: Alignment.bottomCenter,
+                  child: Container(
+                    padding: const EdgeInsets.symmetric(
+                      horizontal: 6,
+                      vertical: 8,
                     ),
-                  ),
-                  child: Row(
-                    children: [
-                      IconButton(
-                        icon: const Icon(
-                          RemixIcons.arrow_left_line,
-                          color: Colors.white,
-                        ),
-                        onPressed: () async {
-                          await _saveCascadingReadProgress();
-                          if (context.mounted) Navigator.pop(context);
-                        },
-                      ),
-                      const SizedBox(width: 8),
-                      Expanded(
-                        child: Column(
-                          crossAxisAlignment: CrossAxisAlignment.start,
-                          mainAxisSize: MainAxisSize.min,
-                          children: [
-                            Text(
-                              widget.mangaTitle ?? currentChapter.title,
-                              style: const TextStyle(
-                                color: Colors.white,
-                                fontSize: 15,
-                                fontWeight: FontWeight.w600,
+                    decoration: BoxDecoration(
+                      color: dark ? const Color(0xFF1E1E20) : Colors.white,
+                      borderRadius: BorderRadius.circular(16),
+                      boxShadow: dark
+                          ? [
+                              BoxShadow(
+                                color: Colors.black.withValues(alpha: 0.4),
+                                blurRadius: 12,
+                                offset: const Offset(0, 4),
                               ),
-                              maxLines: 1,
-                              overflow: TextOverflow.ellipsis,
-                            ),
-                            const SizedBox(height: 2),
-                            Text(
-                              AppLocalizations.of(
-                                context,
-                              ).readerChapterShort(chLabel),
-                              style: const TextStyle(
-                                color: Colors.white70,
-                                fontSize: 12,
+                            ]
+                          : [
+                              BoxShadow(
+                                color: Colors.black.withValues(alpha: 0.12),
+                                blurRadius: 12,
+                                offset: const Offset(0, 4),
                               ),
-                              maxLines: 1,
-                              overflow: TextOverflow.ellipsis,
-                            ),
-                          ],
+                            ],
+                    ),
+                    child: Row(
+                      children: [
+                        IconButton(
+                          icon: Icon(
+                            RemixIcons.arrow_left_line,
+                            color: dark
+                                ? Colors.white
+                                : const Color(0xFF1C1B1F),
+                          ),
+                          onPressed: () async {
+                            await _saveCascadingReadProgress();
+                            if (context.mounted) Navigator.pop(context);
+                          },
                         ),
-                      ),
-                    ],
+                        const SizedBox(width: 4),
+                        Expanded(
+                          child: Column(
+                            crossAxisAlignment: CrossAxisAlignment.start,
+                            mainAxisSize: MainAxisSize.min,
+                            children: [
+                              Text(
+                                widget.mangaTitle ?? currentChapter.title,
+                                style: TextStyle(
+                                  color: dark
+                                      ? Colors.white
+                                      : const Color(0xFF1C1B1F),
+                                  fontSize: 14,
+                                  fontWeight: FontWeight.w600,
+                                ),
+                                maxLines: 1,
+                                overflow: TextOverflow.ellipsis,
+                              ),
+                              const SizedBox(height: 2),
+                              Text(
+                                AppLocalizations.of(
+                                  context,
+                                ).readerChapterShort(chLabel),
+                                style: TextStyle(
+                                  color: dark
+                                      ? Colors.white54
+                                      : const Color(0xFF49454F),
+                                  fontSize: 12,
+                                ),
+                                maxLines: 1,
+                                overflow: TextOverflow.ellipsis,
+                              ),
+                            ],
+                          ),
+                        ),
+                        const SizedBox(width: 8),
+                        Icon(
+                          _batteryLevel >= 0
+                              ? (_batteryLevel > 20
+                                  ? RemixIcons.battery_2_fill
+                                  : RemixIcons.battery_low_fill)
+                              : RemixIcons.battery_2_line,
+                          color: dark
+                              ? Colors.white70
+                              : const Color(0xFF49454F),
+                          size: 16,
+                        ),
+                        const SizedBox(width: 4),
+                        Text(
+                          _batteryLevel >= 0 ? '$_batteryLevel%' : '',
+                          style: TextStyle(
+                            color: dark
+                                ? Colors.white70
+                                : const Color(0xFF49454F),
+                            fontSize: 12,
+                            fontWeight: FontWeight.w500,
+                          ),
+                        ),
+                        const SizedBox(width: 12),
+                        Text(
+                          _clockText,
+                          style: TextStyle(
+                            color: dark
+                                ? Colors.white70
+                                : const Color(0xFF49454F),
+                            fontSize: 12,
+                            fontWeight: FontWeight.w500,
+                          ),
+                        ),
+                      ],
+                    ),
                   ),
                 ),
               ),
 
               // --- PAGE THUMBNAIL STRIP (removed) ---
+
+              // --- KOTATSU-STYLE TOP STATUS BAR (immersive mode) ---
+              // Rendered only while the reader controls are hidden. The native
+              // system status bar is hidden by SystemChrome, so this replaces it
+              // entirely: a full-width row inside the SafeArea (clear of notches
+              // / punch-holes) with the reading progress on the left and the
+              // battery + clock on the right. No card surface, no elevation,
+              // no back button, and it never intercepts taps toggling controls.
+              Positioned(
+                top: 0,
+                left: 0,
+                right: 0,
+                child: AnimatedSwitcher(
+                  duration: const Duration(milliseconds: 200),
+                  transitionBuilder: (child, animation) =>
+                      FadeTransition(opacity: animation, child: child),
+                  child: !_showControls
+                      ? SafeArea(
+                          key: const ValueKey('immersiveStatusBar'),
+                          bottom: false,
+                          child: Padding(
+                            padding: const EdgeInsets.symmetric(
+                              horizontal: 16,
+                              vertical: 4,
+                            ),
+                            child: Row(
+                              mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                              children: [
+                                Flexible(
+                                  child: Text(
+                                    _immersiveStatusText(
+                                      readChapterIndex,
+                                      chLabel,
+                                    ),
+                                    style: TextStyle(
+                                      color: Colors.white.withValues(
+                                        alpha: 0.9,
+                                      ),
+                                      fontSize: 12,
+                                      fontWeight: FontWeight.w500,
+                                      letterSpacing: 0.2,
+                                      shadows: [
+                                        Shadow(
+                                          color: Colors.black87,
+                                          blurRadius: 4,
+                                          offset: const Offset(0, 1),
+                                        ),
+                                      ],
+                                    ),
+                                    maxLines: 1,
+                                    overflow: TextOverflow.ellipsis,
+                                  ),
+                                ),
+                                const SizedBox(width: 12),
+                                Row(
+                                  mainAxisSize: MainAxisSize.min,
+                                  children: [
+                                    if (_batteryLevel >= 0) ...[
+                                      Icon(
+                                        _batteryLevel > 20
+                                            ? RemixIcons.battery_2_fill
+                                            : RemixIcons.battery_low_fill,
+                                        color: Colors.white,
+                                        size: 14,
+                                      ),
+                                      const SizedBox(width: 4),
+                                      Text(
+                                        '$_batteryLevel%',
+                                        style: TextStyle(
+                                          color: Colors.white.withValues(
+                                            alpha: 0.9,
+                                          ),
+                                          fontSize: 12,
+                                          fontWeight: FontWeight.w500,
+                                          shadows: [
+                                            Shadow(
+                                              color: Colors.black87,
+                                              blurRadius: 4,
+                                              offset: const Offset(0, 1),
+                                            ),
+                                          ],
+                                        ),
+                                      ),
+                                      const SizedBox(width: 12),
+                                    ],
+                                    Text(
+                                      _clockText,
+                                      style: TextStyle(
+                                        color: Colors.white.withValues(
+                                          alpha: 0.9,
+                                        ),
+                                        fontSize: 12,
+                                        fontWeight: FontWeight.w500,
+                                        letterSpacing: 0.2,
+                                        shadows: [
+                                          Shadow(
+                                            color: Colors.black87,
+                                            blurRadius: 4,
+                                            offset: const Offset(0, 1),
+                                          ),
+                                        ],
+                                      ),
+                                    ),
+                                  ],
+                                ),
+                              ],
+                            ),
+                          ),
+                        )
+                      : const SizedBox(
+                          key: ValueKey('noStatusBar'),
+                          width: 0,
+                          height: 0,
+                        ),
+                ),
+              ),
 
               // --- BOTTOM CAPSULE BAR ---
               AnimatedPositioned(

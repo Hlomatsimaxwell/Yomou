@@ -339,47 +339,47 @@ class _HomeScreenState extends ConsumerState<HomeScreen>
                   ),
                 ),
               ),
-              // Continue Reading FAB (History tab only, opt-in). Docked 12px above the
-              // pill's top-right corner. Cross-fades/scales away on every other
-              // tab or when scrolling down (unless pinned).
-              Positioned(
-                right: 20,
-                bottom: bottomBarTopEdge(context) + 12,
-                child: AnimatedSlide(
-                  offset: Offset(0, _navHiddenOnScroll ? 1.5 : 0),
-                  duration: const Duration(milliseconds: 220),
-                  curve: Curves.easeOutCubic,
-                  child: AnimatedSwitcher(
-                    duration: const Duration(milliseconds: 200),
-                    switchInCurve: Curves.easeOutCubic,
-                    switchOutCurve: Curves.easeInCubic,
-                    transitionBuilder: (child, animation) => FadeTransition(
-                      opacity: animation,
-                      child: ScaleTransition(scale: animation, child: child),
-                    ),
-                    child: showFab
-                        ? KeyedSubtree(
-                            key: const ValueKey('continue-fab'),
-                            child: _buildContinueFab(accent),
-                          )
-                        : const SizedBox(
-                            key: ValueKey('fab-hidden'),
-                            width: 60,
-                            height: 60,
-                          ),
-                  ),
-                ),
-              ),
-              // Bottom navigation bar overlay (floating or solid).
+              // Bottom navigation overlay (floating or solid) + the conditional
+              // Continue FAB (History tab only, opt-in). The FAB sits beside the
+              // floating pill in one bottom-centered row; with the solid bar it
+              // stays docked above it. Everything hides together on scroll-down
+              // unless pinNavUiOnScroll is on.
               AnimatedSlide(
                 offset: Offset(0, _navHiddenOnScroll ? 1.5 : 0),
                 duration: const Duration(milliseconds: 220),
                 curve: Curves.easeOutCubic,
-                child: settings.useFloatingNavBar
-                    ? _buildFloatingNav(
-                        context, updatesCount, accent, settings, enabledTabs)
-                    : _buildSolidNav(
+                child: Stack(
+                  alignment: Alignment.bottomCenter,
+                  children: [
+                    if (settings.useFloatingNavBar)
+                      _buildFloatingNav(
+                        context,
+                        updatesCount,
+                        accent,
+                        settings,
+                        enabledTabs,
+                        showFab: showFab,
+                      )
+                    else ...[
+                      _buildSolidNav(
                         context, updatesCount, accent, settings, enabledTabs),
+                      Positioned(
+                        right: 20,
+                        bottom: bottomBarTopEdge(context) + 12,
+                        child: showFab
+                            ? KeyedSubtree(
+                                key: const ValueKey('continue-fab'),
+                                child: _buildContinueFab(accent),
+                              )
+                            : const SizedBox(
+                                key: ValueKey('fab-hidden'),
+                                width: 60,
+                                height: 60,
+                              ),
+                      ),
+                    ],
+                  ],
+                ),
               ),
             ],
           ),
@@ -413,8 +413,9 @@ class _HomeScreenState extends ConsumerState<HomeScreen>
     int updatesCount,
     Color accent,
     AppearanceSettings settings,
-    List<int> enabledTabs,
-  ) {
+    List<int> enabledTabs, {
+    required bool showFab,
+  }) {
     return Align(
       alignment: Alignment.bottomCenter,
       child: SafeArea(
@@ -426,35 +427,81 @@ class _HomeScreenState extends ConsumerState<HomeScreen>
             right: kBottomBarSideMargin,
             bottom: kBottomBarBottomMargin,
           ),
-          child: Container(
-            height: kBottomBarHeight,
-            padding: const EdgeInsets.symmetric(vertical: 8, horizontal: 8),
-            decoration: BoxDecoration(
-              color: Theme.of(context).brightness == Brightness.dark
-                  ? const Color(0xFF1C1C1E)
-                  : Colors.white,
-              borderRadius: BorderRadius.circular(28),
-              border: Border.all(
-                color: Theme.of(context).brightness == Brightness.dark
-                    ? const Color(0xFF2C2C30)
-                    : Colors.black12,
-              ),
-              boxShadow: [
-                BoxShadow(
-                  color: Colors.black.withValues(
-                    alpha: Theme.of(context).brightness == Brightness.dark
-                        ? 0.08
-                        : 0.12,
+          child: Row(
+            mainAxisSize: MainAxisSize.max,
+            crossAxisAlignment: CrossAxisAlignment.center,
+            children: [
+              Expanded(child: _buildFloatingPill(context, updatesCount, accent, settings, enabledTabs)),
+              AnimatedSize(
+                duration: const Duration(milliseconds: 220),
+                curve: Curves.easeOutCubic,
+                alignment: Alignment.centerRight,
+                child: AnimatedSwitcher(
+                  duration: const Duration(milliseconds: 200),
+                  switchInCurve: Curves.easeOutCubic,
+                  switchOutCurve: Curves.easeInCubic,
+                  transitionBuilder: (child, animation) => FadeTransition(
+                    opacity: animation,
+                    child: ScaleTransition(scale: animation, child: child),
                   ),
-                  blurRadius: 16,
-                  offset: const Offset(0, 4),
+                  child: showFab
+                      ? KeyedSubtree(
+                          key: const ValueKey('continue-fab'),
+                          child: Row(
+                            mainAxisSize: MainAxisSize.min,
+                            children: [
+                              const SizedBox(width: 8),
+                              _buildContinueFab(accent),
+                            ],
+                          ),
+                        )
+                      : const SizedBox(
+                          key: ValueKey('fab-hidden'),
+                          width: 0,
+                          height: kBottomBarHeight,
+                        ),
                 ),
-              ],
-            ),
-            child: _buildNavRow(updatesCount, accent, settings, enabledTabs),
+              ),
+            ],
           ),
         ),
       ),
+    );
+  }
+
+  Widget _buildFloatingPill(
+    BuildContext context,
+    int updatesCount,
+    Color accent,
+    AppearanceSettings settings,
+    List<int> enabledTabs,
+  ) {
+    return Container(
+      height: kBottomBarHeight,
+      padding: const EdgeInsets.symmetric(vertical: 8, horizontal: 8),
+      decoration: BoxDecoration(
+        color: Theme.of(context).brightness == Brightness.dark
+            ? const Color(0xFF1C1C1E)
+            : Colors.white,
+        borderRadius: BorderRadius.circular(28),
+        border: Border.all(
+          color: Theme.of(context).brightness == Brightness.dark
+              ? const Color(0xFF2C2C30)
+              : Colors.black12,
+        ),
+        boxShadow: [
+          BoxShadow(
+            color: Colors.black.withValues(
+              alpha: Theme.of(context).brightness == Brightness.dark
+                  ? 0.08
+                  : 0.12,
+            ),
+            blurRadius: 16,
+            offset: const Offset(0, 4),
+          ),
+        ],
+      ),
+      child: _buildNavRow(updatesCount, accent, settings, enabledTabs),
     );
   }
 

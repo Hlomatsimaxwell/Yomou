@@ -591,6 +591,8 @@
   "failedToLoadSuggestions": "Failed to load suggestions",
   "checking": "Checking",
   "refresh": "Refresh",
+  "refreshed": "Refreshed",
+  "refreshed": "Refreshed",
   "updatesTitle": "Updates",
   "showMore": "More",
   "showLess": "Less",

@@ -1,6 +1,8 @@
+import 'dart:math';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:yomou/core/database/database_helper.dart';
 import 'package:yomou/core/database/source_cache.dart';
+import 'package:yomou/core/utils/concurrent.dart';
 import 'package:yomou/data/models/manga.dart';
 import 'package:yomou/data/models/manga_source.dart';
 import 'package:yomou/data/providers/sources_provider.dart';
@@ -10,6 +12,11 @@ const _suggestionLimit = 40;
 
 /// Per-source network budget, so one slow source can't stall the whole feed.
 const _sourceTimeout = Duration(seconds: 12);
+
+/// Fan-out window for a single feed build. Kept in sync with [_sourceTimeout]
+/// so slow cold-start sources aren't dropped mid-flight, which would make the
+/// feed "complete" emptily and flash a no-results state.
+const _fanoutDeadline = Duration(seconds: 12);
 
 /// Resolves the app's enabled sources from the registry rows, skipping the
 /// mock source and collapsing duplicates that map to the same source id.
@@ -24,19 +31,30 @@ String _titleKey(String title) =>
 /// skipping already-seen ids/titles, until the cap is reached or all lists
 /// are exhausted. De-duplicating by title still collapses the same series
 /// coming from several sources, keeping the first hit in order.
+///
+/// [seed] (default: now) rotates which source leads each pass and shuffles the
+/// per-source queues, so re-opening the app or pulling to refresh yields a
+/// visibly different arrangement even if the underlying lists are unchanged.
 List<Manga> _mixSources(
   List<List<Manga>> perSource, {
   int limit = _suggestionLimit,
+  int? seed,
 }) {
-  final queues = perSource.map((l) => l.toList()).toList();
+  final rng = Random(seed ?? DateTime.now().millisecondsSinceEpoch);
+  final queues = perSource.map((l) => List<Manga>.of(l)..shuffle(rng)).toList();
   final seenIds = <String>{};
   final seenTitles = <String>{};
   final out = <Manga>[];
 
-  while (out.length < limit) {
+  // Skip empty sources so the rotation lands on a provider that has items.
+  final live = queues.where((q) => q.isNotEmpty).toList();
+  var start = live.isEmpty ? 0 : rng.nextInt(live.length);
+
+  while (out.length < limit && live.any((q) => q.isNotEmpty)) {
     var addedAny = false;
-    for (final queue in queues) {
+    for (var k = 0; k < live.length; k++) {
       if (out.length >= limit) break;
+      final queue = live[(start + k) % live.length];
       while (queue.isNotEmpty) {
         final manga = queue.removeAt(0);
         if (manga.id.isEmpty) continue;
@@ -49,6 +67,7 @@ List<Manga> _mixSources(
       }
     }
     if (!addedAny) break;
+    start = (start + 1) % live.length;
   }
   return out;
 }
@@ -89,21 +108,22 @@ final suggestionsProvider = FutureProvider.family<List<Manga>, String?>((
   if (sources.isEmpty) return [];
 
   if (genre != null) {
-    final perSource = await Future.wait(
+    final perSource = await waitFastest(
       sources.map((source) async {
         try {
           return await _tags(source, [genre]);
         } catch (_) {
           return <Manga>[];
         }
-      }),
+      }).toList(),
+      deadline: _fanoutDeadline,
     );
     return _mixSources(perSource);
   }
 
   final topTags = await DatabaseHelper.instance.getUserTopTags(limit: 5);
 
-  final perSource = await Future.wait(
+  final perSource = await waitFastest(
     sources.map((source) async {
       try {
         if (topTags.isNotEmpty) {
@@ -116,7 +136,8 @@ final suggestionsProvider = FutureProvider.family<List<Manga>, String?>((
       } catch (_) {
         return const <List<Manga>>[];
       }
-    }),
+    }).toList(),
+    deadline: _fanoutDeadline,
   );
 
   return _mixSources(perSource.expand((lists) => lists).toList());

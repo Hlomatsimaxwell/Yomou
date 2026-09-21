@@ -9,6 +9,7 @@ import 'package:yomou/features/library/screens/edit_manga_screen.dart';
 import 'package:yomou/features/settings/screens/settings_screen.dart';
 import 'package:yomou/core/database/database_helper.dart';
 import 'package:yomou/core/widgets/empty_state.dart';
+import 'package:yomou/core/widgets/hide_on_scroll.dart';
 import 'package:yomou/core/widgets/ios/ios_nav_bar.dart';
 import 'package:yomou/core/widgets/ios/ios_press.dart';
 import 'package:yomou/core/widgets/ios/ios_sheet.dart';
@@ -917,63 +918,68 @@ class _HistoryScreenState extends ConsumerState<HistoryScreen> {
       child: Scaffold(
         backgroundColor: Theme.of(context).scaffoldBackgroundColor,
         body: SafeArea(
-          child: SingleChildScrollView(
-            padding: EdgeInsets.only(bottom: bottomBarClearance(context)),
-            child: Column(
+          child: HideOnScroll(
+            header: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
                 const SizedBox(height: 8),
-                if (_isSelecting)
-                  _buildSelectionBar(context)
-                else ...[
-                  _buildSearchBar(),
-                  const SizedBox(height: 12),
-                  if (appearance.showQuickFilters) _buildFilterChips(),
-                ],
-                const SizedBox(height: 16),
-                if (filteredList.isEmpty)
-                  EmptyState(
-                    icon: _searchQuery.isNotEmpty
-                        ? RemixIcons.search_line
-                        : RemixIcons.history_line,
-                    title: _searchQuery.isNotEmpty
-                        ? AppLocalizations.of(context).noResultsFound
-                        : AppLocalizations.of(context).historyEmptyTitle,
-                    subtitle: _searchQuery.isNotEmpty
-                        ? null
-                        : AppLocalizations.of(context).historyEmptySubtitle,
-                  )
-                else if (_isGrouped)
-                  ...groupedHistory.entries.map((entry) {
-                    return Column(
-                      crossAxisAlignment: CrossAxisAlignment.start,
-                      children: [
-                        Padding(
-                          padding: const EdgeInsets.symmetric(
-                            horizontal: 16,
-                            vertical: 8,
-                          ),
-                          child: Text(
-                            entry.key,
-                            style: TextStyle(
-                              color:
-                                  Theme.of(context).brightness ==
-                                      Brightness.dark
-                                  ? Colors.white
-                                  : const Color(0xFF1C1B1F),
-                              fontSize: 14,
-                              fontWeight: FontWeight.bold,
+                if (_isSelecting) _buildSelectionBar(context) else _buildSearchBar(),
+              ],
+            ),
+            body: SingleChildScrollView(
+              padding: EdgeInsets.only(bottom: bottomBarClearance(context)),
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  if (!_isSelecting && appearance.showQuickFilters) ...[
+                    const SizedBox(height: 12),
+                    _buildFilterChips(),
+                  ],
+                  const SizedBox(height: 16),
+                  if (filteredList.isEmpty)
+                    EmptyState(
+                      icon: _searchQuery.isNotEmpty
+                          ? RemixIcons.search_line
+                          : RemixIcons.history_line,
+                      title: _searchQuery.isNotEmpty
+                          ? AppLocalizations.of(context).noResultsFound
+                          : AppLocalizations.of(context).historyEmptyTitle,
+                      subtitle: _searchQuery.isNotEmpty
+                          ? null
+                          : AppLocalizations.of(context).historyEmptySubtitle,
+                    )
+                  else if (_isGrouped)
+                    ...groupedHistory.entries.map((entry) {
+                      return Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          Padding(
+                            padding: const EdgeInsets.symmetric(
+                              horizontal: 16,
+                              vertical: 8,
+                            ),
+                            child: Text(
+                              entry.key,
+                              style: TextStyle(
+                                color:
+                                    Theme.of(context).brightness ==
+                                        Brightness.dark
+                                    ? Colors.white
+                                    : const Color(0xFF1C1B1F),
+                                fontSize: 14,
+                                fontWeight: FontWeight.bold,
+                              ),
                             ),
                           ),
-                        ),
-                        _buildHistoryLayout(context, entry.value),
-                        const SizedBox(height: 12),
-                      ],
-                    );
-                  })
-                else
-                  _buildHistoryLayout(context, filteredList),
-              ],
+                          _buildHistoryLayout(context, entry.value),
+                          const SizedBox(height: 12),
+                        ],
+                      );
+                    })
+                  else
+                    _buildHistoryLayout(context, filteredList),
+                ],
+              ),
             ),
           ),
         ),

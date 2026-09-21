@@ -8,6 +8,7 @@ import 'package:yomou/features/library/widgets/downloaded_badge.dart';
 import 'package:yomou/features/library/screens/manga_detail_screen.dart';
 import 'package:yomou/core/theme/layout.dart';
 import 'package:yomou/core/widgets/empty_state.dart';
+import 'package:yomou/core/widgets/hide_on_scroll.dart';
 import 'package:yomou/core/widgets/manga_grid_metrics.dart';
 import 'package:yomou/l10n/generated/app_localizations.dart';
 import 'package:yomou/core/widgets/search_bar.dart';
@@ -36,34 +37,51 @@ class _FavoritesScreenState extends ConsumerState<FavoritesScreen> {
     return Scaffold(
       backgroundColor: Theme.of(context).scaffoldBackgroundColor,
       body: SafeArea(
-        child: SingleChildScrollView(
-          padding: EdgeInsets.only(bottom: bottomBarClearance(context)),
-          child: Column(
+        child: HideOnScroll(
+          header: Column(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
               const SizedBox(height: 8),
               _buildSearchBar(),
-              const SizedBox(height: 16),
+            ],
+          ),
+          body: CustomScrollView(
+            physics: const AlwaysScrollableScrollPhysics(),
+            slivers: [
+              SliverToBoxAdapter(
+                child: SizedBox(
+                  height: 16,
+                  child: favoritesAsync.when(
+                    loading: () => const SizedBox.shrink(),
+                    error: (e, _) => const SizedBox.shrink(),
+                    data: (_) => const SizedBox.shrink(),
+                  ),
+                ),
+              ),
               favoritesAsync.when(
-                loading: () => Padding(
-                  padding: const EdgeInsets.symmetric(vertical: 80),
-                  child: Center(
-                    child: CircularProgressIndicator(
-                      color: Theme.of(context).colorScheme.primary,
+                loading: () => SliverToBoxAdapter(
+                  child: Padding(
+                    padding: const EdgeInsets.symmetric(vertical: 80),
+                    child: Center(
+                      child: CircularProgressIndicator(
+                        color: Theme.of(context).colorScheme.primary,
+                      ),
                     ),
                   ),
                 ),
-                error: (e, _) => Padding(
-                  padding: const EdgeInsets.symmetric(vertical: 60),
-                  child: Center(
-                    child: Text(
-                      AppLocalizations.of(context).favoritesCouldNotLoad,
-                      style: TextStyle(
-                        color:
-                            Theme.of(context).brightness == Brightness.dark
-                                ? Colors.white54
-                                : const Color(0xFF49454F),
-                        fontSize: 16,
+                error: (e, _) => SliverToBoxAdapter(
+                  child: Padding(
+                    padding: const EdgeInsets.symmetric(vertical: 60),
+                    child: Center(
+                      child: Text(
+                        AppLocalizations.of(context).favoritesCouldNotLoad,
+                        style: TextStyle(
+                          color:
+                              Theme.of(context).brightness == Brightness.dark
+                                  ? Colors.white54
+                                  : const Color(0xFF49454F),
+                          fontSize: 16,
+                        ),
                       ),
                     ),
                   ),
@@ -81,6 +99,9 @@ class _FavoritesScreenState extends ConsumerState<FavoritesScreen> {
                   }
                   return _buildMangaGrid(displayed);
                 },
+              ),
+              SliverPadding(
+                padding: EdgeInsets.only(bottom: bottomBarClearance(context)),
               ),
             ],
           ),
@@ -120,20 +141,23 @@ class _FavoritesScreenState extends ConsumerState<FavoritesScreen> {
   Widget _buildMangaGrid(List<Manga> items) {
     if (items.isEmpty) {
       final l = AppLocalizations.of(context);
-      return EmptyState(
-        icon: RemixIcons.heart_3_line,
-        title: _searchQuery.isNotEmpty
-            ? l.favoritesNoMatch
-            : l.favoritesEmpty,
-        subtitle: l.favoritesEmptySubtitle,
+      return SliverToBoxAdapter(
+        child: Padding(
+          padding: const EdgeInsets.symmetric(vertical: 60, horizontal: 24),
+          child: EmptyState(
+            icon: RemixIcons.heart_3_line,
+            title: _searchQuery.isNotEmpty
+                ? l.favoritesNoMatch
+                : l.favoritesEmpty,
+            subtitle: l.favoritesEmptySubtitle,
+          ),
+        ),
       );
     }
 
-    return Padding(
+    return SliverPadding(
       padding: const EdgeInsets.symmetric(horizontal: 16),
-      child: GridView.builder(
-        shrinkWrap: true,
-        physics: const NeverScrollableScrollPhysics(),
+      sliver: SliverGrid.builder(
         gridDelegate: SliverGridDelegateWithFixedCrossAxisCount(
           crossAxisCount: 3,
           childAspectRatio: mangaCellAspectRatio(context, columns: 3),

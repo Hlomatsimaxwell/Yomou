@@ -13,6 +13,7 @@ import 'package:yomou/features/suggestions/providers/suggestions_provider.dart';
 import 'package:yomou/core/theme/layout.dart';
 import 'package:yomou/core/providers/incognito_provider.dart';
 import 'package:yomou/core/widgets/empty_state.dart';
+import 'package:yomou/core/widgets/hide_on_scroll.dart';
 import 'package:yomou/core/widgets/ios/ios_menu.dart';
 import 'package:yomou/core/widgets/ios/ios_sheet.dart';
 import 'package:yomou/core/widgets/ios/ios_toast.dart';
@@ -102,47 +103,65 @@ class _SuggestionsScreenState extends ConsumerState<SuggestionsScreen> {
           onRefresh: _refresh,
           color: Theme.of(context).colorScheme.primary,
           backgroundColor: Theme.of(context).scaffoldBackgroundColor,
-          child: SingleChildScrollView(
-            physics: const AlwaysScrollableScrollPhysics(),
-            padding: EdgeInsets.only(bottom: bottomBarClearance(context)),
-            child: Column(
+          child: HideOnScroll(
+            header: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
                 const SizedBox(height: 8),
                 _buildSearchBar(),
-                const SizedBox(height: 12),
-                genreTagsAsync.when(
-                  data: (tags) => tags.isNotEmpty
-                      ? _buildGenreChips(tags)
-                      : const SizedBox.shrink(),
-                  loading: () => const SizedBox.shrink(),
-                  error: (_, _) => const SizedBox.shrink(),
+              ],
+            ),
+            body: CustomScrollView(
+              physics: const AlwaysScrollableScrollPhysics(),
+              slivers: [
+                SliverToBoxAdapter(
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      const SizedBox(height: 12),
+                      genreTagsAsync.when(
+                        data: (tags) => tags.isNotEmpty
+                            ? _buildGenreChips(tags)
+                            : const SizedBox.shrink(),
+                        loading: () => const SizedBox.shrink(),
+                        error: (_, _) => const SizedBox.shrink(),
+                      ),
+                      const SizedBox(height: 16),
+                    ],
+                  ),
                 ),
-                const SizedBox(height: 16),
                 suggestionsAsync.when(
                   data: (mangaList) => _buildMangaList(mangaList),
-                  loading: () => Padding(
-                    padding: const EdgeInsets.symmetric(vertical: 60),
-                    child: Center(
-                      child: CircularProgressIndicator(
-                        color: Theme.of(context).colorScheme.primary,
-                      ),
-                    ),
-                  ),
-                  error: (e, _) => Padding(
-                    padding: const EdgeInsets.symmetric(vertical: 60),
-                    child: Center(
-                      child: Text(
-                        AppLocalizations.of(context).failedToLoadSuggestions,
-                        style: TextStyle(
-                          color: Theme.of(context).brightness == Brightness.dark
-                              ? Colors.white54
-                              : const Color(0xFF49454F),
-                          fontSize: 16,
+                  loading: () => SliverToBoxAdapter(
+                    child: Padding(
+                      padding: const EdgeInsets.symmetric(vertical: 60),
+                      child: Center(
+                        child: CircularProgressIndicator(
+                          color: Theme.of(context).colorScheme.primary,
                         ),
                       ),
                     ),
                   ),
+                  error: (e, _) => SliverToBoxAdapter(
+                    child: Padding(
+                      padding: const EdgeInsets.symmetric(vertical: 60),
+                      child: Center(
+                        child: Text(
+                          AppLocalizations.of(context).failedToLoadSuggestions,
+                          style: TextStyle(
+                            color:
+                                Theme.of(context).brightness == Brightness.dark
+                                    ? Colors.white54
+                                    : const Color(0xFF49454F),
+                            fontSize: 16,
+                          ),
+                        ),
+                      ),
+                    ),
+                  ),
+                ),
+                SliverPadding(
+                  padding: EdgeInsets.only(bottom: bottomBarClearance(context)),
                 ),
               ],
             ),
@@ -222,7 +241,7 @@ class _SuggestionsScreenState extends ConsumerState<SuggestionsScreen> {
       if (mounted) {
         showIosToast(
           context,
-          message: AppLocalizations.of(context).refresh,
+          message: AppLocalizations.of(context).refreshed,
         );
       }
     } else if (action == 'settings') {
@@ -507,12 +526,17 @@ class _SuggestionsScreenState extends ConsumerState<SuggestionsScreen> {
     }).toList();
 
     if (items.isEmpty) {
-      return EmptyState(
-        icon: RemixIcons.lightbulb_line,
-        title: AppLocalizations.of(context).suggestionsNoResults,
-        subtitle: _selectedGenre != null
-            ? AppLocalizations.of(context).suggestionsNoGenreResults
-            : AppLocalizations.of(context).tryDifferentSearch,
+      return SliverToBoxAdapter(
+        child: Padding(
+          padding: const EdgeInsets.symmetric(vertical: 60, horizontal: 24),
+          child: EmptyState(
+            icon: RemixIcons.lightbulb_line,
+            title: AppLocalizations.of(context).suggestionsNoResults,
+            subtitle: _selectedGenre != null
+                ? AppLocalizations.of(context).suggestionsNoGenreResults
+                : AppLocalizations.of(context).tryDifferentSearch,
+          ),
+        ),
       );
     }
 
@@ -525,21 +549,19 @@ class _SuggestionsScreenState extends ConsumerState<SuggestionsScreen> {
 
   Widget _buildCompactList(BuildContext context, List<Manga> items) {
     final onSurface = Theme.of(context).colorScheme.onSurface;
-    return ListView.separated(
-      shrinkWrap: true,
-      physics: const NeverScrollableScrollPhysics(),
+    final dark = Theme.of(context).brightness == Brightness.dark;
+    return SliverPadding(
       padding: const EdgeInsets.symmetric(horizontal: 16),
-      itemCount: items.length,
-      separatorBuilder: (context, index) => Divider(
-        color: Theme.of(context).brightness == Brightness.dark
-            ? Colors.white12
-            : Colors.black12,
-        height: 1,
-      ),
-      itemBuilder: (context, index) {
-        final manga = items[index];
-        return ListTile(
-          contentPadding: const EdgeInsets.symmetric(vertical: 4),
+      sliver: SliverList.separated(
+        itemCount: items.length,
+        separatorBuilder: (context, index) => Divider(
+          color: dark ? Colors.white12 : Colors.black12,
+          height: 1,
+        ),
+        itemBuilder: (context, index) {
+          final manga = items[index];
+          return ListTile(
+            contentPadding: const EdgeInsets.symmetric(vertical: 4),
           leading: ClipRRect(
             borderRadius: BorderRadius.circular(6),
             child: Container(
@@ -580,18 +602,18 @@ class _SuggestionsScreenState extends ConsumerState<SuggestionsScreen> {
           onTap: () => _openManga(manga),
         );
       },
+      ),
     );
   }
 
   Widget _buildDetailsList(BuildContext context, List<Manga> items) {
     final dark = Theme.of(context).brightness == Brightness.dark;
     final onSurface = Theme.of(context).colorScheme.onSurface;
-    return ListView.builder(
-      shrinkWrap: true,
-      physics: const NeverScrollableScrollPhysics(),
+    return SliverPadding(
       padding: const EdgeInsets.symmetric(horizontal: 16),
-      itemCount: items.length,
-      itemBuilder: (context, index) {
+      sliver: SliverList.builder(
+        itemCount: items.length,
+        itemBuilder: (context, index) {
         final manga = items[index];
         return Container(
           margin: const EdgeInsets.only(bottom: 12),
@@ -683,6 +705,7 @@ class _SuggestionsScreenState extends ConsumerState<SuggestionsScreen> {
           ),
         );
       },
+      ),
     );
   }
 
@@ -712,21 +735,24 @@ class _SuggestionsScreenState extends ConsumerState<SuggestionsScreen> {
     }).toList();
 
     if (items.isEmpty) {
-      return EmptyState(
-        icon: RemixIcons.lightbulb_line,
-        title: AppLocalizations.of(context).suggestionsNoResults,
-        subtitle: _selectedGenre != null
-            ? AppLocalizations.of(context).suggestionsNoGenreResults
-            : AppLocalizations.of(context).tryDifferentSearch,
+      return SliverToBoxAdapter(
+        child: Padding(
+          padding: const EdgeInsets.symmetric(vertical: 60, horizontal: 24),
+          child: EmptyState(
+            icon: RemixIcons.lightbulb_line,
+            title: AppLocalizations.of(context).suggestionsNoResults,
+            subtitle: _selectedGenre != null
+                ? AppLocalizations.of(context).suggestionsNoGenreResults
+                : AppLocalizations.of(context).tryDifferentSearch,
+          ),
+        ),
       );
     }
 
     final columns = _gridSize.round().clamp(1, 7);
-    return Padding(
+    return SliverPadding(
       padding: const EdgeInsets.symmetric(horizontal: 16),
-      child: GridView.builder(
-        shrinkWrap: true,
-        physics: const NeverScrollableScrollPhysics(),
+      sliver: SliverGrid.builder(
         gridDelegate: SliverGridDelegateWithFixedCrossAxisCount(
           crossAxisCount: columns,
           childAspectRatio: mangaCellAspectRatio(context, columns: columns),

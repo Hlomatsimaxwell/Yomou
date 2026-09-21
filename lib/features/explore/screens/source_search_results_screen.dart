@@ -9,6 +9,7 @@ import 'package:yomou/data/models/manga.dart';
 import 'package:yomou/data/models/manga_source.dart';
 import 'package:yomou/features/library/screens/manga_detail_screen.dart';
 import 'package:yomou/core/widgets/empty_state.dart';
+import 'package:yomou/core/widgets/hide_on_scroll.dart';
 import 'package:yomou/core/widgets/manga_grid_metrics.dart';
 import 'package:yomou/features/library/widgets/downloaded_badge.dart';
 import 'package:yomou/features/library/widgets/favorite_badge.dart';
@@ -165,6 +166,10 @@ class _SourceSearchResultsScreenState extends State<SourceSearchResultsScreen> {
     await _runSearch(forceRefresh: true);
   }
 
+  /// Bounds a single-page fetch so a hanging source can't stall the screen.
+  Future<List<Manga>> _bounded(Future<List<Manga>> future) =>
+      future.timeout(const Duration(seconds: 10), onTimeout: () => const []);
+
   Future<void> _runSearch({bool forceRefresh = false}) async {
     setState(() {
       _page = 1;
@@ -176,7 +181,9 @@ class _SourceSearchResultsScreenState extends State<SourceSearchResultsScreen> {
     });
 
     try {
-      final results = await _fetchPage(_page, forceRefresh: forceRefresh);
+      final results = await _bounded(
+        _fetchPage(_page, forceRefresh: forceRefresh),
+      );
       if (!mounted) return;
       setState(() {
         _mangaList.addAll(results);
@@ -198,7 +205,7 @@ class _SourceSearchResultsScreenState extends State<SourceSearchResultsScreen> {
     setState(() => _isLoadingMore = true);
     try {
       final nextPage = _page + 1;
-      final results = await _fetchPage(nextPage);
+      final results = await _bounded(_fetchPage(nextPage));
       if (!mounted) return;
 
       final existingIds = _mangaList.map((m) => m.id).toSet();
@@ -337,17 +344,18 @@ class _SourceSearchResultsScreenState extends State<SourceSearchResultsScreen> {
           ),
         ],
       ),
-      body: Column(
-        children: [
-          _buildSearchBar(dark),
-          if (_showHistory && _searchHistory.isNotEmpty)
-            _buildRecentSearches(dark)
-          else ...[
-            _buildFilterChips(),
-            const SizedBox(height: 8),
-          ],
-          Expanded(child: _buildResults()),
-        ],
+      body: SafeArea(
+        child: HideOnScroll(
+          header: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              _buildSearchBar(dark),
+              if (_showHistory && _searchHistory.isNotEmpty)
+                _buildRecentSearches(dark),
+            ],
+          ),
+          body: _buildResults(),
+        ),
       ),
     );
   }
@@ -739,13 +747,15 @@ class _SourceSearchResultsScreenState extends State<SourceSearchResultsScreen> {
       color: dark ? Colors.white : Theme.of(context).colorScheme.onSurface,
       backgroundColor: dark ? const Color(0xFF2C2C2E) : Colors.white,
       onRefresh: _refresh,
-      child: Column(
-        children: [
-          Expanded(
-            child: GridView.builder(
-              controller: _scrollController,
-              physics: const AlwaysScrollableScrollPhysics(),
-              padding: const EdgeInsets.symmetric(horizontal: 16),
+      child: CustomScrollView(
+        controller: _scrollController,
+        physics: const AlwaysScrollableScrollPhysics(),
+        slivers: [
+          SliverToBoxAdapter(child: _buildFilterChips()),
+          const SliverToBoxAdapter(child: SizedBox(height: 8)),
+          SliverPadding(
+            padding: const EdgeInsets.symmetric(horizontal: 16),
+            sliver: SliverGrid.builder(
               gridDelegate: SliverGridDelegateWithFixedCrossAxisCount(
                 crossAxisCount: 3,
                 childAspectRatio: mangaCellAspectRatio(context, columns: 3),
@@ -760,14 +770,15 @@ class _SourceSearchResultsScreenState extends State<SourceSearchResultsScreen> {
             ),
           ),
           if (_isLoadingMore)
-            Padding(
-              padding: const EdgeInsets.symmetric(vertical: 10),
-              child: SizedBox(
-                width: 20,
-                height: 20,
-                child: CircularProgressIndicator(
-                  color: dark ? Colors.white54 : Colors.black54,
-                  strokeWidth: 2,
+            const SliverToBoxAdapter(
+              child: Padding(
+                padding: EdgeInsets.symmetric(vertical: 10),
+                child: Center(
+                  child: SizedBox(
+                    width: 20,
+                    height: 20,
+                    child: CircularProgressIndicator(strokeWidth: 2),
+                  ),
                 ),
               ),
             ),

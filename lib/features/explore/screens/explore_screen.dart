@@ -5,6 +5,7 @@ import 'package:remixicon/remixicon.dart';
 import 'package:yomou/core/database/source_cache.dart';
 import 'package:yomou/core/widgets/ios/ios_menu.dart';
 import 'package:yomou/core/widgets/ios/ios_press.dart';
+import 'package:yomou/core/widgets/hide_on_scroll.dart';
 import 'package:yomou/core/widgets/search_bar.dart';
 import 'package:yomou/data/models/manga.dart';
 import 'package:yomou/features/explore/screens/global_search_screen.dart';
@@ -67,33 +68,40 @@ class _ExploreScreenState extends ConsumerState<ExploreScreen> {
     return Scaffold(
       backgroundColor: Theme.of(context).scaffoldBackgroundColor,
       body: SafeArea(
-        child: SingleChildScrollView(
-          padding: EdgeInsets.only(bottom: bottomBarClearance(context)),
-          child: Column(
+        child: HideOnScroll(
+          header: Column(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
               const SizedBox(height: 8),
               _buildSearchBar(),
-              const SizedBox(height: 16),
-              _buildQuickButtonsGrid(),
-              const SizedBox(height: 24),
-              const RecentMangaShelf(),
-              const SizedBox(height: 20),
-              _buildSectionHeader(
-                AppLocalizations.of(context).mangaSources,
-                actionLabel: AppLocalizations.of(context).exploreManage,
-                onMorePressed: () {
-                  Navigator.push(
-                    context,
-                    MaterialPageRoute(
-                      builder: (context) => const ManageSourcesScreen(),
-                    ),
-                  );
-                },
-              ),
-              const SizedBox(height: 16),
-              _buildSourcesGrid(sources.where(isSourceEnabled).toList()),
             ],
+          ),
+          body: SingleChildScrollView(
+            padding: EdgeInsets.only(bottom: bottomBarClearance(context)),
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                const SizedBox(height: 16),
+                _buildQuickButtonsGrid(),
+                const SizedBox(height: 24),
+                const RecentMangaShelf(),
+                const SizedBox(height: 20),
+                _buildSectionHeader(
+                  AppLocalizations.of(context).mangaSources,
+                  actionLabel: AppLocalizations.of(context).exploreManage,
+                  onMorePressed: () {
+                    Navigator.push(
+                      context,
+                      MaterialPageRoute(
+                        builder: (context) => const ManageSourcesScreen(),
+                      ),
+                    );
+                  },
+                ),
+                const SizedBox(height: 16),
+                _buildSourcesGrid(sources.where(isSourceEnabled).toList()),
+              ],
+            ),
           ),
         ),
       ),

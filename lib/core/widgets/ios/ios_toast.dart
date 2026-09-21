@@ -13,6 +13,11 @@ void showIosToast(
   Duration duration = const Duration(seconds: 4),
 }) {
   final messenger = ScaffoldMessenger.of(context);
+  final dark = Theme.of(context).brightness == Brightness.dark;
+  final background = dark ? const Color(0xFF1C1C1E) : Colors.white;
+  final textColor = dark ? Colors.white : const Color(0xFF1C1B1F);
+  // Reuse the accent blue for the action in both modes (Kotatsu-tinted).
+  const actionColor = Color(0xFF64AFFF);
   messenger
     ..clearSnackBars()
     ..showSnackBar(
@@ -22,7 +27,7 @@ void showIosToast(
             Expanded(
               child: Text(
                 message,
-                style: const TextStyle(color: Colors.white, fontSize: 14),
+                style: TextStyle(color: textColor, fontSize: 14),
               ),
             ),
             if (actionLabel != null && onAction != null) ...[
@@ -41,7 +46,7 @@ void showIosToast(
                   child: Text(
                     actionLabel,
                     style: const TextStyle(
-                      color: Color(0xFF64AFFF),
+                      color: actionColor,
                       fontSize: 15,
                       fontWeight: FontWeight.w600,
                     ),
@@ -52,9 +57,12 @@ void showIosToast(
           ],
         ),
         behavior: SnackBarBehavior.floating,
-        backgroundColor: const Color(0xFF1C1C1E),
+        backgroundColor: background,
         elevation: 0,
-        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(14)),
+        shape: RoundedRectangleBorder(
+          borderRadius: BorderRadius.circular(14),
+          side: dark ? BorderSide.none : const BorderSide(color: Colors.black12),
+        ),
         margin: EdgeInsets.fromLTRB(
           20,
           0,

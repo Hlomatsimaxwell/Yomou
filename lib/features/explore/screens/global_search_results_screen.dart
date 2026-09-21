@@ -92,134 +92,167 @@ class _GlobalSearchResultsScreenState
 
     return Scaffold(
       backgroundColor: Theme.of(context).scaffoldBackgroundColor,
-      appBar: AppBar(
-        backgroundColor: Theme.of(context).scaffoldBackgroundColor,
-        elevation: 0,
-        leading: IconButton(
-          icon: Icon(
-            RemixIcons.arrow_left_line,
-            color: dark ? Colors.white : const Color(0xFF1C1B1F),
-          ),
-          onPressed: () => Navigator.pop(context),
-        ),
-        title: TextField(
-          controller: _searchController,
-          style: TextStyle(
-            color: dark ? Colors.white : const Color(0xFF1C1B1F),
-            fontSize: 18,
-            fontWeight: FontWeight.bold,
-          ),
-          cursorColor: dark ? Colors.white : const Color(0xFF1C1B1F),
-          textInputAction: TextInputAction.search,
-          onSubmitted: (value) => _submitSearch(),
-          decoration: InputDecoration(
-            hintText: AppLocalizations.of(context).searchEllipsis,
-            hintStyle: TextStyle(
-              color: dark ? Colors.white54 : Colors.black54,
-              fontSize: 16,
-            ),
-            border: InputBorder.none,
-            suffixIcon: IconButton(
-              icon: Icon(
-                RemixIcons.close_line,
-                color: dark ? Colors.white70 : const Color(0xFF49454F),
-              ),
-              onPressed: () {
-                _searchController.clear();
-                _submitSearch();
-              },
-            ),
-          ),
-        ),
-        actions: [
-          IconButton(
-            tooltip: _showFailedSources
-                ? AppLocalizations.of(context).hideFailedSources
-                : AppLocalizations.of(context).showFailedSources,
-            icon: Icon(
-              _showFailedSources
-                  ? RemixIcons.globe_line
-                  : RemixIcons.global_off_line,
-              color: _showFailedSources
-                  ? Colors.orange
-                  : (dark ? Colors.white : const Color(0xFF1C1B1F)),
-            ),
-            onPressed: () {
-              setState(() => _showFailedSources = !_showFailedSources);
-            },
-          ),
-          IconButton(
-            icon: Icon(
-              RemixIcons.search_line,
-              color: dark ? Colors.white : const Color(0xFF1C1B1F),
-            ),
-            onPressed: _submitSearch,
-          ),
-        ],
-      ),
-      body: resultsAsync.when(
-        loading: () => Center(
-          child: CircularProgressIndicator(
-            color: dark ? Colors.white70 : const Color(0xFF49454F),
-          ),
-        ),
-        error: (e, _) => Center(
-          child: Column(
-            mainAxisAlignment: MainAxisAlignment.center,
-            children: [
-              Text(
-                AppLocalizations.of(context).failedToSearch,
-                style: TextStyle(
-                  color: dark ? Colors.white70 : const Color(0xFF49454F),
-                  fontSize: 16,
+      body: RefreshIndicator(
+        color: dark ? Colors.white : Theme.of(context).colorScheme.onSurface,
+        backgroundColor: dark ? const Color(0xFF2C2C2E) : Colors.white,
+        onRefresh: _refresh,
+        child: CustomScrollView(
+          physics: const AlwaysScrollableScrollPhysics(),
+          slivers: [
+            _buildSearchSliverBar(dark),
+            ...resultsAsync.when(
+              loading: () => const [
+                SliverFillRemaining(
+                  hasScrollBody: false,
+                  child: Center(child: CircularProgressIndicator()),
                 ),
-              ),
-              const SizedBox(height: 8),
-              Padding(
-                padding: const EdgeInsets.symmetric(horizontal: 32),
-                child: Text(
-                  e.toString(),
-                  textAlign: TextAlign.center,
-                  style: TextStyle(
-                    color: dark ? Colors.white38 : Colors.black38,
-                    fontSize: 12,
+              ],
+              error: (e, _) => [
+                SliverFillRemaining(
+                  hasScrollBody: false,
+                  child: Center(
+                    child: Column(
+                      mainAxisAlignment: MainAxisAlignment.center,
+                      children: [
+                        Text(
+                          AppLocalizations.of(context).failedToSearch,
+                          style: TextStyle(
+                            color:
+                                dark ? Colors.white70 : const Color(0xFF49454F),
+                            fontSize: 16,
+                          ),
+                        ),
+                        const SizedBox(height: 8),
+                        Padding(
+                          padding: const EdgeInsets.symmetric(horizontal: 32),
+                          child: Text(
+                            e.toString(),
+                            textAlign: TextAlign.center,
+                            style: TextStyle(
+                              color:
+                                  dark ? Colors.white38 : Colors.black38,
+                              fontSize: 12,
+                            ),
+                          ),
+                        ),
+                      ],
+                    ),
                   ),
                 ),
-              ),
-            ],
-          ),
+              ],
+              data: (results) => _buildResultSlivers(results, dark),
+            ),
+          ],
         ),
-        data: (results) => _buildResults(results),
       ),
     );
   }
 
-  Widget _buildResults(List<SourceSearchResult> results) {
-    final dark = Theme.of(context).brightness == Brightness.dark;
+  // Floating app bar that hides while scrolling down and snaps back on the
+  // tiniest upward scroll, keeping the search field out of the way while the
+  // user browses results.
+  Widget _buildSearchSliverBar(bool dark) {
+    return SliverAppBar(
+      floating: true,
+      snap: true,
+      backgroundColor: Theme.of(context).scaffoldBackgroundColor,
+      elevation: 0,
+      leading: IconButton(
+        icon: Icon(
+          RemixIcons.arrow_left_line,
+          color: dark ? Colors.white : const Color(0xFF1C1B1F),
+        ),
+        onPressed: () => Navigator.pop(context),
+      ),
+      title: TextField(
+        controller: _searchController,
+        style: TextStyle(
+          color: dark ? Colors.white : const Color(0xFF1C1B1F),
+          fontSize: 18,
+          fontWeight: FontWeight.bold,
+        ),
+        cursorColor: dark ? Colors.white : const Color(0xFF1C1B1F),
+        textInputAction: TextInputAction.search,
+        onSubmitted: (value) => _submitSearch(),
+        decoration: InputDecoration(
+          hintText: AppLocalizations.of(context).searchEllipsis,
+          hintStyle: TextStyle(
+            color: dark ? Colors.white54 : Colors.black54,
+            fontSize: 16,
+          ),
+          border: InputBorder.none,
+          suffixIcon: IconButton(
+            icon: Icon(
+              RemixIcons.close_line,
+              color: dark ? Colors.white70 : const Color(0xFF49454F),
+            ),
+            onPressed: () {
+              _searchController.clear();
+              _submitSearch();
+            },
+          ),
+        ),
+      ),
+      actions: [
+        IconButton(
+          tooltip: _showFailedSources
+              ? AppLocalizations.of(context).hideFailedSources
+              : AppLocalizations.of(context).showFailedSources,
+          icon: Icon(
+            _showFailedSources
+                ? RemixIcons.globe_line
+                : RemixIcons.global_off_line,
+            color: _showFailedSources
+                ? Colors.orange
+                : (dark ? Colors.white : const Color(0xFF1C1B1F)),
+          ),
+          onPressed: () {
+            setState(() => _showFailedSources = !_showFailedSources);
+          },
+        ),
+        IconButton(
+          icon: Icon(
+            RemixIcons.search_line,
+            color: dark ? Colors.white : const Color(0xFF1C1B1F),
+          ),
+          onPressed: _submitSearch,
+        ),
+      ],
+    );
+  }
+
+  List<Widget> _buildResultSlivers(
+    List<SourceSearchResult> results,
+    bool dark,
+  ) {
     // Default: hide empty and failed sources.
     final visible = _showFailedSources
         ? results
         : results.where((r) => r.hasResults && !r.hasError).toList();
 
     if (visible.isEmpty) {
-      return EmptyState(
-        icon: RemixIcons.search_2_line,
-        title: AppLocalizations.of(context).noResultsFound,
-        subtitle: AppLocalizations.of(context).tryDifferentSearch,
-      );
+      return [
+        SliverFillRemaining(
+          hasScrollBody: false,
+          child: EmptyState(
+            icon: RemixIcons.search_2_line,
+            title: AppLocalizations.of(context).noResultsFound,
+            subtitle: AppLocalizations.of(context).tryDifferentSearch,
+          ),
+        ),
+      ];
     }
 
-    return RefreshIndicator(
-      color: dark ? Colors.white : Theme.of(context).colorScheme.onSurface,
-      backgroundColor: dark ? const Color(0xFF2C2C2E) : Colors.white,
-      onRefresh: _refresh,
-      child: ListView.builder(
-        physics: const AlwaysScrollableScrollPhysics(),
-        padding: const EdgeInsets.only(top: 16, bottom: 40),
-        itemCount: visible.length,
-        itemBuilder: (context, index) => _buildSourceSection(visible[index]),
+    return [
+      SliverPadding(
+        padding: const EdgeInsets.only(top: 8, bottom: 40),
+        sliver: SliverList.builder(
+          itemCount: visible.length,
+          itemBuilder: (context, index) =>
+              _buildSourceSection(visible[index]),
+        ),
       ),
-    );
+    ];
   }
 
   Widget _buildSourceSection(SourceSearchResult result) {
@@ -277,12 +310,12 @@ class _GlobalSearchResultsScreenState
             ],
           ),
         ),
-        const SizedBox(height: 12),
+        const SizedBox(height: 6),
         if (result.hasResults)
           _buildResultRow(result.manga)
         else
           _buildFailedRow(result),
-        const SizedBox(height: 16),
+        const SizedBox(height: 4),
       ],
     );
   }

@@ -544,6 +544,7 @@
   "failedToLoadSuggestions": "No se pudieron cargar las sugerencias",
   "checking": "Comprobando",
   "refresh": "Actualizar",
+  "refreshed": "Actualizado",
   "updatesTitle": "Actualizaciones",
   "showMore": "Ver más",
   "showLess": "Ver menos",

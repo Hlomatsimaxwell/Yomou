@@ -6,6 +6,7 @@ import 'package:yomou/features/explore/screens/global_search_screen.dart';
 import 'package:yomou/features/feed/providers/updates_provider.dart';
 import 'package:yomou/core/theme/layout.dart';
 import 'package:yomou/core/widgets/empty_state.dart';
+import 'package:yomou/core/widgets/hide_on_scroll.dart';
 import 'package:yomou/features/library/screens/manga_detail_screen.dart';
 import 'package:yomou/features/library/widgets/downloaded_badge.dart';
 import 'package:yomou/features/library/widgets/favorite_badge.dart';
@@ -42,58 +43,66 @@ class _FeedScreenState extends ConsumerState<FeedScreen> {
     return Scaffold(
       backgroundColor: Theme.of(context).scaffoldBackgroundColor,
       body: SafeArea(
-        child: SingleChildScrollView(
-          padding: EdgeInsets.only(bottom: bottomBarClearance(context)),
-          child: Column(
+        child: HideOnScroll(
+          header: Column(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
               const SizedBox(height: 8),
               _buildSearchBar(context),
-              const SizedBox(height: 12),
-              _buildSectionHeader(context),
-              const SizedBox(height: 12),
-              updatesAsync.when(
-                data: (updates) {
-                  if (updates.isEmpty) {
-                    return EmptyState(
-                      icon: RemixIcons.rss_line,
-                      title: AppLocalizations.of(context).feedNoNewUpdates,
-                      subtitle: AppLocalizations.of(context).feedUpdatesHint,
+            ],
+          ),
+          body: SingleChildScrollView(
+            padding: EdgeInsets.only(bottom: bottomBarClearance(context)),
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                const SizedBox(height: 12),
+                _buildSectionHeader(context),
+                const SizedBox(height: 12),
+                updatesAsync.when(
+                  data: (updates) {
+                    if (updates.isEmpty) {
+                      return EmptyState(
+                        icon: RemixIcons.rss_line,
+                        title: AppLocalizations.of(context).feedNoNewUpdates,
+                        subtitle: AppLocalizations.of(context).feedUpdatesHint,
+                      );
+                    }
+                    return Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        _buildUpdatesCarousel(context, updates),
+                        const SizedBox(height: 20),
+                        ..._groupByDate(context, updates),
+                      ],
                     );
-                  }
-                  return Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
-                      _buildUpdatesCarousel(context, updates),
-                      const SizedBox(height: 20),
-                      ..._groupByDate(context, updates),
-                    ],
-                  );
-                },
-                loading: () => Padding(
-                  padding: const EdgeInsets.symmetric(vertical: 60),
-                  child: Center(
-                    child: CircularProgressIndicator(
-                      color: Theme.of(context).colorScheme.primary,
+                  },
+                  loading: () => Padding(
+                    padding: const EdgeInsets.symmetric(vertical: 60),
+                    child: Center(
+                      child: CircularProgressIndicator(
+                        color: Theme.of(context).colorScheme.primary,
+                      ),
                     ),
                   ),
-                ),
-                error: (e, _) => Padding(
-                  padding: const EdgeInsets.symmetric(vertical: 60),
-                  child: Center(
-                    child: Text(
-                      AppLocalizations.of(context).failedToLoadUpdates,
-                      style: TextStyle(
-                        color: Theme.of(context).brightness == Brightness.dark
-                            ? Colors.white54
-                            : const Color(0xFF49454F),
-                        fontSize: 16,
+                  error: (e, _) => Padding(
+                    padding: const EdgeInsets.symmetric(vertical: 60),
+                    child: Center(
+                      child: Text(
+                        AppLocalizations.of(context).failedToLoadUpdates,
+                        style: TextStyle(
+                          color:
+                              Theme.of(context).brightness == Brightness.dark
+                                  ? Colors.white54
+                                  : const Color(0xFF49454F),
+                          fontSize: 16,
+                        ),
                       ),
                     ),
                   ),
                 ),
-              ),
-            ],
+              ],
+            ),
           ),
         ),
       ),

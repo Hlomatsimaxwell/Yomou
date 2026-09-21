@@ -2288,6 +2288,12 @@ abstract class AppLocalizations {
   /// **'Refresh'**
   String get refresh;
 
+  /// No description provided for @refreshed.
+  ///
+  /// In en, this message translates to:
+  /// **'Refreshed'**
+  String get refreshed;
+
   /// No description provided for @updatesTitle.
   ///
   /// In en, this message translates to:
