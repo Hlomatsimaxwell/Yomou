@@ -830,13 +830,14 @@ class AppLocalizationsEn extends AppLocalizations {
   String get readerSectionOptions => 'Options';
 
   @override
-  String get readerTwoPagesLandscape => 'Two pages on landscape';
+  String get readerTwoPagesLandscape =>
+      'Use two pages layout on landscape orientation (beta)';
 
   @override
   String get readerExperimental => 'Experimental';
 
   @override
-  String get readerRotateScreen => 'Rotate screen';
+  String get readerRotateScreen => 'Lock screen rotation';
 
   @override
   String get readerLandscapeOrientation => 'Landscape orientation';
@@ -849,6 +850,20 @@ class AppLocalizationsEn extends AppLocalizations {
 
   @override
   String get readerContinuousScroll => 'Continuous vertical scroll';
+
+  @override
+  String get readerShowStatus => 'Show reader status';
+
+  @override
+  String get readerHideControlsStatus =>
+      'Show progress, battery and time when controls are hidden';
+
+  @override
+  String get readerPreferences => 'Reader preferences';
+
+  @override
+  String get readerPreferencesSubtitle =>
+      'Two-page layout, auto-scroll, status bar and more';
 
   @override
   String get readerSectionTools => 'Tools';

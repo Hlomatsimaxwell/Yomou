@@ -5,16 +5,15 @@ import 'dart:io';
 import 'package:battery_plus/battery_plus.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
-import 'package:intl/intl.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:http/http.dart' as http;
+import 'package:intl/intl.dart';
 import 'package:path_provider/path_provider.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import 'package:yomou/widgets/safe_image.dart';
 import 'package:yomou/core/cache/app_cache.dart';
 import '../../../core/database/database_helper.dart';
 import '../../../core/database/source_cache.dart';
-import '../../../core/widgets/ios/ios_press.dart';
 import '../../../core/widgets/ios/ios_sheet.dart';
 import 'package:yomou/data/providers/sources_provider.dart';
 import 'package:yomou/data/models/chapter.dart';
@@ -80,9 +79,6 @@ class _ReaderScreenState extends ConsumerState<ReaderScreen>
   // ticker, since ScrollPosition exposes no direct velocity getter.
   double _lastScrollPixels = 0;
   bool _showControls = true;
-
-  // Kotatsu-style top info bar (shown while the system UI + controls are
-  // hidden): live clock and battery percentage.
   Timer? _statusTimer;
   String _clockText = '';
   int _batteryLevel = -1;
@@ -110,6 +106,8 @@ class _ReaderScreenState extends ConsumerState<ReaderScreen>
     });
   }
 
+  // Kotatsu-style top info bar (shown while the system UI + controls are
+  // hidden): live clock and battery percentage.
   void _applySystemUiMode() {
     // Kotatsu behavior: while the controls are hidden the entire system UI is
     // immersive (nothing drawn by the OS), so the reader renders its own slim
@@ -182,7 +180,6 @@ class _ReaderScreenState extends ConsumerState<ReaderScreen>
 
   // Settings state.
   bool _useTwoPagesLayout = false;
-  bool _autoScroll = false;
   bool _rotateScreen = false;
   Timer? _autoScrollTimer;
 
@@ -362,7 +359,7 @@ class _ReaderScreenState extends ConsumerState<ReaderScreen>
 
   int get _currentPageIndex {
     if (_pages.isEmpty) return 0;
-    if (_isHorizontal && _pageController.hasClients) {
+    if (_isHorizontal && _pageController.positions.length == 1) {
       return _pageController.page?.round().clamp(0, _pages.length - 1) ?? 0;
     } else if (!_isHorizontal && _scrollController.hasClients) {
       const perPage = 600.0;
@@ -443,13 +440,23 @@ class _ReaderScreenState extends ConsumerState<ReaderScreen>
       _autoScrollTimer!.cancel();
       _autoScrollTimer = null;
     }
+    final oldController = _pageController;
     setState(() {
       _readingMode = mode;
-      _autoScroll = false;
+      // Each mode gets a freshly initialized controller so the old pager's
+      // scroll position never lingers on the new layout.
+      _pageController = PageController(
+        viewportFraction: _useTwoPagesLayout ? 0.5 : 1.0,
+      );
+    });
+    // The old PageView unmounts during the rebuild above; only now is it safe
+    // to release its controller.
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      if (oldController != _pageController) oldController.dispose();
     });
     _saveReaderMode();
     WidgetsBinding.instance.addPostFrameCallback((_) {
-      _jumpToPage(approxPage);
+      if (mounted) _jumpToPage(approxPage);
     });
   }
 
@@ -458,12 +465,13 @@ class _ReaderScreenState extends ConsumerState<ReaderScreen>
   void _toggleTwoPages(bool value) {
     if (value == _useTwoPagesLayout) return;
     final lastApprox = _currentPageIndex;
+    final oldController = _pageController;
     setState(() {
       _useTwoPagesLayout = value;
-      _pageController.dispose();
       _pageController = PageController(viewportFraction: value ? 0.5 : 1.0);
     });
     WidgetsBinding.instance.addPostFrameCallback((_) {
+      if (oldController != _pageController) oldController.dispose();
       if (!mounted || !_pageController.hasClients || _pages.isEmpty) return;
       _pageController.jumpToPage(lastApprox.clamp(0, _pages.length - 1));
     });
@@ -483,33 +491,7 @@ class _ReaderScreenState extends ConsumerState<ReaderScreen>
     _saveBool(_prefKey('reader_rotate_screen'), value);
   }
 
-  void _toggleAutoScroll(bool value) {
-    _autoScrollTimer?.cancel();
-    _autoScrollTimer = null;
-    if (!value) {
-      setState(() => _autoScroll = false);
-      return;
-    }
-    // Auto-scroll only makes sense in a continuous (vertical) reading mode.
-    if (_isHorizontal) {
-      _setReadingMode(ReadingMode.webtoon);
-    }
-    setState(() => _autoScroll = true);
-    _autoScrollTimer = Timer.periodic(const Duration(milliseconds: 33), (_) {
-      if (!mounted || !_scrollController.hasClients) return;
-      final position = _scrollController.position;
-      if (position.pixels >= position.maxScrollExtent - 2) {
-        _autoScrollTimer?.cancel();
-        _autoScrollTimer = null;
-        setState(() => _autoScroll = false);
-        return;
-      }
-      _scrollController.jumpTo(position.pixels + 2);
-    });
-  }
-
   void _showColorCorrectionDialog() {
-    Navigator.pop(context);
     showDialog(
       context: context,
       builder: (context) => StatefulBuilder(
@@ -777,11 +759,7 @@ class _ReaderScreenState extends ConsumerState<ReaderScreen>
                         ),
                       ),
                     ),
-                    _buildChapterSheetHeader(
-                      listView,
-                      setSheetState,
-                      _jumpToCurrentInSheetFor(sheetController, currentIndex),
-                    ),
+                    _buildChapterSheetHeader(listView, setSheetState),
                     Expanded(
                       child: switch (listView) {
                         'grid' => _buildPageGridView(
@@ -840,32 +818,27 @@ class _ReaderScreenState extends ConsumerState<ReaderScreen>
     });
   }
 
-  void Function() _jumpToCurrentInSheetFor(
-    ScrollController controller,
-    int index,
-  ) {
-    return () {
-      if (!controller.hasClients) return;
-      final viewDim = controller.position.viewportDimension;
-      final target = (index * 72 - viewDim / 2).clamp(
-        0.0,
-        controller.position.maxScrollExtent,
-      );
-      controller.jumpTo(target);
-    };
-  }
-
   Widget _buildChapterSheetHeader(
     String listView,
     StateSetter setSheetState,
-    VoidCallback scrollToCurrent,
   ) {
     final dark = Theme.of(context).brightness == Brightness.dark;
     final iconColor = dark ? Colors.white : const Color(0xFF1C1B1F);
     final selectedCount = _selectedIds.length;
 
+    final currentChapterIndex = _currentChapterIndex.clamp(
+      0,
+      widget.allChapters.length - 1,
+    );
+    final currentChapter = widget.allChapters[currentChapterIndex];
+    final pageNumber = currentChapter.chapterNumber.isNotEmpty
+        ? currentChapter.chapterNumber
+        : '${currentChapterIndex + 1}';
+    final currentIsRead =
+        _lastReadChapter >= 0 && (currentChapterIndex + 1) <= _lastReadChapter;
+
     return Padding(
-      padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 4),
+      padding: const EdgeInsets.fromLTRB(12, 8, 8, 8),
       child: AnimatedSwitcher(
         duration: const Duration(milliseconds: 200),
         child: _selectionMode
@@ -940,40 +913,72 @@ class _ReaderScreenState extends ConsumerState<ReaderScreen>
                     ),
                 ],
               )
-            : Row(
-                key: const ValueKey('viewToggleHeader'),
+            : Stack(
+                key: const ValueKey('trayHeader'),
+                alignment: Alignment.center,
                 children: [
-                  _buildViewToggle(
-                    icon: RemixIcons.list_unordered,
-                    selected: listView == 'list',
-                    onTap: () => setSheetState(() => listView = 'list'),
-                  ),
-                  const SizedBox(width: 10),
-                  _buildViewToggle(
-                    icon: RemixIcons.grid_line,
-                    selected: listView == 'grid',
-                    onTap: () => setSheetState(() => listView = 'grid'),
-                  ),
-                  const SizedBox(width: 10),
-                  _buildViewToggle(
-                    icon: RemixIcons.bookmark_3_line,
-                    selected: listView == 'bookmark',
-                    onTap: () => setSheetState(() => listView = 'bookmark'),
-                  ),
-                  const SizedBox(width: 10),
-                  _buildViewToggle(
-                    icon: RemixIcons.download_cloud_line,
-                    selected: listView == 'download',
-                    onTap: () => setSheetState(() => listView = 'download'),
-                  ),
-                  const Spacer(),
-                  IconButton(
-                    tooltip: AppLocalizations.of(context).readerCurrentChapter,
-                    icon: Icon(
-                      RemixIcons.crosshair_line,
-                      color: dark ? Colors.white54 : Colors.black54,
+                  // Close 'X' on the left.
+                  Align(
+                    alignment: Alignment.centerLeft,
+                    child: IconButton(
+                      icon: Icon(RemixIcons.close_line, color: iconColor),
+                      onPressed: () => Navigator.of(context).pop(),
                     ),
-                    onPressed: scrollToCurrent,
+                  ),
+                  // Page number in the exact center.
+                  Text(
+                    pageNumber,
+                    style: TextStyle(
+                      color: iconColor,
+                      fontSize: 16,
+                      fontWeight: FontWeight.bold,
+                    ),
+                  ),
+                  // Save, Hide, Layout actions on the right.
+                  Align(
+                    alignment: Alignment.centerRight,
+                    child: Row(
+                      mainAxisSize: MainAxisSize.min,
+                      children: [
+                        IconButton(
+                          tooltip: AppLocalizations.of(
+                            context,
+                          ).detailDownload,
+                          icon: Icon(
+                            RemixIcons.download_2_line,
+                            color: iconColor,
+                          ),
+                          onPressed: () =>
+                              _downloadChapter(currentChapter),
+                        ),
+                        IconButton(
+                          tooltip: AppLocalizations.of(context).toggleRead,
+                          icon: Icon(
+                            currentIsRead
+                                ? RemixIcons.eye_off_line
+                                : RemixIcons.eye_line,
+                            color: iconColor,
+                          ),
+                          onPressed: () => setSheetState(
+                            () => _toggleCurrentChapterRead(),
+                          ),
+                        ),
+                        IconButton(
+                          tooltip: AppLocalizations.of(
+                            context,
+                          ).readerCurrentChapter,
+                          icon: Icon(
+                            listView == 'grid'
+                                ? RemixIcons.list_unordered
+                                : RemixIcons.grid_line,
+                            color: iconColor,
+                          ),
+                          onPressed: () => setSheetState(
+                            () => listView = listView == 'grid' ? 'list' : 'grid',
+                          ),
+                        ),
+                      ],
+                    ),
                   ),
                 ],
               ),
@@ -981,38 +986,23 @@ class _ReaderScreenState extends ConsumerState<ReaderScreen>
     );
   }
 
-  Widget _buildViewToggle({
-    required IconData icon,
-    required bool selected,
-    required VoidCallback onTap,
-  }) {
-    final dark = Theme.of(context).brightness == Brightness.dark;
-    return GestureDetector(
-      onTap: onTap,
-      child: Container(
-        width: 38,
-        height: 38,
-        decoration: BoxDecoration(
-          color: selected
-              ? dark
-                    ? Colors.white
-                    : Theme.of(context).colorScheme.onSurface
-              : Colors.transparent,
-          borderRadius: BorderRadius.circular(12),
-        ),
-        child: Icon(
-          icon,
-          size: 20,
-          color: selected
-              ? dark
-                    ? Colors.black
-                    : Colors.white
-              : dark
-              ? Colors.white70
-              : const Color(0xFF49454F),
-        ),
-      ),
+  void _toggleCurrentChapterRead() {
+    final index = _currentChapterIndex;
+    final read = _lastReadChapter >= 0 && (index + 1) <= _lastReadChapter;
+    setState(
+      () => _lastReadChapter = read ? index.toDouble() : (index + 1).toDouble(),
     );
+    DatabaseHelper.instance.saveMangaProgress(
+      mangaId: widget.mangaId,
+      title: widget.mangaTitle ?? 'Unknown',
+      coverUrl: widget.mangaCoverUrl,
+      sourceId: widget.sourceId,
+      totalChapters: widget.totalChapters,
+      lastTrayTotalChapters: widget.totalChapters,
+      lastReadChapter: _lastReadChapter,
+    );
+    bumpDownloadsRevision(ref);
+    _refreshTray();
   }
 
   Widget _buildChapterListView(ScrollController controller, int currentIndex) {
@@ -1030,27 +1020,13 @@ class _ReaderScreenState extends ConsumerState<ReaderScreen>
         final downloaded = _downloadedChapters.contains(chapter.id);
         final active = _activeDownloads[chapter.id];
 
-        return ListTile(
+        final Widget tile = ListTile(
           key: ValueKey(chapter.id),
           dense: true,
           contentPadding: const EdgeInsets.symmetric(
             horizontal: 16,
             vertical: 2,
           ),
-          shape: isSelected
-              ? RoundedRectangleBorder(
-                  borderRadius: BorderRadius.circular(12),
-                  side: BorderSide(
-                    color: dark ? Colors.white : const Color(0xFF334155),
-                    width: 1.5,
-                  ),
-                )
-              : null,
-          tileColor: isSelected
-              ? (dark ? const Color(0xFF2C2C2C) : const Color(0xFFE2E8F0))
-              : isCurrent
-              ? (dark ? Colors.white10 : Colors.black12)
-              : null,
           title: Row(
             children: [
               Icon(
@@ -1076,7 +1052,7 @@ class _ReaderScreenState extends ConsumerState<ReaderScreen>
                         : isCurrent
                         ? (dark
                               ? Colors.white
-                              : Theme.of(context).colorScheme.onSurface)
+                              : Theme.of(context).colorScheme.primary)
                         : (dark ? Colors.white70 : const Color(0xFF49454F)),
                     fontSize: 14,
                     fontWeight: isCurrent ? FontWeight.bold : FontWeight.w400,
@@ -1090,8 +1066,8 @@ class _ReaderScreenState extends ConsumerState<ReaderScreen>
             maxLines: 1,
             overflow: TextOverflow.ellipsis,
             style: TextStyle(
-              color: dark ? Colors.white38 : Colors.black38,
-              fontSize: 11,
+              color: Colors.grey,
+              fontSize: 12,
             ),
           ),
           trailing: Row(
@@ -1108,10 +1084,8 @@ class _ReaderScreenState extends ConsumerState<ReaderScreen>
                 ),
               if (isSelected)
                 Icon(
-                  RemixIcons.checkbox_circle_fill,
-                  color: dark
-                      ? Colors.white
-                      : Theme.of(context).colorScheme.primary,
+                  RemixIcons.check_fill,
+                  color: Theme.of(context).colorScheme.primary,
                   size: 18,
                 )
               else if (active != null)
@@ -1132,7 +1106,7 @@ class _ReaderScreenState extends ConsumerState<ReaderScreen>
                     ),
                   ),
                 )
-              else if (!_selectionMode)
+              else if (!_selectionMode && !isCurrent)
                 _buildChapterDownloadControl(chapter),
             ],
           ),
@@ -1146,6 +1120,29 @@ class _ReaderScreenState extends ConsumerState<ReaderScreen>
           },
           onLongPress: () => _enterSelection(chapter.id),
         );
+
+        // 1. Normal active state (reading): light-blue background + play icon,
+        //    no border, no checkmark.
+        // 2. Long-press / selected state: light-blue background + thin blue
+        //    border + blue checkmark on the far right.
+        final bool highlight = (isCurrent && !_selectionMode) || isSelected;
+        if (highlight) {
+          return Container(
+            key: ValueKey(chapter.id),
+            decoration: BoxDecoration(
+              color: dark ? const Color(0xFF21314F) : Colors.blue.shade50,
+              border: isSelected
+                  ? Border.all(
+                      color: Colors.blue.shade300,
+                      width: 1.5,
+                    )
+                  : null,
+              borderRadius: BorderRadius.circular(8),
+            ),
+            child: tile,
+          );
+        }
+        return tile;
       },
     );
   }
@@ -1609,8 +1606,7 @@ class _ReaderScreenState extends ConsumerState<ReaderScreen>
         ? '#${chapter.chapterNumber}'
         : '';
     final date = _formatChapterDate(chapter.releaseDate, l);
-    final group = chapter.scanlator.isNotEmpty ? chapter.scanlator : '';
-    return [num, date, group].where((p) => p.isNotEmpty).join(' • ');
+    return [num, date].where((p) => p.isNotEmpty).join(' • ');
   }
 
   String _formatChapterDate(String? raw, AppLocalizations l) {
@@ -1651,190 +1647,235 @@ class _ReaderScreenState extends ConsumerState<ReaderScreen>
                   maxHeight: MediaQuery.sizeOf(context).height * 0.88,
                 ),
                 child: SingleChildScrollView(
-                  padding: const EdgeInsets.fromLTRB(20, 10, 20, 28),
+                  padding: const EdgeInsets.fromLTRB(20, 0, 20, 24),
                   child: Column(
                     mainAxisSize: MainAxisSize.min,
-                    crossAxisAlignment: CrossAxisAlignment.start,
+                    crossAxisAlignment: CrossAxisAlignment.stretch,
                     children: [
-                      Row(
-                        children: [
-                          Expanded(
-                            child: Text(
-                              l.readerMoreSheetTitle,
-                              style: TextStyle(
-                                color: dark
-                                    ? Colors.white
-                                    : Theme.of(context).colorScheme.onSurface,
-                                fontSize: 18,
-                                fontWeight: FontWeight.bold,
-                              ),
-                            ),
+                      // Top actions.
+                      ListTile(
+                        contentPadding: const EdgeInsets.symmetric(
+                          horizontal: 4,
+                          vertical: 2,
+                        ),
+                        leading: Icon(
+                          RemixIcons.save_2_line,
+                          color: dark
+                              ? Colors.white
+                              : const Color(0xFF1C1B1F),
+                          size: 22,
+                        ),
+                        title: Text(
+                          l.readerSavePage,
+                          style: TextStyle(
+                            color: dark
+                                ? Colors.white
+                                : const Color(0xFF1C1B1F),
+                            fontSize: 15,
                           ),
-                          GestureDetector(
-                            onTap: () => Navigator.pop(context),
-                            child: Container(
-                              padding: const EdgeInsets.all(6),
-                              decoration: BoxDecoration(
-                                color: dark
-                                    ? const Color(0xFF232328)
-                                    : Colors.white,
-                                shape: BoxShape.circle,
-                              ),
-                              child: Icon(
-                                RemixIcons.close_line,
-                                color: dark
-                                    ? Colors.white70
-                                    : const Color(0xFF49454F),
-                                size: 18,
-                              ),
-                            ),
-                          ),
-                        ],
+                        ),
+                        onTap: _saveCurrentPage,
                       ),
-                      const SizedBox(height: 18),
-
-                      // Quick actions.
-                      Row(
-                        children: [
-                          Expanded(
-                            child: _buildQuickActionTile(
-                              icon: RemixIcons.download_line,
-                              label: l.readerSavePage,
-                              onTap: _saveCurrentPage,
-                            ),
+                      ListTile(
+                        contentPadding: const EdgeInsets.symmetric(
+                          horizontal: 4,
+                          vertical: 2,
+                        ),
+                        leading: Icon(
+                          _isCurrentPageBookmarked
+                              ? RemixIcons.bookmark_2_fill
+                              : RemixIcons.bookmark_3_line,
+                          color: _isCurrentPageBookmarked
+                              ? _activeGreen
+                              : dark
+                              ? Colors.white
+                              : const Color(0xFF1C1B1F),
+                          size: 22,
+                        ),
+                        title: Text(
+                          _isCurrentPageBookmarked
+                              ? l.readerRemoveBookmark
+                              : l.readerAddBookmark,
+                          style: TextStyle(
+                            color: _isCurrentPageBookmarked
+                                ? _activeGreen
+                                : dark
+                                ? Colors.white
+                                : const Color(0xFF1C1B1F),
+                            fontSize: 15,
                           ),
-                          const SizedBox(width: 12),
-                          Expanded(
-                            child: _buildQuickActionTile(
-                              icon: _isCurrentPageBookmarked
-                                  ? RemixIcons.bookmark_2_fill
-                                  : RemixIcons.bookmark_3_line,
-                              label: _isCurrentPageBookmarked
-                                  ? l.readerRemoveBookmark
-                                  : l.readerAddBookmark,
-                              accent: _isCurrentPageBookmarked,
-                              onTap: () async {
-                                await _toggleBookmark();
-                                if (context.mounted) setSheetState(() {});
-                              },
-                            ),
-                          ),
-                        ],
+                        ),
+                        onTap: () async {
+                          await _toggleBookmark();
+                          if (context.mounted) setSheetState(() {});
+                        },
                       ),
-                      const SizedBox(height: 22),
+                      const SizedBox(height: 8),
 
-                      _buildSectionHeader(l.readerSectionReadingMode),
-                      const SizedBox(height: 10),
+                      // Read mode.
+                      Padding(
+                        padding: const EdgeInsets.only(left: 4),
+                        child: Text(
+                          l.readerSectionReadingMode,
+                          style: TextStyle(
+                            color: dark
+                                ? Colors.white
+                                : const Color(0xFF1C1B1F),
+                            fontSize: 14,
+                            fontWeight: FontWeight.bold,
+                          ),
+                        ),
+                      ),
+                      const SizedBox(height: 8),
                       _buildReadModeSelector(
                         afterChange: () => setSheetState(() {}),
                       ),
-                      const SizedBox(height: 22),
-
-                      _buildSectionHeader(l.readerSectionOptions),
-                      const SizedBox(height: 10),
-                      _buildSettingsCard(
-                        children: [
-                          SwitchListTile(
-                            contentPadding: const EdgeInsets.symmetric(
-                              horizontal: 14,
-                            ),
-                            activeTrackColor: _activeGreen,
-                            activeThumbColor: Colors.white,
-                            inactiveTrackColor: dark
-                                ? Colors.white12
-                                : Colors.black12,
-                            inactiveThumbColor: dark
-                                ? Colors.white54
-                                : Colors.black54,
-                            dense: true,
-                            title: _tileText(l.readerTwoPagesLandscape),
-                            subtitle: _tileSubtext(l.readerExperimental),
-                            value: _useTwoPagesLayout,
-                            onChanged: (value) {
-                              _toggleTwoPages(value);
-                              setSheetState(() {});
-                            },
-                          ),
-                          _cardDivider(),
-                          SwitchListTile(
-                            contentPadding: const EdgeInsets.symmetric(
-                              horizontal: 14,
-                            ),
-                            activeTrackColor: _activeGreen,
-                            activeThumbColor: Colors.white,
-                            inactiveTrackColor: dark
-                                ? Colors.white12
-                                : Colors.black12,
-                            inactiveThumbColor: dark
-                                ? Colors.white54
-                                : Colors.black54,
-                            dense: true,
-                            title: _tileText(l.readerRotateScreen),
-                            subtitle: _tileSubtext(
-                              _rotateScreen
-                                  ? l.readerLandscapeOrientation
-                                  : l.readerRotateToLandscape,
-                            ),
-                            value: _rotateScreen,
-                            onChanged: (value) {
-                              _toggleRotateScreen(value);
-                              setSheetState(() {});
-                            },
-                          ),
-                          _cardDivider(),
-                          SwitchListTile(
-                            contentPadding: const EdgeInsets.symmetric(
-                              horizontal: 14,
-                            ),
-                            activeTrackColor: _activeGreen,
-                            activeThumbColor: Colors.white,
-                            inactiveTrackColor: dark
-                                ? Colors.white12
-                                : Colors.black12,
-                            inactiveThumbColor: dark
-                                ? Colors.white54
-                                : Colors.black54,
-                            dense: true,
-                            title: _tileText(l.readerAutoScroll),
-                            subtitle: _tileSubtext(l.readerContinuousScroll),
-                            value: _autoScroll,
-                            onChanged: (value) {
-                              _toggleAutoScroll(value);
-                              setSheetState(() {});
-                            },
-                          ),
-                        ],
+                      const SizedBox(height: 8),
+                      Text(
+                        l.readerRememberedNote,
+                        style: TextStyle(
+                          color: dark ? Colors.white38 : Colors.black45,
+                          fontSize: 12,
+                        ),
                       ),
-                      const SizedBox(height: 22),
+                      const SizedBox(height: 20),
 
-                      _buildSectionHeader(l.readerSectionTools),
-                      const SizedBox(height: 10),
-                      _buildSettingsCard(
-                        children: [
-                          _iconTile(
-                            icon: RemixIcons.palette_line,
-                            title: l.colorCorrection,
-                            subtitle: l.readerBrightnessContrastSepia,
-                            chevron: true,
-                            onTap: _showColorCorrectionDialog,
+                      // Toggles.
+                      SwitchListTile(
+                        contentPadding: const EdgeInsets.symmetric(
+                          horizontal: 4,
+                        ),
+                        activeTrackColor: _activeGreen,
+                        activeThumbColor: Colors.white,
+                        inactiveTrackColor: dark
+                            ? Colors.white24
+                            : Colors.black26,
+                        inactiveThumbColor: dark
+                            ? Colors.white
+                            : Colors.white,
+                        dense: true,
+                        title: Text(
+                          l.readerTwoPagesLandscape,
+                          style: TextStyle(
+                            color: dark
+                                ? Colors.white
+                                : const Color(0xFF1C1B1F),
+                            fontSize: 15,
                           ),
-                          _cardDivider(),
-                          _iconTile(
-                            icon: RemixIcons.settings_3_line,
-                            title: l.settings,
-                            subtitle: l.readerAppPreferences,
-                            chevron: true,
-                            onTap: () {
-                              Navigator.pop(context);
-                              Navigator.push(
-                                context,
-                                MaterialPageRoute(
-                                  builder: (context) => const SettingsScreen(),
-                                ),
-                              );
-                            },
+                        ),
+                        value: _useTwoPagesLayout,
+                        onChanged: (value) {
+                          _toggleTwoPages(value);
+                          setSheetState(() {});
+                        },
+                      ),
+                      SwitchListTile(
+                        contentPadding: const EdgeInsets.symmetric(
+                          horizontal: 4,
+                        ),
+                        activeTrackColor: _activeGreen,
+                        activeThumbColor: Colors.white,
+                        inactiveTrackColor: dark
+                            ? Colors.white24
+                            : Colors.black26,
+                        inactiveThumbColor: dark
+                            ? Colors.white
+                            : Colors.white,
+                        dense: true,
+                        title: Text(
+                          l.readerRotateScreen,
+                          style: TextStyle(
+                            color: dark
+                                ? Colors.white
+                                : const Color(0xFF1C1B1F),
+                            fontSize: 15,
                           ),
-                        ],
+                        ),
+                        value: _rotateScreen,
+                        onChanged: (value) {
+                          _toggleRotateScreen(value);
+                          setSheetState(() {});
+                        },
+                      ),
+                      const SizedBox(height: 8),
+
+                      // Plain list items.
+                      ListTile(
+                        contentPadding: const EdgeInsets.symmetric(
+                          horizontal: 4,
+                          vertical: 2,
+                        ),
+                        leading: Icon(
+                          RemixIcons.timer_line,
+                          color: dark
+                              ? Colors.white
+                              : const Color(0xFF1C1B1F),
+                          size: 22,
+                        ),
+                        title: Text(
+                          l.readerAutoScroll,
+                          style: TextStyle(
+                            color: dark
+                                ? Colors.white
+                                : const Color(0xFF1C1B1F),
+                            fontSize: 15,
+                          ),
+                        ),
+                        onTap: () {},
+                      ),
+                      ListTile(
+                        contentPadding: const EdgeInsets.symmetric(
+                          horizontal: 4,
+                          vertical: 2,
+                        ),
+                        leading: Icon(
+                          RemixIcons.contrast_2_line,
+                          color: dark
+                              ? Colors.white
+                              : const Color(0xFF1C1B1F),
+                          size: 22,
+                        ),
+                        title: Text(
+                          l.colorCorrection,
+                          style: TextStyle(
+                            color: dark
+                                ? Colors.white
+                                : const Color(0xFF1C1B1F),
+                            fontSize: 15,
+                          ),
+                        ),
+                        onTap: _showColorCorrectionDialog,
+                      ),
+                      ListTile(
+                        contentPadding: const EdgeInsets.symmetric(
+                          horizontal: 4,
+                          vertical: 2,
+                        ),
+                        leading: Icon(
+                          RemixIcons.settings_4_line,
+                          color: dark
+                              ? Colors.white
+                              : const Color(0xFF1C1B1F),
+                          size: 22,
+                        ),
+                        title: Text(
+                          l.settings,
+                          style: TextStyle(
+                            color: dark
+                                ? Colors.white
+                                : const Color(0xFF1C1B1F),
+                            fontSize: 15,
+                          ),
+                        ),
+                        onTap: () {
+                          Navigator.pop(context);
+                          Navigator.push(
+                            context,
+                            MaterialPageRoute(
+                              builder: (context) => const SettingsScreen(),
+                            ),
+                          );
+                        },
                       ),
                     ],
                   ),
@@ -1847,86 +1888,30 @@ class _ReaderScreenState extends ConsumerState<ReaderScreen>
     );
   }
 
-  Widget _buildQuickActionTile({
-    required IconData icon,
-    required String label,
-    required VoidCallback onTap,
-    bool accent = false,
-  }) {
-    final dark = Theme.of(context).brightness == Brightness.dark;
-    final primary = Theme.of(context).colorScheme.primary;
-    final bgColor = accent
-        ? primary.withValues(alpha: 0.18)
-        : dark
-        ? const Color(0xFF232328)
-        : Colors.white;
-    final fgColor = accent
-        ? primary
-        : dark
-        ? Colors.white
-        : const Color(0xFF1C1B1F);
-    return AppPress(
-      onTap: onTap,
-      child: Container(
-        padding: const EdgeInsets.symmetric(vertical: 18),
-        decoration: BoxDecoration(
-          color: bgColor,
-          borderRadius: BorderRadius.circular(16),
-          border: Border.all(
-            color: accent
-                ? _activeGreen.withValues(alpha: 0.4)
-                : dark
-                ? Colors.white10
-                : Colors.black12,
-          ),
-        ),
-        child: Column(
-          children: [
-            Icon(icon, color: fgColor, size: 26),
-            const SizedBox(height: 8),
-            Text(
-              label,
-              style: TextStyle(
-                color: fgColor,
-                fontSize: 13,
-                fontWeight: FontWeight.w600,
-              ),
-            ),
-          ],
-        ),
-      ),
-    );
-  }
-
   Widget _buildReadModeSelector({VoidCallback? afterChange}) {
-    final dark = Theme.of(context).brightness == Brightness.dark;
     final l = AppLocalizations.of(context);
-    const modes = [
-      (ReadingMode.standard, RemixIcons.book_open_line, ''),
-      (ReadingMode.rightToLeft, RemixIcons.book_open_line, ''),
-      (ReadingMode.vertical, RemixIcons.smartphone_line, ''),
-      (ReadingMode.webtoon, RemixIcons.list_view, ''),
+    final modes = [
+      (ReadingMode.standard, RemixIcons.crop_line, l.readerModeStandard),
+      (ReadingMode.rightToLeft, RemixIcons.swap_line, l.readerModeRTL),
+      (ReadingMode.vertical, RemixIcons.rectangle_line, l.readerModeVertical),
+      (ReadingMode.webtoon, RemixIcons.list_view, l.readerModeWebtoon),
     ];
-    final labels = <ReadingMode, String>{
-      ReadingMode.standard: l.readerModeStandard,
-      ReadingMode.rightToLeft: l.readerModeRTL,
-      ReadingMode.vertical: l.readerModeVertical,
-      ReadingMode.webtoon: l.readerModeWebtoon,
-    };
+    final dark = Theme.of(context).brightness == Brightness.dark;
+    final selectedBg = dark ? const Color(0xFF5B8DEF) : Colors.blue.shade100;
+    final selectedFg = dark ? Colors.white : Colors.blue.shade900;
 
-    return Column(
-      crossAxisAlignment: CrossAxisAlignment.start,
-      children: [
-        GridView.count(
-          crossAxisCount: 2,
-          shrinkWrap: true,
-          physics: const NeverScrollableScrollPhysics(),
-          mainAxisSpacing: 10,
-          crossAxisSpacing: 10,
-          childAspectRatio: 2.4,
-          children: modes.map((mode) {
-            final isSelected = _readingMode == mode.$1;
-            return GestureDetector(
+    return Container(
+      decoration: BoxDecoration(
+        border: Border.all(color: Colors.grey.shade300),
+        borderRadius: BorderRadius.circular(25),
+      ),
+      padding: const EdgeInsets.all(4),
+      child: Row(
+        children: modes.map((mode) {
+          final isSelected = _readingMode == mode.$1;
+          return Expanded(
+            child: GestureDetector(
+              behavior: HitTestBehavior.opaque,
               onTap: () {
                 _setReadingMode(mode.$1);
                 afterChange?.call();
@@ -1934,188 +1919,50 @@ class _ReaderScreenState extends ConsumerState<ReaderScreen>
               child: AnimatedContainer(
                 duration: const Duration(milliseconds: 180),
                 curve: Curves.easeOut,
-                padding: const EdgeInsets.symmetric(
-                  horizontal: 14,
-                  vertical: 12,
-                ),
+                padding: const EdgeInsets.symmetric(vertical: 8),
                 decoration: BoxDecoration(
-                  gradient: isSelected
-                      ? LinearGradient(
-                          colors: [
-                            Theme.of(context).colorScheme.primary,
-                            Theme.of(
-                              context,
-                            ).colorScheme.primary.withValues(alpha: 0.6),
-                          ],
-                          begin: Alignment.topLeft,
-                          end: Alignment.bottomRight,
-                        )
-                      : null,
-                  color: isSelected
-                      ? null
-                      : dark
-                      ? const Color(0xFF232328)
-                      : Colors.white,
-                  borderRadius: BorderRadius.circular(14),
-                  border: Border.all(
-                    color: isSelected
-                        ? Colors.transparent
-                        : dark
-                        ? Colors.white10
-                        : Colors.black12,
-                  ),
+                  color: isSelected ? selectedBg : Colors.transparent,
+                  borderRadius: BorderRadius.circular(20),
                 ),
                 child: Row(
+                  mainAxisAlignment: MainAxisAlignment.center,
                   children: [
                     Icon(
                       mode.$2,
+                      size: 16,
                       color: isSelected
-                          ? Colors.white
-                          : dark
-                          ? Colors.white70
-                          : const Color(0xFF49454F),
-                      size: 22,
+                          ? selectedFg
+                          : dark ? Colors.white70 : Colors.black,
                     ),
-                    const SizedBox(width: 10),
-                    Expanded(
+                    const SizedBox(width: 5),
+                    Flexible(
                       child: Text(
-                        labels[mode.$1] ?? mode.$1.name,
+                        mode.$3,
+                        textAlign: TextAlign.center,
+                        maxLines: 1,
+                        overflow: TextOverflow.ellipsis,
                         style: TextStyle(
                           color: isSelected
-                              ? Colors.white
-                              : dark
-                              ? Colors.white70
-                              : const Color(0xFF49454F),
-                          fontSize: 13,
-                          fontWeight: FontWeight.w600,
+                              ? selectedFg
+                              : dark ? Colors.white70 : Colors.black,
+                          fontSize: 12.5,
+                          fontWeight:
+                              isSelected ? FontWeight.w600 : FontWeight.w400,
                         ),
                       ),
                     ),
-                    if (isSelected)
-                      const Icon(
-                        RemixIcons.checkbox_circle_fill,
-                        color: Colors.white,
-                        size: 16,
-                      ),
                   ],
                 ),
               ),
-            );
-          }).toList(),
-        ),
-        const SizedBox(height: 10),
-        Text(
-          AppLocalizations.of(context).readerRememberedNote,
-          style: TextStyle(
-            color: dark ? Colors.white38 : Colors.black38,
-            fontSize: 11,
-          ),
-        ),
-      ],
+            ),
+          );
+        }).toList(),
+      ),
     );
   }
 
   // Active/current accent — resolved from the active color scheme preset.
   Color get _activeGreen => Theme.of(context).colorScheme.primary;
-
-  Widget _buildSectionHeader(String text) {
-    final dark = Theme.of(context).brightness == Brightness.dark;
-    return Text(
-      text.toUpperCase(),
-      style: TextStyle(
-        color: dark ? Colors.white54 : Colors.black54,
-        fontSize: 12,
-        fontWeight: FontWeight.bold,
-        letterSpacing: 1.2,
-      ),
-    );
-  }
-
-  Widget _buildSettingsCard({required List<Widget> children}) {
-    final dark = Theme.of(context).brightness == Brightness.dark;
-    return Container(
-      decoration: BoxDecoration(
-        color: dark ? const Color(0xFF232328) : Colors.white,
-        borderRadius: BorderRadius.circular(16),
-        boxShadow: dark
-            ? null
-            : [
-                BoxShadow(
-                  color: Colors.black.withValues(alpha: 0.06),
-                  blurRadius: 8,
-                  offset: const Offset(0, 2),
-                ),
-              ],
-      ),
-      clipBehavior: Clip.antiAlias,
-      child: Column(mainAxisSize: MainAxisSize.min, children: children),
-    );
-  }
-
-  Widget _cardDivider() {
-    final dark = Theme.of(context).brightness == Brightness.dark;
-    return Divider(
-      height: 1,
-      color: dark ? const Color(0xFF3A3A40) : Colors.black12,
-    );
-  }
-
-  Widget _tileText(String text) {
-    final dark = Theme.of(context).brightness == Brightness.dark;
-    return Text(
-      text,
-      style: TextStyle(
-        color: dark ? Colors.white : Theme.of(context).colorScheme.onSurface,
-        fontSize: 14,
-      ),
-    );
-  }
-
-  Widget _tileSubtext(String text) {
-    final dark = Theme.of(context).brightness == Brightness.dark;
-    return Text(
-      text,
-      style: TextStyle(
-        color: dark ? Colors.white38 : Colors.black38,
-        fontSize: 12,
-      ),
-    );
-  }
-
-  Widget _iconTile({
-    required IconData icon,
-    required String title,
-    String? subtitle,
-    bool chevron = false,
-    required VoidCallback onTap,
-  }) {
-    final dark = Theme.of(context).brightness == Brightness.dark;
-    return ListTile(
-      contentPadding: const EdgeInsets.symmetric(horizontal: 14, vertical: 2),
-      leading: Container(
-        width: 36,
-        height: 36,
-        decoration: BoxDecoration(
-          color: dark ? const Color(0xFF2F2F36) : Colors.black12,
-          shape: BoxShape.circle,
-        ),
-        child: Icon(
-          icon,
-          color: dark ? Colors.white70 : const Color(0xFF49454F),
-          size: 20,
-        ),
-      ),
-      title: _tileText(title),
-      subtitle: subtitle == null ? null : _tileSubtext(subtitle),
-      trailing: chevron
-          ? Icon(
-              RemixIcons.arrow_right_s_line,
-              color: dark ? Colors.white38 : Colors.black38,
-            )
-          : null,
-      onTap: onTap,
-    );
-  }
 
   Future<void> _loadChapter(int chapterIndex) async {
     if (_loadedChapterIndices.contains(chapterIndex)) return;
@@ -3220,40 +3067,6 @@ class _ReaderScreenState extends ConsumerState<ReaderScreen>
                             ],
                           ),
                         ),
-                        const SizedBox(width: 8),
-                        Icon(
-                          _batteryLevel >= 0
-                              ? (_batteryLevel > 20
-                                  ? RemixIcons.battery_2_fill
-                                  : RemixIcons.battery_low_fill)
-                              : RemixIcons.battery_2_line,
-                          color: dark
-                              ? Colors.white70
-                              : const Color(0xFF49454F),
-                          size: 16,
-                        ),
-                        const SizedBox(width: 4),
-                        Text(
-                          _batteryLevel >= 0 ? '$_batteryLevel%' : '',
-                          style: TextStyle(
-                            color: dark
-                                ? Colors.white70
-                                : const Color(0xFF49454F),
-                            fontSize: 12,
-                            fontWeight: FontWeight.w500,
-                          ),
-                        ),
-                        const SizedBox(width: 12),
-                        Text(
-                          _clockText,
-                          style: TextStyle(
-                            color: dark
-                                ? Colors.white70
-                                : const Color(0xFF49454F),
-                            fontSize: 12,
-                            fontWeight: FontWeight.w500,
-                          ),
-                        ),
                       ],
                     ),
                   ),
@@ -3283,11 +3096,11 @@ class _ReaderScreenState extends ConsumerState<ReaderScreen>
                           top: true,
                           left: false,
                           right: false,
-                          child: Padding(
-                            padding: const EdgeInsets.symmetric(
-                              horizontal: 12,
-                              vertical: 4,
-                            ),
+                          minimum: const EdgeInsets.only(top: 0),
+                          child: Transform.translate(
+                            offset: const Offset(0, -3),
+                            child: Padding(
+                            padding: const EdgeInsets.fromLTRB(12, 2, 12, 4),
                             child: Row(
                               mainAxisAlignment: MainAxisAlignment.spaceBetween,
                               crossAxisAlignment: CrossAxisAlignment.center,
@@ -3381,7 +3194,8 @@ class _ReaderScreenState extends ConsumerState<ReaderScreen>
                               ],
                             ),
                           ),
-                        )
+                        ),
+                      )
                       : const SizedBox(
                           key: ValueKey('noStatusBar'),
                           width: 0,
@@ -3527,6 +3341,7 @@ class _ReaderScreenState extends ConsumerState<ReaderScreen>
     final isRtl = _readingMode == ReadingMode.rightToLeft;
 
     Widget pageView = PageView.builder(
+      key: ValueKey('pager-${_readingMode.name}-$_useTwoPagesLayout'),
       controller: _pageController,
       itemCount: _pages.length,
       onPageChanged: (index) {
@@ -3879,7 +3694,6 @@ class _ReaderProgressTrackState extends State<_ReaderProgressTrack> {
       0,
       relativeMax,
     );
-    final total = widget.chapterPageCount <= 0 ? 1 : widget.chapterPageCount;
     final accent = dark
         ? Colors.white
         : Theme.of(context).colorScheme.primary;
@@ -3888,42 +3702,154 @@ class _ReaderProgressTrackState extends State<_ReaderProgressTrack> {
     return Column(
       mainAxisSize: MainAxisSize.min,
       children: [
-        SliderTheme(
-          data: SliderTheme.of(context).copyWith(
-            trackHeight: 3,
-            activeTrackColor: accent,
-            inactiveTrackColor: dark ? Colors.white24 : Colors.black26,
-            thumbColor: accent,
-            overlayColor: accent.withValues(alpha: 0.16),
-            thumbShape: const RoundSliderThumbShape(enabledThumbRadius: 6),
-            overlayShape: const RoundSliderOverlayShape(overlayRadius: 13),
-            padding: const EdgeInsets.symmetric(horizontal: 2),
-          ),
-          child: Slider(
-            min: 0,
-            max: relativeMax.toDouble(),
-            value: relative.toDouble(),
-            // Seek live while dragging (updates the reader as the thumb moves).
-            onChangeStart: (_) =>
-                widget.onSeek(widget.chapterStart + relative),
-            onChanged: (v) =>
-                widget.onSeek(widget.chapterStart + v.round()),
-          ),
-        ),
-        const SizedBox(height: 2),
-        // Small "page x / y" readout under the thumb.
-        Text(
-          '${relative + 1} / $total',
-          style: TextStyle(
-            color: dim,
-            fontSize: 11,
-            fontWeight: FontWeight.w500,
-            height: 1,
-          ),
+        _DottedPageSlider(
+          min: 0,
+          max: relativeMax.toDouble(),
+          value: relative.toDouble(),
+          accent: accent,
+          dotColor: dim,
+          // Seek live while dragging (updates the reader as the thumb moves).
+          onChangeStart: (v) => widget.onSeek(widget.chapterStart + v.round()),
+          onChanged: (v) => widget.onSeek(widget.chapterStart + v.round()),
         ),
       ],
     );
   }
+}
+
+/// Custom pill slider whose track is a row of evenly spaced dots instead of a
+/// solid line. The active span glows with the accent color; the thumb is a
+/// solid, larger handle that stays visually distinct from the dot track.
+class _DottedPageSlider extends StatefulWidget {
+  const _DottedPageSlider({
+    required this.min,
+    required this.max,
+    required this.value,
+    required this.accent,
+    required this.dotColor,
+    required this.onChanged,
+    required this.onChangeStart,
+  });
+
+  final double min;
+  final double max;
+  final double value;
+  final Color accent;
+  final Color dotColor;
+  final ValueChanged<double> onChanged;
+  final ValueChanged<double> onChangeStart;
+
+  @override
+  State<_DottedPageSlider> createState() => _DottedPageSliderState();
+}
+
+class _DottedPageSliderState extends State<_DottedPageSlider> {
+  double _fraction(double dx, double width) {
+    const thumbInset = 15.0;
+    final usable = (width - thumbInset * 2).clamp(0.0, double.infinity);
+    if (usable <= 0) return 0;
+    return ((dx - thumbInset) / usable).clamp(0.0, 1.0);
+  }
+
+  double _valueAt(double dx, double width) {
+    final frac = _fraction(dx, width);
+    return widget.min + frac * (widget.max - widget.min);
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    return LayoutBuilder(
+      builder: (context, constraints) {
+        const height = 34.0;
+        // Single-page chapters can't move; keep the track static.
+        final enabled = widget.max > widget.min;
+        return GestureDetector(
+          behavior: HitTestBehavior.opaque,
+          onTapDown: enabled
+              ? (d) {
+                  widget.onChangeStart(_valueAt(d.localPosition.dx, constraints.maxWidth));
+                  widget.onChanged(_valueAt(d.localPosition.dx, constraints.maxWidth));
+                }
+              : null,
+          onHorizontalDragStart: enabled
+              ? (d) {
+                  widget.onChangeStart(_valueAt(d.localPosition.dx, constraints.maxWidth));
+                }
+              : null,
+          onHorizontalDragUpdate: enabled
+              ? (d) {
+                  widget.onChanged(_valueAt(d.localPosition.dx, constraints.maxWidth));
+                }
+              : null,
+          child: CustomPaint(
+            size: Size(constraints.maxWidth, height),
+            painter: _DottedTrackPainter(
+              progress: enabled
+                  ? ((widget.value - widget.min) / (widget.max - widget.min)).clamp(0.0, 1.0)
+                  : 1.0,
+              accent: widget.accent,
+              dotColor: widget.dotColor,
+            ),
+          ),
+        );
+      },
+    );
+  }
+}
+
+class _DottedTrackPainter extends CustomPainter {
+  const _DottedTrackPainter({
+    required this.progress,
+    required this.accent,
+    required this.dotColor,
+  });
+
+  final double progress;
+  final Color accent;
+  final Color dotColor;
+
+  @override
+  void paint(Canvas canvas, Size size) {
+    const thumbRadius = 14.0;
+    const dotRadius = 3.0;
+    const dotSpacing = 9.0;
+    final left = thumbRadius;
+    final right = size.width - thumbRadius;
+    final cy = size.height / 2;
+    final length = right - left;
+    if (length <= 0) return;
+
+    final count = (length / dotSpacing).floor().clamp(2, 256);
+    final spacing = length / (count - 1);
+    final edgeX = left + length * progress;
+
+    for (var i = 0; i < count; i++) {
+      final dx = left + i * spacing;
+      final active = dx <= edgeX;
+      final dotPaint = Paint()
+        ..color = active ? accent : dotColor
+        ..style = PaintingStyle.fill;
+      canvas.drawCircle(Offset(dx, cy), dotRadius, dotPaint);
+    }
+
+    // Distinct, solid thumb that pops against the dot track.
+    canvas.drawCircle(
+      Offset(edgeX, cy),
+      thumbRadius,
+      Paint()..color = Colors.white,
+    );
+    canvas.drawCircle(
+      Offset(edgeX, cy),
+      thumbRadius - 1.5,
+      Paint()..color = accent,
+    );
+  }
+
+  @override
+  bool shouldRepaint(covariant _DottedTrackPainter oldDelegate) =>
+      oldDelegate.progress != progress ||
+      oldDelegate.accent != accent ||
+      oldDelegate.dotColor != dotColor;
 }
 
 class _ChapterDownloadTask {

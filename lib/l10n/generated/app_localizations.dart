@@ -1631,7 +1631,7 @@ abstract class AppLocalizations {
   /// No description provided for @readerTwoPagesLandscape.
   ///
   /// In en, this message translates to:
-  /// **'Two pages on landscape'**
+  /// **'Use two pages layout on landscape orientation (beta)'**
   String get readerTwoPagesLandscape;
 
   /// No description provided for @readerExperimental.
@@ -1643,7 +1643,7 @@ abstract class AppLocalizations {
   /// No description provided for @readerRotateScreen.
   ///
   /// In en, this message translates to:
-  /// **'Rotate screen'**
+  /// **'Lock screen rotation'**
   String get readerRotateScreen;
 
   /// No description provided for @readerLandscapeOrientation.
@@ -1669,6 +1669,30 @@ abstract class AppLocalizations {
   /// In en, this message translates to:
   /// **'Continuous vertical scroll'**
   String get readerContinuousScroll;
+
+  /// No description provided for @readerShowStatus.
+  ///
+  /// In en, this message translates to:
+  /// **'Show reader status'**
+  String get readerShowStatus;
+
+  /// No description provided for @readerHideControlsStatus.
+  ///
+  /// In en, this message translates to:
+  /// **'Show progress, battery and time when controls are hidden'**
+  String get readerHideControlsStatus;
+
+  /// No description provided for @readerPreferences.
+  ///
+  /// In en, this message translates to:
+  /// **'Reader preferences'**
+  String get readerPreferences;
+
+  /// No description provided for @readerPreferencesSubtitle.
+  ///
+  /// In en, this message translates to:
+  /// **'Two-page layout, auto-scroll, status bar and more'**
+  String get readerPreferencesSubtitle;
 
   /// No description provided for @readerSectionTools.
   ///

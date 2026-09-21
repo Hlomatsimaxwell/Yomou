@@ -772,6 +772,13 @@ class _MangaDetailScreenState extends ConsumerState<MangaDetailScreen> {
                             showContinueButton:
                                 _activeTab == 0 && _chapters.isNotEmpty,
                             hasRead: _lastReadChapter >= 0,
+                            continueChapterNumber:
+                                _lastReadChapter >= 0 &&
+                                        _resumeChapterIndex >= 0 &&
+                                        _resumeChapterIndex < _chapters.length
+                                    ? _chapters[_resumeChapterIndex]
+                                        .chapterNumber
+                                    : null,
                             isSelectionMode: _selectionMode,
                             selectedCount: _selectedIds.length,
                             isAllSelected:
@@ -981,7 +988,7 @@ class _MangaDetailScreenState extends ConsumerState<MangaDetailScreen> {
               if (isRead) return l.chapterStatusRead;
               if (downloaded) return l.chapterStatusDownloaded;
               return '';
-            }(), style: const TextStyle(color: Colors.grey, fontSize: 13)),
+            }(), style: const TextStyle(color: Colors.grey, fontSize: 12)),
             trailing: Row(
               mainAxisSize: MainAxisSize.min,
               children: [
@@ -1021,6 +1028,12 @@ class _MangaDetailScreenState extends ConsumerState<MangaDetailScreen> {
                         backgroundColor: dark ? Colors.white24 : Colors.black12,
                       ),
                     ),
+                  )
+                else if (!_selectionMode && isCurrent)
+                  Icon(
+                    RemixIcons.check_fill,
+                    color: Theme.of(context).colorScheme.primary,
+                    size: 20,
                   )
                 else if (!_selectionMode && isRead)
                   Icon(
@@ -2868,6 +2881,7 @@ class _SheetHeaderDelegate extends SliverPersistentHeaderDelegate {
   final int unreadCount;
   final bool showContinueButton;
   final bool hasRead;
+  final String? continueChapterNumber;
   final bool isSelectionMode;
   final int selectedCount;
   final bool isAllSelected;
@@ -2895,6 +2909,7 @@ class _SheetHeaderDelegate extends SliverPersistentHeaderDelegate {
     this.unreadCount = 0,
     this.showContinueButton = false,
     this.hasRead = false,
+    this.continueChapterNumber,
     this.isSelectionMode = false,
     this.selectedCount = 0,
     this.isAllSelected = false,
@@ -2986,9 +3001,7 @@ class _SheetHeaderDelegate extends SliverPersistentHeaderDelegate {
         ),
         const SizedBox(width: 2),
         _buildTabIcon(
-          activeTab == 2
-              ? RemixIcons.bookmark_2_fill
-              : RemixIcons.bookmark_2_line,
+          RemixIcons.bookmark_2_line,
           activeTab == 2,
           dark: dark,
           scheme: scheme,
@@ -3177,32 +3190,68 @@ class _SheetHeaderDelegate extends SliverPersistentHeaderDelegate {
     );
   }
 
-  // Primary Read/Continue action pill that lives on the tray.
+  // Primary Read/Continue action pill that lives on the tray. Split-pill:
+  // the left part holds the label ("Continue · 3"), the right part is a small
+  // dropdown section separated by a thin vertical line.
   Widget _buildPrimaryButton({
     required BuildContext context,
     required bool dark,
     required ColorScheme scheme,
   }) {
     final l = AppLocalizations.of(context);
-    final label = hasRead ? l.continueAction : l.readAction;
-    return GestureDetector(
-      onTap: onContinuePressed,
-      child: Container(
-        padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 7),
-        decoration: BoxDecoration(
-          color: scheme.primary,
-          borderRadius: BorderRadius.circular(14),
-          border: dark ? Border.all(color: Colors.white12, width: 1) : null,
-        ),
-        child: Text(
-          label,
-          style: TextStyle(
-            color: scheme.onPrimary,
-            fontSize: 13,
-            fontWeight: FontWeight.bold,
+    final label = (hasRead)
+        ? '${l.continueAction} · ${continueChapterNumber ?? ''}'.trim()
+        : l.readAction;
+    final leftColor = scheme.primary;
+    final rightColor = Color.lerp(scheme.primary, Colors.black, 0.14)!;
+    return Row(
+      mainAxisSize: MainAxisSize.min,
+      children: [
+        GestureDetector(
+          onTap: onContinuePressed,
+          child: Container(
+            padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+            decoration: BoxDecoration(
+              color: leftColor,
+              borderRadius: const BorderRadius.horizontal(
+                left: Radius.circular(20),
+              ),
+              border: dark ? Border.all(color: Colors.white12, width: 1) : null,
+            ),
+            child: Text(
+              label,
+              style: TextStyle(
+                color: scheme.onPrimary,
+                fontSize: 13,
+                fontWeight: FontWeight.bold,
+              ),
+            ),
           ),
         ),
-      ),
+        GestureDetector(
+          onTap: onContinuePressed,
+          child: Container(
+            padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 8),
+            decoration: BoxDecoration(
+              color: rightColor,
+              borderRadius: const BorderRadius.horizontal(
+                right: Radius.circular(20),
+              ),
+              border: Border(
+                left: BorderSide(
+                  color: dark ? Colors.white24 : Colors.white54,
+                  width: 0.5,
+                ),
+              ),
+            ),
+            child: Icon(
+              RemixIcons.arrow_down_s_line,
+              color: scheme.onPrimary,
+              size: 20,
+            ),
+          ),
+        ),
+      ],
     );
   }
 
@@ -3221,6 +3270,7 @@ class _SheetHeaderDelegate extends SliverPersistentHeaderDelegate {
         oldDelegate.unreadCount != unreadCount ||
         oldDelegate.showContinueButton != showContinueButton ||
         oldDelegate.hasRead != hasRead ||
+        oldDelegate.continueChapterNumber != continueChapterNumber ||
         oldDelegate.isSelectionMode != isSelectionMode ||
         oldDelegate.selectedCount != selectedCount ||
         oldDelegate.isAllSelectedRead != isAllSelectedRead ||

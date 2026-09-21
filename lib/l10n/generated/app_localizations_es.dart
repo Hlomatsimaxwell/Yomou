@@ -841,13 +841,14 @@ class AppLocalizationsEs extends AppLocalizations {
   String get readerSectionOptions => 'Opciones';
 
   @override
-  String get readerTwoPagesLandscape => 'Dos páginas en horizontal';
+  String get readerTwoPagesLandscape =>
+      'Usar doble página en orientación horizontal (beta)';
 
   @override
   String get readerExperimental => 'Experimental';
 
   @override
-  String get readerRotateScreen => 'Rotar pantalla';
+  String get readerRotateScreen => 'Bloquear rotación de pantalla';
 
   @override
   String get readerLandscapeOrientation => 'Orientación horizontal';
@@ -860,6 +861,20 @@ class AppLocalizationsEs extends AppLocalizations {
 
   @override
   String get readerContinuousScroll => 'Desplazamiento vertical continuo';
+
+  @override
+  String get readerShowStatus => 'Mostrar estado del lector';
+
+  @override
+  String get readerHideControlsStatus =>
+      'Mostrar progreso, batería y hora al ocultar los controles';
+
+  @override
+  String get readerPreferences => 'Preferencias del lector';
+
+  @override
+  String get readerPreferencesSubtitle =>
+      'Doble página, auto-desplazamiento, barra de estado y más';
 
   @override
   String get readerSectionTools => 'Herramientas';
