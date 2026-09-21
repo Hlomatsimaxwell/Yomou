@@ -113,9 +113,23 @@ class _ReaderScreenState extends ConsumerState<ReaderScreen>
     // Kotatsu behavior: while the controls are hidden the entire system UI is
     // immersive (nothing drawn by the OS), so the reader renders its own slim
     // status bar at the top edge. Tapping the controls restores the native
-    // system status bar/navigation bars.
+    // system status bar / navigation bars.
+    //
+    // System overlays are explicitly transparent in both states so the manga
+    // canvas and background draw all the way to the absolute top edge of the
+    // glass — there's never a reserved black strip where the status bar was.
     SystemChrome.setEnabledSystemUIMode(
       _showControls ? SystemUiMode.edgeToEdge : SystemUiMode.immersiveSticky,
+    );
+    SystemChrome.setSystemUIOverlayStyle(
+      const SystemUiOverlayStyle(
+        statusBarColor: Colors.transparent,
+        systemNavigationBarColor: Colors.transparent,
+        systemNavigationBarDividerColor: Colors.transparent,
+        statusBarIconBrightness: Brightness.light,
+        statusBarBrightness: Brightness.dark,
+        systemNavigationBarIconBrightness: Brightness.light,
+      ),
     );
   }
 
@@ -3193,11 +3207,15 @@ class _ReaderScreenState extends ConsumerState<ReaderScreen>
                   child: !_showControls
                       ? SafeArea(
                           key: const ValueKey('immersiveStatusBar'),
-                          bottom: false,
+                          top: true,
+                          minimum: const EdgeInsets.symmetric(
+                            horizontal: 12,
+                            vertical: 4,
+                          ),
                           child: Padding(
                             padding: const EdgeInsets.symmetric(
-                              horizontal: 16,
-                              vertical: 4,
+                              horizontal: 4,
+                              vertical: 0,
                             ),
                             child: Row(
                               mainAxisAlignment: MainAxisAlignment.spaceBetween,
