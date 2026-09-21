@@ -1414,4 +1414,54 @@ class AppLocalizationsEn extends AppLocalizations {
 
   @override
   String get coversNoResults => 'No alternative covers found';
+
+  @override
+  String get storageCacheSection => 'Image cache';
+
+  @override
+  String get storageCacheMaxTitle => 'Cache size';
+
+  @override
+  String storageCacheMaxSubtitle(Object count) {
+    return '$count files';
+  }
+
+  @override
+  String get storageCacheStaleTitle => 'Cache staleness';
+
+  @override
+  String storageCacheStaleSubtitle(Object count) {
+    return '$count days';
+  }
+
+  @override
+  String get storagePreloadTitle => 'Pre-cache next chapter';
+
+  @override
+  String get storagePreloadSubtitle =>
+      'Download the next chapter in the background while reading';
+
+  @override
+  String get storageClearTitle => 'Clear image cache';
+
+  @override
+  String storageClearSubtitle(Object size) {
+    return 'Currently using $size';
+  }
+
+  @override
+  String get storageClearConfirmTitle => 'Clear image cache?';
+
+  @override
+  String get storageClearConfirmBody =>
+      'All cached pages and covers will be removed. They are re-downloaded when you next view them.';
+
+  @override
+  String get storageCancel => 'Cancel';
+
+  @override
+  String get storageClearDone => 'Image cache cleared';
+
+  @override
+  String get storageUnknown => 'unknown';
 }

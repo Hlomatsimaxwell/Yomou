@@ -3,7 +3,7 @@ import 'dart:io';
 import 'package:cached_network_image/cached_network_image.dart';
 import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
-import 'package:flutter_cache_manager/flutter_cache_manager.dart';
+import 'package:yomou/core/cache/app_cache.dart';
 import 'package:image/image.dart' as img;
 
 /// Decodes an encoded image on a background isolate and re-encodes it as PNG.
@@ -74,7 +74,7 @@ class _SafeNetworkImageState extends State<SafeNetworkImage> {
   Future<Uint8List?> _loadTranscoded() async {
     try {
       // Reuses the bytes CachedNetworkImage already downloaded (when it did).
-      final file = await DefaultCacheManager().getSingleFile(
+      final file = await AppImageCache.instance.manager.getSingleFile(
         widget.imageUrl,
         headers: widget.httpHeaders,
       );
@@ -98,6 +98,7 @@ class _SafeNetworkImageState extends State<SafeNetworkImage> {
     if (!_fallback) {
       return CachedNetworkImage(
         imageUrl: widget.imageUrl,
+        cacheManager: AppImageCache.instance.manager,
         width: widget.width,
         height: widget.height,
         fit: widget.fit,

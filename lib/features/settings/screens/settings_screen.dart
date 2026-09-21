@@ -3,6 +3,7 @@ import 'package:remixicon/remixicon.dart';
 import 'package:yomou/l10n/generated/app_localizations.dart';
 import 'package:yomou/features/settings/screens/appearance_settings_screen.dart';
 import 'package:yomou/features/settings/screens/notification_settings_screen.dart';
+import 'package:yomou/features/settings/screens/storage_settings_screen.dart';
 import 'package:yomou/widgets/m3_components.dart';
 
 class SettingsScreen extends StatelessWidget {
@@ -49,7 +50,14 @@ class SettingsScreen extends StatelessWidget {
             icon: RemixIcons.pie_chart_2_line,
             title: l.settingsStorage,
             subtitle: l.settingsStorageSubtitle,
-            onTap: () {},
+            onTap: () {
+              Navigator.push(
+                context,
+                MaterialPageRoute(
+                  builder: (_) => const StorageSettingsScreen(),
+                ),
+              );
+            },
           ),
           _buildSettingTile(
             context: context,

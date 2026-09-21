@@ -646,5 +646,34 @@
   },
   "coversCurrent": "Portada actual",
   "coversUseThis": "Usar esta portada",
-  "coversNoResults": "No se encontraron portadas alternativas"
+  "coversNoResults": "No se encontraron portadas alternativas",
+  "storageCacheSection": "Caché de imágenes",
+  "storageCacheMaxTitle": "Tamaño de caché",
+  "storageCacheMaxSubtitle": "{count} archivos",
+  "@storageCacheMaxSubtitle": {
+    "placeholders": {
+      "count": {}
+    }
+  },
+  "storageCacheStaleTitle": "Caducidad de caché",
+  "storageCacheStaleSubtitle": "{count} días",
+  "@storageCacheStaleSubtitle": {
+    "placeholders": {
+      "count": {}
+    }
+  },
+  "storagePreloadTitle": "Precargar siguiente capítulo",
+  "storagePreloadSubtitle": "Descarga el siguiente capítulo en segundo plano mientras lees",
+  "storageClearTitle": "Borrar caché de imágenes",
+  "storageClearSubtitle": "En uso actualmente: {size}",
+  "@storageClearSubtitle": {
+    "placeholders": {
+      "size": {}
+    }
+  },
+  "storageClearConfirmTitle": "¿Borrar caché de imágenes?",
+  "storageClearConfirmBody": "Se eliminarán todas las páginas y portadas en caché. Se volverán a descargar cuando las veas de nuevo.",
+  "storageCancel": "Cancelar",
+  "storageClearDone": "Caché de imágenes borrada",
+  "storageUnknown": "desconocido"
 }

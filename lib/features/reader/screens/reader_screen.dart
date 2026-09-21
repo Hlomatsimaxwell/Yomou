@@ -5,13 +5,13 @@ import 'dart:io';
 import 'package:battery_plus/battery_plus.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
-import 'package:flutter_cache_manager/flutter_cache_manager.dart';
 import 'package:intl/intl.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:http/http.dart' as http;
 import 'package:path_provider/path_provider.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import 'package:yomou/widgets/safe_image.dart';
+import 'package:yomou/core/cache/app_cache.dart';
 import '../../../core/database/database_helper.dart';
 import '../../../core/database/source_cache.dart';
 import '../../../core/widgets/ios/ios_press.dart';
@@ -21,6 +21,7 @@ import 'package:yomou/data/models/chapter.dart';
 import 'package:yomou/data/models/manga_source.dart';
 import 'package:yomou/features/history/providers/history_provider.dart';
 import 'package:yomou/features/library/providers/downloads_provider.dart';
+import 'package:yomou/features/settings/providers/cache_settings_provider.dart';
 import 'package:yomou/core/widgets/empty_state.dart';
 import 'package:yomou/features/settings/screens/settings_screen.dart';
 import 'package:yomou/l10n/generated/app_localizations.dart';
@@ -214,6 +215,7 @@ class _ReaderScreenState extends ConsumerState<ReaderScreen>
   // ticks don't spam the cache).
   final Set<String> _prefetchScheduled = {};
   int _prefetchAnchorPage = -1;
+  bool _isPrecachingNextChapter = false;
   Map<String, String>? _activeRequestHeaders;
 
   // Refresh callback for the open chapter tray sheet.
@@ -2338,7 +2340,7 @@ class _ReaderScreenState extends ConsumerState<ReaderScreen>
     _prefetchScheduled.addAll(targets);
     for (final ref in targets) {
       try {
-        await DefaultCacheManager().getSingleFile(
+        await AppImageCache.instance.manager.getSingleFile(
           ref,
           headers: _activeRequestHeaders,
         );
@@ -2348,10 +2350,87 @@ class _ReaderScreenState extends ConsumerState<ReaderScreen>
     }
   }
 
+  /// Gently warms the chapter AFTER the one the reader is currently finishing,
+  /// so advancing to it feels instant. Only runs when the reader is on the
+  /// last few pages of an in-memory chapter, the next chapter exists, and the
+  /// user enabled "Pre-cache next chapter" in Storage settings.
+  void _precacheNextChapterPages() {
+    if (_isPrecachingNextChapter) return;
+    if (_pages.isEmpty ||
+        _pagesChapters.isEmpty ||
+        _currentPageIndex >= _pages.length) {
+      return;
+    }
+    if (!ref.read(cacheSettingsProvider).precacheNextChapter) return;
+
+    final currentChapter = _pagesChapters[_currentPageIndex];
+    // Walk to the last page that belongs to this same chapter.
+    var lastPageOfChapter = _currentPageIndex;
+    for (var i = _currentPageIndex + 1; i < _pagesChapters.length; i++) {
+      if (_pagesChapters[i] != currentChapter) break;
+      lastPageOfChapter = i;
+    }
+    // Only engage within the final ~2 pages of the chapter.
+    if (lastPageOfChapter - _currentPageIndex > 2) return;
+
+    final nextIndex = currentChapter + 1;
+    if (nextIndex >= widget.allChapters.length) return;
+    if (_loadedChapterIndices.contains(nextIndex)) return;
+
+    _precacheChapterPages(nextIndex);
+  }
+
+  Future<void> _precacheChapterPages(int chapterIndex) async {
+    if (_isPrecachingNextChapter) return;
+    final chapter = widget.allChapters[chapterIndex];
+    // Chapters stored locally are read from disk instantly — nothing to warm.
+    if (_downloadedChapters.contains(chapter.id)) return;
+    _isPrecachingNextChapter = true;
+    try {
+      MangaSource? source;
+      if (widget.sourceId != null) {
+        source = getSourceBySourceId(widget.sourceId!);
+      }
+      source ??= ref.read(currentSourceProvider);
+      if (source == null) return;
+      final src = source;
+
+      final pages = await SourceCache.pageUrls(
+        sourceId: src.id,
+        chapterId: chapter.id,
+        fetch: () => src.getPageUrls(chapter.id),
+      );
+      if (!mounted) return;
+
+      // Warm the first handful of pages of the next chapter into the disk
+      // cache so the chapter boundary reads like a normal page turn.
+      final limit = pages.length < 6 ? pages.length : 6;
+      for (var i = 0; i < limit; i++) {
+        final url = pages[i];
+        if (!url.startsWith('http')) continue;
+        try {
+          await AppImageCache.instance.manager.getSingleFile(
+            url,
+            headers: _activeRequestHeaders,
+          );
+        } catch (_) {
+          // Swallow: the page widget surfaces any real failure when reached.
+        }
+      }
+    } catch (e) {
+      debugPrint('Error pre-caching chapter ${chapterIndex + 1}: $e');
+    } finally {
+      _isPrecachingNextChapter = false;
+    }
+  }
+
   void _handleScrollTicker() {
     final pos = _scrollController.position;
     // Warm the on-disk cache for pages a little ahead while scrolling.
     _prefetchNearbyPages();
+    // When the reader reaches the last few pages of a chapter, silently warm
+    // the NEXT chapter's pages too so chapter transitions are instant.
+    _precacheNextChapterPages();
     // Once the reader moves off the landing page, re-arm the adjacent-chapter
     // loaders so real backward swipes still work.
     if (_suppressAdjacentAutoLoad && pos.pixels > 800) {
@@ -3062,7 +3141,7 @@ class _ReaderScreenState extends ConsumerState<ReaderScreen>
                   ? _buildHorizontalReader(headers)
                   : _buildVerticalReader(headers),
 
-              // --- TOP APP BAR OVERLAY (theme-aware card) ---
+              // --- TOP APP BAR OVERLAY (same capsule theming as the bottom bar) ---
               AnimatedPositioned(
                 duration: const Duration(milliseconds: 200),
                 top: _showControls ? 0 : -100,
@@ -3071,32 +3150,20 @@ class _ReaderScreenState extends ConsumerState<ReaderScreen>
                 child: Padding(
                   padding: EdgeInsets.only(
                     top: MediaQuery.of(context).padding.top + 8,
-                    left: 12,
-                    right: 12,
+                    left: 16,
+                    right: 16,
                   ),
                   child: Container(
                     padding: const EdgeInsets.symmetric(
-                      horizontal: 6,
-                      vertical: 8,
+                      horizontal: 8,
+                      vertical: 4,
                     ),
                     decoration: BoxDecoration(
-                      color: dark ? const Color(0xFF1E1E20) : Colors.white,
-                      borderRadius: BorderRadius.circular(16),
-                      boxShadow: dark
-                          ? [
-                              BoxShadow(
-                                color: Colors.black.withValues(alpha: 0.4),
-                                blurRadius: 12,
-                                offset: const Offset(0, 4),
-                              ),
-                            ]
-                          : [
-                              BoxShadow(
-                                color: Colors.black.withValues(alpha: 0.12),
-                                blurRadius: 12,
-                                offset: const Offset(0, 4),
-                              ),
-                            ],
+                      color: dark ? const Color(0xF228282A) : Colors.white,
+                      borderRadius: BorderRadius.circular(32),
+                      border: Border.all(
+                        color: dark ? Colors.white24 : Colors.black12,
+                      ),
                     ),
                     child: Row(
                       children: [
@@ -3208,17 +3275,16 @@ class _ReaderScreenState extends ConsumerState<ReaderScreen>
                       ? SafeArea(
                           key: const ValueKey('immersiveStatusBar'),
                           top: true,
-                          minimum: const EdgeInsets.symmetric(
-                            horizontal: 12,
-                            vertical: 4,
-                          ),
+                          left: false,
+                          right: false,
                           child: Padding(
                             padding: const EdgeInsets.symmetric(
-                              horizontal: 4,
-                              vertical: 0,
+                              horizontal: 12,
+                              vertical: 4,
                             ),
                             child: Row(
                               mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                              crossAxisAlignment: CrossAxisAlignment.center,
                               children: [
                                 Flexible(
                                   child: Text(
@@ -3227,17 +3293,20 @@ class _ReaderScreenState extends ConsumerState<ReaderScreen>
                                       chLabel,
                                     ),
                                     style: TextStyle(
-                                      color: Colors.white.withValues(
-                                        alpha: 0.9,
-                                      ),
-                                      fontSize: 12,
-                                      fontWeight: FontWeight.w500,
+                                      color: Colors.white,
+                                      fontSize: 12.5,
+                                      fontWeight: FontWeight.w600,
                                       letterSpacing: 0.2,
-                                      shadows: [
+                                      shadows: const [
+                                        Shadow(
+                                          color: Colors.black,
+                                          blurRadius: 1.5,
+                                          offset: Offset(0, 0),
+                                        ),
                                         Shadow(
                                           color: Colors.black87,
-                                          blurRadius: 4,
-                                          offset: const Offset(0, 1),
+                                          blurRadius: 5,
+                                          offset: Offset(0, 1),
                                         ),
                                       ],
                                     ),
@@ -3261,16 +3330,19 @@ class _ReaderScreenState extends ConsumerState<ReaderScreen>
                                       Text(
                                         '$_batteryLevel%',
                                         style: TextStyle(
-                                          color: Colors.white.withValues(
-                                            alpha: 0.9,
-                                          ),
-                                          fontSize: 12,
-                                          fontWeight: FontWeight.w500,
-                                          shadows: [
+                                          color: Colors.white,
+                                          fontSize: 12.5,
+                                          fontWeight: FontWeight.w600,
+                                          shadows: const [
+                                            Shadow(
+                                              color: Colors.black,
+                                              blurRadius: 1.5,
+                                              offset: Offset(0, 0),
+                                            ),
                                             Shadow(
                                               color: Colors.black87,
-                                              blurRadius: 4,
-                                              offset: const Offset(0, 1),
+                                              blurRadius: 5,
+                                              offset: Offset(0, 1),
                                             ),
                                           ],
                                         ),
@@ -3280,17 +3352,20 @@ class _ReaderScreenState extends ConsumerState<ReaderScreen>
                                     Text(
                                       _clockText,
                                       style: TextStyle(
-                                        color: Colors.white.withValues(
-                                          alpha: 0.9,
-                                        ),
-                                        fontSize: 12,
-                                        fontWeight: FontWeight.w500,
+                                        color: Colors.white,
+                                        fontSize: 12.5,
+                                        fontWeight: FontWeight.w600,
                                         letterSpacing: 0.2,
-                                        shadows: [
+                                        shadows: const [
+                                          Shadow(
+                                            color: Colors.black,
+                                            blurRadius: 1.5,
+                                            offset: Offset(0, 0),
+                                          ),
                                           Shadow(
                                             color: Colors.black87,
-                                            blurRadius: 4,
-                                            offset: const Offset(0, 1),
+                                            blurRadius: 5,
+                                            offset: Offset(0, 1),
                                           ),
                                         ],
                                       ),
@@ -3514,9 +3589,8 @@ class _ReaderScreenState extends ConsumerState<ReaderScreen>
         imageUrl: url,
         fit: BoxFit.fitWidth,
         httpHeaders: headers,
-        placeholder: (context, url) => Container(
-          height: 500,
-          color: Colors.black,
+        placeholder: (context, url) => SizedBox(
+          height: MediaQuery.sizeOf(context).height,
           child: const Center(
             child: CircularProgressIndicator(color: Colors.white24),
           ),
@@ -3647,7 +3721,7 @@ class _ReaderScreenState extends ConsumerState<ReaderScreen>
     // from a fresh request. Local files are re-read from disk instead.
     if (localPath == null) {
       try {
-        await DefaultCacheManager().removeFile(_pages[index]);
+        await AppImageCache.instance.manager.removeFile(_pages[index]);
       } catch (_) {}
     }
     if (!mounted) return;

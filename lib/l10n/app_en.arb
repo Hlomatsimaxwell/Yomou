@@ -694,5 +694,34 @@
   },
   "coversCurrent": "Current cover",
   "coversUseThis": "Use this cover",
-  "coversNoResults": "No alternative covers found"
+  "coversNoResults": "No alternative covers found",
+  "storageCacheSection": "Image cache",
+  "storageCacheMaxTitle": "Cache size",
+  "storageCacheMaxSubtitle": "{count} files",
+  "@storageCacheMaxSubtitle": {
+    "placeholders": {
+      "count": {}
+    }
+  },
+  "storageCacheStaleTitle": "Cache staleness",
+  "storageCacheStaleSubtitle": "{count} days",
+  "@storageCacheStaleSubtitle": {
+    "placeholders": {
+      "count": {}
+    }
+  },
+  "storagePreloadTitle": "Pre-cache next chapter",
+  "storagePreloadSubtitle": "Download the next chapter in the background while reading",
+  "storageClearTitle": "Clear image cache",
+  "storageClearSubtitle": "Currently using {size}",
+  "@storageClearSubtitle": {
+    "placeholders": {
+      "size": {}
+    }
+  },
+  "storageClearConfirmTitle": "Clear image cache?",
+  "storageClearConfirmBody": "All cached pages and covers will be removed. They are re-downloaded when you next view them.",
+  "storageCancel": "Cancel",
+  "storageClearDone": "Image cache cleared",
+  "storageUnknown": "unknown"
 }

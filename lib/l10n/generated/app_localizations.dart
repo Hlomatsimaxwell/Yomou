@@ -2677,6 +2677,90 @@ abstract class AppLocalizations {
   /// In en, this message translates to:
   /// **'No alternative covers found'**
   String get coversNoResults;
+
+  /// No description provided for @storageCacheSection.
+  ///
+  /// In en, this message translates to:
+  /// **'Image cache'**
+  String get storageCacheSection;
+
+  /// No description provided for @storageCacheMaxTitle.
+  ///
+  /// In en, this message translates to:
+  /// **'Cache size'**
+  String get storageCacheMaxTitle;
+
+  /// No description provided for @storageCacheMaxSubtitle.
+  ///
+  /// In en, this message translates to:
+  /// **'{count} files'**
+  String storageCacheMaxSubtitle(Object count);
+
+  /// No description provided for @storageCacheStaleTitle.
+  ///
+  /// In en, this message translates to:
+  /// **'Cache staleness'**
+  String get storageCacheStaleTitle;
+
+  /// No description provided for @storageCacheStaleSubtitle.
+  ///
+  /// In en, this message translates to:
+  /// **'{count} days'**
+  String storageCacheStaleSubtitle(Object count);
+
+  /// No description provided for @storagePreloadTitle.
+  ///
+  /// In en, this message translates to:
+  /// **'Pre-cache next chapter'**
+  String get storagePreloadTitle;
+
+  /// No description provided for @storagePreloadSubtitle.
+  ///
+  /// In en, this message translates to:
+  /// **'Download the next chapter in the background while reading'**
+  String get storagePreloadSubtitle;
+
+  /// No description provided for @storageClearTitle.
+  ///
+  /// In en, this message translates to:
+  /// **'Clear image cache'**
+  String get storageClearTitle;
+
+  /// No description provided for @storageClearSubtitle.
+  ///
+  /// In en, this message translates to:
+  /// **'Currently using {size}'**
+  String storageClearSubtitle(Object size);
+
+  /// No description provided for @storageClearConfirmTitle.
+  ///
+  /// In en, this message translates to:
+  /// **'Clear image cache?'**
+  String get storageClearConfirmTitle;
+
+  /// No description provided for @storageClearConfirmBody.
+  ///
+  /// In en, this message translates to:
+  /// **'All cached pages and covers will be removed. They are re-downloaded when you next view them.'**
+  String get storageClearConfirmBody;
+
+  /// No description provided for @storageCancel.
+  ///
+  /// In en, this message translates to:
+  /// **'Cancel'**
+  String get storageCancel;
+
+  /// No description provided for @storageClearDone.
+  ///
+  /// In en, this message translates to:
+  /// **'Image cache cleared'**
+  String get storageClearDone;
+
+  /// No description provided for @storageUnknown.
+  ///
+  /// In en, this message translates to:
+  /// **'unknown'**
+  String get storageUnknown;
 }
 
 class _AppLocalizationsDelegate

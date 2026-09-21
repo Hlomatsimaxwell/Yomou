@@ -1430,4 +1430,54 @@ class AppLocalizationsEs extends AppLocalizations {
 
   @override
   String get coversNoResults => 'No se encontraron portadas alternativas';
+
+  @override
+  String get storageCacheSection => 'Caché de imágenes';
+
+  @override
+  String get storageCacheMaxTitle => 'Tamaño de caché';
+
+  @override
+  String storageCacheMaxSubtitle(Object count) {
+    return '$count archivos';
+  }
+
+  @override
+  String get storageCacheStaleTitle => 'Caducidad de caché';
+
+  @override
+  String storageCacheStaleSubtitle(Object count) {
+    return '$count días';
+  }
+
+  @override
+  String get storagePreloadTitle => 'Precargar siguiente capítulo';
+
+  @override
+  String get storagePreloadSubtitle =>
+      'Descarga el siguiente capítulo en segundo plano mientras lees';
+
+  @override
+  String get storageClearTitle => 'Borrar caché de imágenes';
+
+  @override
+  String storageClearSubtitle(Object size) {
+    return 'En uso actualmente: $size';
+  }
+
+  @override
+  String get storageClearConfirmTitle => '¿Borrar caché de imágenes?';
+
+  @override
+  String get storageClearConfirmBody =>
+      'Se eliminarán todas las páginas y portadas en caché. Se volverán a descargar cuando las veas de nuevo.';
+
+  @override
+  String get storageCancel => 'Cancelar';
+
+  @override
+  String get storageClearDone => 'Caché de imágenes borrada';
+
+  @override
+  String get storageUnknown => 'desconocido';
 }
