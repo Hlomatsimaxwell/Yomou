@@ -3144,7 +3144,13 @@ class _ReaderScreenState extends ConsumerState<ReaderScreen>
               // --- TOP APP BAR OVERLAY (same capsule theming as the bottom bar) ---
               AnimatedPositioned(
                 duration: const Duration(milliseconds: 200),
-                top: _showControls ? 0 : -100,
+                // Fully off-screen when hidden: the capsule is taller than a
+                // fixed 100px once the notch/safe-area inset and 48px content
+                // are accounted for, so hide by (safe area + full card height)
+                // or its bottom lip stays visible on notched phones.
+                top: _showControls
+                    ? 0
+                    : -(MediaQuery.of(context).padding.top + 96),
                 left: 0,
                 right: 0,
                 child: Padding(
