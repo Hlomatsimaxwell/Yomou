@@ -717,9 +717,7 @@ class _ReaderScreenState extends ConsumerState<ReaderScreen>
 
     showModalBottomSheet(
       context: context,
-      backgroundColor: Theme.of(context).brightness == Brightness.dark
-          ? const Color(0xFF1C1C1E)
-          : Colors.white,
+      backgroundColor: Colors.transparent,
       barrierColor: Colors.black.withValues(alpha: 0.5),
       isScrollControlled: true,
       shape: const RoundedRectangleBorder(
@@ -754,42 +752,57 @@ class _ReaderScreenState extends ConsumerState<ReaderScreen>
                     didJump = true;
                   }
 
-                  return Column(
-                    children: [
-                      Center(
-                        child: Container(
-                          width: 36,
-                          height: 5,
-                          margin: const EdgeInsets.only(top: 12, bottom: 8),
-                          decoration: BoxDecoration(
-                            color: dark
-                                ? const Color(0xFF6E6E73)
-                                : Colors.black26,
-                            borderRadius: BorderRadius.circular(3),
-                          ),
-                        ),
+                  return Container(
+                    decoration: BoxDecoration(
+                      color: dark ? const Color(0xFF1E1E20) : Colors.white,
+                      borderRadius: const BorderRadius.vertical(
+                        top: Radius.circular(28),
                       ),
-                      _buildChapterSheetHeader(listView, setSheetState),
-                      Expanded(
-                        child: switch (listView) {
-                          'grid' => _buildPageGridView(
-                            sheetController,
-                            currentIndex,
-                            headers,
-                          ),
-                          'bookmark' => _buildBookmarksView(
-                            sheetController,
-                            headers,
-                            onRefresh: () => setSheetState(() {}),
-                          ),
-                          'download' => _buildDownloadsView(sheetController),
-                          _ => _buildChapterListView(
-                            sheetController,
-                            currentIndex,
-                          ),
-                        },
+                    ),
+                    child: ClipRRect(
+                      borderRadius: const BorderRadius.vertical(
+                        top: Radius.circular(28),
                       ),
-                    ],
+                      child: Column(
+                        children: [
+                          Center(
+                            child: Container(
+                              width: 36,
+                              height: 5,
+                              margin: const EdgeInsets.only(top: 12, bottom: 8),
+                              decoration: BoxDecoration(
+                                color: dark
+                                    ? const Color(0xFF6E6E73)
+                                    : Colors.black26,
+                                borderRadius: BorderRadius.circular(3),
+                              ),
+                            ),
+                          ),
+                          _buildChapterSheetHeader(listView, setSheetState),
+                          Expanded(
+                            child: switch (listView) {
+                              'grid' => _buildPageGridView(
+                                sheetController,
+                                currentIndex,
+                                headers,
+                              ),
+                              'bookmark' => _buildBookmarksView(
+                                sheetController,
+                                headers,
+                                onRefresh: () => setSheetState(() {}),
+                              ),
+                              'download' => _buildDownloadsView(
+                                sheetController,
+                              ),
+                              _ => _buildChapterListView(
+                                sheetController,
+                                currentIndex,
+                              ),
+                            },
+                          ),
+                        ],
+                      ),
+                    ),
                   );
                 },
               );
