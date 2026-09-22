@@ -351,9 +351,7 @@ class _ReaderScreenState extends ConsumerState<ReaderScreen>
     final progress = widget.totalChapters > 0
         ? (((chapterIndex + 1) / widget.totalChapters) * 100).round()
         : (totalPages > 0 ? (((page + 1) / totalPages) * 100).round() : 0);
-    final ch = chapterLabel.isNotEmpty
-        ? chapterLabel
-        : '${chapterIndex + 1}';
+    final ch = chapterLabel.isNotEmpty ? chapterLabel : '${chapterIndex + 1}';
     return 'Ch. $ch/${widget.totalChapters} Pg. ${page + 1}/$totalPages $progress%';
   }
 
@@ -723,67 +721,71 @@ class _ReaderScreenState extends ConsumerState<ReaderScreen>
           ? const Color(0xFF1C1C1E)
           : Colors.white,
       barrierColor: Colors.black.withValues(alpha: 0.5),
+      isScrollControlled: true,
       shape: const RoundedRectangleBorder(
         borderRadius: BorderRadius.vertical(top: Radius.circular(28)),
       ),
       builder: (context) {
-        return DraggableScrollableSheet(
-          controller: _trayExtentController,
-          expand: false,
-          initialChildSize: 0.7,
-          minChildSize: 0.3,
-          maxChildSize: 0.9,
-          builder: (context, sheetController) {
-            return StatefulBuilder(
-              builder: (context, setSheetState) {
-                final dark = Theme.of(context).brightness == Brightness.dark;
-                _trayOpen = true;
-                _trayRefresh = () => setSheetState(() {});
-                if (!didJump) {
-                  _jumpToCurrentInSheet(sheetController, currentIndex, 72, 0);
-                  didJump = true;
-                }
+        return SizedBox.expand(
+          child: DraggableScrollableSheet(
+            controller: _trayExtentController,
+            initialChildSize: 0.7,
+            minChildSize: 0.3,
+            maxChildSize: 1.0,
+            snap: true,
+            snapSizes: const [0.3, 0.7, 1.0],
+            builder: (context, sheetController) {
+              return StatefulBuilder(
+                builder: (context, setSheetState) {
+                  final dark = Theme.of(context).brightness == Brightness.dark;
+                  _trayOpen = true;
+                  _trayRefresh = () => setSheetState(() {});
+                  if (!didJump) {
+                    _jumpToCurrentInSheet(sheetController, currentIndex, 72, 0);
+                    didJump = true;
+                  }
 
-                return Column(
-                  children: [
-                    Center(
-                      child: Container(
-                        width: 36,
-                        height: 5,
-                        margin: const EdgeInsets.only(top: 12, bottom: 8),
-                        decoration: BoxDecoration(
-                          color: dark
-                              ? const Color(0xFF6E6E73)
-                              : Colors.black26,
-                          borderRadius: BorderRadius.circular(3),
+                  return Column(
+                    children: [
+                      Center(
+                        child: Container(
+                          width: 36,
+                          height: 5,
+                          margin: const EdgeInsets.only(top: 12, bottom: 8),
+                          decoration: BoxDecoration(
+                            color: dark
+                                ? const Color(0xFF6E6E73)
+                                : Colors.black26,
+                            borderRadius: BorderRadius.circular(3),
+                          ),
                         ),
                       ),
-                    ),
-                    _buildChapterSheetHeader(listView, setSheetState),
-                    Expanded(
-                      child: switch (listView) {
-                        'grid' => _buildPageGridView(
-                          sheetController,
-                          currentIndex,
-                          headers,
-                        ),
-                        'bookmark' => _buildBookmarksView(
-                          sheetController,
-                          headers,
-                          onRefresh: () => setSheetState(() {}),
-                        ),
-                        'download' => _buildDownloadsView(sheetController),
-                        _ => _buildChapterListView(
-                          sheetController,
-                          currentIndex,
-                        ),
-                      },
-                    ),
-                  ],
-                );
-              },
-            );
-          },
+                      _buildChapterSheetHeader(listView, setSheetState),
+                      Expanded(
+                        child: switch (listView) {
+                          'grid' => _buildPageGridView(
+                            sheetController,
+                            currentIndex,
+                            headers,
+                          ),
+                          'bookmark' => _buildBookmarksView(
+                            sheetController,
+                            headers,
+                            onRefresh: () => setSheetState(() {}),
+                          ),
+                          'download' => _buildDownloadsView(sheetController),
+                          _ => _buildChapterListView(
+                            sheetController,
+                            currentIndex,
+                          ),
+                        },
+                      ),
+                    ],
+                  );
+                },
+              );
+            },
+          ),
         );
       },
     ).then((_) {
@@ -818,27 +820,13 @@ class _ReaderScreenState extends ConsumerState<ReaderScreen>
     });
   }
 
-  Widget _buildChapterSheetHeader(
-    String listView,
-    StateSetter setSheetState,
-  ) {
+  Widget _buildChapterSheetHeader(String listView, StateSetter setSheetState) {
     final dark = Theme.of(context).brightness == Brightness.dark;
     final iconColor = dark ? Colors.white : const Color(0xFF1C1B1F);
     final selectedCount = _selectedIds.length;
 
-    final currentChapterIndex = _currentChapterIndex.clamp(
-      0,
-      widget.allChapters.length - 1,
-    );
-    final currentChapter = widget.allChapters[currentChapterIndex];
-    final pageNumber = currentChapter.chapterNumber.isNotEmpty
-        ? currentChapter.chapterNumber
-        : '${currentChapterIndex + 1}';
-    final currentIsRead =
-        _lastReadChapter >= 0 && (currentChapterIndex + 1) <= _lastReadChapter;
-
     return Padding(
-      padding: const EdgeInsets.fromLTRB(12, 8, 8, 8),
+      padding: const EdgeInsets.fromLTRB(12, 8, 12, 8),
       child: AnimatedSwitcher(
         duration: const Duration(milliseconds: 200),
         child: _selectionMode
@@ -913,72 +901,26 @@ class _ReaderScreenState extends ConsumerState<ReaderScreen>
                     ),
                 ],
               )
-            : Stack(
+            : Row(
                 key: const ValueKey('trayHeader'),
-                alignment: Alignment.center,
                 children: [
-                  // Close 'X' on the left.
-                  Align(
-                    alignment: Alignment.centerLeft,
-                    child: IconButton(
-                      icon: Icon(RemixIcons.close_line, color: iconColor),
-                      onPressed: () => Navigator.of(context).pop(),
-                    ),
+                  _buildTrayViewIcon(
+                    icon: RemixIcons.list_unordered,
+                    active: listView == 'list',
+                    dark: dark,
+                    onTap: () => setSheetState(() => listView = 'list'),
                   ),
-                  // Page number in the exact center.
-                  Text(
-                    pageNumber,
-                    style: TextStyle(
-                      color: iconColor,
-                      fontSize: 16,
-                      fontWeight: FontWeight.bold,
-                    ),
+                  _buildTrayViewIcon(
+                    icon: RemixIcons.grid_line,
+                    active: listView == 'grid',
+                    dark: dark,
+                    onTap: () => setSheetState(() => listView = 'grid'),
                   ),
-                  // Save, Hide, Layout actions on the right.
-                  Align(
-                    alignment: Alignment.centerRight,
-                    child: Row(
-                      mainAxisSize: MainAxisSize.min,
-                      children: [
-                        IconButton(
-                          tooltip: AppLocalizations.of(
-                            context,
-                          ).detailDownload,
-                          icon: Icon(
-                            RemixIcons.download_2_line,
-                            color: iconColor,
-                          ),
-                          onPressed: () =>
-                              _downloadChapter(currentChapter),
-                        ),
-                        IconButton(
-                          tooltip: AppLocalizations.of(context).toggleRead,
-                          icon: Icon(
-                            currentIsRead
-                                ? RemixIcons.eye_off_line
-                                : RemixIcons.eye_line,
-                            color: iconColor,
-                          ),
-                          onPressed: () => setSheetState(
-                            () => _toggleCurrentChapterRead(),
-                          ),
-                        ),
-                        IconButton(
-                          tooltip: AppLocalizations.of(
-                            context,
-                          ).readerCurrentChapter,
-                          icon: Icon(
-                            listView == 'grid'
-                                ? RemixIcons.list_unordered
-                                : RemixIcons.grid_line,
-                            color: iconColor,
-                          ),
-                          onPressed: () => setSheetState(
-                            () => listView = listView == 'grid' ? 'list' : 'grid',
-                          ),
-                        ),
-                      ],
-                    ),
+                  _buildTrayViewIcon(
+                    icon: RemixIcons.bookmark_2_line,
+                    active: listView == 'bookmark',
+                    dark: dark,
+                    onTap: () => setSheetState(() => listView = 'bookmark'),
                   ),
                 ],
               ),
@@ -986,23 +928,28 @@ class _ReaderScreenState extends ConsumerState<ReaderScreen>
     );
   }
 
-  void _toggleCurrentChapterRead() {
-    final index = _currentChapterIndex;
-    final read = _lastReadChapter >= 0 && (index + 1) <= _lastReadChapter;
-    setState(
-      () => _lastReadChapter = read ? index.toDouble() : (index + 1).toDouble(),
+  // A single clean, thin icon to switch the tray's view (list/grid/bookmark),
+  // tinted when active, grey otherwise. No heavy background.
+  Widget _buildTrayViewIcon({
+    required IconData icon,
+    required bool active,
+    required bool dark,
+    required VoidCallback onTap,
+  }) {
+    return GestureDetector(
+      onTap: onTap,
+      behavior: HitTestBehavior.opaque,
+      child: Padding(
+        padding: const EdgeInsets.all(10),
+        child: Icon(
+          icon,
+          color: active
+              ? (dark ? Colors.white : const Color(0xFF1C1B1F))
+              : Colors.grey,
+          size: 20,
+        ),
+      ),
     );
-    DatabaseHelper.instance.saveMangaProgress(
-      mangaId: widget.mangaId,
-      title: widget.mangaTitle ?? 'Unknown',
-      coverUrl: widget.mangaCoverUrl,
-      sourceId: widget.sourceId,
-      totalChapters: widget.totalChapters,
-      lastTrayTotalChapters: widget.totalChapters,
-      lastReadChapter: _lastReadChapter,
-    );
-    bumpDownloadsRevision(ref);
-    _refreshTray();
   }
 
   Widget _buildChapterListView(ScrollController controller, int currentIndex) {
@@ -1017,16 +964,26 @@ class _ReaderScreenState extends ConsumerState<ReaderScreen>
         final isCurrent = index == currentIndex;
         final isSelected = _selectedIds.contains(chapter.id);
         final isRead = _lastReadChapter >= 0 && (index + 1) <= _lastReadChapter;
-        final downloaded = _downloadedChapters.contains(chapter.id);
-        final active = _activeDownloads[chapter.id];
 
-        final Widget tile = ListTile(
+        return ListTile(
           key: ValueKey(chapter.id),
           dense: true,
           contentPadding: const EdgeInsets.symmetric(
             horizontal: 16,
             vertical: 2,
           ),
+          shape: isSelected
+              ? RoundedRectangleBorder(
+                  borderRadius: BorderRadius.circular(12),
+                  side: BorderSide(
+                    color: dark ? Colors.white : const Color(0xFF334155),
+                    width: 1.5,
+                  ),
+                )
+              : null,
+          tileColor: isSelected
+              ? (dark ? const Color(0xFF2C2C2C) : const Color(0xFFE2E8F0))
+              : null,
           title: Row(
             children: [
               Icon(
@@ -1049,10 +1006,6 @@ class _ReaderScreenState extends ConsumerState<ReaderScreen>
                   style: TextStyle(
                     color: isRead && !isCurrent
                         ? Colors.grey
-                        : isCurrent
-                        ? (dark
-                              ? Colors.white
-                              : Theme.of(context).colorScheme.primary)
                         : (dark ? Colors.white70 : const Color(0xFF49454F)),
                     fontSize: 14,
                     fontWeight: isCurrent ? FontWeight.bold : FontWeight.w400,
@@ -1065,51 +1018,15 @@ class _ReaderScreenState extends ConsumerState<ReaderScreen>
             _chapterSubtitle(chapter, AppLocalizations.of(context)),
             maxLines: 1,
             overflow: TextOverflow.ellipsis,
-            style: TextStyle(
-              color: Colors.grey,
-              fontSize: 12,
-            ),
+            style: TextStyle(color: Colors.grey, fontSize: 11),
           ),
-          trailing: Row(
-            mainAxisSize: MainAxisSize.min,
-            children: [
-              if (_selectionMode && downloaded)
-                Padding(
-                  padding: const EdgeInsets.only(right: 10),
-                  child: Icon(
-                    RemixIcons.sd_card_line,
-                    color: dark ? Colors.white70 : const Color(0xFF49454F),
-                    size: 18,
-                  ),
-                ),
-              if (isSelected)
-                Icon(
+          trailing: isSelected
+              ? Icon(
                   RemixIcons.check_fill,
                   color: Theme.of(context).colorScheme.primary,
                   size: 18,
                 )
-              else if (active != null)
-                Padding(
-                  padding: const EdgeInsets.only(right: 8),
-                  child: SizedBox(
-                    width: 20,
-                    height: 20,
-                    child: CircularProgressIndicator(
-                      value: active.total > 0
-                          ? (active.done / active.total).clamp(0.0, 1.0)
-                          : null,
-                      strokeWidth: 2.5,
-                      color: dark
-                          ? Colors.white
-                          : Theme.of(context).colorScheme.primary,
-                      backgroundColor: dark ? Colors.white24 : Colors.black12,
-                    ),
-                  ),
-                )
-              else if (!_selectionMode && !isCurrent)
-                _buildChapterDownloadControl(chapter),
-            ],
-          ),
+              : null,
           onTap: () {
             if (_selectionMode) {
               _toggleSelection(chapter.id);
@@ -1120,75 +1037,7 @@ class _ReaderScreenState extends ConsumerState<ReaderScreen>
           },
           onLongPress: () => _enterSelection(chapter.id),
         );
-
-        // 1. Normal active state (reading): light-blue background + play icon,
-        //    no border, no checkmark.
-        // 2. Long-press / selected state: light-blue background + thin blue
-        //    border + blue checkmark on the far right.
-        final bool highlight = (isCurrent && !_selectionMode) || isSelected;
-        if (highlight) {
-          return Container(
-            key: ValueKey(chapter.id),
-            decoration: BoxDecoration(
-              color: dark ? const Color(0xFF21314F) : Colors.blue.shade50,
-              border: isSelected
-                  ? Border.all(
-                      color: Colors.blue.shade300,
-                      width: 1.5,
-                    )
-                  : null,
-              borderRadius: BorderRadius.circular(8),
-            ),
-            child: tile,
-          );
-        }
-        return tile;
       },
-    );
-  }
-
-  Widget _buildChapterDownloadControl(Chapter chapter) {
-    final dark = Theme.of(context).brightness == Brightness.dark;
-    final active = _activeDownloads[chapter.id];
-    if (active != null) {
-      final pct = active.total == 0
-          ? 0
-          : (active.done / active.total * 100).round();
-      return Row(
-        mainAxisSize: MainAxisSize.min,
-        children: [
-          Text(
-            '$pct%',
-            style: TextStyle(
-              color: dark ? Colors.white54 : Colors.black54,
-              fontSize: 11,
-            ),
-          ),
-          IconButton(
-            icon: Icon(
-              RemixIcons.close_line,
-              color: dark ? Colors.white54 : Colors.black54,
-              size: 18,
-            ),
-            tooltip: AppLocalizations.of(context).readerCancelDownload,
-            onPressed: active.cancel,
-          ),
-        ],
-      );
-    }
-    final downloaded = _downloadedChapters.contains(chapter.id);
-    return IconButton(
-      tooltip: downloaded
-          ? AppLocalizations.of(context).removeDownloadTooltip
-          : AppLocalizations.of(context).readerDownloadChapter,
-      icon: Icon(
-        downloaded ? RemixIcons.cloud_fill : RemixIcons.download_cloud_line,
-        color: downloaded
-            ? _activeGreen
-            : (dark ? Colors.white38 : Colors.black38),
-        size: 22,
-      ),
-      onPressed: () => _toggleChapterDownload(chapter),
     );
   }
 
@@ -1660,9 +1509,7 @@ class _ReaderScreenState extends ConsumerState<ReaderScreen>
                         ),
                         leading: Icon(
                           RemixIcons.save_2_line,
-                          color: dark
-                              ? Colors.white
-                              : const Color(0xFF1C1B1F),
+                          color: dark ? Colors.white : const Color(0xFF1C1B1F),
                           size: 22,
                         ),
                         title: Text(
@@ -1750,9 +1597,7 @@ class _ReaderScreenState extends ConsumerState<ReaderScreen>
                         inactiveTrackColor: dark
                             ? Colors.white24
                             : Colors.black26,
-                        inactiveThumbColor: dark
-                            ? Colors.white
-                            : Colors.white,
+                        inactiveThumbColor: dark ? Colors.white : Colors.white,
                         dense: true,
                         title: Text(
                           l.readerTwoPagesLandscape,
@@ -1778,9 +1623,7 @@ class _ReaderScreenState extends ConsumerState<ReaderScreen>
                         inactiveTrackColor: dark
                             ? Colors.white24
                             : Colors.black26,
-                        inactiveThumbColor: dark
-                            ? Colors.white
-                            : Colors.white,
+                        inactiveThumbColor: dark ? Colors.white : Colors.white,
                         dense: true,
                         title: Text(
                           l.readerRotateScreen,
@@ -1807,9 +1650,7 @@ class _ReaderScreenState extends ConsumerState<ReaderScreen>
                         ),
                         leading: Icon(
                           RemixIcons.timer_line,
-                          color: dark
-                              ? Colors.white
-                              : const Color(0xFF1C1B1F),
+                          color: dark ? Colors.white : const Color(0xFF1C1B1F),
                           size: 22,
                         ),
                         title: Text(
@@ -1830,9 +1671,7 @@ class _ReaderScreenState extends ConsumerState<ReaderScreen>
                         ),
                         leading: Icon(
                           RemixIcons.contrast_2_line,
-                          color: dark
-                              ? Colors.white
-                              : const Color(0xFF1C1B1F),
+                          color: dark ? Colors.white : const Color(0xFF1C1B1F),
                           size: 22,
                         ),
                         title: Text(
@@ -1853,9 +1692,7 @@ class _ReaderScreenState extends ConsumerState<ReaderScreen>
                         ),
                         leading: Icon(
                           RemixIcons.settings_4_line,
-                          color: dark
-                              ? Colors.white
-                              : const Color(0xFF1C1B1F),
+                          color: dark ? Colors.white : const Color(0xFF1C1B1F),
                           size: 22,
                         ),
                         title: Text(
@@ -1932,7 +1769,9 @@ class _ReaderScreenState extends ConsumerState<ReaderScreen>
                       size: 16,
                       color: isSelected
                           ? selectedFg
-                          : dark ? Colors.white70 : Colors.black,
+                          : dark
+                          ? Colors.white70
+                          : Colors.black,
                     ),
                     const SizedBox(width: 5),
                     Flexible(
@@ -1944,10 +1783,13 @@ class _ReaderScreenState extends ConsumerState<ReaderScreen>
                         style: TextStyle(
                           color: isSelected
                               ? selectedFg
-                              : dark ? Colors.white70 : Colors.black,
+                              : dark
+                              ? Colors.white70
+                              : Colors.black,
                           fontSize: 12.5,
-                          fontWeight:
-                              isSelected ? FontWeight.w600 : FontWeight.w400,
+                          fontWeight: isSelected
+                              ? FontWeight.w600
+                              : FontWeight.w400,
                         ),
                       ),
                     ),
@@ -2072,8 +1914,9 @@ class _ReaderScreenState extends ConsumerState<ReaderScreen>
   /// chapter, which forward-navigation and progress-saving depend on).
   Future<void> _loadPreviousChapter() async {
     if (_isLoadingPreviousChapter) return;
-    final frontChapter =
-        _pagesChapters.isNotEmpty ? _pagesChapters.first : _currentChapterIndex;
+    final frontChapter = _pagesChapters.isNotEmpty
+        ? _pagesChapters.first
+        : _currentChapterIndex;
     final prevIndex = frontChapter - 1;
     if (prevIndex < 0 || prevIndex >= widget.allChapters.length) return;
     if (_loadedChapterIndices.contains(prevIndex)) return;
@@ -2444,18 +2287,6 @@ class _ReaderScreenState extends ConsumerState<ReaderScreen>
     });
   }
 
-  void _toggleChapterDownload(Chapter chapter) {
-    if (_activeDownloads.containsKey(chapter.id)) {
-      _activeDownloads[chapter.id]?.cancel();
-      return;
-    }
-    if (_downloadedChapters.contains(chapter.id)) {
-      _confirmRemoveDownload(chapter.id, chapter.title);
-      return;
-    }
-    _downloadChapter(chapter);
-  }
-
   Future<bool> _downloadChapter(Chapter chapter, {bool notify = true}) async {
     MangaSource? source;
     if (widget.sourceId != null) {
@@ -2626,7 +2457,7 @@ class _ReaderScreenState extends ConsumerState<ReaderScreen>
     });
     // Jump the tray to full height so the selection actions stay visible.
     _trayExtentController.animateTo(
-      0.9,
+      1.0,
       duration: const Duration(milliseconds: 250),
       curve: Curves.easeOut,
     );
@@ -3100,76 +2931,18 @@ class _ReaderScreenState extends ConsumerState<ReaderScreen>
                           child: Transform.translate(
                             offset: const Offset(0, -3),
                             child: Padding(
-                            padding: const EdgeInsets.fromLTRB(12, 2, 12, 4),
-                            child: Row(
-                              mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                              crossAxisAlignment: CrossAxisAlignment.center,
-                              children: [
-                                Flexible(
-                                  child: Text(
-                                    _immersiveStatusText(
-                                      readChapterIndex,
-                                      chLabel,
-                                    ),
-                                    style: TextStyle(
-                                      color: Colors.white,
-                                      fontSize: 12.5,
-                                      fontWeight: FontWeight.w600,
-                                      letterSpacing: 0.2,
-                                      shadows: const [
-                                        Shadow(
-                                          color: Colors.black,
-                                          blurRadius: 1.5,
-                                          offset: Offset(0, 0),
-                                        ),
-                                        Shadow(
-                                          color: Colors.black87,
-                                          blurRadius: 5,
-                                          offset: Offset(0, 1),
-                                        ),
-                                      ],
-                                    ),
-                                    maxLines: 1,
-                                    overflow: TextOverflow.ellipsis,
-                                  ),
-                                ),
-                                const SizedBox(width: 12),
-                                Row(
-                                  mainAxisSize: MainAxisSize.min,
-                                  children: [
-                                    if (_batteryLevel >= 0) ...[
-                                      Icon(
-                                        _batteryLevel > 20
-                                            ? RemixIcons.battery_2_fill
-                                            : RemixIcons.battery_low_fill,
-                                        color: Colors.white,
-                                        size: 14,
+                              padding: const EdgeInsets.fromLTRB(12, 2, 12, 4),
+                              child: Row(
+                                mainAxisAlignment:
+                                    MainAxisAlignment.spaceBetween,
+                                crossAxisAlignment: CrossAxisAlignment.center,
+                                children: [
+                                  Flexible(
+                                    child: Text(
+                                      _immersiveStatusText(
+                                        readChapterIndex,
+                                        chLabel,
                                       ),
-                                      const SizedBox(width: 4),
-                                      Text(
-                                        '$_batteryLevel%',
-                                        style: TextStyle(
-                                          color: Colors.white,
-                                          fontSize: 12.5,
-                                          fontWeight: FontWeight.w600,
-                                          shadows: const [
-                                            Shadow(
-                                              color: Colors.black,
-                                              blurRadius: 1.5,
-                                              offset: Offset(0, 0),
-                                            ),
-                                            Shadow(
-                                              color: Colors.black87,
-                                              blurRadius: 5,
-                                              offset: Offset(0, 1),
-                                            ),
-                                          ],
-                                        ),
-                                      ),
-                                      const SizedBox(width: 12),
-                                    ],
-                                    Text(
-                                      _clockText,
                                       style: TextStyle(
                                         color: Colors.white,
                                         fontSize: 12.5,
@@ -3188,14 +2961,73 @@ class _ReaderScreenState extends ConsumerState<ReaderScreen>
                                           ),
                                         ],
                                       ),
+                                      maxLines: 1,
+                                      overflow: TextOverflow.ellipsis,
                                     ),
-                                  ],
-                                ),
-                              ],
+                                  ),
+                                  const SizedBox(width: 12),
+                                  Row(
+                                    mainAxisSize: MainAxisSize.min,
+                                    children: [
+                                      if (_batteryLevel >= 0) ...[
+                                        Icon(
+                                          _batteryLevel > 20
+                                              ? RemixIcons.battery_2_fill
+                                              : RemixIcons.battery_low_fill,
+                                          color: Colors.white,
+                                          size: 14,
+                                        ),
+                                        const SizedBox(width: 4),
+                                        Text(
+                                          '$_batteryLevel%',
+                                          style: TextStyle(
+                                            color: Colors.white,
+                                            fontSize: 12.5,
+                                            fontWeight: FontWeight.w600,
+                                            shadows: const [
+                                              Shadow(
+                                                color: Colors.black,
+                                                blurRadius: 1.5,
+                                                offset: Offset(0, 0),
+                                              ),
+                                              Shadow(
+                                                color: Colors.black87,
+                                                blurRadius: 5,
+                                                offset: Offset(0, 1),
+                                              ),
+                                            ],
+                                          ),
+                                        ),
+                                        const SizedBox(width: 12),
+                                      ],
+                                      Text(
+                                        _clockText,
+                                        style: TextStyle(
+                                          color: Colors.white,
+                                          fontSize: 12.5,
+                                          fontWeight: FontWeight.w600,
+                                          letterSpacing: 0.2,
+                                          shadows: const [
+                                            Shadow(
+                                              color: Colors.black,
+                                              blurRadius: 1.5,
+                                              offset: Offset(0, 0),
+                                            ),
+                                            Shadow(
+                                              color: Colors.black87,
+                                              blurRadius: 5,
+                                              offset: Offset(0, 1),
+                                            ),
+                                          ],
+                                        ),
+                                      ),
+                                    ],
+                                  ),
+                                ],
+                              ),
                             ),
                           ),
-                        ),
-                      )
+                        )
                       : const SizedBox(
                           key: ValueKey('noStatusBar'),
                           width: 0,
@@ -3419,10 +3251,7 @@ class _ReaderScreenState extends ConsumerState<ReaderScreen>
         errorWidget: (context, url, error) => _buildPageError(index: index),
       );
     }
-    return _buildZoomablePage(
-      index: index,
-      child: _applyColorFilter(image),
-    );
+    return _buildZoomablePage(index: index, child: _applyColorFilter(image));
   }
 
   // --- DOUBLE-TAP ZOOM WRAPPER (Mangayomi-style, no pinch) ---
@@ -3435,8 +3264,10 @@ class _ReaderScreenState extends ConsumerState<ReaderScreen>
     // tap always operates on the SAME matrix that is displayed. The page is
     // drawn with a plain Transform of that matrix (identity when idle), so
     // rendering is identical to the zoom-off path.
-    final controller =
-        _zoomControllers.putIfAbsent(index, TransformationController.new);
+    final controller = _zoomControllers.putIfAbsent(
+      index,
+      TransformationController.new,
+    );
     return GestureDetector(
       behavior: HitTestBehavior.opaque,
       onDoubleTapDown: (details) => _zoomFocal[index] = details.localPosition,
@@ -3463,7 +3294,8 @@ class _ReaderScreenState extends ConsumerState<ReaderScreen>
     final size = _lastViewportSize;
     final s = matrix.getMaxScaleOnAxis();
     if (s <= 1.0) return Matrix4.identity();
-    if (size == null || size.width <= 0 || size.height <= 0) return matrix.clone();
+    if (size == null || size.width <= 0 || size.height <= 0)
+      return matrix.clone();
     final t = matrix.getTranslation();
     final dx = t.x.clamp(-(s - 1) * size.width, 0.0).toDouble();
     final dy = t.y.clamp(-(s - 1) * size.height, 0.0).toDouble();
@@ -3694,9 +3526,7 @@ class _ReaderProgressTrackState extends State<_ReaderProgressTrack> {
       0,
       relativeMax,
     );
-    final accent = dark
-        ? Colors.white
-        : Theme.of(context).colorScheme.primary;
+    final accent = dark ? Colors.white : Theme.of(context).colorScheme.primary;
     final dim = dark ? Colors.white70 : const Color(0xFF49454F);
 
     return Column(
@@ -3767,25 +3597,34 @@ class _DottedPageSliderState extends State<_DottedPageSlider> {
           behavior: HitTestBehavior.opaque,
           onTapDown: enabled
               ? (d) {
-                  widget.onChangeStart(_valueAt(d.localPosition.dx, constraints.maxWidth));
-                  widget.onChanged(_valueAt(d.localPosition.dx, constraints.maxWidth));
+                  widget.onChangeStart(
+                    _valueAt(d.localPosition.dx, constraints.maxWidth),
+                  );
+                  widget.onChanged(
+                    _valueAt(d.localPosition.dx, constraints.maxWidth),
+                  );
                 }
               : null,
           onHorizontalDragStart: enabled
               ? (d) {
-                  widget.onChangeStart(_valueAt(d.localPosition.dx, constraints.maxWidth));
+                  widget.onChangeStart(
+                    _valueAt(d.localPosition.dx, constraints.maxWidth),
+                  );
                 }
               : null,
           onHorizontalDragUpdate: enabled
               ? (d) {
-                  widget.onChanged(_valueAt(d.localPosition.dx, constraints.maxWidth));
+                  widget.onChanged(
+                    _valueAt(d.localPosition.dx, constraints.maxWidth),
+                  );
                 }
               : null,
           child: CustomPaint(
             size: Size(constraints.maxWidth, height),
             painter: _DottedTrackPainter(
               progress: enabled
-                  ? ((widget.value - widget.min) / (widget.max - widget.min)).clamp(0.0, 1.0)
+                  ? ((widget.value - widget.min) / (widget.max - widget.min))
+                        .clamp(0.0, 1.0)
                   : 1.0,
               accent: widget.accent,
               dotColor: widget.dotColor,

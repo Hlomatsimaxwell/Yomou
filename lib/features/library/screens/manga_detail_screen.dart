@@ -988,7 +988,10 @@ class _MangaDetailScreenState extends ConsumerState<MangaDetailScreen> {
               if (isRead) return l.chapterStatusRead;
               if (downloaded) return l.chapterStatusDownloaded;
               return '';
-            }(), style: const TextStyle(color: Colors.grey, fontSize: 12)),
+            }(), style: TextStyle(
+              color: dark ? Colors.white38 : Colors.grey.shade400,
+              fontSize: 11,
+            )),
             trailing: Row(
               mainAxisSize: MainAxisSize.min,
               children: [
@@ -1029,18 +1032,6 @@ class _MangaDetailScreenState extends ConsumerState<MangaDetailScreen> {
                       ),
                     ),
                   )
-                else if (!_selectionMode && isCurrent)
-                  Icon(
-                    RemixIcons.check_fill,
-                    color: Theme.of(context).colorScheme.primary,
-                    size: 20,
-                  )
-                else if (!_selectionMode && isRead)
-                  Icon(
-                    RemixIcons.checkbox_circle_line,
-                    color: dark ? Colors.white70 : const Color(0xFF49454F),
-                    size: 18,
-                  ),
               ],
             ),
             onTap: () {
@@ -3202,8 +3193,8 @@ class _SheetHeaderDelegate extends SliverPersistentHeaderDelegate {
     final label = (hasRead)
         ? '${l.continueAction} · ${continueChapterNumber ?? ''}'.trim()
         : l.readAction;
-    final leftColor = scheme.primary;
-    final rightColor = Color.lerp(scheme.primary, Colors.black, 0.14)!;
+    final leftColor = Colors.blue.shade700;
+    final rightColor = Colors.blue.shade800;
     return Row(
       mainAxisSize: MainAxisSize.min,
       children: [
@@ -3216,12 +3207,11 @@ class _SheetHeaderDelegate extends SliverPersistentHeaderDelegate {
               borderRadius: const BorderRadius.horizontal(
                 left: Radius.circular(20),
               ),
-              border: dark ? Border.all(color: Colors.white12, width: 1) : null,
             ),
             child: Text(
               label,
-              style: TextStyle(
-                color: scheme.onPrimary,
+              style: const TextStyle(
+                color: Colors.white,
                 fontSize: 13,
                 fontWeight: FontWeight.bold,
               ),
@@ -3238,15 +3228,12 @@ class _SheetHeaderDelegate extends SliverPersistentHeaderDelegate {
                 right: Radius.circular(20),
               ),
               border: Border(
-                left: BorderSide(
-                  color: dark ? Colors.white24 : Colors.white54,
-                  width: 0.5,
-                ),
+                left: BorderSide(color: Colors.blue.shade600, width: 0.5),
               ),
             ),
-            child: Icon(
+            child: const Icon(
               RemixIcons.arrow_down_s_line,
-              color: scheme.onPrimary,
+              color: Colors.white,
               size: 20,
             ),
           ),
