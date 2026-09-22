@@ -15,7 +15,7 @@ class SettingsScreen extends StatelessWidget {
     return Scaffold(
       appBar: SettingsAppBar(title: l.settings),
       body: ListView(
-        padding: const EdgeInsets.symmetric(vertical: 8),
+        padding: const EdgeInsets.symmetric(vertical: 4),
         children: [
           _buildSettingTile(
             context: context,
@@ -33,7 +33,7 @@ class SettingsScreen extends StatelessWidget {
           ),
           _buildSettingTile(
             context: context,
-            icon: RemixIcons.bookmark_3_line,
+            icon: RemixIcons.window_2_line,
             title: l.settingsMangaSources,
             subtitle: l.settingsMangaSourcesSubtitle,
             onTap: () {},
@@ -47,14 +47,14 @@ class SettingsScreen extends StatelessWidget {
           ),
           _buildSettingTile(
             context: context,
-            icon: RemixIcons.pie_chart_2_line,
+            icon: RemixIcons.refresh_line,
             title: l.settingsStorage,
             subtitle: l.settingsStorageSubtitle,
             onTap: () {
               Navigator.push(
                 context,
                 MaterialPageRoute(
-                  builder: (_) => const StorageSettingsScreen(),
+                  builder: (context) => const StorageSettingsScreen(),
                 ),
               );
             },
@@ -75,7 +75,7 @@ class SettingsScreen extends StatelessWidget {
               Navigator.push(
                 context,
                 MaterialPageRoute(
-                  builder: (_) => const NotificationSettingsScreen(),
+                  builder: (context) => const NotificationSettingsScreen(),
                 ),
               );
             },
@@ -114,17 +114,17 @@ class SettingsScreen extends StatelessWidget {
     required VoidCallback onTap,
   }) {
     return ListTile(
-      contentPadding: const EdgeInsets.symmetric(horizontal: 20, vertical: 6),
+      contentPadding: const EdgeInsets.symmetric(horizontal: 20, vertical: 3),
       leading: Padding(
-        padding: const EdgeInsets.only(top: 4),
+        padding: const EdgeInsets.only(right: 12),
         child: Icon(icon, size: 26),
       ),
       title: Text(
         title,
-        style: const TextStyle(fontWeight: FontWeight.w500),
+        style: const TextStyle(fontSize: 15, fontWeight: FontWeight.w600),
       ),
       subtitle: Padding(
-        padding: const EdgeInsets.only(top: 4),
+        padding: const EdgeInsets.only(top: 2),
         child: Text(subtitle),
       ),
       onTap: onTap,
