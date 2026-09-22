@@ -729,11 +729,11 @@ class _ReaderScreenState extends ConsumerState<ReaderScreen>
         return SizedBox.expand(
           child: DraggableScrollableSheet(
             controller: _trayExtentController,
-            initialChildSize: 0.7,
-            minChildSize: 0.3,
+            initialChildSize: 0.08,
+            minChildSize: 0.08,
             maxChildSize: 1.0,
             snap: true,
-            snapSizes: const [0.3, 0.7, 1.0],
+            snapSizes: const [0.08, 0.5, 1.0],
             builder: (context, sheetController) {
               return StatefulBuilder(
                 builder: (context, setSheetState) {
