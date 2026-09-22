@@ -741,6 +741,15 @@ class _ReaderScreenState extends ConsumerState<ReaderScreen>
                   _trayOpen = true;
                   _trayRefresh = () => setSheetState(() {});
                   if (!didJump) {
+                    // Force the tray back to the mid (0.5) extent on a fresh
+                    // open: the [DraggableScrollableController] is persistent
+                    // and would otherwise inherit the size left over from a
+                    // previous long-press fullscreen.
+                    _trayExtentController.animateTo(
+                      0.5,
+                      duration: const Duration(milliseconds: 250),
+                      curve: Curves.easeOut,
+                    );
                     _jumpToCurrentInSheet(sheetController, currentIndex, 72, 0);
                     didJump = true;
                   }
