@@ -640,8 +640,8 @@ class _HomeScreenState extends ConsumerState<HomeScreen>
         borderRadius: BorderRadius.circular(20),
         child: Center(
           child: AnimatedContainer(
-            duration: const Duration(milliseconds: 220),
-            curve: Curves.easeOutCubic,
+            duration: const Duration(milliseconds: 340),
+            curve: Curves.easeOutBack,
             decoration: BoxDecoration(
               color: active
                   ? accent.withValues(
@@ -656,57 +656,83 @@ class _HomeScreenState extends ConsumerState<HomeScreen>
               horizontal: active ? 14 : 6,
               vertical: active ? 8 : 4,
             ),
-          child: Row(
-            mainAxisSize: MainAxisSize.min,
-            mainAxisAlignment: MainAxisAlignment.center,
-            children: [
-              AnimatedSwitcher(
-                duration: const Duration(milliseconds: 200),
-                switchInCurve: Curves.easeInOut,
-                switchOutCurve: Curves.easeInOut,
-                transitionBuilder: (child, animation) => FadeTransition(
-                  opacity: animation,
-                  child: ScaleTransition(scale: animation, child: child),
-                ),
-                child: index == 4
-                    ? KeyedSubtree(
-                        key: ValueKey<bool>(active),
-                        child: _buildUpdatesIcon(
-                          updatesCount,
-                          active ? fill : line,
-                          color,
-                          accent,
-                        ),
-                      )
-                    : Icon(
-                        active ? fill : line,
-                        key: ValueKey<bool>(active),
-                        size: 22,
-                        color: color,
-                      ),
-              ),
-              if (showLabels && active) ...[
-                const SizedBox(width: 5),
-                Flexible(
-                  child: FittedBox(
-                    fit: BoxFit.scaleDown,
-                    child: Text(
-                      _navLabel(context, index),
-                      softWrap: false,
-                      maxLines: 1,
-                      overflow: TextOverflow.ellipsis,
-                      style: TextStyle(
-                        fontSize: 12,
-                        fontWeight: FontWeight.w600,
-                        color: color,
-                      ),
+            child: Row(
+              mainAxisSize: MainAxisSize.min,
+              mainAxisAlignment: MainAxisAlignment.center,
+              children: [
+                AnimatedSwitcher(
+                  duration: const Duration(milliseconds: 260),
+                  switchInCurve: Curves.easeOutCubic,
+                  switchOutCurve: Curves.easeInCubic,
+                  transitionBuilder: (child, animation) => FadeTransition(
+                    opacity: animation,
+                    child: ScaleTransition(
+                      scale: Tween<double>(
+                        begin: 0.92,
+                        end: 1,
+                      ).animate(animation),
+                      child: child,
                     ),
                   ),
+                  child: index == 4
+                      ? KeyedSubtree(
+                          key: ValueKey<bool>(active),
+                          child: _buildUpdatesIcon(
+                            updatesCount,
+                            active ? fill : line,
+                            color,
+                            accent,
+                          ),
+                        )
+                      : Icon(
+                          active ? fill : line,
+                          key: ValueKey<bool>(active),
+                          size: 22,
+                          color: color,
+                        ),
                 ),
+                if (showLabels && active)
+                  AnimatedSwitcher(
+                    duration: const Duration(milliseconds: 240),
+                    switchInCurve: Curves.easeOutCubic,
+                    switchOutCurve: Curves.easeInCubic,
+                    transitionBuilder: (child, animation) => FadeTransition(
+                      opacity: animation,
+                      child: SlideTransition(
+                        position: Tween<Offset>(
+                          begin: const Offset(0.12, 0),
+                          end: Offset.zero,
+                        ).animate(animation),
+                        child: child,
+                      ),
+                    ),
+                    child: Row(
+                      key: const ValueKey<int>(0),
+                      mainAxisSize: MainAxisSize.min,
+                      children: [
+                        const SizedBox(width: 5),
+                        Flexible(
+                          child: FittedBox(
+                            fit: BoxFit.scaleDown,
+                            child: Text(
+                              _navLabel(context, index),
+                              softWrap: false,
+                              maxLines: 1,
+                              overflow: TextOverflow.ellipsis,
+                              style: TextStyle(
+                                fontSize: 12,
+                                fontWeight: FontWeight.w600,
+                                color: color,
+                              ),
+                            ),
+                          ),
+                        ),
+                      ],
+                    ),
+                  ),
               ],
-            ],
+            ),
           ),
-        ),
         ),
       ),
     );

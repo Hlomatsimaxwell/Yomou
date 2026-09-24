@@ -133,7 +133,51 @@ class AppLocalizationsEn extends AppLocalizations {
   String get settingsMangaSources => 'Manga sources';
 
   @override
-  String get settingsMangaSourcesSubtitle => '1033 of 931 on';
+  String settingsMangaSourcesSubtitle(Object enabled, Object total) {
+    return '$enabled of $total on';
+  }
+
+  @override
+  String get sourcesSortingOrder => 'Sorting order';
+
+  @override
+  String get sourcesSortOrderManual => 'Manual';
+
+  @override
+  String get sourcesSortOrderName => 'Name';
+
+  @override
+  String get sourcesManage => 'Manage sources';
+
+  @override
+  String get sourcesShowInGrid => 'Show in grid view';
+
+  @override
+  String get sourcesEnableAll => 'Enable all manga sources';
+
+  @override
+  String get sourcesChooseMirror => 'Choose mirror automatically';
+
+  @override
+  String get sourcesHandleLinks => 'Handle links';
+
+  @override
+  String get sourcesIncognitoNsfw => 'Incognito mode for NSFW manga';
+
+  @override
+  String get sourcesIncognitoEnable => 'Enable';
+
+  @override
+  String get sourcesIncognitoAsk => 'Ask every time';
+
+  @override
+  String get sourcesIncognitoDisable => 'Disable';
+
+  @override
+  String get sourcesCatalog => 'Sources catalog';
+
+  @override
+  String get sourcesCatalogSubtitle => 'Catalog of all available sources';
 
   @override
   String get settingsReader => 'Reader settings';

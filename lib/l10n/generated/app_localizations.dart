@@ -341,8 +341,92 @@ abstract class AppLocalizations {
   /// No description provided for @settingsMangaSourcesSubtitle.
   ///
   /// In en, this message translates to:
-  /// **'1033 of 931 on'**
-  String get settingsMangaSourcesSubtitle;
+  /// **'{enabled} of {total} on'**
+  String settingsMangaSourcesSubtitle(Object enabled, Object total);
+
+  /// No description provided for @sourcesSortingOrder.
+  ///
+  /// In en, this message translates to:
+  /// **'Sorting order'**
+  String get sourcesSortingOrder;
+
+  /// No description provided for @sourcesSortOrderManual.
+  ///
+  /// In en, this message translates to:
+  /// **'Manual'**
+  String get sourcesSortOrderManual;
+
+  /// No description provided for @sourcesSortOrderName.
+  ///
+  /// In en, this message translates to:
+  /// **'Name'**
+  String get sourcesSortOrderName;
+
+  /// No description provided for @sourcesManage.
+  ///
+  /// In en, this message translates to:
+  /// **'Manage sources'**
+  String get sourcesManage;
+
+  /// No description provided for @sourcesShowInGrid.
+  ///
+  /// In en, this message translates to:
+  /// **'Show in grid view'**
+  String get sourcesShowInGrid;
+
+  /// No description provided for @sourcesEnableAll.
+  ///
+  /// In en, this message translates to:
+  /// **'Enable all manga sources'**
+  String get sourcesEnableAll;
+
+  /// No description provided for @sourcesChooseMirror.
+  ///
+  /// In en, this message translates to:
+  /// **'Choose mirror automatically'**
+  String get sourcesChooseMirror;
+
+  /// No description provided for @sourcesHandleLinks.
+  ///
+  /// In en, this message translates to:
+  /// **'Handle links'**
+  String get sourcesHandleLinks;
+
+  /// No description provided for @sourcesIncognitoNsfw.
+  ///
+  /// In en, this message translates to:
+  /// **'Incognito mode for NSFW manga'**
+  String get sourcesIncognitoNsfw;
+
+  /// No description provided for @sourcesIncognitoEnable.
+  ///
+  /// In en, this message translates to:
+  /// **'Enable'**
+  String get sourcesIncognitoEnable;
+
+  /// No description provided for @sourcesIncognitoAsk.
+  ///
+  /// In en, this message translates to:
+  /// **'Ask every time'**
+  String get sourcesIncognitoAsk;
+
+  /// No description provided for @sourcesIncognitoDisable.
+  ///
+  /// In en, this message translates to:
+  /// **'Disable'**
+  String get sourcesIncognitoDisable;
+
+  /// No description provided for @sourcesCatalog.
+  ///
+  /// In en, this message translates to:
+  /// **'Sources catalog'**
+  String get sourcesCatalog;
+
+  /// No description provided for @sourcesCatalogSubtitle.
+  ///
+  /// In en, this message translates to:
+  /// **'Catalog of all available sources'**
+  String get sourcesCatalogSubtitle;
 
   /// No description provided for @settingsReader.
   ///

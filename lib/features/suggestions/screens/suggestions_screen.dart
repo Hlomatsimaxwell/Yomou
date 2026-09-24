@@ -77,7 +77,7 @@ class _SuggestionsScreenState extends ConsumerState<SuggestionsScreen> {
     if (_refreshing) return;
     _refreshing = true;
 
-    final sources = sourcesFromRows(ref.read(sourcesProvider));
+    final sources = sourcesFromRows(ref.read(visibleSourceRowsProvider));
     for (final source in sources) {
       SourceCache.invalidatePrefix('${source.id}/list/');
       SourceCache.invalidatePrefix('${source.id}/tags');

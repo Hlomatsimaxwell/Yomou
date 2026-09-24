@@ -3,6 +3,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import '../models/manga_source.dart';
+import 'package:yomou/features/settings/providers/cache_settings_provider.dart';
 import '../sources/manganato_service.dart';
 import '../sources/mock_source.dart';
 import '../sources/anime_api_source.dart';
@@ -158,6 +159,7 @@ class SourcesNotifier extends StateNotifier<List<Map<String, dynamic>>> {
       'textColor': Colors.orangeAccent,
       'iconUrl': 'https://mangadex.org/favicon.ico',
       'isPinned': true,
+      'nsfw': true,
     },
     {
       'name': 'WeebCentral',
@@ -246,6 +248,7 @@ class SourcesNotifier extends StateNotifier<List<Map<String, dynamic>>> {
       'text': '🦄',
       'iconUrl': 'https://comick.io/favicon.ico',
       'isPinned': false,
+      'nsfw': true,
     },
   ];
 
@@ -327,6 +330,13 @@ class SourcesNotifier extends StateNotifier<List<Map<String, dynamic>>> {
     }
   }
 
+  void enableAll() {
+    state = state.map((source) {
+      return {...source, 'isEnabled': true};
+    }).toList();
+    _saveToPrefs();
+  }
+
   List<Map<String, dynamic>> _sortSources(List<Map<String, dynamic>> list) {
     final pinned = list.where((s) => s['isPinned'] == true).toList();
     final unpinned = list.where((s) => s['isPinned'] != true).toList();
@@ -338,3 +348,17 @@ final sourcesProvider =
     StateNotifierProvider<SourcesNotifier, List<Map<String, dynamic>>>((ref) {
       return SourcesNotifier();
     });
+
+/// A source row is NSFW when explicitly flagged. New sources added later only
+/// need the `nsfw: true` flag to be filtered automatically.
+bool isNsfwSource(Map<String, dynamic> source) => source['nsfw'] == true;
+
+/// All source rows, minus any flagged NSFW when "Disable NSFW" is on. This is
+/// the single gate every discovery surface should watch; library/update paths
+/// keep using [sourcesProvider] so existing favorites are never hidden.
+final visibleSourceRowsProvider = Provider<List<Map<String, dynamic>>>((ref) {
+  final rows = ref.watch(sourcesProvider);
+  final disableNsfw = ref.watch(disableNsfwProvider);
+  if (!disableNsfw) return rows;
+  return rows.where((row) => !isNsfwSource(row)).toList();
+});

@@ -51,7 +51,7 @@ class SourceAltResult {
 /// screen: each source is searched independently so results appear the moment
 /// that source finishes.
 final configuredAltSourcesProvider = Provider<List<AltSource>>((ref) {
-  final rows = ref.watch(sourcesProvider);
+  final rows = ref.watch(visibleSourceRowsProvider);
   final list = <AltSource>[];
   final seen = <String>{};
   for (final row in rows) {

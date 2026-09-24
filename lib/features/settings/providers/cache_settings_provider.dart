@@ -20,6 +20,13 @@ class CacheSettings {
     required this.deleteOldBackups,
     required this.maxNumberOfBackups,
     required this.lastBackupAt,
+    required this.disableNsfw,
+    required this.sourceSortOrder,
+    required this.showSourcesInGrid,
+    required this.enableAllSources,
+    required this.chooseMirrorAutomatically,
+    required this.handleLinks,
+    required this.incognitoMode,
   });
 
   factory CacheSettings.defaults() => const CacheSettings(
@@ -32,6 +39,13 @@ class CacheSettings {
         deleteOldBackups: true,
         maxNumberOfBackups: 8,
         lastBackupAt: 0,
+        disableNsfw: false,
+        sourceSortOrder: 'manual',
+        showSourcesInGrid: false,
+        enableAllSources: false,
+        chooseMirrorAutomatically: false,
+        handleLinks: false,
+        incognitoMode: 'ask',
       );
 
   final int staleDays;
@@ -47,6 +61,27 @@ class CacheSettings {
   /// app has never completed one.
   final int lastBackupAt;
 
+  /// When true, sources flagged as NSFW are hidden from discovery surfaces.
+  final bool disableNsfw;
+
+  /// Source list sort: 'manual' (pinned-first, as ordered) or 'name'.
+  final String sourceSortOrder;
+
+  /// Whether the source-management screen shows a grid instead of a row list.
+  final bool showSourcesInGrid;
+
+  /// When toggled on, every source in the registry is enabled.
+  final bool enableAllSources;
+
+  /// Mirrors for a source are picked automatically rather than manually.
+  final bool chooseMirrorAutomatically;
+
+  /// Whether the app should handle source link intents.
+  final bool handleLinks;
+
+  /// Incognito prompt for NSFW manga: 'enable', 'ask', or 'disable'.
+  final String incognitoMode;
+
   CacheSettings copyWith({
     int? staleDays,
     int? maxCacheObjects,
@@ -57,6 +92,13 @@ class CacheSettings {
     bool? deleteOldBackups,
     int? maxNumberOfBackups,
     int? lastBackupAt,
+    bool? disableNsfw,
+    String? sourceSortOrder,
+    bool? showSourcesInGrid,
+    bool? enableAllSources,
+    bool? chooseMirrorAutomatically,
+    bool? handleLinks,
+    String? incognitoMode,
   }) => CacheSettings(
         staleDays: staleDays ?? this.staleDays,
         maxCacheObjects: maxCacheObjects ?? this.maxCacheObjects,
@@ -67,6 +109,13 @@ class CacheSettings {
         deleteOldBackups: deleteOldBackups ?? this.deleteOldBackups,
         maxNumberOfBackups: maxNumberOfBackups ?? this.maxNumberOfBackups,
         lastBackupAt: lastBackupAt ?? this.lastBackupAt,
+        disableNsfw: disableNsfw ?? this.disableNsfw,
+        sourceSortOrder: sourceSortOrder ?? this.sourceSortOrder,
+        showSourcesInGrid: showSourcesInGrid ?? this.showSourcesInGrid,
+        enableAllSources: enableAllSources ?? this.enableAllSources,
+        chooseMirrorAutomatically: chooseMirrorAutomatically ?? this.chooseMirrorAutomatically,
+        handleLinks: handleLinks ?? this.handleLinks,
+        incognitoMode: incognitoMode ?? this.incognitoMode,
       );
 }
 
@@ -81,6 +130,13 @@ class _CacheSettingsPersistence {
   static const _deleteOld = '${_prefix}deleteOld';
   static const _maxBackups = '${_prefix}maxBackups';
   static const _lastBackup = '${_prefix}lastBackup';
+  static const _disableNsfw = '${_prefix}disableNsfw';
+  static const _sourceSortOrder = '${_prefix}sourceSortOrder';
+  static const _showSourcesInGrid = '${_prefix}showSourcesInGrid';
+  static const _enableAllSources = '${_prefix}enableAllSources';
+  static const _chooseMirror = '${_prefix}chooseMirror';
+  static const _handleLinks = '${_prefix}handleLinks';
+  static const _incognitoMode = '${_prefix}incognitoMode';
 
   static Future<CacheSettings> load() async {
     final p = await SharedPreferences.getInstance();
@@ -94,6 +150,13 @@ class _CacheSettingsPersistence {
       deleteOldBackups: p.getBool(_deleteOld) ?? true,
       maxNumberOfBackups: p.getInt(_maxBackups) ?? 8,
       lastBackupAt: p.getInt(_lastBackup) ?? 0,
+      disableNsfw: p.getBool(_disableNsfw) ?? false,
+      sourceSortOrder: p.getString(_sourceSortOrder) ?? 'manual',
+      showSourcesInGrid: p.getBool(_showSourcesInGrid) ?? false,
+      enableAllSources: p.getBool(_enableAllSources) ?? false,
+      chooseMirrorAutomatically: p.getBool(_chooseMirror) ?? false,
+      handleLinks: p.getBool(_handleLinks) ?? false,
+      incognitoMode: p.getString(_incognitoMode) ?? 'ask',
     );
   }
 
@@ -108,6 +171,13 @@ class _CacheSettingsPersistence {
     await p.setBool(_deleteOld, s.deleteOldBackups);
     await p.setInt(_maxBackups, s.maxNumberOfBackups);
     await p.setInt(_lastBackup, s.lastBackupAt);
+    await p.setBool(_disableNsfw, s.disableNsfw);
+    await p.setString(_sourceSortOrder, s.sourceSortOrder);
+    await p.setBool(_showSourcesInGrid, s.showSourcesInGrid);
+    await p.setBool(_enableAllSources, s.enableAllSources);
+    await p.setBool(_chooseMirror, s.chooseMirrorAutomatically);
+    await p.setBool(_handleLinks, s.handleLinks);
+    await p.setString(_incognitoMode, s.incognitoMode);
   }
 }
 
@@ -177,6 +247,41 @@ class CacheSettingsNotifier extends StateNotifier<CacheSettings> {
     await _persist();
   }
 
+  Future<void> setDisableNsfw(bool disable) async {
+    state = state.copyWith(disableNsfw: disable);
+    await _persist();
+  }
+
+  Future<void> setSourceSortOrder(String order) async {
+    state = state.copyWith(sourceSortOrder: order);
+    await _persist();
+  }
+
+  Future<void> setShowSourcesInGrid(bool show) async {
+    state = state.copyWith(showSourcesInGrid: show);
+    await _persist();
+  }
+
+  Future<void> setEnableAllSources(bool enable) async {
+    state = state.copyWith(enableAllSources: enable);
+    await _persist();
+  }
+
+  Future<void> setChooseMirrorAutomatically(bool enable) async {
+    state = state.copyWith(chooseMirrorAutomatically: enable);
+    await _persist();
+  }
+
+  Future<void> setHandleLinks(bool handle) async {
+    state = state.copyWith(handleLinks: handle);
+    await _persist();
+  }
+
+  Future<void> setIncognitoMode(String mode) async {
+    state = state.copyWith(incognitoMode: mode);
+    await _persist();
+  }
+
   Future<void> _persist() async {
     await _CacheSettingsPersistence.save(state);
     await applyToCache();
@@ -205,6 +310,35 @@ final deleteOldBackupsProvider = StateProvider<bool>((ref) {
 
 final maxNumberOfBackupsProvider = StateProvider<int>((ref) {
   return ref.watch(cacheSettingsProvider).maxNumberOfBackups;
+});
+
+/// When true, NSFW-flagged sources are hidden from discovery surfaces.
+final disableNsfwProvider = StateProvider<bool>((ref) {
+  return ref.watch(cacheSettingsProvider).disableNsfw;
+});
+
+final sourceSortOrderProvider = StateProvider<String>((ref) {
+  return ref.watch(cacheSettingsProvider).sourceSortOrder;
+});
+
+final showSourcesInGridProvider = StateProvider<bool>((ref) {
+  return ref.watch(cacheSettingsProvider).showSourcesInGrid;
+});
+
+final enableAllSourcesProvider = StateProvider<bool>((ref) {
+  return ref.watch(cacheSettingsProvider).enableAllSources;
+});
+
+final chooseMirrorAutomaticallyProvider = StateProvider<bool>((ref) {
+  return ref.watch(cacheSettingsProvider).chooseMirrorAutomatically;
+});
+
+final handleLinksProvider = StateProvider<bool>((ref) {
+  return ref.watch(cacheSettingsProvider).handleLinks;
+});
+
+final incognitoModeProvider = StateProvider<String>((ref) {
+  return ref.watch(cacheSettingsProvider).incognitoMode;
 });
 
 /// Human-readable image-cache disk usage (e.g. "124.5 MB") recomputed on demand.

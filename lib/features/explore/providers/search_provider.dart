@@ -103,7 +103,7 @@ final globalSearchProvider =
       if (trimmed.isEmpty) return [];
 
       // Resolve enabled sources (dedupe by id).
-      final sources = resolveActiveSources(ref.watch(sourcesProvider));
+      final sources = resolveActiveSources(ref.watch(visibleSourceRowsProvider));
 
       // Title search: the common path, started immediately.
       final titleFuture = _searchAllSources(

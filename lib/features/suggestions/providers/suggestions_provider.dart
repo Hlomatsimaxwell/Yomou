@@ -104,7 +104,7 @@ final suggestionsProvider = FutureProvider.family<List<Manga>, String?>((
   ref,
   genre,
 ) async {
-  final sources = sourcesFromRows(ref.watch(sourcesProvider));
+  final sources = sourcesFromRows(ref.watch(visibleSourceRowsProvider));
   if (sources.isEmpty) return [];
 
   if (genre != null) {
@@ -146,7 +146,7 @@ final suggestionsProvider = FutureProvider.family<List<Manga>, String?>((
 /// Genre/theme chips unioned across all active sources, so the filter strip
 /// isn't limited to whichever source happens to be selected.
 final genreTagsProvider = FutureProvider<List<String>>((ref) async {
-  final sources = sourcesFromRows(ref.watch(sourcesProvider));
+  final sources = sourcesFromRows(ref.watch(visibleSourceRowsProvider));
   final perSource = await Future.wait(
     sources.map((source) async {
       try {

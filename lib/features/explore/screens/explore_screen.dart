@@ -16,6 +16,7 @@ import 'package:yomou/features/settings/screens/settings_screen.dart';
 import 'package:yomou/features/source_management/screens/manga_grid_screen.dart';
 import 'package:yomou/features/source_management/screens/manga_sources_screen.dart';
 import 'package:yomou/data/providers/sources_provider.dart';
+import 'package:yomou/features/settings/providers/cache_settings_provider.dart';
 import 'package:yomou/core/theme/layout.dart';
 import 'package:yomou/core/providers/incognito_provider.dart';
 import 'package:yomou/l10n/generated/app_localizations.dart';
@@ -63,7 +64,9 @@ class _ExploreScreenState extends ConsumerState<ExploreScreen> {
 
   @override
   Widget build(BuildContext context) {
-    final sources = ref.watch(sourcesProvider);
+    final sources = ref.watch(visibleSourceRowsProvider);
+    final showInGrid = ref.watch(showSourcesInGridProvider);
+    final enabledSources = sources.where(isSourceEnabled).toList();
 
     return Scaffold(
       backgroundColor: Theme.of(context).scaffoldBackgroundColor,
@@ -89,6 +92,7 @@ class _ExploreScreenState extends ConsumerState<ExploreScreen> {
                 _buildSectionHeader(
                   AppLocalizations.of(context).mangaSources,
                   actionLabel: AppLocalizations.of(context).exploreManage,
+                  actionColor: Theme.of(context).colorScheme.primary,
                   onMorePressed: () {
                     Navigator.push(
                       context,
@@ -98,8 +102,10 @@ class _ExploreScreenState extends ConsumerState<ExploreScreen> {
                     );
                   },
                 ),
-                const SizedBox(height: 16),
-                _buildSourcesGrid(sources.where(isSourceEnabled).toList()),
+                const SizedBox(height: 8),
+                showInGrid
+                    ? _buildSourcesGrid(enabledSources)
+                    : _buildSourcesList(enabledSources),
               ],
             ),
           ),
@@ -259,7 +265,7 @@ class _ExploreScreenState extends ConsumerState<ExploreScreen> {
     if (_loadingRandom) return;
     setState(() => _loadingRandom = true);
     try {
-      final sources = resolveActiveSources(ref.read(sourcesProvider));
+      final sources = resolveActiveSources(ref.read(visibleSourceRowsProvider));
       if (sources.isEmpty) {
         if (mounted) {
           ScaffoldMessenger.of(context).showSnackBar(
@@ -335,6 +341,7 @@ class _ExploreScreenState extends ConsumerState<ExploreScreen> {
   Widget _buildSectionHeader(
     String title, {
     String? actionLabel,
+    Color? actionColor,
     required VoidCallback onMorePressed,
   }) {
     final dark = Theme.of(context).brightness == Brightness.dark;
@@ -355,7 +362,8 @@ class _ExploreScreenState extends ConsumerState<ExploreScreen> {
           TextButton(
             onPressed: onMorePressed,
             style: TextButton.styleFrom(
-              foregroundColor: dark ? Colors.white70 : const Color(0xFF49454F),
+              foregroundColor:
+                  actionColor ?? (dark ? Colors.white70 : const Color(0xFF49454F)),
               padding: EdgeInsets.zero,
               minimumSize: const Size(0, 0),
               tapTargetSize: MaterialTapTargetSize.shrinkWrap,
@@ -368,6 +376,124 @@ class _ExploreScreenState extends ConsumerState<ExploreScreen> {
           ),
         ],
       ),
+    );
+  }
+
+  Widget _buildSourcesList(List<Map<String, dynamic>> sources) {
+    final dark = Theme.of(context).brightness == Brightness.dark;
+    return ListView.builder(
+      shrinkWrap: true,
+      physics: const NeverScrollableScrollPhysics(),
+      padding: EdgeInsets.symmetric(
+        horizontal: 16,
+        vertical: 4,
+      ),
+      itemCount: sources.length,
+      itemBuilder: (context, index) {
+        final source = sources[index];
+        final name = source['name'] as String;
+        final language = source['language'] as String? ?? '';
+        final iconUrl = source['iconUrl'] as String? ?? '';
+        final fallbackLetter = name.isEmpty ? '?' : name[0];
+        final fallbackColor = _deterministicColor(name);
+
+        return InkWell(
+          borderRadius: BorderRadius.circular(14),
+          onTap: () {
+            Navigator.push(
+              context,
+              MaterialPageRoute(
+                builder: (context) => MangaGridScreen(sourceName: name),
+              ),
+            );
+          },
+          child: Padding(
+            padding: const EdgeInsets.symmetric(vertical: 10),
+            child: Row(
+              children: [
+                ClipRRect(
+                  borderRadius: BorderRadius.circular(12),
+                  child: ColoredBox(
+                    color: fallbackColor,
+                    child: SizedBox(
+                      width: 44,
+                      height: 44,
+                      child: iconUrl.isNotEmpty
+                          ? SafeNetworkImage(
+                              imageUrl: iconUrl,
+                              fit: BoxFit.cover,
+                              errorWidget: (context, url, error) => Center(
+                                child: Text(
+                                  fallbackLetter,
+                                  style: TextStyle(
+                                    fontSize: 20,
+                                    fontWeight: FontWeight.bold,
+                                    color: dark
+                                        ? Colors.white
+                                        : const Color(0xFF1C1B1F),
+                                  ),
+                                ),
+                              ),
+                            )
+                          : Center(
+                              child: Text(
+                                fallbackLetter,
+                                style: TextStyle(
+                                  fontSize: 20,
+                                  fontWeight: FontWeight.bold,
+                                  color: dark
+                                      ? Colors.white
+                                      : const Color(0xFF1C1B1F),
+                                ),
+                              ),
+                            ),
+                    ),
+                  ),
+                ),
+                const SizedBox(width: 14),
+                Expanded(
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Text(
+                        name,
+                        maxLines: 1,
+                        overflow: TextOverflow.ellipsis,
+                        style: TextStyle(
+                          color: dark
+                              ? Colors.white
+                              : const Color(0xFF1C1B1F),
+                          fontSize: 15,
+                          fontWeight: FontWeight.bold,
+                        ),
+                      ),
+                      if (language.isNotEmpty) ...[
+                        const SizedBox(height: 3),
+                        Text(
+                          language,
+                          maxLines: 1,
+                          overflow: TextOverflow.ellipsis,
+                          style: TextStyle(
+                            color: dark
+                                ? Colors.white54
+                                : const Color(0xFF9E9E9E),
+                            fontSize: 13,
+                          ),
+                        ),
+                      ],
+                    ],
+                  ),
+                ),
+                Icon(
+                  RemixIcons.arrow_right_s_line,
+                  size: 20,
+                  color: dark ? Colors.white30 : Colors.black26,
+                ),
+              ],
+            ),
+          ),
+        );
+      },
     );
   }
 

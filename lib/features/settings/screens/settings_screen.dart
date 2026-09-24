@@ -1,18 +1,26 @@
 import 'package:flutter/material.dart';
+import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:remixicon/remixicon.dart';
 import 'package:yomou/l10n/generated/app_localizations.dart';
 import 'package:yomou/features/settings/screens/appearance_settings_screen.dart';
+import 'package:yomou/features/settings/screens/manga_sources_settings_screen.dart';
 import 'package:yomou/features/settings/screens/backup_restore_screen.dart';
 import 'package:yomou/features/settings/screens/notification_settings_screen.dart';
 import 'package:yomou/features/settings/screens/storage_settings_screen.dart';
+import 'package:yomou/data/providers/sources_provider.dart';
 import 'package:yomou/widgets/m3_components.dart';
 
-class SettingsScreen extends StatelessWidget {
+class SettingsScreen extends ConsumerWidget {
   const SettingsScreen({super.key});
 
   @override
-  Widget build(BuildContext context) {
+  Widget build(BuildContext context, WidgetRef ref) {
     final l = AppLocalizations.of(context);
+    final sourceRows =
+        ref.watch(sourcesProvider).where((s) => s['name'] != 'Mock Source');
+    final sourceList = sourceRows.toList();
+    final enabledCount = sourceList.where(isSourceEnabled).length;
+    final totalCount = sourceList.length;
     return Scaffold(
       appBar: SettingsAppBar(title: l.settings),
       body: ListView(
@@ -36,8 +44,15 @@ class SettingsScreen extends StatelessWidget {
             context: context,
             icon: RemixIcons.window_2_line,
             title: l.settingsMangaSources,
-            subtitle: l.settingsMangaSourcesSubtitle,
-            onTap: () {},
+            subtitle: l.settingsMangaSourcesSubtitle(enabledCount, totalCount),
+            onTap: () {
+              Navigator.push(
+                context,
+                MaterialPageRoute(
+                  builder: (context) => const MangaSourcesSettingsScreen(),
+                ),
+              );
+            },
           ),
           _buildSettingTile(
             context: context,

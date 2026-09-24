@@ -62,7 +62,7 @@ class _CoversFromSourcesScreenState
   }
 
   List<MangaSource> _activeSources() =>
-      resolveActiveSources(ref.read(sourcesProvider));
+      resolveActiveSources(ref.read(visibleSourceRowsProvider));
 
   void _load() {
     if (widget.currentCover.isNotEmpty) {

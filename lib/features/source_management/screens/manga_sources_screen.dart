@@ -2,8 +2,10 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:remixicon/remixicon.dart';
 import 'package:yomou/data/providers/sources_provider.dart';
+import 'package:yomou/features/settings/providers/cache_settings_provider.dart';
 import 'package:yomou/core/widgets/ios/ios_menu.dart';
 import 'package:yomou/l10n/generated/app_localizations.dart';
+import 'package:yomou/widgets/safe_image.dart';
 
 class ManageSourcesScreen extends ConsumerStatefulWidget {
   const ManageSourcesScreen({super.key});
@@ -17,7 +19,55 @@ class _ManageSourcesScreenState extends ConsumerState<ManageSourcesScreen> {
   bool _isSearching = false;
   final TextEditingController _searchController = TextEditingController();
   String _searchQuery = '';
-  bool _disableNSFW = false;
+
+  // Mirror of Explore's source-logo logic: network logo when available,
+  // otherwise a deterministic-color letter tile.
+  Widget _buildSourceLogo(String name, Map<String, dynamic> source) {
+    final dark = Theme.of(context).brightness == Brightness.dark;
+    final iconUrl = source['iconUrl'] as String? ?? '';
+    final fallbackLetter = name.isEmpty ? '?' : name[0];
+    final fallbackColor = _deterministicColor(name);
+
+    Widget fallbackTile() => Center(
+      child: Text(
+        fallbackLetter,
+        style: TextStyle(
+          fontSize: 22,
+          fontWeight: FontWeight.bold,
+          color: dark ? Colors.white : const Color(0xFF1C1B1F),
+        ),
+      ),
+    );
+
+    return SizedBox(
+      width: 48,
+      height: 48,
+      child: ClipRRect(
+        borderRadius: BorderRadius.circular(14),
+        child: ColoredBox(
+          color: fallbackColor,
+          child: iconUrl.isNotEmpty
+              ? SafeNetworkImage(
+                  imageUrl: iconUrl,
+                  fit: BoxFit.cover,
+                  width: double.infinity,
+                  height: double.infinity,
+                  errorWidget: (context, url, error) => fallbackTile(),
+                )
+              : fallbackTile(),
+        ),
+      ),
+    );
+  }
+
+  Color _deterministicColor(String name) {
+    int hash = 0;
+    for (final codeUnit in name.codeUnits) {
+      hash = (hash * 31 + codeUnit) & 0x7FFFFFFF;
+    }
+    final hue = (hash % 360).toDouble();
+    return HSLColor.fromAHSL(1, hue, 0.35, 0.35).toColor();
+  }
 
   @override
   void dispose() {
@@ -29,8 +79,10 @@ class _ManageSourcesScreenState extends ConsumerState<ManageSourcesScreen> {
   Widget build(BuildContext context) {
     final dark = Theme.of(context).brightness == Brightness.dark;
     final scheme = Theme.of(context).colorScheme;
-    final sources = ref.watch(sourcesProvider);
+    final sources = ref.watch(visibleSourceRowsProvider);
     final activeSourceId = ref.watch(currentSourceProvider).id;
+    final disableNsfw = ref.watch(disableNsfwProvider);
+    final sortOrder = ref.watch(sourceSortOrderProvider);
     final l = AppLocalizations.of(context);
 
     final filteredSources = sources.where((source) {
@@ -39,6 +91,11 @@ class _ManageSourcesScreenState extends ConsumerState<ManageSourcesScreen> {
         _searchQuery.toLowerCase(),
       );
     }).toList();
+    if (sortOrder == 'name') {
+      filteredSources.sort(
+        (a, b) => (a['name'] as String).compareTo(b['name'] as String),
+      );
+    }
 
     return Scaffold(
       backgroundColor: Theme.of(context).scaffoldBackgroundColor,
@@ -103,8 +160,10 @@ class _ManageSourcesScreenState extends ConsumerState<ManageSourcesScreen> {
                   children: [
                     MenuToggleRow(
                       label: AppLocalizations.of(context).disableNsfw,
-                      value: _disableNSFW,
-                      onChanged: (v) => setState(() => _disableNSFW = v),
+                      value: disableNsfw,
+                      onChanged: (v) => ref
+                          .read(cacheSettingsProvider.notifier)
+                          .setDisableNsfw(v),
                     ),
                   ],
                 );
@@ -173,24 +232,7 @@ class _ManageSourcesScreenState extends ConsumerState<ManageSourcesScreen> {
             ),
             leading: Opacity(
               opacity: isEnabled ? 1 : 0.4,
-              child: Container(
-                width: 48,
-                height: 48,
-                decoration: BoxDecoration(
-                  color: source['bgColor'] as Color,
-                  borderRadius: BorderRadius.circular(14),
-                ),
-                child: Center(
-                  child: Text(
-                    source['text'] as String,
-                    style: TextStyle(
-                      fontSize: 22,
-                      fontWeight: FontWeight.bold,
-                      color: source['textColor'] as Color? ?? Colors.white,
-                    ),
-                  ),
-                ),
-              ),
+              child: _buildSourceLogo(sourceName, source),
             ),
             title: Row(
               children: [

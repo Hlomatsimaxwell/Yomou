@@ -76,7 +76,7 @@ class _GlobalSearchResultsScreenState
   }
 
   Future<void> _refresh() async {
-    final sources = resolveActiveSources(ref.read(sourcesProvider));
+    final sources = resolveActiveSources(ref.read(visibleSourceRowsProvider));
     for (final source in sources) {
       SourceCache.invalidatePrefix('${source.id}/list/');
     }
