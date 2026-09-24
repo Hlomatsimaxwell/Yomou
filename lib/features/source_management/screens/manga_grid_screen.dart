@@ -428,6 +428,7 @@ class _MangaGridScreenState extends ConsumerState<MangaGridScreen> {
                           fit: BoxFit.cover,
                           errorWidget: (context, url, error) => Container(
                             color: const Color(0xFF2C2C2E),
+                            alignment: Alignment.center,
                             child: const Icon(
                               RemixIcons.book_open_line,
                               color: Colors.white38,
@@ -445,6 +446,7 @@ class _MangaGridScreenState extends ConsumerState<MangaGridScreen> {
                             fit: BoxFit.cover,
                             errorWidget: (context, url, error) => Container(
                               color: Colors.black12,
+                              alignment: Alignment.center,
                               child: const Icon(
                                 RemixIcons.book_open_line,
                                 color: Colors.black38,

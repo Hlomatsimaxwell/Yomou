@@ -812,6 +812,7 @@ class _SourceSearchResultsScreenState extends State<SourceSearchResultsScreen> {
                       fit: BoxFit.cover,
                       errorWidget: (context, url, error) => Container(
                         color: dark ? const Color(0xFF2C2C2E) : Colors.black12,
+                        alignment: Alignment.center,
                         child: Icon(
                           RemixIcons.book_open_line,
                           color: dark ? Colors.white38 : Colors.black38,

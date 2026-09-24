@@ -579,6 +579,61 @@ class AppLocalizationsEn extends AppLocalizations {
   String get historyStatistics => 'Statistics';
 
   @override
+  String get readingStatistics => 'Reading statistics';
+
+  @override
+  String get statsTimeDay => 'Day';
+
+  @override
+  String get statsTimeWeek => 'Week';
+
+  @override
+  String get statsTimeMonth => 'Month';
+
+  @override
+  String get statsTimeThreeMonths => 'Three months';
+
+  @override
+  String get statsTimeAllTime => 'All time';
+
+  @override
+  String get statsFavorites => 'Favorites';
+
+  @override
+  String get statsOtherManga => 'Other manga';
+
+  @override
+  String statsMinutes(num minutes) {
+    return '$minutes minutes';
+  }
+
+  @override
+  String get statsMinute => '1 minute';
+
+  @override
+  String get statsTotal => 'Total';
+
+  @override
+  String get statsEmptyTitle => 'No reading yet';
+
+  @override
+  String get statsEmptySubtitle =>
+      'Time you spend reading will show up here once you start a chapter.';
+
+  @override
+  String get statsClearTitle => 'Clear statistics?';
+
+  @override
+  String get statsClearMessage =>
+      'This removes all recorded reading time and the chapter log used for the charts. Your library is untouched.';
+
+  @override
+  String get statsClear => 'Clear statistics';
+
+  @override
+  String get statsCleared => 'Statistics cleared';
+
+  @override
   String get historyOnDevice => 'On device';
 
   @override

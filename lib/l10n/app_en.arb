@@ -234,6 +234,30 @@
   "historyGroup": "Group",
   "historyListOptions": "List options",
   "historyStatistics": "Statistics",
+  "readingStatistics": "Reading statistics",
+  "statsTimeDay": "Day",
+  "statsTimeWeek": "Week",
+  "statsTimeMonth": "Month",
+  "statsTimeThreeMonths": "Three months",
+  "statsTimeAllTime": "All time",
+  "statsFavorites": "Favorites",
+  "statsOtherManga": "Other manga",
+  "statsMinutes": "{minutes} minutes",
+  "@statsMinutes": {
+    "placeholders": {
+      "minutes": {
+        "type": "num"
+      }
+    }
+  },
+  "statsMinute": "1 minute",
+  "statsTotal": "Total",
+  "statsEmptyTitle": "No reading yet",
+  "statsEmptySubtitle": "Time you spend reading will show up here once you start a chapter.",
+  "statsClearTitle": "Clear statistics?",
+  "statsClearMessage": "This removes all recorded reading time and the chapter log used for the charts. Your library is untouched.",
+  "statsClear": "Clear statistics",
+  "statsCleared": "Statistics cleared",
   "historyOnDevice": "On device",
   "historyNewChapters": "New chapters",
   "historyCompleted": "Completed",

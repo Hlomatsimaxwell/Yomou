@@ -361,6 +361,7 @@ class _GlobalSearchResultsScreenState
                                   : Colors.black12,
                               height: 140,
                               width: 100,
+                              alignment: Alignment.center,
                               child: Icon(
                                 RemixIcons.book_open_line,
                                 color: dark ? Colors.white38 : Colors.black38,

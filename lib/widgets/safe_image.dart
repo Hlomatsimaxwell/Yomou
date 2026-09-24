@@ -90,7 +90,18 @@ class _SafeNetworkImageState extends State<SafeNetworkImage> {
     if (builder != null) {
       return builder(context, widget.imageUrl, error);
     }
-    return const SizedBox.shrink();
+    return const _CoverFallback();
+  }
+
+  /// Locks the widget to its requested dimensions. `CachedNetworkImage`
+  /// enforces [width]/[height] itself, but the transcode fallback path replaces
+  /// it with a bare box, so without this a loose parent (e.g. the detail header)
+  /// would collapse the cover to the icon size.
+  Widget _sized(Widget child) {
+    if (widget.width != null && widget.height != null) {
+      return SizedBox(width: widget.width, height: widget.height, child: child);
+    }
+    return child;
   }
 
   @override
@@ -116,26 +127,28 @@ class _SafeNetworkImageState extends State<SafeNetworkImage> {
       );
     }
 
-    return FutureBuilder<Uint8List?>(
-      future: _decoded,
-      builder: (context, snapshot) {
-        if (snapshot.connectionState != ConnectionState.done) {
-          return widget.placeholder?.call(context, widget.imageUrl) ??
-              const SizedBox.shrink();
-        }
-        final bytes = snapshot.data;
-        if (bytes == null) return _showError('Failed to decode image');
+    return _sized(
+      FutureBuilder<Uint8List?>(
+        future: _decoded,
+        builder: (context, snapshot) {
+          if (snapshot.connectionState != ConnectionState.done) {
+            return widget.placeholder?.call(context, widget.imageUrl) ??
+                const _CoverFallback();
+          }
+          final bytes = snapshot.data;
+          if (bytes == null) return _showError('Failed to decode image');
 
-        return Image.memory(
-          bytes,
-          width: widget.width,
-          height: widget.height,
-          fit: widget.fit,
-          alignment: widget.alignment,
-          gaplessPlayback: widget.gaplessPlayback,
-          errorBuilder: (context, error, stack) => _showError(error),
-        );
-      },
+          return Image.memory(
+            bytes,
+            width: widget.width,
+            height: widget.height,
+            fit: widget.fit,
+            alignment: widget.alignment,
+            gaplessPlayback: widget.gaplessPlayback,
+            errorBuilder: (context, error, stack) => _showError(error),
+          );
+        },
+      ),
     );
   }
 }
@@ -193,7 +206,20 @@ class _SafeFileImageState extends State<SafeFileImage> {
     if (builder != null) {
       return builder(context, widget.file.path, error);
     }
-    return const SizedBox.shrink();
+    return Container(
+      color: Colors.black26,
+      alignment: Alignment.center,
+      child: const Icon(Icons.menu_book_outlined, color: Colors.white38),
+    );
+  }
+
+  /// See [_SafeNetworkImageState._sized]: keeps the box locked to its size so a
+  /// loose parent cannot collapse the cover while a local image is transcoded.
+  Widget _sized(Widget child) {
+    if (widget.width != null && widget.height != null) {
+      return SizedBox(width: widget.width, height: widget.height, child: child);
+    }
+    return child;
   }
 
   @override
@@ -215,25 +241,43 @@ class _SafeFileImageState extends State<SafeFileImage> {
       );
     }
 
-    return FutureBuilder<Uint8List?>(
-      future: _decoded,
-      builder: (context, snapshot) {
-        if (snapshot.connectionState != ConnectionState.done) {
-          return const SizedBox.shrink();
-        }
-        final bytes = snapshot.data;
-        if (bytes == null) return _showError('Failed to decode image');
+    return _sized(
+      FutureBuilder<Uint8List?>(
+        future: _decoded,
+        builder: (context, snapshot) {
+          if (snapshot.connectionState != ConnectionState.done) {
+            return const _CoverFallback();
+          }
+          final bytes = snapshot.data;
+          if (bytes == null) return _showError('Failed to decode image');
 
-        return Image.memory(
-          bytes,
-          width: widget.width,
-          height: widget.height,
-          fit: widget.fit,
-          alignment: widget.alignment,
-          gaplessPlayback: widget.gaplessPlayback,
-          errorBuilder: (context, error, stack) => _showError(error),
-        );
-      },
+          return Image.memory(
+            bytes,
+            width: widget.width,
+            height: widget.height,
+            fit: widget.fit,
+            alignment: widget.alignment,
+            gaplessPlayback: widget.gaplessPlayback,
+            errorBuilder: (context, error, stack) => _showError(error),
+          );
+        },
+      ),
+    );
+  }
+}
+
+/// Full-size broken-cover fallback: dark box with a centered book icon. Used
+/// whenever an image cannot be decoded, so a failed cover never collapses to a
+/// zero-size flash mid-transcode.
+class _CoverFallback extends StatelessWidget {
+  const _CoverFallback();
+
+  @override
+  Widget build(BuildContext context) {
+    return Container(
+      color: Colors.black26,
+      alignment: Alignment.center,
+      child: const Icon(Icons.menu_book_outlined, color: Colors.white38),
     );
   }
 }

@@ -372,6 +372,7 @@ class _GlobalSearchScreenState extends ConsumerState<GlobalSearchScreen> {
                         color: dark ? const Color(0xFF2C2C2E) : Colors.black12,
                         height: 140,
                         width: 100,
+                        alignment: Alignment.center,
                         child: Icon(
                           RemixIcons.book_open_line,
                           color: dark ? Colors.white38 : Colors.black38,
@@ -533,6 +534,7 @@ class _GlobalSearchScreenState extends ConsumerState<GlobalSearchScreen> {
                                 color: dark
                                     ? const Color(0xFF2C2C2E)
                                     : Colors.black12,
+                                alignment: Alignment.center,
                                 child: Icon(
                                   RemixIcons.book_open_line,
                                   color: dark ? Colors.white38 : Colors.black38,

@@ -212,6 +212,7 @@ class _DownloadTile extends StatelessWidget {
                         width: 48,
                         height: 64,
                         color: const Color(0xFF2C2C2E),
+                        alignment: Alignment.center,
                         child: const Icon(
                           RemixIcons.book_open_line,
                           color: Colors.white38,
@@ -232,6 +233,7 @@ class _DownloadTile extends StatelessWidget {
                           width: 48,
                           height: 64,
                           color: Colors.black12,
+                          alignment: Alignment.center,
                           child: const Icon(
                             RemixIcons.book_open_line,
                             color: Colors.black38,

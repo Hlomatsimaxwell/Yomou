@@ -24,7 +24,7 @@ class DatabaseHelper {
 
     return await openDatabase(
       path,
-      version: 12,
+      version: 13,
       onCreate: _createDB,
       onUpgrade: _onUpgrade,
     );
@@ -89,6 +89,9 @@ class DatabaseHelper {
         'ALTER TABLE manga ADD COLUMN lastSeenChapters INTEGER DEFAULT 0',
       );
     }
+    if (oldVersion < 13) {
+      await _createReadingTimeTable(db);
+    }
   }
 
   Future _createDB(Database db, int version) async {
@@ -129,6 +132,20 @@ class DatabaseHelper {
     await _createDownloadsTable(db);
     await _createSourceCacheTable(db);
     await _createNotificationLogTable(db);
+    await _createReadingTimeTable(db);
+  }
+
+  // Accumulates measured reading time per manga per calendar day. Feeds the
+  // reading-statistics charts; bursts of reading within a day share a row.
+  Future _createReadingTimeTable(Database db) async {
+    await db.execute('''
+      CREATE TABLE IF NOT EXISTS reading_time (
+        mangaId TEXT NOT NULL,
+        day TEXT NOT NULL,
+        minutes INTEGER NOT NULL DEFAULT 0,
+        PRIMARY KEY (mangaId, day)
+      )
+    ''');
   }
 
   Future _createNotificationLogTable(Database db) async {
@@ -254,6 +271,33 @@ class DatabaseHelper {
   Future<List<Map<String, dynamic>>> getAllReadingProgress() async {
     final db = await instance.database;
     return db.query('reading_progress');
+  }
+
+  // Adds [minutes] of measured reading time for a manga. Time is bucketed per
+  // calendar day (local), so charts can slice by day/week/month.
+  Future<void> addReadingTime(String mangaId, int minutes) async {
+    if (incognitoActive || minutes <= 0) return;
+    final db = await instance.database;
+    final day = DateTime.now().toIso8601String().substring(0, 10);
+    await db.rawInsert(
+      'INSERT INTO reading_time (mangaId, day, minutes) VALUES (?, ?, ?) '
+      'ON CONFLICT(mangaId, day) DO UPDATE SET '
+      'minutes = minutes + excluded.minutes',
+      [mangaId, day, minutes],
+    );
+  }
+
+  // All recorded reading-time rows (used by the statistics charts).
+  Future<List<Map<String, dynamic>>> getReadingTime() async {
+    final db = await instance.database;
+    return db.query('reading_time');
+  }
+
+  // Resets the statistics data: measured reading time + the per-chapter log.
+  Future<void> clearStatisticsData() async {
+    final db = await instance.database;
+    await db.delete('reading_time');
+    await db.delete('reading_progress');
   }
 
   // Record a manga's metadata + latest read chapter (used to build History).

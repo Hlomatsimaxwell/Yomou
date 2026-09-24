@@ -713,6 +713,15 @@ class _HomeScreenState extends ConsumerState<HomeScreen>
   }
 
   Widget _buildContinueFab(Color accent) {
+    final dark = Theme.of(context).brightness == Brightness.dark;
+    // Pill's frosted recipe, gelled with the app accent: reads like the pill's
+    // active-nav capsule while staying visible over busy covers.
+    final glass = dark
+        ? const Color(0x661C1C1E)
+        : Colors.white.withValues(alpha: 0.62);
+    final tint = accent.withValues(alpha: dark ? 0.45 : 0.32);
+    final gel = Color.alphaBlend(tint, glass);
+
     return GestureDetector(
       onTap: _isContinuing ? null : _continueReading,
       child: AnimatedContainer(
@@ -722,37 +731,40 @@ class _HomeScreenState extends ConsumerState<HomeScreen>
         height: 60,
         decoration: BoxDecoration(
           shape: BoxShape.circle,
-          color: _isContinuing ? const Color(0xFF2A2A2E) : accent,
-          border: _isContinuing
-              ? Border.all(color: const Color(0xFF3A3A40))
-              : null,
+          color: _isContinuing ? const Color(0xFF2A2A2E) : Colors.transparent,
           boxShadow: [
             BoxShadow(
-              color: Colors.black.withValues(alpha: 0.4),
+              color: Colors.black.withValues(alpha: 0.35),
               blurRadius: 16,
               offset: const Offset(0, 6),
             ),
           ],
         ),
-        child: Center(
-          child: _isContinuing
-              ? const SizedBox(
-                  width: 24,
-                  height: 24,
-                  child: CircularProgressIndicator(
-                    color: Colors.white,
-                    strokeWidth: 2.5,
-                  ),
-                )
-              : Icon(
-                  RemixIcons.book_open_line,
-                  color:
-                      ThemeData.estimateBrightnessForColor(accent) ==
-                          Brightness.dark
-                      ? Colors.white
-                      : Colors.black,
-                  size: 30,
-                ),
+        child: ClipOval(
+          child: BackdropFilter(
+            filter: ImageFilter.blur(sigmaX: 16, sigmaY: 16),
+            child: Container(
+              width: 60,
+              height: 60,
+              color: _isContinuing ? const Color(0xFF2A2A2E) : gel,
+              child: Center(
+                child: _isContinuing
+                    ? const SizedBox(
+                        width: 24,
+                        height: 24,
+                        child: CircularProgressIndicator(
+                          color: Colors.white,
+                          strokeWidth: 2.5,
+                        ),
+                      )
+                    : Icon(
+                        RemixIcons.book_open_line,
+                        color: accent,
+                        size: 30,
+                      ),
+              ),
+            ),
+          ),
         ),
       ),
     );

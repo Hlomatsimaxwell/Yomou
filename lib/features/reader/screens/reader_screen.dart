@@ -246,6 +246,7 @@ class _ReaderScreenState extends ConsumerState<ReaderScreen>
     _scrollController.addListener(_handleScrollTicker);
     WidgetsBinding.instance.addObserver(this);
     _startStatusTicker();
+    _sessionStopwatch.start();
     // Crash safety: while the reader is open, periodically persist the current
     // position so a forced kill (force-stop, crash, OOM) doesn't lose the read.
     // The debounce logic in _autosaveProgress skips no-op ticks.
@@ -319,6 +320,8 @@ class _ReaderScreenState extends ConsumerState<ReaderScreen>
 
   @override
   void dispose() {
+    _flushSessionTime();
+    _sessionStopwatch.stop();
     WidgetsBinding.instance.removeObserver(this);
     _statusTimer?.cancel();
     // The immersive overlay on every exit path restores the normal system UI.
@@ -2234,11 +2237,29 @@ class _ReaderScreenState extends ConsumerState<ReaderScreen>
   // Persist progress when the app is backgrounded or about to be killed, so a
   // force-stop / OOM right after leaving the reader doesn't lose the position.
   @override
+  // Tracks reading time while the reader is open so the statistics charts get
+  // honest per-manga minutes. Flushed to the `reading_time` table on lifecycle
+  // pauses and on dispose; a process kill loses at most one session.
+  final Stopwatch _sessionStopwatch = Stopwatch();
+  int _flushedSessionSeconds = 0;
+
+  Future<void> _flushSessionTime() async {
+    if (!_sessionStopwatch.isRunning) return;
+    final elapsed = _sessionStopwatch.elapsed.inSeconds;
+    final pending = elapsed - _flushedSessionSeconds;
+    if (pending < 45) return;
+    final minutes = pending ~/ 60;
+    if (minutes <= 0) return;
+    _flushedSessionSeconds += minutes * 60;
+    await DatabaseHelper.instance.addReadingTime(widget.mangaId, minutes);
+  }
+
   void didChangeAppLifecycleState(AppLifecycleState state) {
     if (state == AppLifecycleState.paused ||
         state == AppLifecycleState.inactive ||
         state == AppLifecycleState.detached) {
       _autosaveProgress();
+      _flushSessionTime();
     }
     // Returning to a backgrounded immersive reader re-hides the system bars.
     if (state == AppLifecycleState.resumed && !_showControls) {

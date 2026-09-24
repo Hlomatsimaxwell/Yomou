@@ -90,6 +90,7 @@ class CachedMangaImage extends StatelessWidget {
           errorWidget ??
           (context, url, error) => Container(
             color: Colors.black26,
+            alignment: Alignment.center,
             child: const Icon(Icons.menu_book_outlined, color: Colors.white38),
           ),
       placeholderFadeInDuration: placeholderFadeInDuration,

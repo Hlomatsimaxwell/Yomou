@@ -1178,6 +1178,108 @@ abstract class AppLocalizations {
   /// **'Statistics'**
   String get historyStatistics;
 
+  /// No description provided for @readingStatistics.
+  ///
+  /// In en, this message translates to:
+  /// **'Reading statistics'**
+  String get readingStatistics;
+
+  /// No description provided for @statsTimeDay.
+  ///
+  /// In en, this message translates to:
+  /// **'Day'**
+  String get statsTimeDay;
+
+  /// No description provided for @statsTimeWeek.
+  ///
+  /// In en, this message translates to:
+  /// **'Week'**
+  String get statsTimeWeek;
+
+  /// No description provided for @statsTimeMonth.
+  ///
+  /// In en, this message translates to:
+  /// **'Month'**
+  String get statsTimeMonth;
+
+  /// No description provided for @statsTimeThreeMonths.
+  ///
+  /// In en, this message translates to:
+  /// **'Three months'**
+  String get statsTimeThreeMonths;
+
+  /// No description provided for @statsTimeAllTime.
+  ///
+  /// In en, this message translates to:
+  /// **'All time'**
+  String get statsTimeAllTime;
+
+  /// No description provided for @statsFavorites.
+  ///
+  /// In en, this message translates to:
+  /// **'Favorites'**
+  String get statsFavorites;
+
+  /// No description provided for @statsOtherManga.
+  ///
+  /// In en, this message translates to:
+  /// **'Other manga'**
+  String get statsOtherManga;
+
+  /// No description provided for @statsMinutes.
+  ///
+  /// In en, this message translates to:
+  /// **'{minutes} minutes'**
+  String statsMinutes(num minutes);
+
+  /// No description provided for @statsMinute.
+  ///
+  /// In en, this message translates to:
+  /// **'1 minute'**
+  String get statsMinute;
+
+  /// No description provided for @statsTotal.
+  ///
+  /// In en, this message translates to:
+  /// **'Total'**
+  String get statsTotal;
+
+  /// No description provided for @statsEmptyTitle.
+  ///
+  /// In en, this message translates to:
+  /// **'No reading yet'**
+  String get statsEmptyTitle;
+
+  /// No description provided for @statsEmptySubtitle.
+  ///
+  /// In en, this message translates to:
+  /// **'Time you spend reading will show up here once you start a chapter.'**
+  String get statsEmptySubtitle;
+
+  /// No description provided for @statsClearTitle.
+  ///
+  /// In en, this message translates to:
+  /// **'Clear statistics?'**
+  String get statsClearTitle;
+
+  /// No description provided for @statsClearMessage.
+  ///
+  /// In en, this message translates to:
+  /// **'This removes all recorded reading time and the chapter log used for the charts. Your library is untouched.'**
+  String get statsClearMessage;
+
+  /// No description provided for @statsClear.
+  ///
+  /// In en, this message translates to:
+  /// **'Clear statistics'**
+  String get statsClear;
+
+  /// No description provided for @statsCleared.
+  ///
+  /// In en, this message translates to:
+  /// **'Statistics cleared'**
+  String get statsCleared;
+
   /// No description provided for @historyOnDevice.
   ///
   /// In en, this message translates to:

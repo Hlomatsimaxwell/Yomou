@@ -1538,6 +1538,7 @@ class _MangaDetailScreenState extends ConsumerState<MangaDetailScreen> {
                   width: 48,
                   height: 64,
                   color: dark ? const Color(0xFF2C2C2E) : Colors.white,
+                  alignment: Alignment.center,
                   child: Icon(
                     RemixIcons.image_2_line,
                     color: dark ? Colors.white38 : Colors.black38,
@@ -2838,6 +2839,7 @@ class _MangaDetailScreenState extends ConsumerState<MangaDetailScreen> {
                         height: 120,
                         width: 100,
                         color: dark ? const Color(0xFF2C2C2E) : Colors.white,
+                        alignment: Alignment.center,
                         child: Icon(
                           RemixIcons.book_open_line,
                           color: dark ? Colors.white38 : Colors.black38,

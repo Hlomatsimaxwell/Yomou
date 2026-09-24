@@ -808,6 +808,7 @@ class _SuggestionsScreenState extends ConsumerState<SuggestionsScreen> {
                       fit: BoxFit.cover,
                       errorWidget: (context, url, error) => Container(
                         color: const Color(0xFF2C2C2E),
+                        alignment: Alignment.center,
                         child: const Icon(
                           RemixIcons.book_open_line,
                           color: Colors.white38,

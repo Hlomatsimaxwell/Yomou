@@ -17,6 +17,7 @@ import 'package:yomou/core/widgets/ios/ios_toast.dart';
 import 'package:yomou/core/widgets/manga_grid_metrics.dart';
 import 'package:yomou/core/providers/incognito_provider.dart';
 import 'package:yomou/features/history/providers/history_provider.dart';
+import 'package:yomou/features/history/screens/reading_statistics_screen.dart';
 import 'package:yomou/features/library/providers/downloads_provider.dart';
 import 'package:yomou/features/library/providers/favorites_provider.dart';
 import 'package:yomou/features/settings/providers/appearance_provider.dart';
@@ -787,6 +788,12 @@ class _HistoryScreenState extends ConsumerState<HistoryScreen> {
                 color: fg,
                 onTap: () {
                   Navigator.pop(context);
+                  Navigator.push(
+                    context,
+                    MaterialPageRoute(
+                      builder: (context) => const ReadingStatisticsScreen(),
+                    ),
+                  );
                 },
               ),
               Divider(color: divider, height: 1, thickness: 1),
@@ -1539,6 +1546,7 @@ class _GridHistoryCardState extends State<GridHistoryCard> {
                       fit: BoxFit.cover,
                       errorWidget: (context, url, error) => Container(
                         color: const Color(0xFF2C2C2E),
+                        alignment: Alignment.center,
                         child: const Icon(
                           RemixIcons.book_open_line,
                           color: Colors.white38,

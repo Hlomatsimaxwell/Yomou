@@ -589,6 +589,61 @@ class AppLocalizationsEs extends AppLocalizations {
   String get historyStatistics => 'Estadísticas';
 
   @override
+  String get readingStatistics => 'Estadísticas de lectura';
+
+  @override
+  String get statsTimeDay => 'Día';
+
+  @override
+  String get statsTimeWeek => 'Semana';
+
+  @override
+  String get statsTimeMonth => 'Mes';
+
+  @override
+  String get statsTimeThreeMonths => 'Tres meses';
+
+  @override
+  String get statsTimeAllTime => 'Todo';
+
+  @override
+  String get statsFavorites => 'Favoritos';
+
+  @override
+  String get statsOtherManga => 'Otros mangas';
+
+  @override
+  String statsMinutes(num minutes) {
+    return '$minutes minutos';
+  }
+
+  @override
+  String get statsMinute => '1 minuto';
+
+  @override
+  String get statsTotal => 'Total';
+
+  @override
+  String get statsEmptyTitle => 'Aún sin lecturas';
+
+  @override
+  String get statsEmptySubtitle =>
+      'El tiempo que dediques a leer aparecerá aquí al empezar un capítulo.';
+
+  @override
+  String get statsClearTitle => '¿Borrar estadísticas?';
+
+  @override
+  String get statsClearMessage =>
+      'Esto elimina el tiempo de lectura registrado y el historial de capítulos de las gráficas. Tu biblioteca no se toca.';
+
+  @override
+  String get statsClear => 'Borrar estadísticas';
+
+  @override
+  String get statsCleared => 'Estadísticas borradas';
+
+  @override
   String get historyOnDevice => 'En el dispositivo';
 
   @override
