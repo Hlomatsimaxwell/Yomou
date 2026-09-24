@@ -22,6 +22,7 @@ import 'package:yomou/core/providers/incognito_provider.dart';
 import 'package:yomou/l10n/generated/app_localizations.dart';
 import 'package:yomou/widgets/recent_manga_shelf.dart';
 import 'package:yomou/widgets/safe_image.dart';
+import 'package:yomou/widgets/source_brand_logo.dart';
 
 class ExploreScreen extends ConsumerStatefulWidget {
   const ExploreScreen({super.key});
@@ -394,8 +395,6 @@ class _ExploreScreenState extends ConsumerState<ExploreScreen> {
         final name = source['name'] as String;
         final language = source['language'] as String? ?? '';
         final iconUrl = source['iconUrl'] as String? ?? '';
-        final fallbackLetter = name.isEmpty ? '?' : name[0];
-        final fallbackColor = _deterministicColor(name);
 
         return InkWell(
           borderRadius: BorderRadius.circular(14),
@@ -411,46 +410,8 @@ class _ExploreScreenState extends ConsumerState<ExploreScreen> {
             padding: const EdgeInsets.symmetric(vertical: 10),
             child: Row(
               children: [
-                ClipRRect(
-                  borderRadius: BorderRadius.circular(12),
-                  child: ColoredBox(
-                    color: fallbackColor,
-                    child: SizedBox(
-                      width: 44,
-                      height: 44,
-                      child: iconUrl.isNotEmpty
-                          ? SafeNetworkImage(
-                              imageUrl: iconUrl,
-                              fit: BoxFit.cover,
-                              errorWidget: (context, url, error) => Center(
-                                child: Text(
-                                  fallbackLetter,
-                                  style: TextStyle(
-                                    fontSize: 20,
-                                    fontWeight: FontWeight.bold,
-                                    color: dark
-                                        ? Colors.white
-                                        : const Color(0xFF1C1B1F),
-                                  ),
-                                ),
-                              ),
-                            )
-                          : Center(
-                              child: Text(
-                                fallbackLetter,
-                                style: TextStyle(
-                                  fontSize: 20,
-                                  fontWeight: FontWeight.bold,
-                                  color: dark
-                                      ? Colors.white
-                                      : const Color(0xFF1C1B1F),
-                                ),
-                              ),
-                            ),
-                    ),
-                  ),
-                ),
-                const SizedBox(width: 14),
+                SourceBrandLogo(name: name, iconUrl: iconUrl, size: 44),
+                const SizedBox(width: 16),
                 Expanded(
                   child: Column(
                     crossAxisAlignment: CrossAxisAlignment.start,
@@ -462,9 +423,9 @@ class _ExploreScreenState extends ConsumerState<ExploreScreen> {
                         style: TextStyle(
                           color: dark
                               ? Colors.white
-                              : const Color(0xFF1C1B1F),
+                              : const Color(0xFF212121),
                           fontSize: 15,
-                          fontWeight: FontWeight.bold,
+                          fontWeight: FontWeight.w700,
                         ),
                       ),
                       if (language.isNotEmpty) ...[
@@ -476,8 +437,8 @@ class _ExploreScreenState extends ConsumerState<ExploreScreen> {
                           style: TextStyle(
                             color: dark
                                 ? Colors.white54
-                                : const Color(0xFF9E9E9E),
-                            fontSize: 13,
+                                : const Color(0xFF757575),
+                            fontSize: 12,
                           ),
                         ),
                       ],

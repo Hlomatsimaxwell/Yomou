@@ -5,7 +5,7 @@ import 'package:yomou/data/providers/sources_provider.dart';
 import 'package:yomou/features/settings/providers/cache_settings_provider.dart';
 import 'package:yomou/core/widgets/ios/ios_menu.dart';
 import 'package:yomou/l10n/generated/app_localizations.dart';
-import 'package:yomou/widgets/safe_image.dart';
+import 'package:yomou/widgets/source_brand_logo.dart';
 
 class ManageSourcesScreen extends ConsumerStatefulWidget {
   const ManageSourcesScreen({super.key});
@@ -20,55 +20,6 @@ class _ManageSourcesScreenState extends ConsumerState<ManageSourcesScreen> {
   final TextEditingController _searchController = TextEditingController();
   String _searchQuery = '';
 
-  // Mirror of Explore's source-logo logic: network logo when available,
-  // otherwise a deterministic-color letter tile.
-  Widget _buildSourceLogo(String name, Map<String, dynamic> source) {
-    final dark = Theme.of(context).brightness == Brightness.dark;
-    final iconUrl = source['iconUrl'] as String? ?? '';
-    final fallbackLetter = name.isEmpty ? '?' : name[0];
-    final fallbackColor = _deterministicColor(name);
-
-    Widget fallbackTile() => Center(
-      child: Text(
-        fallbackLetter,
-        style: TextStyle(
-          fontSize: 22,
-          fontWeight: FontWeight.bold,
-          color: dark ? Colors.white : const Color(0xFF1C1B1F),
-        ),
-      ),
-    );
-
-    return SizedBox(
-      width: 48,
-      height: 48,
-      child: ClipRRect(
-        borderRadius: BorderRadius.circular(14),
-        child: ColoredBox(
-          color: fallbackColor,
-          child: iconUrl.isNotEmpty
-              ? SafeNetworkImage(
-                  imageUrl: iconUrl,
-                  fit: BoxFit.cover,
-                  width: double.infinity,
-                  height: double.infinity,
-                  errorWidget: (context, url, error) => fallbackTile(),
-                )
-              : fallbackTile(),
-        ),
-      ),
-    );
-  }
-
-  Color _deterministicColor(String name) {
-    int hash = 0;
-    for (final codeUnit in name.codeUnits) {
-      hash = (hash * 31 + codeUnit) & 0x7FFFFFFF;
-    }
-    final hue = (hash % 360).toDouble();
-    return HSLColor.fromAHSL(1, hue, 0.35, 0.35).toColor();
-  }
-
   @override
   void dispose() {
     _searchController.dispose();
@@ -78,7 +29,6 @@ class _ManageSourcesScreenState extends ConsumerState<ManageSourcesScreen> {
   @override
   Widget build(BuildContext context) {
     final dark = Theme.of(context).brightness == Brightness.dark;
-    final scheme = Theme.of(context).colorScheme;
     final sources = ref.watch(visibleSourceRowsProvider);
     final activeSourceId = ref.watch(currentSourceProvider).id;
     final disableNsfw = ref.watch(disableNsfwProvider);
@@ -189,8 +139,6 @@ class _ManageSourcesScreenState extends ConsumerState<ManageSourcesScreen> {
           final isPinned = source['isPinned'] == true;
           final isEnabled = isSourceEnabled(source);
           final isActive = getSourceByName(sourceName).id == activeSourceId;
-          final titleColor = dark ? Colors.white : scheme.onSurface;
-          final subtitleColor = dark ? Colors.white54 : Colors.black54;
 
           return ListTile(
             // --- ADDED ONTAP LOGIC HERE ---
@@ -228,26 +176,37 @@ class _ManageSourcesScreenState extends ConsumerState<ManageSourcesScreen> {
             // ------------------------------
             contentPadding: const EdgeInsets.symmetric(
               horizontal: 16,
-              vertical: 4,
+              vertical: 8,
             ),
             leading: Opacity(
               opacity: isEnabled ? 1 : 0.4,
-              child: _buildSourceLogo(sourceName, source),
+              child: SourceBrandLogo(
+                name: sourceName,
+                iconUrl: source['iconUrl'] as String? ?? '',
+                size: 48,
+              ),
             ),
             title: Row(
               children: [
                 if (isPinned) ...[
-                  Icon(RemixIcons.pushpin_2_fill, color: titleColor, size: 14),
-                  const SizedBox(width: 6),
+                  Icon(
+                    RemixIcons.pushpin_2_fill,
+                    color: dark
+                        ? Colors.white38
+                        : const Color(0xFF9E9E9E),
+                    size: 12,
+                  ),
+                  const SizedBox(width: 5),
                 ],
                 Expanded(
                   child: Text(
                     sourceName,
                     overflow: TextOverflow.ellipsis,
                     style: TextStyle(
-                      color: titleColor.withValues(alpha: isEnabled ? 1 : 0.4),
+                      color: (dark ? Colors.white : const Color(0xFF212121))
+                          .withValues(alpha: isEnabled ? 1 : 0.4),
                       fontSize: 15,
-                      fontWeight: FontWeight.w600,
+                      fontWeight: FontWeight.w700,
                     ),
                   ),
                 ),
@@ -256,8 +215,11 @@ class _ManageSourcesScreenState extends ConsumerState<ManageSourcesScreen> {
             subtitle: Text(
               isEnabled ? source['language'] as String : l.disabled,
               style: TextStyle(
-                color: subtitleColor.withValues(alpha: isEnabled ? 1 : 0.4),
-                fontSize: 13,
+                color: (dark
+                        ? Colors.white54
+                        : const Color(0xFF757575))
+                    .withValues(alpha: isEnabled ? 1 : 0.4),
+                fontSize: 12,
               ),
             ),
             trailing: IosMenuButton<String>(
