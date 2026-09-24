@@ -122,10 +122,18 @@ class TachiyomiBackupCodec {
     return null;
   }
 
+  static final RegExp _mangadexUuid = RegExp(
+    r'^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$',
+    caseSensitive: false,
+  );
+
   /// Extracts the Yomou-internal manga id from a Mihon source url.
   ///
   /// Each Yomou source stores its id in its own format:
-  ///  - mangadex: the `/title/<uuid>` uuid.
+  ///  - mangadex: the `/title/<uuid>` or `/manga/<uuid>` uuid. Anything that
+  ///    does not look like a MangaDex uuid is rejected so entries aliased to
+  ///    non-uuid urls (seen in real-world backups) do not land in the library
+  ///    unreadable.
   ///  - manganato: the slug/token after the `manga-` prefix (Yomou's chapter
   ///    fetcher re-adds it).
   ///  - mangakatana: the full `manga/...` path (no leading slash).
@@ -137,11 +145,13 @@ class TachiyomiBackupCodec {
     }
     if (clean.isEmpty) return null;
     if (yomouSource == 'mangadex') {
-      const prefix = '/title/';
-      if (!clean.startsWith(prefix)) return null;
-      final id = clean.substring(prefix.length);
-      final last = id.split('/').last;
-      return last.isEmpty ? null : last;
+      for (final prefix in const ['/title/', '/manga/']) {
+        if (clean.startsWith(prefix)) {
+          final id = clean.substring(prefix.length).split('/').first;
+          return id.isNotEmpty && _mangadexUuid.hasMatch(id) ? id : null;
+        }
+      }
+      return null;
     }
     if (yomouSource == 'manganato') {
       final last = clean.split('/').last;
