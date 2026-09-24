@@ -48,6 +48,8 @@ class CachedMangaImage extends StatelessWidget {
     'mgread.io': 'https://likemanga.ink/',
     'arenascan.com': 'https://arenascan.com/',
     'asurascans.com': 'https://asurascans.com/',
+    '2xstorage.com': 'https://www.manganato.gg/',
+    'waitst.com': 'https://www.manganato.gg/',
     'mgeko.cc': 'https://www.mgeko.cc/',
     'imgsrv4.com': 'https://www.mgeko.cc/',
     'imgsrv5.com': 'https://www.mgeko.cc/',

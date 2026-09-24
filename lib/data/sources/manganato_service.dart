@@ -1,15 +1,37 @@
-import 'dart:async';
+import 'dart:convert';
+
 import 'package:flutter/foundation.dart';
-import 'package:flutter_inappwebview/flutter_inappwebview.dart';
 import 'package:html/parser.dart' as parser;
 import '../models/manga_source.dart';
 import '../models/manga.dart';
 import '../models/chapter.dart';
 import '../models/manga_details.dart';
+import 'source_network.dart';
 
-class ManganatoService implements MangaSource {
+/// Manganato source.
+///
+/// The manganato family migrated off manganato.com in 2025 onto the
+/// "MangaNato" template served from multiple mirrors. Everything the page
+/// needs is reachable over plain HTTP (no JS), exactly like Mihon's own
+/// Manganato extension:
+///   - lists:  /manga-list/hot-manga?page=N
+///   - info:   /manga/{slug}
+///   - chapters: /api/manga/{slug}/chapters?limit=-1 (JSON)
+///   - pages:  /manga/{slug}/{chapterSlug} (cdns + chapterImages script vars)
+class ManganatoService extends DioSource implements MangaSource {
   @override
   String get id => 'manganato';
+  @override
+  String get networkSourceId => id;
+
+  /// Working mirrors. [mirrors.first] is the preferred one and is ordinarily
+  /// reachable over plain HTTP, so it clears Cloudflare without a WebView; the
+  /// others are used as fallbacks, mirroring Mihon's per-source mirror list.
+  static const List<String> mirrors = [
+    'https://www.manganato.gg',
+    'https://www.natomanga.com',
+    'https://www.nelomanga.net',
+  ];
 
   @override
   Future<List<(String url, String? label)>> getAltCovers(String mangaId) async {
@@ -19,87 +41,118 @@ class ManganatoService implements MangaSource {
   @override
   String get name => 'Manganato';
   @override
-  String get baseUrl => 'https://manganato.com';
-  String get iconUrl => 'https://manganato.com/favicon.ico';
+  String get baseUrl => mirrors.first;
   @override
-  String get readerBaseUrl => 'https://chapmanganato.to';
+  String get iconUrl => '${mirrors.first}/favicon.ico';
+  @override
+  String get readerBaseUrl => mirrors.first;
 
   @override
   Map<String, String> get headers => {
-    'Referer': 'https://manganato.com/',
+    'Referer': '${mirrors.first}/',
     'User-Agent':
-        'Mozilla/5.0 (iPhone; CPU iPhone OS 17_0 like Mac OS X) AppleWebKit/605.1.15 (KHTML, like Gecko) Version/17.0 Mobile/15E148 Safari/604.1',
+        'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/124.0.0.0 Safari/537.36',
   };
 
-  // We return 'dynamic' so the IDE stops trying to verify the type
-  dynamic _getRegex(String pattern) {
-    return RegExp(pattern, caseSensitive: false);
+  /// Fetches [url] with plain HTTP ([DioSource.grabText]). If the preferred
+  /// mirror is Cloudflare-blocked it retries across the other mirrors.
+  Future<String> _fetchHtml(String url) async {
+    for (final mirror in mirrors) {
+      final effective = url.contains('://')
+          ? url.replaceFirst(RegExp(r'https?://[^/]+'), mirror)
+          : '$mirror/$url';
+      final html = await grabText(
+        effective,
+        extraHeaders: {'Referer': '$mirror/'},
+        useBaseUrl: false,
+      );
+      if (html.isNotEmpty && !html.contains('Just a moment')) return html;
+    }
+    debugPrint('Manganato all mirrors failed');
+    return '';
   }
 
-  Future<String> _fetchHtmlWithWebView(String url) async {
-    Completer<String> completer = Completer<String>();
-    HeadlessInAppWebView? webView;
-
-    webView = HeadlessInAppWebView(
-      initialUrlRequest: URLRequest(url: WebUri(url)),
-      initialSettings: InAppWebViewSettings(
-        javaScriptEnabled: true,
-        useShouldOverrideUrlLoading: true,
-      ),
-      onLoadStop: (controller, url) async {
-        String? html = await controller.getHtml();
-        completer.complete(html ?? "");
-        webView?.dispose();
-      },
-      onReceivedError: (controller, request, error) {
-        completer.complete("");
-      },
-    );
-
-    // FIX: Removed the '!' to stop the warning
-    await webView?.run();
-    return completer.future;
+  Future<Map<String, dynamic>?> _fetchJson(String url) async {
+    for (final mirror in mirrors) {
+      final effective = url.contains('://')
+          ? url.replaceFirst(RegExp(r'https?://[^/]+'), mirror)
+          : '$mirror/$url';
+      final body = await grabText(
+        effective,
+        extraHeaders: {'Referer': '$mirror/'},
+        useBaseUrl: false,
+      );
+      if (body.isEmpty) continue;
+      try {
+        final decoded = jsonDecode(body);
+        if (decoded is Map<String, dynamic>) return decoded;
+      } catch (_) {
+        // Not JSON — likely a Cloudflare challenge page; try next mirror.
+      }
+    }
+    return null;
   }
 
   @override
   Future<List<Manga>> getPopularManga({int page = 1}) async {
-    final html = await _fetchHtmlWithWebView('$baseUrl/genre-all/$page');
+    final html = await _fetchHtml('$baseUrl/manga-list/hot-manga?page=$page');
     if (html.isEmpty) return [];
     final document = parser.parse(html);
-    final elements = document.querySelectorAll('.content-genres-item');
-    return elements.map((element) {
-      final titleEl = element.querySelector('.genres-item-name');
-      final imgEl = element.querySelector('img');
-      final url = titleEl?.attributes['href'] ?? '';
-      final id = url.split('/').last;
+    final items = document.querySelectorAll('.item');
+    if (items.isEmpty) {
+      return document
+          .querySelectorAll('.content-genres-item')
+          .map(_fromListElement)
+          .toList();
+    }
+    return items.map((item) {
+      final a = item.querySelector('h3 a, .slide-caption a');
+      final img = item.querySelector('img');
+      final href = a?.attributes['href'] ?? '';
       return Manga(
-        id: id,
-        sourceId: this.id,
-        title: titleEl?.text.trim() ?? '',
-        coverUrl: imgEl?.attributes['src'] ?? '',
+        id: href.split('/').last,
+        sourceId: id,
+        title: a?.text.trim() ?? img?.attributes['alt'] ?? '',
+        coverUrl: img?.attributes['src'] ?? '',
       );
-    }).toList();
+    }).where((m) => m.id.isNotEmpty).toList();
+  }
+
+  Manga _fromListElement(dynamic element) {
+    final titleEl = element.querySelector('.genres-item-name');
+    final imgEl = element.querySelector('img');
+    final url = titleEl?.attributes['href'] ?? '';
+    return Manga(
+      id: url.split('/').last,
+      sourceId: id,
+      title: titleEl?.text.trim() ?? '',
+      coverUrl: imgEl?.attributes['src'] ?? '',
+    );
   }
 
   @override
   Future<List<Chapter>> getChapters(String mangaId) async {
-    final html = await _fetchHtmlWithWebView('$baseUrl/manga-$mangaId');
-    if (html.isEmpty) return [];
-    final document = parser.parse(html);
-    final elements = document.querySelectorAll('.row-content-chapter .a-h');
-    return elements.map((element) {
-      final url = element.attributes['href'] ?? '';
-      final id = url.split('/').last;
-      var numRegex = _getRegex(r'[^0-9.]');
-      var cleanNum = element.text.replaceAll(numRegex, '');
-      return Chapter(
-        id: id,
-        title: element.text.trim(),
-        chapterNumber: cleanNum,
-        releaseDate: '',
-        url: url,
+    final json = await _fetchJson('$baseUrl/api/manga/$mangaId/chapters?limit=-1');
+    if (json == null || json['success'] != true) return [];
+    final entries = ((json['data'] as Map?)?['chapters'] as List?) ?? const [];
+    final chapters = <Chapter>[];
+    for (final raw in entries) {
+      final c = raw is Map ? raw : const {};
+      final slug = c['chapter_slug']?.toString() ?? '';
+      if (slug.isEmpty) continue;
+      final name = c['chapter_name']?.toString() ?? 'Chapter';
+      chapters.add(
+        Chapter(
+          id: '/manga/$mangaId/$slug',
+          title: name,
+          chapterNumber: c['chapter_num']?.toString() ?? '',
+          releaseDate: c['updated_at']?.toString() ?? '',
+          url: '$baseUrl/manga/$mangaId/$slug',
+        ),
       );
-    }).toList();
+    }
+    // API returns newest-first; the app/reader expect oldest-first.
+    return chapters.reversed.toList();
   }
 
   @override
@@ -107,77 +160,65 @@ class ManganatoService implements MangaSource {
     try {
       final String targetUrl = chapterId.startsWith('http')
           ? chapterId
-          : '$readerBaseUrl/$chapterId';
+          : '$readerBaseUrl${chapterId.startsWith('/') ? '' : '/'}$chapterId';
 
-      Completer<List<String>> completer = Completer<List<String>>();
-      HeadlessInAppWebView? webView;
+      // Chapter pages ship two script variables — `cdns` (image CDNs) and
+      // `chapterImages` (paths under the first CDN). Same approach Mihon's
+      // Manganato extension uses.
+      final html = await _fetchHtml(targetUrl);
+      if (html.isEmpty) return [];
 
-      webView = HeadlessInAppWebView(
-        initialUrlRequest: URLRequest(url: WebUri(targetUrl)),
-        initialSettings: InAppWebViewSettings(
-          javaScriptEnabled: true,
-          useShouldOverrideUrlLoading: true,
-        ),
-        onLoadStop: (controller, url) async {
-          // --- THE JS SNIPER ---
-          // We run this script inside the browser. It finds all images,
-          // checks their data-src/src, and joins them into one long string.
-          final result = await controller.evaluateJavascript(
-            source: """
-            (function() {
-              var images = document.querySelectorAll('img');
-              var urls = [];
-              for (var i = 0; i < images.length; i++) {
-                var src = images[i].getAttribute('data-src') || 
-                           images[i].getAttribute('data-original') || 
-                           images[i].getAttribute('data-lazy-src') || 
-                           images[i].src;
-                if (src && !src.includes('placeholder') && !src.includes('loading')) {
-                  urls.push(src);
-                }
-              }
-              return urls.join(',');
-            })();
-          """,
-          );
+      final cdns = _extractJsArray(
+        html,
+        RegExp(r'cdns\s*=\s*\[([^\]]+)\]'),
+      )..removeWhere((u) => !u.startsWith('http'));
 
-          if (result != null && result is String && result.isNotEmpty) {
-            List<String> pages = result.split(',');
-            completer.complete(pages);
-          } else {
-            completer.complete([]);
-          }
-          webView?.dispose();
-        },
-        onReceivedError: (controller, request, error) {
-          completer.complete([]);
-        },
+      final images = _extractJsArray(
+        html,
+        RegExp(r'(?:chapterImages|backupImages)\s*=\s*\[([^\]]+)\]'),
       );
 
-      await webView!.run();
+      if (cdns.isNotEmpty && images.isNotEmpty) {
+        final base = cdns.first.replaceAll(RegExp(r'/$'), '');
+        return images
+            .map((p) => '$base${p.startsWith('/') ? p : '/$p'}')
+            .toList();
+      }
 
-      final List<String> finalPages = await completer.future;
-
-      // Filter out any junk that JS might have picked up
-      final cleanedPages = finalPages
-          .where((url) => _isValidMangaUrl(url))
-          .toList();
-
-      debugPrint('JS Sniper found ${cleanedPages.length} real pages.');
-      return cleanedPages;
+      // Fallback: static images in the reader container.
+      final document = parser.parse(html);
+      final staticImages = <String>[];
+      for (final img in document.querySelectorAll('.container-chapter-reader img')) {
+        final src = img.attributes['src'] ?? '';
+        if (src.isNotEmpty && !staticImages.contains(src)) {
+          staticImages.add(src);
+        }
+      }
+      return staticImages.where(_isValidMangaUrl).toList();
     } catch (e) {
-      debugPrint('JS Sniper Error: $e');
+      debugPrint('Manganato Pages Error: $e');
       return [];
     }
+  }
+
+  List<String> _extractJsArray(String html, RegExp regex) {
+    final match = regex.firstMatch(html);
+    if (match == null) return [];
+    return match
+        .group(1)!
+        .split(',')
+        .map((s) => s.trim().replaceAll('"', '').replaceAll(r'\/', '/'))
+        .where((s) => s.isNotEmpty)
+        .toList();
   }
 
   bool _isValidMangaUrl(String url) {
     if (url.isEmpty) return false;
     if (url.contains('placeholder') ||
         url.contains('loading') ||
-        url.contains('wheel'))
+        url.contains('wheel')) {
       return false;
-    if (url.contains('mangadex') || url.contains('logo')) return false;
+    }
     return url.contains('.jpg') ||
         url.contains('.png') ||
         url.contains('.webp') ||
@@ -187,42 +228,44 @@ class ManganatoService implements MangaSource {
   @override
   Future<MangaDetails?> getMangaDetails(String mangaId) async {
     try {
-      final html = await _fetchHtmlWithWebView('$baseUrl/manga-$mangaId');
+      final html = await _fetchHtml('$baseUrl/manga/$mangaId');
       if (html.isEmpty) return null;
       final document = parser.parse(html);
 
-      final infoEl = document.querySelector('.story-info-right');
-      final titleEl = document.querySelector('.story-info-right h1');
+      final topEl =
+          document.querySelector('.manga-info-top') ??
+          document.querySelector('.panel-story-info');
+      final titleEl =
+          topEl?.querySelector('h1') ??
+          document.querySelector('.story-info-right h1');
+      final imgEl =
+          document.querySelector('.manga-info-pic img') ??
+          document.querySelector('.story-info-left img');
 
-      var rating = '';
-      String description = '';
-      List<String> genres = [];
-      String author = '';
-      String status = '';
+      final text = document.querySelector('.manga-info-top')?.text ?? '';
+      var author = '';
+      var status = '';
+      final authorMatch = RegExp(
+        r"Author?s?:?\s*([A-Za-z0-9 ,.!&'\-\uac00-\ud7af]+)",
+        caseSensitive: false,
+      ).firstMatch(text);
+      if (authorMatch != null) author = authorMatch.group(1)!.trim();
+      final statusMatch = RegExp(
+        r'Status:?\s*([A-Za-z]+)',
+        caseSensitive: false,
+      ).firstMatch(text);
+      if (statusMatch != null) status = statusMatch.group(1)!.trim();
 
-      final allPTags = document.querySelectorAll('.story-info-right p');
-      for (final p in allPTags) {
-        final label = p.text.trim();
-        if (label.contains('Author')) {
-          author = p.querySelector('.author-content')?.text.trim() ?? '';
-        } else if (label.contains('Status')) {
-          status = p.querySelector('.status-content')?.text.trim() ?? '';
-        } else if (label.contains('Rating')) {
-          rating = p.text.replaceAll('Rating :', '').trim();
-        }
+      final genres = <String>[];
+      for (final a in document.querySelectorAll('.manga-info-top a[href*="/genre/"], .genres a')) {
+        final g = a.text.trim();
+        if (g.isNotEmpty && !genres.contains(g)) genres.add(g);
       }
 
-      final genreAnchors = infoEl?.querySelectorAll('.genres a');
-      if (genreAnchors != null) {
-        genres = genreAnchors.map((a) => a.text.trim()).toList();
-      }
-
-      final descEl = document.querySelector('#panel-story-description');
-      if (descEl != null) {
-        description = descEl.text.trim();
-      }
-
-      final imgEl = document.querySelector('.story-info-left img');
+      final descEl =
+          document.querySelector('#panel-story-description') ??
+          document.querySelector('#noidungm');
+      final description = descEl?.text.trim() ?? '';
 
       return MangaDetails(
         id: mangaId,
@@ -232,7 +275,7 @@ class ManganatoService implements MangaSource {
         description: description,
         author: author,
         status: status,
-        year: rating,
+        year: '',
         tags: genres,
         followers: 0,
         totalChapters: 0,
@@ -244,7 +287,12 @@ class ManganatoService implements MangaSource {
   }
 
   @override
-  Future<int> getTotalChapters(String mangaId) async => 0;
+  Future<int> getTotalChapters(String mangaId) async {
+    final json = await _fetchJson('$baseUrl/api/manga/$mangaId/chapters?limit=-1');
+    if (json == null || json['success'] != true) return 0;
+    final entries = ((json['data'] as Map?)?['chapters'] as List?) ?? const [];
+    return entries.length;
+  }
 
   @override
   Future<List<Manga>> searchMangaByTags(
@@ -262,15 +310,13 @@ class ManganatoService implements MangaSource {
   Future<List<Manga>> searchByTitle(String query, {int page = 1}) async {
     try {
       final searchQuery = query.trim().replaceAll(' ', '_');
-      final html = await _fetchHtmlWithWebView(
-        '$baseUrl/search/story/$searchQuery',
-      );
+      final html = await _fetchHtml('$baseUrl/search/story/$searchQuery');
       if (html.isEmpty) return [];
       final document = parser.parse(html);
-      final elements = document.querySelectorAll('.search-story-item');
+      final elements = document.querySelectorAll('.search-story-item, .panel_story_list .story_item');
       return elements.map((element) {
-        final titleEl = element.querySelector('.item-title');
-        final imgEl = element.querySelector('.item-img img');
+        final titleEl = element.querySelector('.item-title, .story_name a');
+        final imgEl = element.querySelector('.item-img img, img');
         final url = titleEl?.attributes['href'] ?? '';
         final id = url.split('/').last;
         return Manga(
