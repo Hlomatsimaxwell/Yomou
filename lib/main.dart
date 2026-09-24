@@ -329,13 +329,20 @@ class _HomeScreenState extends ConsumerState<HomeScreen>
               // Main body content — placed first so lists/grids extend
               // edge-to-edge and scroll underneath the floating bar.
               Positioned.fill(
-                child: IndexedStack(
-                  index: _currentIndex,
-                  children: List.generate(
-                    _screens.length,
-                    (i) => _visitedTabs.contains(i)
-                        ? _screens[i]
-                        : const SizedBox.shrink(),
+                child: Padding(
+                  // Lift every tab body above the floating bottom bar so lists
+                  // and grids clear the pill and the system inset. Mirrors
+                  // extendBody in reverse: we opt back in to the clearance
+                  // extendBody throws away.
+                  padding: EdgeInsets.only(bottom: bottomBarClearance(context)),
+                  child: IndexedStack(
+                    index: _currentIndex,
+                    children: List.generate(
+                      _screens.length,
+                      (i) => _visitedTabs.contains(i)
+                          ? _screens[i]
+                          : const SizedBox.shrink(),
+                    ),
                   ),
                 ),
               ),
@@ -627,61 +634,71 @@ class _HomeScreenState extends ConsumerState<HomeScreen>
           setState(() => _currentIndex = index);
           _persistLastUsed(index);
         },
-        borderRadius: BorderRadius.circular(16),
-        child: AnimatedScale(
-          scale: active ? 1.05 : 1.0,
-          duration: const Duration(milliseconds: 200),
-          curve: Curves.easeInOut,
-          child: Padding(
-            padding: const EdgeInsets.symmetric(horizontal: 4),
-            child: Column(
-              mainAxisSize: MainAxisSize.min,
-              mainAxisAlignment: MainAxisAlignment.center,
-              children: [
-                AnimatedSwitcher(
-                  duration: const Duration(milliseconds: 200),
-                  switchInCurve: Curves.easeInOut,
-                  switchOutCurve: Curves.easeInOut,
-                  transitionBuilder: (child, animation) => FadeTransition(
-                    opacity: animation,
-                    child: ScaleTransition(scale: animation, child: child),
-                  ),
-                  child: index == 4
-                      ? KeyedSubtree(
-                          key: ValueKey<bool>(active),
-                          child: _buildUpdatesIcon(
-                            updatesCount,
-                            active ? fill : line,
-                            color,
-                            accent,
-                          ),
-                        )
-                      : Icon(
-                          active ? fill : line,
-                          key: ValueKey<bool>(active),
-                          size: 22,
-                          color: color,
-                        ),
+        borderRadius: BorderRadius.circular(20),
+        child: AnimatedContainer(
+          duration: const Duration(milliseconds: 220),
+          curve: Curves.easeOutCubic,
+          decoration: BoxDecoration(
+            color: active
+                ? accent.withValues(
+                    alpha: Theme.of(context).brightness == Brightness.dark
+                        ? 0.26
+                        : 0.16,
+                  )
+                : Colors.transparent,
+            borderRadius: BorderRadius.circular(20),
+          ),
+          padding: EdgeInsets.symmetric(
+            horizontal: active ? 14 : 6,
+            vertical: active ? 8 : 4,
+          ),
+          child: Row(
+            mainAxisSize: MainAxisSize.min,
+            mainAxisAlignment: MainAxisAlignment.center,
+            children: [
+              AnimatedSwitcher(
+                duration: const Duration(milliseconds: 200),
+                switchInCurve: Curves.easeInOut,
+                switchOutCurve: Curves.easeInOut,
+                transitionBuilder: (child, animation) => FadeTransition(
+                  opacity: animation,
+                  child: ScaleTransition(scale: animation, child: child),
                 ),
-                if (showLabels) ...[
-                  const SizedBox(height: 2),
-                  FittedBox(
-                    fit: BoxFit.scaleDown,
-                    child: Text(
-                      _navLabel(context, index),
-                      softWrap: false,
-                      maxLines: 1,
-                      overflow: TextOverflow.ellipsis,
-                      style: TextStyle(
-                        fontSize: 11,
-                        fontWeight: active ? FontWeight.w600 : FontWeight.w500,
+                child: index == 4
+                    ? KeyedSubtree(
+                        key: ValueKey<bool>(active),
+                        child: _buildUpdatesIcon(
+                          updatesCount,
+                          active ? fill : line,
+                          color,
+                          accent,
+                        ),
+                      )
+                    : Icon(
+                        active ? fill : line,
+                        key: ValueKey<bool>(active),
+                        size: 22,
                         color: color,
                       ),
+              ),
+              if (showLabels && active) ...[
+                const SizedBox(width: 5),
+                FittedBox(
+                  fit: BoxFit.scaleDown,
+                  child: Text(
+                    _navLabel(context, index),
+                    softWrap: false,
+                    maxLines: 1,
+                    overflow: TextOverflow.ellipsis,
+                    style: TextStyle(
+                      fontSize: 12,
+                      fontWeight: FontWeight.w600,
+                      color: color,
                     ),
                   ),
-                ],
+                ),
               ],
-            ),
+            ],
           ),
         ),
       ),
