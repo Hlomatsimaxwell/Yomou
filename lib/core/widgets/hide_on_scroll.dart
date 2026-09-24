@@ -1,4 +1,6 @@
 import 'package:flutter/material.dart';
+import 'package:flutter_riverpod/flutter_riverpod.dart';
+import '../../features/settings/providers/appearance_provider.dart';
 
 /// iOS-style collapsible top strip: the [header] (search bar, …) smoothly
 /// collapses to nothing while the user scrolls down and expands again the
@@ -6,7 +8,11 @@ import 'package:flutter/material.dart';
 ///
 /// The scrollable [body] fills the rest of the screen and gains the freed space
 /// as the header collapses.
-class HideOnScroll extends StatefulWidget {
+///
+/// The strip stays pinned (never collapses) whenever the user has enabled
+/// "pin navigation UI" (`pinNavUiOnScroll`), keeping it in lockstep with the
+/// floating nav pill instead of peeling away from it mid-scroll.
+class HideOnScroll extends ConsumerStatefulWidget {
   const HideOnScroll({
     super.key,
     required this.header,
@@ -20,10 +26,10 @@ class HideOnScroll extends StatefulWidget {
   final Widget body;
 
   @override
-  State<HideOnScroll> createState() => _HideOnScrollState();
+  ConsumerState<HideOnScroll> createState() => _HideOnScrollState();
 }
 
-class _HideOnScrollState extends State<HideOnScroll> {
+class _HideOnScrollState extends ConsumerState<HideOnScroll> {
   static const _duration = Duration(milliseconds: 220);
   static const _curve = Curves.easeOut;
 
@@ -49,8 +55,17 @@ class _HideOnScrollState extends State<HideOnScroll> {
 
   @override
   Widget build(BuildContext context) {
+    final pinned =
+        ref.watch(appearanceSettingsProvider).pinNavUiOnScroll;
+    if (pinned && _hidden) {
+      final prevHidden = _hidden;
+      WidgetsBinding.instance.addPostFrameCallback((_) {
+        if (mounted && prevHidden && _hidden) setState(() => _hidden = false);
+      });
+    }
+
     return NotificationListener<ScrollNotification>(
-      onNotification: _onScroll,
+      onNotification: pinned ? null : _onScroll,
       child: ClipRect(
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,

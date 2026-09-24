@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'dart:async';
+import 'dart:ui' show ImageFilter;
 import 'dart:io';
 import 'package:sqflite_common_ffi/sqflite_ffi.dart';
 
@@ -329,20 +330,13 @@ class _HomeScreenState extends ConsumerState<HomeScreen>
               // Main body content — placed first so lists/grids extend
               // edge-to-edge and scroll underneath the floating bar.
               Positioned.fill(
-                child: Padding(
-                  // Lift every tab body above the floating bottom bar so lists
-                  // and grids clear the pill and the system inset. Mirrors
-                  // extendBody in reverse: we opt back in to the clearance
-                  // extendBody throws away.
-                  padding: EdgeInsets.only(bottom: bottomBarClearance(context)),
-                  child: IndexedStack(
-                    index: _currentIndex,
-                    children: List.generate(
-                      _screens.length,
-                      (i) => _visitedTabs.contains(i)
-                          ? _screens[i]
-                          : const SizedBox.shrink(),
-                    ),
+                child: IndexedStack(
+                  index: _currentIndex,
+                  children: List.generate(
+                    _screens.length,
+                    (i) => _visitedTabs.contains(i)
+                        ? _screens[i]
+                        : const SizedBox.shrink(),
                   ),
                 ),
               ),
@@ -438,7 +432,18 @@ class _HomeScreenState extends ConsumerState<HomeScreen>
             mainAxisSize: MainAxisSize.max,
             crossAxisAlignment: CrossAxisAlignment.center,
             children: [
-              Expanded(child: _buildFloatingPill(context, updatesCount, accent, settings, enabledTabs)),
+              Expanded(
+                child: Align(
+                  alignment: showFab
+                      ? Alignment.centerLeft
+                      : Alignment.center,
+                  heightFactor: 1,
+                  child: ConstrainedBox(
+                    constraints: const BoxConstraints(maxWidth: kFloatingPillMaxWidth),
+                    child: _buildFloatingPill(context, updatesCount, accent, settings, enabledTabs),
+                  ),
+                ),
+              ),
               AnimatedSize(
                 duration: const Duration(milliseconds: 220),
                 curve: Curves.easeOutCubic,
@@ -483,32 +488,27 @@ class _HomeScreenState extends ConsumerState<HomeScreen>
     AppearanceSettings settings,
     List<int> enabledTabs,
   ) {
-    return Container(
-      height: kBottomBarHeight,
-      padding: const EdgeInsets.symmetric(vertical: 8, horizontal: 8),
-      decoration: BoxDecoration(
-        color: Theme.of(context).brightness == Brightness.dark
-            ? const Color(0xFF1C1C1E)
-            : Colors.white,
-        borderRadius: BorderRadius.circular(28),
-        border: Border.all(
-          color: Theme.of(context).brightness == Brightness.dark
-              ? const Color(0xFF2C2C30)
-              : Colors.black12,
-        ),
-        boxShadow: [
-          BoxShadow(
-            color: Colors.black.withValues(
-              alpha: Theme.of(context).brightness == Brightness.dark
-                  ? 0.08
-                  : 0.12,
+    return ClipRRect(
+      borderRadius: BorderRadius.circular(28),
+      child: BackdropFilter(
+        filter: ImageFilter.blur(sigmaX: 16, sigmaY: 16),
+        child: Container(
+          height: kBottomBarHeight,
+          padding: const EdgeInsets.symmetric(vertical: 8, horizontal: 8),
+          decoration: BoxDecoration(
+            color: Theme.of(context).brightness == Brightness.dark
+                ? const Color(0x661C1C1E)
+                : Colors.white.withValues(alpha: 0.62),
+            borderRadius: BorderRadius.circular(28),
+            border: Border.all(
+              color: Theme.of(context).brightness == Brightness.dark
+                  ? const Color(0x332C2C30)
+                  : Colors.black.withValues(alpha: 0.08),
             ),
-            blurRadius: 16,
-            offset: const Offset(0, 4),
           ),
-        ],
+          child: _buildNavRow(updatesCount, accent, settings, enabledTabs),
+        ),
       ),
-      child: _buildNavRow(updatesCount, accent, settings, enabledTabs),
     );
   }
 
@@ -525,9 +525,9 @@ class _HomeScreenState extends ConsumerState<HomeScreen>
         width: double.infinity,
         height: kBottomBarHeight + MediaQuery.paddingOf(context).bottom,
         padding: EdgeInsets.only(bottom: MediaQuery.paddingOf(context).bottom),
-        color: Theme.of(context).brightness == Brightness.dark
-            ? const Color(0xFF1C1C1E)
-            : Colors.white,
+          color: Theme.of(context).brightness == Brightness.dark
+              ? const Color(0xFF1C1C1E)
+              : Colors.white,
         child: _buildNavRow(updatesCount, accent, settings, enabledTabs),
       ),
     );
@@ -539,6 +539,8 @@ class _HomeScreenState extends ConsumerState<HomeScreen>
     AppearanceSettings settings,
     List<int> enabledTabs,
   ) {
+    // Items size to their content; spacing stretches to fill whatever the pill
+    // gives us, so the row adapts as the width changes (e.g. FAB visibility).
     return Row(
       mainAxisAlignment: MainAxisAlignment.spaceEvenly,
       children: [
@@ -628,30 +630,32 @@ class _HomeScreenState extends ConsumerState<HomeScreen>
       _ => (RemixIcons.rss_line, RemixIcons.rss_fill),
     };
 
-    return Expanded(
+    return SizedBox(
+      height: kBottomBarHeight - 16,
       child: InkWell(
         onTap: () {
           setState(() => _currentIndex = index);
           _persistLastUsed(index);
         },
         borderRadius: BorderRadius.circular(20),
-        child: AnimatedContainer(
-          duration: const Duration(milliseconds: 220),
-          curve: Curves.easeOutCubic,
-          decoration: BoxDecoration(
-            color: active
-                ? accent.withValues(
-                    alpha: Theme.of(context).brightness == Brightness.dark
-                        ? 0.26
-                        : 0.16,
-                  )
-                : Colors.transparent,
-            borderRadius: BorderRadius.circular(20),
-          ),
-          padding: EdgeInsets.symmetric(
-            horizontal: active ? 14 : 6,
-            vertical: active ? 8 : 4,
-          ),
+        child: Center(
+          child: AnimatedContainer(
+            duration: const Duration(milliseconds: 220),
+            curve: Curves.easeOutCubic,
+            decoration: BoxDecoration(
+              color: active
+                  ? accent.withValues(
+                      alpha: Theme.of(context).brightness == Brightness.dark
+                          ? 0.26
+                          : 0.16,
+                    )
+                  : Colors.transparent,
+              borderRadius: BorderRadius.circular(20),
+            ),
+            padding: EdgeInsets.symmetric(
+              horizontal: active ? 14 : 6,
+              vertical: active ? 8 : 4,
+            ),
           child: Row(
             mainAxisSize: MainAxisSize.min,
             mainAxisAlignment: MainAxisAlignment.center,
@@ -683,23 +687,26 @@ class _HomeScreenState extends ConsumerState<HomeScreen>
               ),
               if (showLabels && active) ...[
                 const SizedBox(width: 5),
-                FittedBox(
-                  fit: BoxFit.scaleDown,
-                  child: Text(
-                    _navLabel(context, index),
-                    softWrap: false,
-                    maxLines: 1,
-                    overflow: TextOverflow.ellipsis,
-                    style: TextStyle(
-                      fontSize: 12,
-                      fontWeight: FontWeight.w600,
-                      color: color,
+                Flexible(
+                  child: FittedBox(
+                    fit: BoxFit.scaleDown,
+                    child: Text(
+                      _navLabel(context, index),
+                      softWrap: false,
+                      maxLines: 1,
+                      overflow: TextOverflow.ellipsis,
+                      style: TextStyle(
+                        fontSize: 12,
+                        fontWeight: FontWeight.w600,
+                        color: color,
+                      ),
                     ),
                   ),
                 ),
               ],
             ],
           ),
+        ),
         ),
       ),
     );
