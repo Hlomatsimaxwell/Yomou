@@ -1479,4 +1479,198 @@ class AppLocalizationsEn extends AppLocalizations {
 
   @override
   String get storageUnknown => 'unknown';
+
+  @override
+  String get backupRestore => 'Backup and restore';
+
+  @override
+  String get createDataBackup => 'Create data backup';
+
+  @override
+  String get backupSubtitle =>
+      'You can create backup of your history and favorites and restore it';
+
+  @override
+  String get restoreFromBackup => 'Restore from backup';
+
+  @override
+  String get restoreSubtitle => 'Restore previously created backup';
+
+  @override
+  String get exportTachiyomi => 'Export to Tachiyomi/Mihon';
+
+  @override
+  String get exportTachiyomiSubtitle =>
+      'Export favorites and history in Tachiyomi format';
+
+  @override
+  String get importTachiyomi => 'Import from Tachiyomi/Mihon';
+
+  @override
+  String get importTachiyomiSubtitle =>
+      'Import favorites from a .tachibk backup';
+
+  @override
+  String tachiyomiExportDone(int count) {
+    return '$count manga exported to Tachiyomi/Mihon';
+  }
+
+  @override
+  String tachiyomiImportDone(int count) {
+    return '$count manga imported from Tachiyomi/Mihon';
+  }
+
+  @override
+  String backupSkipped(int count) {
+    return '$count skipped';
+  }
+
+  @override
+  String get importResultsTitle => 'Import results';
+
+  @override
+  String importResultsImported(int count) {
+    return '$count imported';
+  }
+
+  @override
+  String importResultsNotImported(int count) {
+    return '$count not imported';
+  }
+
+  @override
+  String get importResultsAllImported => 'All manga were imported successfully';
+
+  @override
+  String get importResultsImportedSection => 'Imported';
+
+  @override
+  String get importResultsSkippedSection => 'Not imported';
+
+  @override
+  String importResultsSkippedReasonSource(String source) {
+    return 'No supported source for $source';
+  }
+
+  @override
+  String get importResultsSkippedReasonSourceFallback =>
+      'Yomou doesn\'t have this source';
+
+  @override
+  String get importResultsSkippedReasonId => 'Couldn\'t match a manga url';
+
+  @override
+  String importResultsReadTo(num chapter) {
+    return 'Read to chapter $chapter';
+  }
+
+  @override
+  String get tachiyomiExportNone => 'No compatible manga found to export';
+
+  @override
+  String get tachiyomiImportInvalid => 'Invalid Tachiyomi backup file';
+
+  @override
+  String get tachiyomiImportNone => 'No compatible manga found to import';
+
+  @override
+  String get periodicBackups => 'Periodic backups';
+
+  @override
+  String get enablePeriodicBackups => 'Enable periodic backups';
+
+  @override
+  String get backupsOutputDirectory => 'Backups output directory';
+
+  @override
+  String get backupsOutputDirectoryNone => 'No directory chosen';
+
+  @override
+  String get backupCreationFrequency => 'Backup creation frequency';
+
+  @override
+  String get deleteOldBackups => 'Delete old backups';
+
+  @override
+  String get maxNumberOfBackups => 'Max number of backups';
+
+  @override
+  String get lastSuccessfulBackup => 'Last successful backup';
+
+  @override
+  String lastSuccessfulBackupTime(String time) {
+    return 'Last successful backup: $time';
+  }
+
+  @override
+  String get backupNever => 'Never';
+
+  @override
+  String get backupJustNow => 'Just now';
+
+  @override
+  String backupMinutesAgo(int count) {
+    String _temp0 = intl.Intl.pluralLogic(
+      count,
+      locale: localeName,
+      other: '$count minutes ago',
+      one: '1 minute ago',
+    );
+    return '$_temp0';
+  }
+
+  @override
+  String backupHoursAgo(int count) {
+    String _temp0 = intl.Intl.pluralLogic(
+      count,
+      locale: localeName,
+      other: '$count hours ago',
+      one: '1 hour ago',
+    );
+    return '$_temp0';
+  }
+
+  @override
+  String backupDaysAgo(int count) {
+    String _temp0 = intl.Intl.pluralLogic(
+      count,
+      locale: localeName,
+      other: '$count days ago',
+      one: '1 day ago',
+    );
+    return '$_temp0';
+  }
+
+  @override
+  String backupWeeksAgo(int count) {
+    String _temp0 = intl.Intl.pluralLogic(
+      count,
+      locale: localeName,
+      other: '$count weeks ago',
+      one: '1 week ago',
+    );
+    return '$_temp0';
+  }
+
+  @override
+  String backupMonthsAgo(int count) {
+    String _temp0 = intl.Intl.pluralLogic(
+      count,
+      locale: localeName,
+      other: '$count months ago',
+      one: '1 month ago',
+    );
+    return '$_temp0';
+  }
+
+  @override
+  String backupYearsAgo(int count) {
+    String _temp0 = intl.Intl.pluralLogic(
+      count,
+      locale: localeName,
+      other: '$count years ago',
+      one: '1 year ago',
+    );
+    return '$_temp0';
+  }
 }

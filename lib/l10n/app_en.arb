@@ -727,5 +727,145 @@
   "storageClearConfirmBody": "All cached pages and covers will be removed. They are re-downloaded when you next view them.",
   "storageCancel": "Cancel",
   "storageClearDone": "Image cache cleared",
-  "storageUnknown": "unknown"
+  "storageUnknown": "unknown",
+  "backupRestore": "Backup and restore",
+  "createDataBackup": "Create data backup",
+  "backupSubtitle": "You can create backup of your history and favorites and restore it",
+  "restoreFromBackup": "Restore from backup",
+  "restoreSubtitle": "Restore previously created backup",
+  "exportTachiyomi": "Export to Tachiyomi/Mihon",
+  "exportTachiyomiSubtitle": "Export favorites and history in Tachiyomi format",
+  "importTachiyomi": "Import from Tachiyomi/Mihon",
+  "importTachiyomiSubtitle": "Import favorites from a .tachibk backup",
+  "tachiyomiExportDone": "{count} manga exported to Tachiyomi/Mihon",
+  "@tachiyomiExportDone": {
+    "placeholders": {
+      "count": {
+        "type": "int"
+      }
+    }
+  },
+  "tachiyomiImportDone": "{count} manga imported from Tachiyomi/Mihon",
+  "@tachiyomiImportDone": {
+    "placeholders": {
+      "count": {
+        "type": "int"
+      }
+    }
+  },
+  "backupSkipped": "{count} skipped",
+  "@backupSkipped": {
+    "placeholders": {
+      "count": {
+        "type": "int"
+      }
+    }
+  },
+  "importResultsTitle": "Import results",
+  "importResultsImported": "{count} imported",
+  "@importResultsImported": {
+    "placeholders": {
+      "count": {
+        "type": "int"
+      }
+    }
+  },
+  "importResultsNotImported": "{count} not imported",
+  "@importResultsNotImported": {
+    "placeholders": {
+      "count": {
+        "type": "int"
+      }
+    }
+  },
+  "importResultsAllImported": "All manga were imported successfully",
+  "importResultsImportedSection": "Imported",
+  "importResultsSkippedSection": "Not imported",
+  "importResultsSkippedReasonSource": "No supported source for {source}",
+  "@importResultsSkippedReasonSource": {
+    "placeholders": {
+      "source": {
+        "type": "String"
+      }
+    }
+  },
+  "importResultsSkippedReasonSourceFallback": "Yomou doesn't have this source",
+  "importResultsSkippedReasonId": "Couldn't match a manga url",
+  "importResultsReadTo": "Read to chapter {chapter}",
+  "@importResultsReadTo": {
+    "placeholders": {
+      "chapter": {
+        "type": "num"
+      }
+    }
+  },
+  "tachiyomiExportNone": "No compatible manga found to export",
+  "tachiyomiImportInvalid": "Invalid Tachiyomi backup file",
+  "tachiyomiImportNone": "No compatible manga found to import",
+  "periodicBackups": "Periodic backups",
+  "enablePeriodicBackups": "Enable periodic backups",
+  "backupsOutputDirectory": "Backups output directory",
+  "backupsOutputDirectoryNone": "No directory chosen",
+  "backupCreationFrequency": "Backup creation frequency",
+  "deleteOldBackups": "Delete old backups",
+  "maxNumberOfBackups": "Max number of backups",
+  "lastSuccessfulBackup": "Last successful backup",
+  "lastSuccessfulBackupTime": "Last successful backup: {time}",
+  "@lastSuccessfulBackupTime": {
+    "placeholders": {
+      "time": {
+        "type": "String"
+      }
+    }
+  },
+  "backupNever": "Never",
+  "backupJustNow": "Just now",
+  "backupMinutesAgo": "{count, plural, =1{1 minute ago} other{{count} minutes ago}}",
+  "@backupMinutesAgo": {
+    "placeholders": {
+      "count": {
+        "type": "int"
+      }
+    }
+  },
+  "backupHoursAgo": "{count, plural, =1{1 hour ago} other{{count} hours ago}}",
+  "@backupHoursAgo": {
+    "placeholders": {
+      "count": {
+        "type": "int"
+      }
+    }
+  },
+  "backupDaysAgo": "{count, plural, =1{1 day ago} other{{count} days ago}}",
+  "@backupDaysAgo": {
+    "placeholders": {
+      "count": {
+        "type": "int"
+      }
+    }
+  },
+  "backupWeeksAgo": "{count, plural, =1{1 week ago} other{{count} weeks ago}}",
+  "@backupWeeksAgo": {
+    "placeholders": {
+      "count": {
+        "type": "int"
+      }
+    }
+  },
+  "backupMonthsAgo": "{count, plural, =1{1 month ago} other{{count} months ago}}",
+  "@backupMonthsAgo": {
+    "placeholders": {
+      "count": {
+        "type": "int"
+      }
+    }
+  },
+  "backupYearsAgo": "{count, plural, =1{1 year ago} other{{count} years ago}}",
+  "@backupYearsAgo": {
+    "placeholders": {
+      "count": {
+        "type": "int"
+      }
+    }
+  }
 }

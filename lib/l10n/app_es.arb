@@ -679,5 +679,124 @@
   "storageClearConfirmBody": "Se eliminarán todas las páginas y portadas en caché. Se volverán a descargar cuando las veas de nuevo.",
   "storageCancel": "Cancelar",
   "storageClearDone": "Caché de imágenes borrada",
-  "storageUnknown": "desconocido"
+  "storageUnknown": "desconocido",
+  "backupRestore": "Copia de seguridad y restauración",
+  "createDataBackup": "Crear copia de seguridad",
+  "backupSubtitle": "Puedes crear una copia de tu historial y favoritos y restaurarla",
+  "restoreFromBackup": "Restaurar copia de seguridad",
+  "restoreSubtitle": "Restaurar una copia de seguridad creada anteriormente",
+  "exportTachiyomi": "Exportar a Tachiyomi/Mihon",
+  "exportTachiyomiSubtitle": "Exportar favoritos e historial en formato Tachiyomi",
+  "importTachiyomi": "Importar desde Tachiyomi/Mihon",
+  "importTachiyomiSubtitle": "Importar favoritos desde una copia .tachibk",
+  "tachiyomiExportDone": "{count} manga exportados a Tachiyomi/Mihon",
+  "tachiyomiImportDone": "{count} manga importados desde Tachiyomi/Mihon",
+  "backupSkipped": "{count} omitidos",
+  "importResultsTitle": "Resultado de la importación",
+  "importResultsImported": "{count} importados",
+  "@importResultsImported": {
+    "placeholders": {
+      "count": {
+        "type": "int"
+      }
+    }
+  },
+  "importResultsNotImported": "{count} no importados",
+  "@importResultsNotImported": {
+    "placeholders": {
+      "count": {
+        "type": "int"
+      }
+    }
+  },
+  "importResultsAllImported": "Todos los manga se importaron correctamente",
+  "importResultsImportedSection": "Importados",
+  "importResultsSkippedSection": "No importados",
+  "importResultsSkippedReasonSource": "No hay fuente compatible para {source}",
+  "@importResultsSkippedReasonSource": {
+    "placeholders": {
+      "source": {
+        "type": "String"
+      }
+    }
+  },
+  "importResultsSkippedReasonSourceFallback": "Yomou no tiene esta fuente",
+  "importResultsSkippedReasonId": "No se pudo identificar la URL del manga",
+  "importResultsReadTo": "Leído hasta el capítulo {chapter}",
+  "@importResultsReadTo": {
+    "placeholders": {
+      "chapter": {
+        "type": "num"
+      }
+    }
+  },
+  "tachiyomiExportNone": "No se encontró manga compatible para exportar",
+  "tachiyomiImportInvalid": "Archivo de copia de Tachiyomi inválido",
+  "tachiyomiImportNone": "No se encontró manga compatible para importar",
+  "periodicBackups": "Copias periódicas",
+  "enablePeriodicBackups": "Activar copias periódicas",
+  "backupsOutputDirectory": "Directorio de copias de seguridad",
+  "backupsOutputDirectoryNone": "Ningún directorio seleccionado",
+  "backupCreationFrequency": "Frecuencia de copia de seguridad",
+  "deleteOldBackups": "Eliminar copias antiguas",
+  "maxNumberOfBackups": "Número máximo de copias",
+  "lastSuccessfulBackup": "Última copia exitosa",
+  "lastSuccessfulBackupTime": "Última copia exitosa: {time}",
+  "@lastSuccessfulBackupTime": {
+    "placeholders": {
+      "time": {
+        "type": "String"
+      }
+    }
+  },
+  "backupNever": "Nunca",
+  "backupJustNow": "Ahora mismo",
+  "backupMinutesAgo": "{count, plural, =1{hace 1 minuto} other{hace {count} minutos}}",
+  "@backupMinutesAgo": {
+    "placeholders": {
+      "count": {
+        "type": "int"
+      }
+    }
+  },
+  "backupHoursAgo": "{count, plural, =1{hace 1 hora} other{hace {count} horas}}",
+  "@backupHoursAgo": {
+    "placeholders": {
+      "count": {
+        "type": "int"
+      }
+    }
+  },
+  "backupDaysAgo": "{count, plural, =1{hace 1 día} other{hace {count} días}}",
+  "@backupDaysAgo": {
+    "placeholders": {
+      "count": {
+        "type": "int"
+      }
+    }
+  },
+  "backupWeeksAgo": "{count, plural, =1{hace 1 semana} other{hace {count} semanas}}",
+  "@backupWeeksAgo": {
+    "placeholders": {
+      "count": {
+        "type": "int"
+      }
+    }
+  },
+  "backupMonthsAgo": "{count, plural, =1{hace 1 mes} other{hace {count} meses}}",
+  "@backupMonthsAgo": {
+    "placeholders": {
+      "count": {
+        "type": "int"
+      }
+    }
+  },
+  "backupYearsAgo": "{count, plural, =1{hace 1 año} other{hace {count} años}}",
+  "@backupYearsAgo": {
+    "placeholders": {
+      "count": {
+        "type": "int"
+      }
+    }
+  }
 }

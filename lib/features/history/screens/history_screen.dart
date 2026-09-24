@@ -112,6 +112,16 @@ class _HistoryScreenState extends ConsumerState<HistoryScreen> {
   @override
   void initState() {
     super.initState();
+    // Reload whenever reading progress/history or downloads change (e.g.
+    // backup import), even if this (possibly alive-in-background) tab isn't
+    // reopened. Uses listenManual because ref.listen is only valid during
+    // build in Riverpod 2.6.x.
+    ref.listenManual(historyRevisionProvider, (previous, next) {
+      if (previous != next) _loadFromProvider();
+    });
+    ref.listenManual(downloadsRevisionProvider, (previous, next) {
+      if (previous != next) _loadFromProvider();
+    });
     _loadInitialData();
   }
 
@@ -141,6 +151,13 @@ class _HistoryScreenState extends ConsumerState<HistoryScreen> {
     if (mounted) {
       setState(() => _historyItems = items);
     }
+  }
+
+  // Pull-to-refresh and the overflow-menu "Refresh" action both reload history
+  // straight from the database (imports/edits land immediately).
+  Future<void> _refreshHistory() async {
+    await _loadFromProvider();
+    bumpHistoryRevision(ref);
   }
 
   Future<void> _savePreference(String key, dynamic value) async {
@@ -735,6 +752,16 @@ class _HistoryScreenState extends ConsumerState<HistoryScreen> {
             mainAxisSize: MainAxisSize.min,
             children: [
               _buildSheetRow(
+                icon: RemixIcons.refresh_line,
+                label: l.refresh,
+                color: fg,
+                onTap: () {
+                  Navigator.pop(context);
+                  _refreshHistory();
+                },
+              ),
+              Divider(color: divider, height: 1, thickness: 1),
+              _buildSheetRow(
                 icon: RemixIcons.delete_bin_5_line,
                 label: l.historyClearTitle,
                 color: fg,
@@ -844,13 +871,6 @@ class _HistoryScreenState extends ConsumerState<HistoryScreen> {
 
   @override
   Widget build(BuildContext context) {
-    ref.listen<int>(historyRevisionProvider, (prev, next) {
-      if (next != prev) _loadFromProvider();
-    });
-    ref.listen<int>(downloadsRevisionProvider, (prev, next) {
-      if (next != prev) _loadFromProvider();
-    });
-
     final appearance = ref.watch(appearanceSettingsProvider);
 
     final filteredList = _historyItems.where(_matchesHistoryFilter).toList();
@@ -926,9 +946,14 @@ class _HistoryScreenState extends ConsumerState<HistoryScreen> {
                 if (_isSelecting) _buildSelectionBar(context) else _buildSearchBar(),
               ],
             ),
-            body: SingleChildScrollView(
-              padding: EdgeInsets.only(bottom: bottomBarClearance(context)),
-              child: Column(
+            body: RefreshIndicator(
+              onRefresh: _refreshHistory,
+              color: Theme.of(context).colorScheme.primary,
+              backgroundColor: Theme.of(context).scaffoldBackgroundColor,
+              child: SingleChildScrollView(
+                physics: const AlwaysScrollableScrollPhysics(),
+                padding: EdgeInsets.only(bottom: bottomBarClearance(context)),
+                child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
                   if (!_isSelecting && appearance.showQuickFilters) ...[
@@ -982,6 +1007,7 @@ class _HistoryScreenState extends ConsumerState<HistoryScreen> {
               ),
             ),
           ),
+        ),
         ),
       ),
     );

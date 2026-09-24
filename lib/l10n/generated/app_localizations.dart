@@ -2785,6 +2785,258 @@ abstract class AppLocalizations {
   /// In en, this message translates to:
   /// **'unknown'**
   String get storageUnknown;
+
+  /// No description provided for @backupRestore.
+  ///
+  /// In en, this message translates to:
+  /// **'Backup and restore'**
+  String get backupRestore;
+
+  /// No description provided for @createDataBackup.
+  ///
+  /// In en, this message translates to:
+  /// **'Create data backup'**
+  String get createDataBackup;
+
+  /// No description provided for @backupSubtitle.
+  ///
+  /// In en, this message translates to:
+  /// **'You can create backup of your history and favorites and restore it'**
+  String get backupSubtitle;
+
+  /// No description provided for @restoreFromBackup.
+  ///
+  /// In en, this message translates to:
+  /// **'Restore from backup'**
+  String get restoreFromBackup;
+
+  /// No description provided for @restoreSubtitle.
+  ///
+  /// In en, this message translates to:
+  /// **'Restore previously created backup'**
+  String get restoreSubtitle;
+
+  /// No description provided for @exportTachiyomi.
+  ///
+  /// In en, this message translates to:
+  /// **'Export to Tachiyomi/Mihon'**
+  String get exportTachiyomi;
+
+  /// No description provided for @exportTachiyomiSubtitle.
+  ///
+  /// In en, this message translates to:
+  /// **'Export favorites and history in Tachiyomi format'**
+  String get exportTachiyomiSubtitle;
+
+  /// No description provided for @importTachiyomi.
+  ///
+  /// In en, this message translates to:
+  /// **'Import from Tachiyomi/Mihon'**
+  String get importTachiyomi;
+
+  /// No description provided for @importTachiyomiSubtitle.
+  ///
+  /// In en, this message translates to:
+  /// **'Import favorites from a .tachibk backup'**
+  String get importTachiyomiSubtitle;
+
+  /// No description provided for @tachiyomiExportDone.
+  ///
+  /// In en, this message translates to:
+  /// **'{count} manga exported to Tachiyomi/Mihon'**
+  String tachiyomiExportDone(int count);
+
+  /// No description provided for @tachiyomiImportDone.
+  ///
+  /// In en, this message translates to:
+  /// **'{count} manga imported from Tachiyomi/Mihon'**
+  String tachiyomiImportDone(int count);
+
+  /// No description provided for @backupSkipped.
+  ///
+  /// In en, this message translates to:
+  /// **'{count} skipped'**
+  String backupSkipped(int count);
+
+  /// No description provided for @importResultsTitle.
+  ///
+  /// In en, this message translates to:
+  /// **'Import results'**
+  String get importResultsTitle;
+
+  /// No description provided for @importResultsImported.
+  ///
+  /// In en, this message translates to:
+  /// **'{count} imported'**
+  String importResultsImported(int count);
+
+  /// No description provided for @importResultsNotImported.
+  ///
+  /// In en, this message translates to:
+  /// **'{count} not imported'**
+  String importResultsNotImported(int count);
+
+  /// No description provided for @importResultsAllImported.
+  ///
+  /// In en, this message translates to:
+  /// **'All manga were imported successfully'**
+  String get importResultsAllImported;
+
+  /// No description provided for @importResultsImportedSection.
+  ///
+  /// In en, this message translates to:
+  /// **'Imported'**
+  String get importResultsImportedSection;
+
+  /// No description provided for @importResultsSkippedSection.
+  ///
+  /// In en, this message translates to:
+  /// **'Not imported'**
+  String get importResultsSkippedSection;
+
+  /// No description provided for @importResultsSkippedReasonSource.
+  ///
+  /// In en, this message translates to:
+  /// **'No supported source for {source}'**
+  String importResultsSkippedReasonSource(String source);
+
+  /// No description provided for @importResultsSkippedReasonSourceFallback.
+  ///
+  /// In en, this message translates to:
+  /// **'Yomou doesn\'t have this source'**
+  String get importResultsSkippedReasonSourceFallback;
+
+  /// No description provided for @importResultsSkippedReasonId.
+  ///
+  /// In en, this message translates to:
+  /// **'Couldn\'t match a manga url'**
+  String get importResultsSkippedReasonId;
+
+  /// No description provided for @importResultsReadTo.
+  ///
+  /// In en, this message translates to:
+  /// **'Read to chapter {chapter}'**
+  String importResultsReadTo(num chapter);
+
+  /// No description provided for @tachiyomiExportNone.
+  ///
+  /// In en, this message translates to:
+  /// **'No compatible manga found to export'**
+  String get tachiyomiExportNone;
+
+  /// No description provided for @tachiyomiImportInvalid.
+  ///
+  /// In en, this message translates to:
+  /// **'Invalid Tachiyomi backup file'**
+  String get tachiyomiImportInvalid;
+
+  /// No description provided for @tachiyomiImportNone.
+  ///
+  /// In en, this message translates to:
+  /// **'No compatible manga found to import'**
+  String get tachiyomiImportNone;
+
+  /// No description provided for @periodicBackups.
+  ///
+  /// In en, this message translates to:
+  /// **'Periodic backups'**
+  String get periodicBackups;
+
+  /// No description provided for @enablePeriodicBackups.
+  ///
+  /// In en, this message translates to:
+  /// **'Enable periodic backups'**
+  String get enablePeriodicBackups;
+
+  /// No description provided for @backupsOutputDirectory.
+  ///
+  /// In en, this message translates to:
+  /// **'Backups output directory'**
+  String get backupsOutputDirectory;
+
+  /// No description provided for @backupsOutputDirectoryNone.
+  ///
+  /// In en, this message translates to:
+  /// **'No directory chosen'**
+  String get backupsOutputDirectoryNone;
+
+  /// No description provided for @backupCreationFrequency.
+  ///
+  /// In en, this message translates to:
+  /// **'Backup creation frequency'**
+  String get backupCreationFrequency;
+
+  /// No description provided for @deleteOldBackups.
+  ///
+  /// In en, this message translates to:
+  /// **'Delete old backups'**
+  String get deleteOldBackups;
+
+  /// No description provided for @maxNumberOfBackups.
+  ///
+  /// In en, this message translates to:
+  /// **'Max number of backups'**
+  String get maxNumberOfBackups;
+
+  /// No description provided for @lastSuccessfulBackup.
+  ///
+  /// In en, this message translates to:
+  /// **'Last successful backup'**
+  String get lastSuccessfulBackup;
+
+  /// No description provided for @lastSuccessfulBackupTime.
+  ///
+  /// In en, this message translates to:
+  /// **'Last successful backup: {time}'**
+  String lastSuccessfulBackupTime(String time);
+
+  /// No description provided for @backupNever.
+  ///
+  /// In en, this message translates to:
+  /// **'Never'**
+  String get backupNever;
+
+  /// No description provided for @backupJustNow.
+  ///
+  /// In en, this message translates to:
+  /// **'Just now'**
+  String get backupJustNow;
+
+  /// No description provided for @backupMinutesAgo.
+  ///
+  /// In en, this message translates to:
+  /// **'{count, plural, =1{1 minute ago} other{{count} minutes ago}}'**
+  String backupMinutesAgo(int count);
+
+  /// No description provided for @backupHoursAgo.
+  ///
+  /// In en, this message translates to:
+  /// **'{count, plural, =1{1 hour ago} other{{count} hours ago}}'**
+  String backupHoursAgo(int count);
+
+  /// No description provided for @backupDaysAgo.
+  ///
+  /// In en, this message translates to:
+  /// **'{count, plural, =1{1 day ago} other{{count} days ago}}'**
+  String backupDaysAgo(int count);
+
+  /// No description provided for @backupWeeksAgo.
+  ///
+  /// In en, this message translates to:
+  /// **'{count, plural, =1{1 week ago} other{{count} weeks ago}}'**
+  String backupWeeksAgo(int count);
+
+  /// No description provided for @backupMonthsAgo.
+  ///
+  /// In en, this message translates to:
+  /// **'{count, plural, =1{1 month ago} other{{count} months ago}}'**
+  String backupMonthsAgo(int count);
+
+  /// No description provided for @backupYearsAgo.
+  ///
+  /// In en, this message translates to:
+  /// **'{count, plural, =1{1 year ago} other{{count} years ago}}'**
+  String backupYearsAgo(int count);
 }
 
 class _AppLocalizationsDelegate
