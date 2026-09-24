@@ -524,6 +524,131 @@ class DatabaseHelper {
     );
   }
 
+  /// Migrates a stored manga entry onto a different source's copy of the same
+  /// work: the row adopts the new `mangaId`/`sourceId` (plus the new title and
+  /// cover) while keeping its favorites/history/progress state. All rows that
+  /// key off `mangaId` (reading progress, bookmarks, downloads, reading time)
+  /// are re-pointed to the new id so nothing is orphaned.
+  Future<void> rebindManga({
+    required String oldMangaId,
+    required String newMangaId,
+    required String sourceId,
+    required String title,
+    required String coverUrl,
+    required int totalChapters,
+    required double lastReadChapter,
+  }) async {
+    final db = await instance.database;
+    await db.transaction((txn) async {
+      // The old row must exist for there to be anything to migrate.
+      final existing = await txn.query(
+        'manga',
+        columns: ['mangaId'],
+        where: 'mangaId = ?',
+        whereArgs: [oldMangaId],
+      );
+      if (existing.isEmpty) return;
+
+      // If the target id is already in the library, drop that duplicate first
+      // so the primary-key rename (and its child rows) cannot collide. When the
+      // ids are the same there is nothing to drop (and the row is the one being
+      // migrated).
+      if (oldMangaId != newMangaId) {
+        for (final table in ['manga', 'reading_progress', 'bookmarks', 'downloads', 'reading_time']) {
+          await txn.delete(table, where: 'mangaId = ?', whereArgs: [newMangaId]);
+        }
+      }
+
+      await txn.update(
+        'manga',
+        {
+          'mangaId': newMangaId,
+          'sourceId': sourceId,
+          'title': title,
+          'coverUrl': coverUrl,
+          'originalTitle': null,
+          'originalCoverUrl': null,
+          'totalChapters': totalChapters,
+          'lastTrayTotalChapters': 0,
+          'lastReadChapter': lastReadChapter,
+          'lastReadPage': 0,
+          'lastSeenChapters': totalChapters,
+          'lastNotifiedChapters': totalChapters,
+        },
+        where: 'mangaId = ?',
+        whereArgs: [oldMangaId],
+      );
+
+      for (final table in ['reading_progress', 'bookmarks', 'downloads', 'reading_time']) {
+        if (oldMangaId == newMangaId) continue;
+        await txn.update(
+          table,
+          {'mangaId': newMangaId},
+          where: 'mangaId = ?',
+          whereArgs: [oldMangaId],
+        );
+      }
+    });
+  }
+
+  // Returns stored manga entries whose id can never resolve for their source
+  // (e.g. backup imports whose urls were aliased to another site).
+  Future<List<Map<String, dynamic>>> findInvalidLibraryEntries(
+    bool Function(String sourceId, String mangaId) isInvalid,
+  ) async {
+    final db = await instance.database;
+    final rows = await db.query('manga');
+    return rows.where((r) {
+      final sourceId = r['sourceId']?.toString() ?? '';
+      final mangaId = r['mangaId']?.toString() ?? '';
+      return isInvalid(sourceId, mangaId);
+    }).toList();
+  }
+
+  // Deletes the given manga along with every related row (progress, bookmarks,
+  // reading time, downloads). Returns the removed rows for reporting.
+  Future<List<Map<String, dynamic>>> removeLibraryManga(
+    List<String> mangaIds,
+  ) async {
+    if (mangaIds.isEmpty) return const [];
+    final db = await instance.database;
+    final placeholders = List.filled(mangaIds.length, '?').join(',');
+    final removed = List<Map<String, dynamic>>.from(
+      await db.query(
+        'manga',
+        where: 'mangaId IN ($placeholders)',
+        whereArgs: mangaIds,
+      ),
+    );
+    for (final table in const [
+      'manga',
+      'reading_progress',
+      'bookmarks',
+      'reading_time',
+      'downloads',
+    ]) {
+      await db.delete(
+        table,
+        where: 'mangaId IN ($placeholders)',
+        whereArgs: mangaIds,
+      );
+    }
+    return removed;
+  }
+
+  // Finds and deletes every stored entry that can never resolve for its
+  // source. Returns the removed rows for reporting.
+  Future<List<Map<String, dynamic>>> removeInvalidLibraryEntries(
+    bool Function(String sourceId, String mangaId) isInvalid,
+  ) async {
+    final invalid = await findInvalidLibraryEntries(isInvalid);
+    if (invalid.isEmpty) return const [];
+    final removed = await removeLibraryManga(
+      invalid.map((r) => r['mangaId'] as String).toList(),
+    );
+    return removed;
+  }
+
   // Returns all favorited manga.
   Future<List<Map<String, dynamic>>> getFavorites() async {
     final db = await instance.database;

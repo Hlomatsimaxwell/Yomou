@@ -627,6 +627,36 @@
   "mangaEdit": "Edit",
   "findSimilar": "Find similar",
   "alternatives": "Alternatives",
+  "altEnabledSources": "Enabled sources",
+  "altSourcesCount": "{x}/{y} sources",
+  "@altSourcesCount": {
+    "placeholders": {
+      "x": {"type": "num"},
+      "y": {"type": "num"}
+    }
+  },
+  "altMigrateTitle": "Manga migration",
+  "altMigrateBody": "{fromTitle} from {fromSource} will be replaced with {toTitle} from {toSource} in your history and favorites (if present).",
+  "@altMigrateBody": {
+    "placeholders": {
+      "fromTitle": {"type": "String"},
+      "fromSource": {"type": "String"},
+      "toTitle": {"type": "String"},
+      "toSource": {"type": "String"}
+    }
+  },
+  "altMigrate": "Migrate",
+  "altMigrateFailed": "Migration failed. Please try again.",
+  "altSortTitle": "Sorting order",
+  "altSortBest": "Best match",
+  "altSortMostChapters": "Most chapters",
+  "altSortClosest": "Closest chapter count",
+  "altSortPriority": "Source priority",
+  "altSources": "Manga sources",
+  "altAllSources": "All sources",
+  "altSameLanguage": "Same language as current",
+  "altSameType": "Same content type as current",
+  "altReplace": "Replace",
   "openInBrowser": "Open in web browser",
   "urlUnavailable": "The web address for this manga is unavailable.",
   "replaceSource": "Replace source",
@@ -757,6 +787,26 @@
   "backupSubtitle": "You can create backup of your history and favorites and restore it",
   "restoreFromBackup": "Restore from backup",
   "restoreSubtitle": "Restore previously created backup",
+  "backupFixLibrary": "Remove unreadable entries",
+  "backupFixLibrarySubtitle": "Drop library items whose ids can never load chapters (e.g. mis-imported)",
+  "backupFixLibraryNone": "Library is clean",
+  "backupFixLibraryConfirm": "Remove {count} unreadable entries?",
+  "@backupFixLibraryConfirm": {
+    "placeholders": {
+      "count": {
+        "type": "num"
+      }
+    }
+  },
+  "backupFixLibraryRemove": "Remove",
+  "backupFixLibraryDone": "Removed {count} entries",
+  "@backupFixLibraryDone": {
+    "placeholders": {
+      "count": {
+        "type": "num"
+      }
+    }
+  },
   "exportTachiyomi": "Export to Tachiyomi/Mihon",
   "exportTachiyomiSubtitle": "Export favorites and history in Tachiyomi format",
   "importTachiyomi": "Import from Tachiyomi/Mihon",

@@ -1288,6 +1288,63 @@ class AppLocalizationsEn extends AppLocalizations {
   String get alternatives => 'Alternatives';
 
   @override
+  String get altEnabledSources => 'Enabled sources';
+
+  @override
+  String altSourcesCount(num x, num y) {
+    return '$x/$y sources';
+  }
+
+  @override
+  String get altMigrateTitle => 'Manga migration';
+
+  @override
+  String altMigrateBody(
+    String fromTitle,
+    String fromSource,
+    String toTitle,
+    String toSource,
+  ) {
+    return '$fromTitle from $fromSource will be replaced with $toTitle from $toSource in your history and favorites (if present).';
+  }
+
+  @override
+  String get altMigrate => 'Migrate';
+
+  @override
+  String get altMigrateFailed => 'Migration failed. Please try again.';
+
+  @override
+  String get altSortTitle => 'Sorting order';
+
+  @override
+  String get altSortBest => 'Best match';
+
+  @override
+  String get altSortMostChapters => 'Most chapters';
+
+  @override
+  String get altSortClosest => 'Closest chapter count';
+
+  @override
+  String get altSortPriority => 'Source priority';
+
+  @override
+  String get altSources => 'Manga sources';
+
+  @override
+  String get altAllSources => 'All sources';
+
+  @override
+  String get altSameLanguage => 'Same language as current';
+
+  @override
+  String get altSameType => 'Same content type as current';
+
+  @override
+  String get altReplace => 'Replace';
+
+  @override
   String get openInBrowser => 'Open in web browser';
 
   @override
@@ -1550,6 +1607,29 @@ class AppLocalizationsEn extends AppLocalizations {
 
   @override
   String get restoreSubtitle => 'Restore previously created backup';
+
+  @override
+  String get backupFixLibrary => 'Remove unreadable entries';
+
+  @override
+  String get backupFixLibrarySubtitle =>
+      'Drop library items whose ids can never load chapters (e.g. mis-imported)';
+
+  @override
+  String get backupFixLibraryNone => 'Library is clean';
+
+  @override
+  String backupFixLibraryConfirm(num count) {
+    return 'Remove $count unreadable entries?';
+  }
+
+  @override
+  String get backupFixLibraryRemove => 'Remove';
+
+  @override
+  String backupFixLibraryDone(num count) {
+    return 'Removed $count entries';
+  }
 
   @override
   String get exportTachiyomi => 'Export to Tachiyomi/Mihon';

@@ -56,6 +56,22 @@ class TachiyomiBackupCodec {
     return _sourceDisplayNames[yomouSource] ?? yomouSource;
   }
 
+  /// Whether a stored library entry can never resolve chapters for its source.
+  ///
+  /// Covers backup imports that aliased another site's url to the manga id
+  /// (e.g. `116834-en-slug#116834` stored as "mangadex"): MangaDex chapters
+  /// require a real uuid, and the other sources reject obvious junk ids. Used
+  /// to offer a library-wide cleanup after an import.
+  static bool isInvalidLibraryEntry(String? sourceId, String mangaId) {
+    if (mangaId.isEmpty) return true;
+    if (sourceId == 'mangadex') return !_mangadexUuid.hasMatch(mangaId);
+    return mangaId.contains('#') ||
+        mangaId.contains('%') ||
+        mangaId.contains(' ') ||
+        mangaId.contains('://') ||
+        mangaId.startsWith('http');
+  }
+
   static int? _mihonIdFor(String? yomouSource) {
     if (yomouSource == null) return null;
     return _yomouToMihon[yomouSource];

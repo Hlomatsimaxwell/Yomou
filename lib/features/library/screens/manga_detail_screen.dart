@@ -12,6 +12,7 @@ import 'package:yomou/features/library/providers/downloads_provider.dart';
 import 'package:yomou/features/library/widgets/downloaded_badge.dart';
 import 'package:yomou/features/library/screens/related_manga_screen.dart';
 import 'package:yomou/features/library/screens/edit_manga_screen.dart';
+import 'package:yomou/features/library/screens/alternatives_screen.dart';
 import 'package:yomou/features/reader/screens/reader_screen.dart';
 import 'package:yomou/features/reader/services/chapter_downloader.dart';
 import 'package:yomou/data/models/chapter.dart';
@@ -1708,7 +1709,7 @@ class _MangaDetailScreenState extends ConsumerState<MangaDetailScreen> {
       case 'shortcut':
         _createShortcut();
       case 'replace':
-        await _showReplaceSourceSheet(context);
+        _openAlternativesSearch();
     }
   }
 
@@ -1746,11 +1747,28 @@ class _MangaDetailScreenState extends ConsumerState<MangaDetailScreen> {
   }
 
   void _openAlternativesSearch() {
-    final query = _details?.title.isNotEmpty == true ? _details!.title : _title;
+    String? language;
+    if (_source != null) {
+      final rows = ref.read(sourcesProvider);
+      for (final row in rows) {
+        if (row['name'] == _source!.name) {
+          language = row['language']?.toString();
+          break;
+        }
+      }
+    }
     Navigator.push(
       context,
       MaterialPageRoute(
-        builder: (context) => GlobalSearchResultsScreen(searchQuery: query),
+        builder: (context) => AlternativesScreen(
+          mangaId: widget.mangaId,
+          title: _title,
+          imageUrl: _coverUrl,
+          currentSourceId: widget.sourceId ?? _source?.id,
+          currentSourceName: _source?.name,
+          currentSourceLanguage: language,
+          originalTotal: _realTotalChapters > 0 ? _realTotalChapters : _chapters.length,
+        ),
       ),
     );
   }
@@ -1797,100 +1815,6 @@ class _MangaDetailScreenState extends ConsumerState<MangaDetailScreen> {
       bumpFavoritesRevision(ref);
       _showMessage(AppLocalizations.of(context).metadataSaved);
     }
-  }
-
-  Future<void> _showReplaceSourceSheet(BuildContext context) async {
-    final l = AppLocalizations.of(context);
-    final dark = Theme.of(context).brightness == Brightness.dark;
-    final textColor = dark
-        ? Colors.white
-        : Theme.of(context).colorScheme.onSurface;
-    final sources = ref.read(sourcesProvider);
-    if (sources.isEmpty) {
-      _showMessage(l.noSourceToReplace);
-      return;
-    }
-    final selected = await showModalBottomSheet<String>(
-      context: context,
-      isScrollControlled: true,
-      useSafeArea: true,
-      backgroundColor: dark ? const Color(0xFF2E2E33) : Colors.white,
-      shape: const RoundedRectangleBorder(
-        borderRadius: BorderRadius.vertical(top: Radius.circular(20)),
-      ),
-      builder: (ctx) => SafeArea(
-        child: Column(
-          mainAxisSize: MainAxisSize.min,
-          children: [
-            Center(
-              child: Container(
-                margin: const EdgeInsets.only(top: 10),
-                width: 36,
-                height: 4,
-                decoration: BoxDecoration(
-                  color: dark ? Colors.white38 : Colors.black26,
-                  borderRadius: BorderRadius.circular(2),
-                ),
-              ),
-            ),
-            Padding(
-              padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
-              child: Text(
-                l.replaceSource,
-                style: TextStyle(
-                  color: textColor,
-                  fontSize: 18,
-                  fontWeight: FontWeight.bold,
-                ),
-              ),
-            ),
-            Flexible(
-              child: ListView(
-                shrinkWrap: true,
-                children: [
-                  for (final source in sources)
-                    ListTile(
-                      contentPadding: const EdgeInsets.symmetric(
-                        horizontal: 16,
-                      ),
-                      leading: Icon(
-                        RemixIcons.stack_line,
-                        color: Theme.of(ctx).colorScheme.primary,
-                      ),
-                      title: Text(
-                        source['name']?.toString() ?? '',
-                        style: TextStyle(
-                          color: textColor,
-                          fontWeight: FontWeight.bold,
-                        ),
-                      ),
-                      trailing: source['name'] == _source?.name
-                          ? Icon(
-                              RemixIcons.check_line,
-                              color: Theme.of(ctx).colorScheme.primary,
-                            )
-                          : null,
-                      onTap: () =>
-                          Navigator.pop(ctx, source['name']?.toString()),
-                    ),
-                ],
-              ),
-            ),
-            const SizedBox(height: 16),
-          ],
-        ),
-      ),
-    );
-    if (selected == null || !mounted) return;
-    final replacement = getSourceByName(selected);
-    await DatabaseHelper.instance.updateMangaSource(
-      mangaId: widget.mangaId,
-      sourceId: replacement.id,
-    );
-    if (!mounted) return;
-    bumpFavoritesRevision(ref);
-    _loadChapters(sourceOverride: replacement);
-    _showMessage(l.replaceSourceDone(selected));
   }
 
   Future<void> _showSaveMangaDialog(BuildContext context) async {

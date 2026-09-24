@@ -2456,6 +2456,107 @@ abstract class AppLocalizations {
   /// **'Alternatives'**
   String get alternatives;
 
+  /// No description provided for @altEnabledSources.
+  ///
+  /// In en, this message translates to:
+  /// **'Enabled sources'**
+  String get altEnabledSources;
+
+  /// No description provided for @altSourcesCount.
+  ///
+  /// In en, this message translates to:
+  /// **'{x}/{y} sources'**
+  String altSourcesCount(num x, num y);
+
+  /// No description provided for @altMigrateTitle.
+  ///
+  /// In en, this message translates to:
+  /// **'Manga migration'**
+  String get altMigrateTitle;
+
+  /// No description provided for @altMigrateBody.
+  ///
+  /// In en, this message translates to:
+  /// **'{fromTitle} from {fromSource} will be replaced with {toTitle} from {toSource} in your history and favorites (if present).'**
+  String altMigrateBody(
+    String fromTitle,
+    String fromSource,
+    String toTitle,
+    String toSource,
+  );
+
+  /// No description provided for @altMigrate.
+  ///
+  /// In en, this message translates to:
+  /// **'Migrate'**
+  String get altMigrate;
+
+  /// No description provided for @altMigrateFailed.
+  ///
+  /// In en, this message translates to:
+  /// **'Migration failed. Please try again.'**
+  String get altMigrateFailed;
+
+  /// No description provided for @altSortTitle.
+  ///
+  /// In en, this message translates to:
+  /// **'Sorting order'**
+  String get altSortTitle;
+
+  /// No description provided for @altSortBest.
+  ///
+  /// In en, this message translates to:
+  /// **'Best match'**
+  String get altSortBest;
+
+  /// No description provided for @altSortMostChapters.
+  ///
+  /// In en, this message translates to:
+  /// **'Most chapters'**
+  String get altSortMostChapters;
+
+  /// No description provided for @altSortClosest.
+  ///
+  /// In en, this message translates to:
+  /// **'Closest chapter count'**
+  String get altSortClosest;
+
+  /// No description provided for @altSortPriority.
+  ///
+  /// In en, this message translates to:
+  /// **'Source priority'**
+  String get altSortPriority;
+
+  /// No description provided for @altSources.
+  ///
+  /// In en, this message translates to:
+  /// **'Manga sources'**
+  String get altSources;
+
+  /// No description provided for @altAllSources.
+  ///
+  /// In en, this message translates to:
+  /// **'All sources'**
+  String get altAllSources;
+
+  /// No description provided for @altSameLanguage.
+  ///
+  /// In en, this message translates to:
+  /// **'Same language as current'**
+  String get altSameLanguage;
+
+  /// No description provided for @altSameType.
+  ///
+  /// In en, this message translates to:
+  /// **'Same content type as current'**
+  String get altSameType;
+
+  /// No description provided for @altReplace.
+  ///
+  /// In en, this message translates to:
+  /// **'Replace'**
+  String get altReplace;
+
   /// No description provided for @openInBrowser.
   ///
   /// In en, this message translates to:
@@ -2917,6 +3018,42 @@ abstract class AppLocalizations {
   /// In en, this message translates to:
   /// **'Restore previously created backup'**
   String get restoreSubtitle;
+
+  /// No description provided for @backupFixLibrary.
+  ///
+  /// In en, this message translates to:
+  /// **'Remove unreadable entries'**
+  String get backupFixLibrary;
+
+  /// No description provided for @backupFixLibrarySubtitle.
+  ///
+  /// In en, this message translates to:
+  /// **'Drop library items whose ids can never load chapters (e.g. mis-imported)'**
+  String get backupFixLibrarySubtitle;
+
+  /// No description provided for @backupFixLibraryNone.
+  ///
+  /// In en, this message translates to:
+  /// **'Library is clean'**
+  String get backupFixLibraryNone;
+
+  /// No description provided for @backupFixLibraryConfirm.
+  ///
+  /// In en, this message translates to:
+  /// **'Remove {count} unreadable entries?'**
+  String backupFixLibraryConfirm(num count);
+
+  /// No description provided for @backupFixLibraryRemove.
+  ///
+  /// In en, this message translates to:
+  /// **'Remove'**
+  String get backupFixLibraryRemove;
+
+  /// No description provided for @backupFixLibraryDone.
+  ///
+  /// In en, this message translates to:
+  /// **'Removed {count} entries'**
+  String backupFixLibraryDone(num count);
 
   /// No description provided for @exportTachiyomi.
   ///

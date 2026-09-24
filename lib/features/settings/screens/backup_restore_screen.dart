@@ -8,6 +8,7 @@ import 'package:remixicon/remixicon.dart';
 import 'package:yomou/core/backup/tachiyomi_backup.dart';
 import 'package:yomou/core/database/database_helper.dart';
 import 'package:yomou/features/history/providers/history_provider.dart';
+import 'package:yomou/features/library/providers/downloads_provider.dart';
 import 'package:yomou/features/library/providers/favorites_provider.dart';
 import 'package:yomou/features/settings/providers/cache_settings_provider.dart';
 import 'package:yomou/features/settings/screens/import_results_screen.dart';
@@ -225,6 +226,87 @@ class _BackupRestoreScreenState extends ConsumerState<BackupRestoreScreen> {
     }
   }
 
+  Future<void> _fixLibrary() async {
+    final l = AppLocalizations.of(context);
+    final db = DatabaseHelper.instance;
+    final invalid = await db.findInvalidLibraryEntries(
+      TachiyomiBackupCodec.isInvalidLibraryEntry,
+    );
+    if (!mounted) return;
+    if (invalid.isEmpty) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(content: Text(l.backupFixLibraryNone)),
+      );
+      return;
+    }
+
+    final dark = Theme.of(context).brightness == Brightness.dark;
+    final fg = dark ? Colors.white : const Color(0xFF1C1B1F);
+    final titles = invalid.take(4).map((r) => '• ${r['title']}').toList();
+    final more = invalid.length > 4 ? '\n• …' : '';
+
+    final confirmed = await showDialog<bool>(
+      context: context,
+      builder: (context) => AlertDialog(
+        backgroundColor: dark ? const Color(0xFF2C2C2E) : Colors.white,
+        contentPadding: const EdgeInsets.fromLTRB(24, 24, 24, 8),
+        actionsPadding: const EdgeInsets.only(right: 16, bottom: 12),
+        shape: RoundedRectangleBorder(
+          borderRadius: BorderRadius.circular(28),
+          side: dark ? BorderSide.none : const BorderSide(color: Colors.black12),
+        ),
+        content: Column(
+          mainAxisSize: MainAxisSize.min,
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Text(
+              l.backupFixLibraryConfirm(invalid.length),
+              style: TextStyle(color: fg, fontSize: 20, fontWeight: FontWeight.w600),
+            ),
+            const SizedBox(height: 10),
+            Text(
+              '${titles.join('\n')}$more',
+              style: TextStyle(
+                color: dark ? Colors.white54 : const Color(0xFF49454F),
+                fontSize: 14,
+                height: 1.4,
+              ),
+            ),
+          ],
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(context, false),
+            child: Text(l.cancel, style: TextStyle(color: fg, fontSize: 15)),
+          ),
+          TextButton(
+            onPressed: () => Navigator.pop(context, true),
+            child: Text(
+              l.backupFixLibraryRemove,
+              style: TextStyle(
+                color: dark ? Colors.white : const Color(0xFFB3261E),
+                fontSize: 15,
+                fontWeight: FontWeight.w600,
+              ),
+            ),
+          ),
+        ],
+      ),
+    );
+    if (confirmed != true || !mounted) return;
+
+    final removed = await db.removeLibraryManga(
+      invalid.map((r) => r['mangaId'] as String).toList(),
+    );
+    bumpHistoryRevision(ref);
+    bumpFavoritesRevision(ref);
+    bumpDownloadsRevision(ref);
+    if (!mounted) return;
+    ScaffoldMessenger.of(context).showSnackBar(
+      SnackBar(content: Text(l.backupFixLibraryDone(removed.length))),
+    );
+  }
+
   @override
   Widget build(BuildContext context) {
     final l = AppLocalizations.of(context);
@@ -258,6 +340,12 @@ class _BackupRestoreScreenState extends ConsumerState<BackupRestoreScreen> {
             title: l.importTachiyomi,
             subtitle: l.importTachiyomiSubtitle,
             onTap: _importTachiyomi,
+          ),
+          _BuildButton(
+            icon: RemixIcons.scissors_cut_line,
+            title: l.backupFixLibrary,
+            subtitle: l.backupFixLibrarySubtitle,
+            onTap: _fixLibrary,
           ),
           const Divider(height: 1),
           _BuildButton(

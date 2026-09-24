@@ -1300,6 +1300,63 @@ class AppLocalizationsEs extends AppLocalizations {
   String get alternatives => 'Alternativas';
 
   @override
+  String get altEnabledSources => 'Fuentes habilitadas';
+
+  @override
+  String altSourcesCount(num x, num y) {
+    return '$x/$y fuentes';
+  }
+
+  @override
+  String get altMigrateTitle => 'Migración de manga';
+
+  @override
+  String altMigrateBody(
+    String fromTitle,
+    String fromSource,
+    String toTitle,
+    String toSource,
+  ) {
+    return '$fromTitle de $fromSource será reemplazado por $toTitle de $toSource en tu historial y favoritos (si existen).';
+  }
+
+  @override
+  String get altMigrate => 'Migrar';
+
+  @override
+  String get altMigrateFailed => 'La migración falló. Inténtalo de nuevo.';
+
+  @override
+  String get altSortTitle => 'Orden de clasificación';
+
+  @override
+  String get altSortBest => 'Mejor coincidencia';
+
+  @override
+  String get altSortMostChapters => 'Más capítulos';
+
+  @override
+  String get altSortClosest => 'Recuento de capítulos más cercano';
+
+  @override
+  String get altSortPriority => 'Prioridad de fuente';
+
+  @override
+  String get altSources => 'Fuentes de manga';
+
+  @override
+  String get altAllSources => 'Todas las fuentes';
+
+  @override
+  String get altSameLanguage => 'Mismo idioma que el actual';
+
+  @override
+  String get altSameType => 'Mismo tipo de contenido que el actual';
+
+  @override
+  String get altReplace => 'Reemplazar';
+
+  @override
   String get openInBrowser => 'Abrir en el navegador web';
 
   @override
@@ -1567,6 +1624,29 @@ class AppLocalizationsEs extends AppLocalizations {
   @override
   String get restoreSubtitle =>
       'Restaurar una copia de seguridad creada anteriormente';
+
+  @override
+  String get backupFixLibrary => 'Quitar entradas ilegibles';
+
+  @override
+  String get backupFixLibrarySubtitle =>
+      'Elimina de la biblioteca elementos cuyos id nunca cargarán capítulos (p. ej. importaciones erróneas)';
+
+  @override
+  String get backupFixLibraryNone => 'La biblioteca está limpia';
+
+  @override
+  String backupFixLibraryConfirm(num count) {
+    return '¿Quitar $count entradas ilegibles?';
+  }
+
+  @override
+  String get backupFixLibraryRemove => 'Quitar';
+
+  @override
+  String backupFixLibraryDone(num count) {
+    return 'Se quitaron $count entradas';
+  }
 
   @override
   String get exportTachiyomi => 'Exportar a Tachiyomi/Mihon';
