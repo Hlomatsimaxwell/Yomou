@@ -1,15 +1,21 @@
 import 'package:flutter/material.dart';
 import 'package:yomou/widgets/safe_image.dart';
 
-/// Premium source brand tile: loads the source's own logo (rounded square)
-/// when available; otherwise falls back to a rounded square with a subtle
-/// deterministic gradient and a single brand letter.
+/// Premium source "Logo Card": every source icon sits on a rounded-square
+/// background plate so light/white logos stay visible against the screen.
+///
+/// * Plate: rounded square (radius ≈ 22% of size), very light grey/white in
+///   light mode, elevated panel in dark mode, with a hairline border.
+/// * Logo: rendered with [BoxFit.contain] and internal padding so it is never
+///   cropped or stretched, and never touches the plate edges.
+/// * Fallback: when no logo exists, the plate holds a soft deterministic
+///   gradient brand tile with a single letter.
 class SourceBrandLogo extends StatelessWidget {
   const SourceBrandLogo({
     super.key,
     required this.name,
     this.iconUrl = '',
-    this.size = 48,
+    this.size = 40,
   });
 
   final String name;
@@ -18,27 +24,44 @@ class SourceBrandLogo extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final dark = Theme.of(context).brightness == Brightness.dark;
     final letter = name.isEmpty ? '?' : name[0];
 
     Widget fallback() => _BrandFallback(
       name: name,
       letter: letter,
       colors: _gradientColors(name),
-      fontSize: size * 0.46,
+      fontSize: size * 0.42,
     );
 
-    return SizedBox(
+    final radius = size * 0.22;
+    final padding = size * 0.12;
+
+    return Container(
       width: size,
       height: size,
+      decoration: BoxDecoration(
+        color: dark ? const Color(0xFF2C2C2E) : const Color(0xFFF5F5F5),
+        borderRadius: BorderRadius.circular(radius),
+        border: Border.all(
+          color: dark
+              ? Colors.white.withValues(alpha: 0.08)
+              : Colors.black.withValues(alpha: 0.06),
+          width: 1,
+        ),
+      ),
       child: ClipRRect(
-        borderRadius: BorderRadius.circular(size * 0.22),
+        borderRadius: BorderRadius.circular(radius),
         child: iconUrl.isNotEmpty
-            ? SafeNetworkImage(
-                imageUrl: iconUrl,
-                fit: BoxFit.cover,
-                width: double.infinity,
-                height: double.infinity,
-                errorWidget: (context, url, error) => fallback(),
+            ? Padding(
+                padding: EdgeInsets.all(padding),
+                child: SafeNetworkImage(
+                  imageUrl: iconUrl,
+                  fit: BoxFit.contain,
+                  width: double.infinity,
+                  height: double.infinity,
+                  errorWidget: (context, url, error) => fallback(),
+                ),
               )
             : fallback(),
       ),

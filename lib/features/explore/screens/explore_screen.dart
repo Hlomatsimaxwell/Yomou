@@ -407,10 +407,10 @@ class _ExploreScreenState extends ConsumerState<ExploreScreen> {
             );
           },
           child: Padding(
-            padding: const EdgeInsets.symmetric(vertical: 12),
+            padding: const EdgeInsets.symmetric(vertical: 8),
             child: Row(
               children: [
-                SourceBrandLogo(name: name, iconUrl: iconUrl, size: 44),
+                SourceBrandLogo(name: name, iconUrl: iconUrl),
                 const SizedBox(width: 16),
                 Expanded(
                   child: Column(
@@ -460,10 +460,10 @@ class _ExploreScreenState extends ConsumerState<ExploreScreen> {
 
   Widget _buildSourcesGrid(List<Map<String, dynamic>> sources) {
     final dark = Theme.of(context).brightness == Brightness.dark;
-    final tileBg = dark ? const Color(0xFF242424) : Colors.white;
+    final tileBg = dark ? const Color(0xFF2C2C2E) : const Color(0xFFF5F5F5);
     final tileBorder = dark
         ? Colors.white.withValues(alpha: 0.08)
-        : Colors.black12;
+        : Colors.black.withValues(alpha: 0.06);
     return Padding(
       padding: const EdgeInsets.symmetric(horizontal: 16),
       child: GridView.builder(
@@ -481,18 +481,11 @@ class _ExploreScreenState extends ConsumerState<ExploreScreen> {
           final isPinned = source['isPinned'] == true;
           final name = source['name'] as String;
           final iconUrl = source['iconUrl'] as String? ?? '';
-          final fallbackLetter = name.isEmpty ? '?' : name[0];
-          final fallbackColor = _deterministicColor(name);
 
-          Widget fallbackTile() => Center(
-            child: Text(
-              fallbackLetter,
-              style: TextStyle(
-                fontSize: 28,
-                fontWeight: FontWeight.bold,
-                color: dark ? Colors.white : const Color(0xFF1C1B1F),
-              ),
-            ),
+          Widget fallbackTile() => SourceBrandLogo(
+            name: name,
+            iconUrl: iconUrl,
+            size: 72,
           );
 
           Widget tileIcon;
@@ -500,13 +493,16 @@ class _ExploreScreenState extends ConsumerState<ExploreScreen> {
             tileIcon = ClipRRect(
               borderRadius: BorderRadius.circular(16),
               child: ColoredBox(
-                color: fallbackColor,
-                child: SafeNetworkImage(
-                  imageUrl: iconUrl,
-                  fit: BoxFit.cover,
-                  width: double.infinity,
-                  height: double.infinity,
-                  errorWidget: (context, url, error) => fallbackTile(),
+                color: tileBg,
+                child: Padding(
+                  padding: const EdgeInsets.all(14),
+                  child: SafeNetworkImage(
+                    imageUrl: iconUrl,
+                    fit: BoxFit.contain,
+                    width: double.infinity,
+                    height: double.infinity,
+                    errorWidget: (context, url, error) => fallbackTile(),
+                  ),
                 ),
               ),
             );
@@ -531,7 +527,7 @@ class _ExploreScreenState extends ConsumerState<ExploreScreen> {
                       width: 72,
                       height: 72,
                       decoration: BoxDecoration(
-                        color: iconUrl.isNotEmpty ? tileBg : fallbackColor,
+                        color: tileBg,
                         borderRadius: BorderRadius.circular(16),
                         border: Border.all(color: tileBorder, width: 1),
                       ),
@@ -569,14 +565,5 @@ class _ExploreScreenState extends ConsumerState<ExploreScreen> {
         },
       ),
     );
-  }
-
-  Color _deterministicColor(String name) {
-    int hash = 0;
-    for (final codeUnit in name.codeUnits) {
-      hash = (hash * 31 + codeUnit) & 0x7FFFFFFF;
-    }
-    final hue = (hash % 360).toDouble();
-    return HSLColor.fromAHSL(1, hue, 0.35, 0.35).toColor();
   }
 }

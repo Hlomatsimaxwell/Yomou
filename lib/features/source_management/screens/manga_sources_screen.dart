@@ -176,14 +176,13 @@ class _ManageSourcesScreenState extends ConsumerState<ManageSourcesScreen> {
             // ------------------------------
             contentPadding: const EdgeInsets.symmetric(
               horizontal: 16,
-              vertical: 12,
+              vertical: 8,
             ),
             leading: Opacity(
               opacity: isEnabled ? 1 : 0.4,
               child: SourceBrandLogo(
                 name: sourceName,
                 iconUrl: source['iconUrl'] as String? ?? '',
-                size: 48,
               ),
             ),
             title: Row(
