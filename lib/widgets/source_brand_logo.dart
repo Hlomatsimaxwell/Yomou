@@ -24,6 +24,7 @@ class SourceBrandLogo extends StatelessWidget {
       name: name,
       letter: letter,
       colors: _gradientColors(name),
+      fontSize: size * 0.46,
     );
 
     return SizedBox(
@@ -50,11 +51,13 @@ class _BrandFallback extends StatelessWidget {
     required this.name,
     required this.letter,
     required this.colors,
+    required this.fontSize,
   });
 
   final String name;
   final String letter;
   final List<Color> colors;
+  final double fontSize;
 
   @override
   Widget build(BuildContext context) {
@@ -70,7 +73,7 @@ class _BrandFallback extends StatelessWidget {
         child: Text(
           letter,
           style: TextStyle(
-            fontSize: 20,
+            fontSize: fontSize,
             fontWeight: FontWeight.bold,
             color: Colors.white,
             shadows: const [

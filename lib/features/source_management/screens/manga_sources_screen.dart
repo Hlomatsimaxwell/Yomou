@@ -176,7 +176,7 @@ class _ManageSourcesScreenState extends ConsumerState<ManageSourcesScreen> {
             // ------------------------------
             contentPadding: const EdgeInsets.symmetric(
               horizontal: 16,
-              vertical: 8,
+              vertical: 12,
             ),
             leading: Opacity(
               opacity: isEnabled ? 1 : 0.4,
@@ -192,8 +192,8 @@ class _ManageSourcesScreenState extends ConsumerState<ManageSourcesScreen> {
                   Icon(
                     RemixIcons.pushpin_2_fill,
                     color: dark
-                        ? Colors.white38
-                        : const Color(0xFF9E9E9E),
+                        ? Colors.white30
+                        : const Color(0xFFBDBDBD),
                     size: 12,
                   ),
                   const SizedBox(width: 5),
@@ -217,7 +217,7 @@ class _ManageSourcesScreenState extends ConsumerState<ManageSourcesScreen> {
               style: TextStyle(
                 color: (dark
                         ? Colors.white54
-                        : const Color(0xFF757575))
+                        : const Color(0xFF9E9E9E))
                     .withValues(alpha: isEnabled ? 1 : 0.4),
                 fontSize: 12,
               ),

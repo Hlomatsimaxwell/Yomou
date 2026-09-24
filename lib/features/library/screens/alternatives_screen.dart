@@ -1040,7 +1040,8 @@ class _SourcePill extends StatelessWidget {
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
           iconUrl.isNotEmpty
-              ? ClipOval(
+              ? ClipRRect(
+                  borderRadius: BorderRadius.circular(4),
                   child: SafeNetworkImage(
                     imageUrl: iconUrl,
                     width: 14,
@@ -1048,14 +1049,21 @@ class _SourcePill extends StatelessWidget {
                     fit: BoxFit.cover,
                   ),
                 )
-              : CircleAvatar(
-                  radius: 7,
-                  backgroundColor: dark ? Colors.white24 : Colors.black12,
-                  child: Text(
-                    alt.name.characters.first,
-                    style: TextStyle(
-                      color: dark ? Colors.white : Colors.black54,
-                      fontSize: 8,
+              : Container(
+                  width: 14,
+                  height: 14,
+                  decoration: BoxDecoration(
+                    color: dark ? Colors.white24 : Colors.black12,
+                    borderRadius: BorderRadius.circular(4),
+                  ),
+                  child: Center(
+                    child: Text(
+                      alt.name.characters.first,
+                      style: TextStyle(
+                        color: dark ? Colors.white : Colors.black54,
+                        fontSize: 8,
+                        height: 1,
+                      ),
                     ),
                   ),
                 ),

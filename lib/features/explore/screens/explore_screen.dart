@@ -407,7 +407,7 @@ class _ExploreScreenState extends ConsumerState<ExploreScreen> {
             );
           },
           child: Padding(
-            padding: const EdgeInsets.symmetric(vertical: 10),
+            padding: const EdgeInsets.symmetric(vertical: 12),
             child: Row(
               children: [
                 SourceBrandLogo(name: name, iconUrl: iconUrl, size: 44),
@@ -437,7 +437,7 @@ class _ExploreScreenState extends ConsumerState<ExploreScreen> {
                           style: TextStyle(
                             color: dark
                                 ? Colors.white54
-                                : const Color(0xFF757575),
+                                : const Color(0xFF9E9E9E),
                             fontSize: 12,
                           ),
                         ),

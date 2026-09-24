@@ -27,7 +27,7 @@ import 'package:yomou/features/feed/providers/updates_provider.dart';
 import 'package:yomou/features/explore/screens/global_search_results_screen.dart';
 import 'package:yomou/features/settings/providers/appearance_provider.dart';
 import 'package:yomou/l10n/generated/app_localizations.dart';
-import 'package:yomou/widgets/safe_image.dart';
+import 'package:yomou/widgets/source_brand_logo.dart';
 
 class MangaDetailScreen extends ConsumerStatefulWidget {
   final String mangaId;
@@ -2434,53 +2434,15 @@ class _MangaDetailScreenState extends ConsumerState<MangaDetailScreen> {
     return '${(bytes / (1024 * 1024 * 1024)).toStringAsFixed(1)} GB';
   }
 
-  // Small favicon tile (20×20) for the source row, matching the explore
-  // screen fallback: first-letter on a deterministic hue when no icon.
+  // Small favicon tile (20×20) for the source row, using the shared brand
+  // tile: real logo when available, otherwise a gradient brand-tile fallback.
   Widget _buildSourceIcon() {
-    final dark = Theme.of(context).brightness == Brightness.dark;
     final name = _sourceName ?? '';
     final source = getSourceBySourceId(widget.sourceId ?? '');
-    final iconUrl = source?.iconUrl ?? '';
-    final fallbackLetter = name.isEmpty ? '?' : name[0];
-
-    int hash = 0;
-    for (final c in name.codeUnits) {
-      hash = (hash * 31 + c) & 0x7FFFFFFF;
-    }
-    final bg = HSLColor.fromAHSL(
-      1,
-      (hash % 360).toDouble(),
-      0.35,
-      0.35,
-    ).toColor();
-
-    Widget fallback() => Center(
-      child: Text(
-        fallbackLetter,
-        style: TextStyle(
-          fontSize: 11,
-          fontWeight: FontWeight.bold,
-          color: dark ? Colors.white : const Color(0xFF1C1B1F),
-        ),
-      ),
-    );
-
-    return ClipRRect(
-      borderRadius: BorderRadius.circular(6),
-      child: ColoredBox(
-        color: bg,
-        child: SizedBox(
-          width: 20,
-          height: 20,
-          child: iconUrl.isNotEmpty
-              ? SafeNetworkImage(
-                  imageUrl: iconUrl,
-                  fit: BoxFit.cover,
-                  errorWidget: (context, url, error) => fallback(),
-                )
-              : fallback(),
-        ),
-      ),
+    return SourceBrandLogo(
+      name: name,
+      iconUrl: source?.iconUrl ?? '',
+      size: 20,
     );
   }
 
