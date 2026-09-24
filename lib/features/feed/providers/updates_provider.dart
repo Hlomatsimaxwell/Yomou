@@ -9,6 +9,8 @@ class MangaUpdate {
   final String coverUrl;
   final String sourceId;
   final int newCount;
+  final int liveTotal;
+  final int lastSeenChapters;
   final String latestChapterTitle;
   final DateTime? latestChapterDate;
   final bool isFavorite;
@@ -19,10 +21,17 @@ class MangaUpdate {
     required this.coverUrl,
     required this.sourceId,
     required this.newCount,
+    required this.liveTotal,
+    required this.lastSeenChapters,
     required this.latestChapterTitle,
     this.latestChapterDate,
     required this.isFavorite,
   });
+
+  /// Whether this manga has an update the user hasn't opened yet (drives the
+  /// list dot). The entry and its count always stay visible.
+  bool get hasUnseenUpdate =>
+      newCount > 0 && liveTotal > lastSeenChapters;
 
   /// The latest chapter's publish date (falls back to now when unknown).
   DateTime get sortKey => latestChapterDate ?? DateTime.now();
@@ -65,6 +74,8 @@ final updatesProvider = FutureProvider<List<MangaUpdate>>((ref) async {
               coverUrl: status.coverUrl,
               sourceId: status.sourceId,
               newCount: status.newSinceRead,
+              liveTotal: status.liveTotal,
+              lastSeenChapters: status.lastSeenChapters,
               latestChapterTitle: status.latestChapterTitle,
               latestChapterDate: status.latestChapterDate,
               isFavorite: status.isFavorite,
@@ -76,11 +87,16 @@ final updatesProvider = FutureProvider<List<MangaUpdate>>((ref) async {
   return updates;
 });
 
-/// Total number of new chapters across all updated manga (drives the badge).
+/// Total number of unread new chapters across updated manga that the user
+/// hasn't opened yet (drives the badge). Opening a manga's detail drops its
+/// contribution from the badge along with its dot.
 final updatesCountProvider = Provider<int>((ref) {
   final updates = ref.watch(updatesProvider);
   return updates.when(
-    data: (list) => list.fold<int>(0, (sum, u) => sum + u.newCount),
+    data: (list) => list.fold<int>(
+      0,
+      (sum, u) => sum + (u.hasUnseenUpdate ? u.newCount : 0),
+    ),
     loading: () => 0,
     error: (_, _) => 0,
   );

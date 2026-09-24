@@ -17,6 +17,7 @@ class LibraryStatus {
     required this.liveTotal,
     required this.storedTotal,
     required this.lastNotifiedChapters,
+    required this.lastSeenChapters,
     required this.latestChapterTitle,
     required this.latestChapterDate,
     required this.isFavorite,
@@ -36,6 +37,10 @@ class LibraryStatus {
   /// Chapter total that was last included in a notification (0 = never).
   final int lastNotifiedChapters;
 
+  /// Chapter total the last time the user opened this manga's detail screen
+  /// (0 = never opened since it was added). Drives the per-manga "new" dot.
+  final int lastSeenChapters;
+
   final String latestChapterTitle;
   final DateTime? latestChapterDate;
   final bool isFavorite;
@@ -46,6 +51,11 @@ class LibraryStatus {
   /// Chapters newer than the last notification (0 when never notified).
   int get newSinceNotified =>
       lastNotifiedChapters <= 0 ? 0 : liveTotal - lastNotifiedChapters;
+
+  /// Whether a "you haven't opened this since it updated" dot should show:
+  /// the manga has chapters newer than read AND newer than last opened.
+  bool get hasUnseenUpdate =>
+      newSinceRead > 0 && liveTotal > lastSeenChapters;
 }
 
 /// Fetches live chapter counts for every manga in the user's library
@@ -68,16 +78,21 @@ class UpdateChecker {
         ? await DatabaseHelper.instance.getFavorites()
         : <Map<String, dynamic>>[];
 
-    final merged = <String, Map<String, dynamic>>{};
-    for (final row in [...history, ...favorites]) {
-      final id = row['mangaId']?.toString();
-      if (id != null && id.isNotEmpty) merged[id] = row;
-    }
-
     // Sources are remote; cap concurrency so a large library does not fire
     // hundreds of requests at once (rate limits / battery).
     const concurrency = 5;
-    final entries = merged.entries.toList();
+    final merged = <String, ({String mangaId, Map<String, dynamic> row})>{};
+    for (final row in [...history, ...favorites]) {
+      final id = row['mangaId']?.toString();
+      if (id == null || id.isEmpty) continue;
+      // Key by source + manga id so the same slug from two different sources
+      // (e.g. a series read on ComicK and on Manganato) never overwrites the
+      // other's update entry.
+      final src = row['sourceId']?.toString() ?? '';
+      merged['$src\x00$id'] = (mangaId: id, row: row);
+    }
+
+    final entries = merged.values.toList();
     final results = <LibraryStatus>[];
     for (var i = 0; i < entries.length; i += concurrency) {
       final end = (i + concurrency) < entries.length
@@ -87,7 +102,8 @@ class UpdateChecker {
       final chunkResults = await Future.wait(
         chunk.map(
           (entry) => _checkEntry(
-            entry,
+            entry.mangaId,
+            entry.row,
             disabledSourceIds,
             allowedCategories,
             excludeNsfw,
@@ -101,13 +117,13 @@ class UpdateChecker {
   }
 
   static Future<LibraryStatus?> _checkEntry(
-    MapEntry<String, Map<String, dynamic>> entry,
+    String mangaId,
+    Map<String, dynamic> row,
     Set<String> disabledSourceIds,
     Set<String> allowedCategories,
     bool excludeNsfw,
   ) async {
     try {
-      final row = entry.value;
       final storedTotal = (row['totalChapters'] as int?) ?? 0;
       if (storedTotal <= 0) return null;
 
@@ -128,19 +144,20 @@ class UpdateChecker {
       final source =
           getSourceBySourceId(mangaSourceId) ?? getSourceByName('MangaDex');
 
-      final liveTotal = await source.getTotalChapters(entry.key);
+      final liveTotal = await source.getTotalChapters(mangaId);
       if (liveTotal <= 0) return null;
 
-      final latest = await source.getLatestChapter(entry.key);
+      final latest = await source.getLatestChapter(mangaId);
 
       return LibraryStatus(
-        mangaId: entry.key,
+        mangaId: mangaId,
         title: row['title']?.toString() ?? 'Unknown',
         coverUrl: row['coverUrl']?.toString() ?? '',
         sourceId: mangaSourceId,
         liveTotal: liveTotal,
         storedTotal: storedTotal,
         lastNotifiedChapters: (row['lastNotifiedChapters'] as int?) ?? 0,
+        lastSeenChapters: (row['lastSeenChapters'] as int?) ?? 0,
         latestChapterTitle: latest?.$1 ?? 'New chapter',
         latestChapterDate: latest?.$2,
         isFavorite: (row['isFavorite'] as int? ?? 0) == 1,

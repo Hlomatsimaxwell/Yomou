@@ -24,7 +24,7 @@ class DatabaseHelper {
 
     return await openDatabase(
       path,
-      version: 11,
+      version: 12,
       onCreate: _createDB,
       onUpgrade: _onUpgrade,
     );
@@ -84,6 +84,11 @@ class DatabaseHelper {
     if (oldVersion < 11) {
       await _createNotificationLogTable(db);
     }
+    if (oldVersion < 12) {
+      await db.execute(
+        'ALTER TABLE manga ADD COLUMN lastSeenChapters INTEGER DEFAULT 0',
+      );
+    }
   }
 
   Future _createDB(Database db, int version) async {
@@ -115,7 +120,8 @@ class DatabaseHelper {
         tags TEXT DEFAULT '[]',
         originalTitle TEXT,
         originalCoverUrl TEXT,
-        lastNotifiedChapters INTEGER DEFAULT 0
+        lastNotifiedChapters INTEGER DEFAULT 0,
+        lastSeenChapters INTEGER DEFAULT 0
       )
     ''');
 
@@ -197,6 +203,23 @@ class DatabaseHelper {
     }, conflictAlgorithm: ConflictAlgorithm.replace);
   }
 
+  // Records a per-chapter read event (used when seeding an imported backup).
+  Future<void> recordReadingProgress({
+    required String mangaId,
+    required String chapterId,
+    double chapterNumber = 0,
+    DateTime? at,
+  }) async {
+    if (incognitoActive) return;
+    final db = await instance.database;
+    await db.insert('reading_progress', {
+      'mangaId': mangaId,
+      'chapterId': chapterId,
+      'chapterNumber': chapterNumber,
+      'lastReadAt': (at ?? DateTime.now()).toIso8601String(),
+    }, conflictAlgorithm: ConflictAlgorithm.replace);
+  }
+
   // You can add a method here later to get the last read chapter
   Future<Map<String, dynamic>?> getLastReadChapter(String mangaId) async {
     final db = await instance.database;
@@ -227,6 +250,12 @@ class DatabaseHelper {
         .toSet();
   }
 
+  // Returns all chapter reading-progress rows (used for backups).
+  Future<List<Map<String, dynamic>>> getAllReadingProgress() async {
+    final db = await instance.database;
+    return db.query('reading_progress');
+  }
+
   // Record a manga's metadata + latest read chapter (used to build History).
   // Upserts: preserves favorite/readLater state if already present.
   Future<void> saveMangaProgress({
@@ -238,10 +267,11 @@ class DatabaseHelper {
     required double lastReadChapter,
     int lastReadPage = 0,
     int lastTrayTotalChapters = 0,
+    DateTime? lastReadAt,
   }) async {
     if (incognitoActive) return;
     final db = await instance.database;
-    final now = DateTime.now().toIso8601String();
+    final now = (lastReadAt ?? DateTime.now()).toIso8601String();
 
     final existing = await db.query(
       'manga',
@@ -727,6 +757,19 @@ class DatabaseHelper {
         'totalChapters': totalChapters,
       }, conflictAlgorithm: ConflictAlgorithm.replace);
     }
+  }
+
+  // Records that the user opened the manga detail when [liveTotal] chapters
+  // were available, so the updates feed can hide the "new" dot for exactly
+  // this manga (the entry and its chapter count are kept).
+  Future<void> markMangaSeen(String mangaId, int liveTotal) async {
+    if (liveTotal <= 0) return;
+    final db = await instance.database;
+    await db.rawUpdate(
+      'UPDATE manga SET lastSeenChapters = MAX(COALESCE(lastSeenChapters, 0), ?) '
+      'WHERE mangaId = ?',
+      [liveTotal, mangaId],
+    );
   }
 
   // Records one background update check for the "check log" screen.

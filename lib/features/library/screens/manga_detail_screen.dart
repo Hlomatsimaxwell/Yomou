@@ -22,6 +22,7 @@ import 'package:yomou/data/models/manga_details.dart';
 import 'package:yomou/data/models/bookmark.dart';
 import 'package:yomou/data/providers/sources_provider.dart';
 import 'package:yomou/features/explore/screens/source_search_results_screen.dart';
+import 'package:yomou/features/feed/providers/updates_provider.dart';
 import 'package:yomou/features/explore/screens/global_search_results_screen.dart';
 import 'package:yomou/features/settings/providers/appearance_provider.dart';
 import 'package:yomou/l10n/generated/app_localizations.dart';
@@ -163,11 +164,21 @@ class _MangaDetailScreenState extends ConsumerState<MangaDetailScreen> {
       _chapterError = null;
     });
     try {
-      final source =
-          sourceOverride ??
-          (widget.sourceId != null
-              ? getSourceBySourceId(widget.sourceId!)
-              : null);
+      MangaSource? source = sourceOverride;
+      if (source == null &&
+          widget.sourceId != null &&
+          widget.sourceId!.isNotEmpty) {
+        source = getSourceBySourceId(widget.sourceId!);
+      }
+      if (source == null) {
+        // No source was passed (e.g. the updates feed before the fix): fall
+        // back to the source recorded on this manga's stored row.
+        final row = await DatabaseHelper.instance.getManga(widget.mangaId);
+        final storedSourceId = row?['sourceId']?.toString() ?? '';
+        if (storedSourceId.isNotEmpty) {
+          source = getSourceBySourceId(storedSourceId);
+        }
+      }
       if (source == null) {
         setState(() {
           _chapters = [];
@@ -175,24 +186,27 @@ class _MangaDetailScreenState extends ConsumerState<MangaDetailScreen> {
         });
         return;
       }
+      // Non-null snapshot: `source` above is reassigned, so closures below
+      // would not be able to see it as non-null.
+      final src = source;
       // Fetch chapters and real details concurrently: chapters populate the
       // list, details fill in the header as soon as they arrive.
       final chaptersFuture = SourceCache.chapters(
-        sourceId: source.id,
+        sourceId: src.id,
         mangaId: widget.mangaId,
         forceRefresh: forceRefresh,
-        fetch: () => source.getChapters(widget.mangaId),
+        fetch: () => src.getChapters(widget.mangaId),
       );
       final detailsFuture = SourceCache.mangaDetails(
-        sourceId: source.id,
+        sourceId: src.id,
         mangaId: widget.mangaId,
         forceRefresh: forceRefresh,
-        fetch: () => source.getMangaDetails(widget.mangaId),
+        fetch: () => src.getMangaDetails(widget.mangaId),
       );
       if (mounted) {
         setState(() {
-          _source = source;
-          _sourceName = source.name;
+          _source = src;
+          _sourceName = src.name;
         });
       }
       final details = await detailsFuture;
@@ -213,8 +227,17 @@ class _MangaDetailScreenState extends ConsumerState<MangaDetailScreen> {
       if (chapters.isNotEmpty && mounted) {
         _loadPreviewPages();
       }
-      _loadRelatedManga(source);
-      _loadTotalChapters(source);
+      // Opening the detail counts as seeing however many chapters exist now:
+      // the updates feed keeps this manga (and its count) but drops its dot.
+      if (chapters.isNotEmpty) {
+        await DatabaseHelper.instance.markMangaSeen(
+          widget.mangaId,
+          chapters.length,
+        );
+        if (mounted) ref.invalidate(updatesProvider);
+      }
+      _loadRelatedManga(src);
+      _loadTotalChapters(src);
       _loadDownloadSize();
     } catch (e) {
       if (mounted) {

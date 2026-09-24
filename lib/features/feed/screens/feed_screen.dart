@@ -57,8 +57,6 @@ class _FeedScreenState extends ConsumerState<FeedScreen> {
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
                 const SizedBox(height: 12),
-                _buildSectionHeader(context),
-                const SizedBox(height: 12),
                 updatesAsync.when(
                   data: (updates) {
                     if (updates.isEmpty) {
@@ -71,9 +69,11 @@ class _FeedScreenState extends ConsumerState<FeedScreen> {
                     return Column(
                       crossAxisAlignment: CrossAxisAlignment.start,
                       children: [
-                        _buildUpdatesCarousel(context, updates),
-                        const SizedBox(height: 20),
-                        ..._groupByDate(context, updates),
+                        // The newest release group's label ("Today") doubles
+                        // as the screen header, sitting next to refresh.
+                        _buildSectionHeader(context, updates.first.dateGroup),
+                        const SizedBox(height: 8),
+                        ..._groupByDate(context, updates, skipFirstLabel: true),
                       ],
                     );
                   },
@@ -130,7 +130,7 @@ class _FeedScreenState extends ConsumerState<FeedScreen> {
     );
   }
 
-  Widget _buildSectionHeader(BuildContext context) {
+  Widget _buildSectionHeader(BuildContext context, String label) {
     final dark = Theme.of(context).brightness == Brightness.dark;
     return Padding(
       padding: const EdgeInsets.symmetric(horizontal: 16),
@@ -138,7 +138,7 @@ class _FeedScreenState extends ConsumerState<FeedScreen> {
         mainAxisAlignment: MainAxisAlignment.spaceBetween,
         children: [
           Text(
-            AppLocalizations.of(context).updatesTitle,
+            label,
             style: TextStyle(
               color: dark ? Colors.white : const Color(0xFF1C1B1F),
               fontSize: 16,
@@ -185,177 +185,54 @@ class _FeedScreenState extends ConsumerState<FeedScreen> {
     );
   }
 
-  Widget _buildUpdatesCarousel(
-    BuildContext context,
-    List<MangaUpdate> updates,
-  ) {
-    final previews = updates.take(6).toList();
-
-    return SizedBox(
-      height: 185,
-      child: ListView.builder(
-        scrollDirection: Axis.horizontal,
-        physics: const BouncingScrollPhysics(),
-        padding: const EdgeInsets.symmetric(horizontal: 16),
-        itemCount: previews.length,
-        itemBuilder: (context, index) {
-          final update = previews[index];
-          final dark = Theme.of(context).brightness == Brightness.dark;
-          final titleColor = dark
-              ? Colors.white
-              : Theme.of(context).colorScheme.onSurface;
-
-          return GestureDetector(
-            onTap: () {
-              Navigator.push(
-                context,
-                MaterialPageRoute(
-                  builder: (context) => MangaDetailScreen(
-                    mangaId: update.mangaId,
-                    title: update.title,
-                    imageUrl: update.coverUrl,
-                  ),
-                ),
-              );
-            },
-            child: Container(
-              width: 100,
-              margin: const EdgeInsets.only(right: 12),
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  AspectRatio(
-                    aspectRatio: 2 / 3,
-                    child: Stack(
-                      children: [
-                        ClipRRect(
-                          borderRadius: BorderRadius.circular(16),
-                          child: Container(
-                            decoration: BoxDecoration(
-                              borderRadius: BorderRadius.circular(16),
-                              border: dark
-                                  ? null
-                                  : Border.all(color: Colors.black12),
-                            ),
-                            child: CachedMangaImage(
-                              imageUrl: update.coverUrl,
-                              width: double.infinity,
-                              height: double.infinity,
-                              fit: BoxFit.cover,
-                              errorWidget: (context, url, error) => Container(
-                                color: const Color(0xFF2C2C2E),
-                                child: const Icon(
-                                  RemixIcons.book_open_line,
-                                  color: Colors.white38,
-                                ),
-                              ),
-                            ),
-                          ),
-                        ),
-                        Positioned(
-                          top: 6,
-                          left: 6,
-                          child: Container(
-                            padding: const EdgeInsets.symmetric(
-                              horizontal: 6,
-                              vertical: 3,
-                            ),
-                            decoration: BoxDecoration(
-                              color: Theme.of(context).colorScheme.primary,
-                              borderRadius: BorderRadius.circular(12),
-                            ),
-                            child: Text(
-                              '+${update.newCount}',
-                              style: const TextStyle(
-                                color: Colors.black,
-                                fontSize: 10,
-                                fontWeight: FontWeight.bold,
-                              ),
-                            ),
-                          ),
-                        ),
-                        Positioned(
-                          top: 6,
-                          right: 6,
-                          child: Container(
-                            padding: const EdgeInsets.all(4),
-                            decoration: BoxDecoration(
-                              color: Colors.black45,
-                              shape: BoxShape.circle,
-                            ),
-                            child: Icon(
-                              update.isFavorite
-                                  ? RemixIcons.heart_3_fill
-                                  : RemixIcons.heart_3_line,
-                              color: Colors.white,
-                              size: 10,
-                            ),
-                          ),
-                        ),
-                        DownloadedMangaBadge(
-                          mangaId: update.mangaId,
-                          position: const EdgeInsets.only(bottom: 6, right: 6),
-                          size: 20,
-                          iconSize: 12,
-                        ),
-                      ],
-                    ),
-                  ),
-                  const SizedBox(height: 6),
-                  Text(
-                    update.title,
-                    maxLines: 2,
-                    overflow: TextOverflow.ellipsis,
-                    style: TextStyle(
-                      color: titleColor,
-                      fontSize: 12,
-                      fontWeight: FontWeight.bold,
-                      height: 1.2,
-                    ),
-                  ),
-                ],
-              ),
-            ),
-          );
-        },
-      ),
-    );
-  }
-
   // Groups updates (already sorted by date desc) into date-grouped sections.
-  List<Widget> _groupByDate(BuildContext context, List<MangaUpdate> updates) {
+  // With [skipFirstLabel], the newest group's label is not repeated below the
+  // header (which already shows it next to the refresh control).
+  List<Widget> _groupByDate(
+    BuildContext context,
+    List<MangaUpdate> updates, {
+    bool skipFirstLabel = false,
+  }) {
     final groups = <String, List<MangaUpdate>>{};
     for (final u in updates) {
       groups.putIfAbsent(u.dateGroup, () => []).add(u);
     }
 
+    final sections = groups.entries.toList();
     return [
-      for (final entry in groups.entries)
-        _buildDateGroupSection(context, entry.key, entry.value),
+      for (var i = 0; i < sections.length; i++)
+        _buildDateGroupSection(
+          context,
+          sections[i].key,
+          sections[i].value,
+          showLabel: !(skipFirstLabel && i == 0),
+        ),
     ];
   }
 
   Widget _buildDateGroupSection(
     BuildContext context,
     String dateGroup,
-    List<MangaUpdate> items,
-  ) {
+    List<MangaUpdate> items, {
+    bool showLabel = true,
+  }) {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
-        Padding(
-          padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
-          child: Text(
-            dateGroup,
-            style: TextStyle(
-              color: Theme.of(context).brightness == Brightness.dark
-                  ? Colors.white
-                  : const Color(0xFF1C1B1F),
-              fontSize: 15,
-              fontWeight: FontWeight.bold,
+        if (showLabel)
+          Padding(
+            padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+            child: Text(
+              dateGroup,
+              style: TextStyle(
+                color: Theme.of(context).brightness == Brightness.dark
+                    ? Colors.white
+                    : const Color(0xFF1C1B1F),
+                fontSize: 15,
+                fontWeight: FontWeight.bold,
+              ),
             ),
           ),
-        ),
         ...items.map((update) {
           final dark = Theme.of(context).brightness == Brightness.dark;
           return ListTile(
@@ -371,6 +248,7 @@ class _FeedScreenState extends ConsumerState<FeedScreen> {
                     mangaId: update.mangaId,
                     title: update.title,
                     imageUrl: update.coverUrl,
+                    sourceId: update.sourceId,
                   ),
                 ),
               );
@@ -421,15 +299,17 @@ class _FeedScreenState extends ConsumerState<FeedScreen> {
             ),
             subtitle: Row(
               children: [
-                Container(
-                  width: 6,
-                  height: 6,
-                  decoration: BoxDecoration(
-                    color: Theme.of(context).colorScheme.primary,
-                    shape: BoxShape.circle,
+                if (update.hasUnseenUpdate) ...[
+                  Container(
+                    width: 6,
+                    height: 6,
+                    decoration: BoxDecoration(
+                      color: Theme.of(context).colorScheme.primary,
+                      shape: BoxShape.circle,
+                    ),
                   ),
-                ),
-                const SizedBox(width: 6),
+                  const SizedBox(width: 6),
+                ],
                 Expanded(
                   child: Text(
                     '${update.newCount} new · ${update.latestChapterTitle}',
