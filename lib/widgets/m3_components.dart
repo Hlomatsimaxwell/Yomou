@@ -27,15 +27,17 @@ class M3SectionHeader extends StatelessWidget {
 
 /// Shows a Material 3 modal bottom sheet with a drag handle, title and an
 /// optionally pinned footer button. Content scrolls within [maxHeightFactor]
-/// of the screen height. Returns when the sheet is dismissed.
-Future<void> showM3ModalSheet(
+/// of the screen height. Popping the sheet (footer button, drag handle, tap
+/// outside or back) resolves the returned future — the value passed to
+/// `Navigator.pop` when dismissed from the footer, or `null` otherwise.
+Future<T?> showM3ModalSheet<T>(
   BuildContext context, {
   required String title,
   required List<Widget> children,
   Widget? footer,
   double maxHeightFactor = 0.6,
 }) {
-  return showModalBottomSheet<void>(
+  return showModalBottomSheet<T>(
     context: context,
     isScrollControlled: true,
     showDragHandle: true,

@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:remixicon/remixicon.dart';
 import 'package:yomou/l10n/generated/app_localizations.dart';
 import 'package:yomou/features/settings/screens/appearance_settings_screen.dart';
+import 'package:yomou/features/settings/screens/backup_restore_screen.dart';
 import 'package:yomou/features/settings/screens/notification_settings_screen.dart';
 import 'package:yomou/features/settings/screens/storage_settings_screen.dart';
 import 'package:yomou/widgets/m3_components.dart';
@@ -15,7 +16,7 @@ class SettingsScreen extends StatelessWidget {
     return Scaffold(
       appBar: SettingsAppBar(title: l.settings),
       body: ListView(
-        padding: const EdgeInsets.symmetric(vertical: 4),
+        padding: const EdgeInsets.symmetric(vertical: 8),
         children: [
           _buildSettingTile(
             context: context,
@@ -92,7 +93,14 @@ class SettingsScreen extends StatelessWidget {
             icon: RemixIcons.history_line,
             title: l.settingsBackup,
             subtitle: l.settingsBackupSubtitle,
-            onTap: () {},
+            onTap: () {
+              Navigator.push(
+                context,
+                MaterialPageRoute(
+                  builder: (context) => const BackupRestoreScreen(),
+                ),
+              );
+            },
           ),
           _buildSettingTile(
             context: context,
@@ -114,7 +122,6 @@ class SettingsScreen extends StatelessWidget {
     required VoidCallback onTap,
   }) {
     return ListTile(
-      contentPadding: const EdgeInsets.symmetric(horizontal: 20, vertical: 3),
       leading: Padding(
         padding: const EdgeInsets.only(right: 12),
         child: Icon(icon, size: 26),

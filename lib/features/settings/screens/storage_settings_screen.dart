@@ -136,21 +136,45 @@ class _StorageSettingsScreenState extends ConsumerState<StorageSettingsScreen> {
   }
 
   Future<void> _confirmClearCache(BuildContext context, AppLocalizations l) async {
-    final confirmed = await showDialog<bool>(
-      context: context,
-      builder: (ctx) => AlertDialog(
-        title: Text(l.storageClearConfirmTitle),
-        content: Text(l.storageClearConfirmBody),
-        actions: [
-          TextButton(
-            onPressed: () => Navigator.pop(ctx, false),
-            child: Text(l.storageCancel),
+    final color = Theme.of(context).colorScheme;
+    final confirmed = await showM3ModalSheet<bool>(
+      context,
+      title: l.storageClearConfirmTitle,
+      children: [
+        Padding(
+          padding: const EdgeInsets.fromLTRB(24, 4, 24, 8),
+          child: Text(
+            l.storageClearConfirmBody,
+            style: TextStyle(
+              fontSize: 14,
+              color: color.onSurfaceVariant,
+            ),
           ),
-          TextButton(
-            onPressed: () => Navigator.pop(ctx, true),
-            child: Text(l.storageClearTitle),
-          ),
-        ],
+        ),
+      ],
+      footer: Padding(
+        padding: const EdgeInsets.only(top: 4),
+        child: Row(
+          children: [
+            Expanded(
+              child: TextButton(
+                onPressed: () => Navigator.pop(context, false),
+                child: Text(l.storageCancel),
+              ),
+            ),
+            const SizedBox(width: 8),
+            Expanded(
+              child: FilledButton(
+                style: FilledButton.styleFrom(
+                  backgroundColor: color.error,
+                  foregroundColor: color.onError,
+                ),
+                onPressed: () => Navigator.pop(context, true),
+                child: Text(l.storageClearTitle),
+              ),
+            ),
+          ],
+        ),
       ),
     );
     if (confirmed != true || !context.mounted) return;
