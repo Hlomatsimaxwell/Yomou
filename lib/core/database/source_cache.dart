@@ -23,12 +23,12 @@ import 'package:sqflite/sqflite.dart';
 class SourceCache {
   SourceCache._();
 
-  static const _maxAgePopular = Duration(minutes: 10);
-  static const _maxAgeSearch = Duration(minutes: 10);
+  static const _maxAgePopular = Duration(minutes: 60);
+  static const _maxAgeSearch = Duration(minutes: 30);
   static const _maxAgeDetails = Duration(hours: 2);
   static const _maxAgeChapters = Duration(minutes: 30);
   static const _maxAgePageUrls = Duration(days: 7);
-  static const _maxAgeTags = Duration(hours: 24);
+  static const _maxAgeTags = Duration(days: 7);
 
   /// Keys (prefixes) that must skip the fresh-cache shortcut on their next run
   /// (used by pull-to-refresh). A prefix applies to every key starting with it.
