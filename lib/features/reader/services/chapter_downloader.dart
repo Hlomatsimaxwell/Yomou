@@ -2,6 +2,7 @@ import 'dart:io';
 import 'package:http/http.dart' as http;
 import 'package:path/path.dart' as p;
 import 'package:path_provider/path_provider.dart';
+import 'package:yomou/data/sources/mf_scramble.dart';
 
 /// Downloads chapter image pages to local storage so they can be read
 /// offline ("cached chapters").
@@ -89,7 +90,14 @@ class ChapterDownloader {
             await dir.delete(recursive: true);
             return null;
           }
-          await file.writeAsBytes(response.bodyBytes, flush: true);
+          var bytes = response.bodyBytes;
+          final mfOffset = MfScramble.offsetFromUrl(url);
+          if (mfOffset != null) {
+            // Offline pages must be stored de-scrambled or the file is tiled.
+            final fixed = MfScramble.unscramble(bytes, mfOffset);
+            if (fixed != null) bytes = fixed;
+          }
+          await file.writeAsBytes(bytes, flush: true);
         } catch (_) {
           await dir.delete(recursive: true);
           return null;

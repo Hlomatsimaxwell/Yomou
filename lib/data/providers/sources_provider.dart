@@ -22,6 +22,7 @@ import '../sources/manhwa18_source.dart';
 import '../sources/flame_source.dart';
 import '../sources/komga_source.dart';
 import '../sources/mangabat_source.dart';
+import '../sources/mangafire_source.dart';
 
 // 1. THE SOURCE REGISTRY
 //
@@ -70,6 +71,27 @@ MangaSource getSourceByName(String name) {
       return _shared('komga', KomgaSource.new);
     case 'MangaBat':
       return _shared('mangabat', MangaBatSource.new);
+    case 'MangaFire English':
+      return _shared('mangafire-en',
+          () => MangaFireSource(sourceId: 'mangafire-en', langCode: 'en'));
+    case 'MangaFire Spanish':
+      return _shared('mangafire-es',
+          () => MangaFireSource(sourceId: 'mangafire-es', langCode: 'es'));
+    case 'MangaFire Spanish Latin':
+      return _shared('mangafire-esla',
+          () => MangaFireSource(sourceId: 'mangafire-esla', langCode: 'es-la'));
+    case 'MangaFire French':
+      return _shared('mangafire-fr',
+          () => MangaFireSource(sourceId: 'mangafire-fr', langCode: 'fr'));
+    case 'MangaFire Japanese':
+      return _shared('mangafire-ja',
+          () => MangaFireSource(sourceId: 'mangafire-ja', langCode: 'ja'));
+    case 'MangaFire Portuguese':
+      return _shared('mangafire-pt',
+          () => MangaFireSource(sourceId: 'mangafire-pt', langCode: 'pt'));
+    case 'MangaFire Portuguese Brazil':
+      return _shared('mangafire-ptbr',
+          () => MangaFireSource(sourceId: 'mangafire-ptbr', langCode: 'pt-br'));
     case 'Mock Source':
       return _shared('mock', MockSource.new);
     default:
@@ -112,6 +134,20 @@ MangaSource? getSourceBySourceId(String sourceId) {
       return getSourceByName('Komga');
     case 'mangabat':
       return getSourceByName('MangaBat');
+    case 'mangafire-en':
+      return getSourceByName('MangaFire English');
+    case 'mangafire-es':
+      return getSourceByName('MangaFire Spanish');
+    case 'mangafire-esla':
+      return getSourceByName('MangaFire Spanish Latin');
+    case 'mangafire-fr':
+      return getSourceByName('MangaFire French');
+    case 'mangafire-ja':
+      return getSourceByName('MangaFire Japanese');
+    case 'mangafire-pt':
+      return getSourceByName('MangaFire Portuguese');
+    case 'mangafire-ptbr':
+      return getSourceByName('MangaFire Portuguese Brazil');
     case 'manganato':
       return getSourceByName('Manganato');
     case 'mock':
@@ -322,6 +358,69 @@ class SourcesNotifier extends StateNotifier<List<Map<String, dynamic>>> {
       'text': 'B',
       'iconUrl': 'https://www.mangabats.com/favicon.ico',
       'isPinned': false,
+    },
+    {
+      'name': 'MangaFire English',
+      'language': 'English',
+      'bgColor': const Color(0xFFF97316),
+      'text': 'F',
+      'iconUrl': 'https://mangafire.to/assets/mangafire/favicon.svg',
+      'isPinned': false,
+      'nsfw': true,
+    },
+    {
+      'name': 'MangaFire Spanish',
+      'language': 'Spanish',
+      'bgColor': const Color(0xFFF97316),
+      'text': 'F',
+      'iconUrl': 'https://mangafire.to/assets/mangafire/favicon.svg',
+      'isPinned': false,
+      'nsfw': true,
+    },
+    {
+      'name': 'MangaFire Spanish Latin',
+      'language': 'Spanish (Latin)',
+      'bgColor': const Color(0xFFF97316),
+      'text': 'F',
+      'iconUrl': 'https://mangafire.to/assets/mangafire/favicon.svg',
+      'isPinned': false,
+      'nsfw': true,
+    },
+    {
+      'name': 'MangaFire French',
+      'language': 'French',
+      'bgColor': const Color(0xFFF97316),
+      'text': 'F',
+      'iconUrl': 'https://mangafire.to/assets/mangafire/favicon.svg',
+      'isPinned': false,
+      'nsfw': true,
+    },
+    {
+      'name': 'MangaFire Japanese',
+      'language': 'Japanese',
+      'bgColor': const Color(0xFFF97316),
+      'text': 'F',
+      'iconUrl': 'https://mangafire.to/assets/mangafire/favicon.svg',
+      'isPinned': false,
+      'nsfw': true,
+    },
+    {
+      'name': 'MangaFire Portuguese',
+      'language': 'Portuguese',
+      'bgColor': const Color(0xFFF97316),
+      'text': 'F',
+      'iconUrl': 'https://mangafire.to/assets/mangafire/favicon.svg',
+      'isPinned': false,
+      'nsfw': true,
+    },
+    {
+      'name': 'MangaFire Portuguese Brazil',
+      'language': 'Portuguese (Brazil)',
+      'bgColor': const Color(0xFFF97316),
+      'text': 'F',
+      'iconUrl': 'https://mangafire.to/assets/mangafire/favicon.svg',
+      'isPinned': false,
+      'nsfw': true,
     },
     {
       'name': 'ComicK',

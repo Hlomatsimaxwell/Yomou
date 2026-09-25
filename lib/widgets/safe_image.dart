@@ -4,7 +4,13 @@ import 'package:cached_network_image/cached_network_image.dart';
 import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:yomou/core/cache/app_cache.dart';
+import 'package:yomou/data/sources/mf_scramble.dart';
 import 'package:image/image.dart' as img;
+
+/// Background-isolate callback that de-scrambles a MangaFire chapter page.
+Uint8List? _unscrambleMfPage((Uint8List, int) message) {
+  return MfScramble.unscramble(message.$1, message.$2);
+}
 
 /// Decodes an encoded image on a background isolate and re-encodes it as PNG.
 ///
@@ -85,6 +91,51 @@ class _SafeNetworkImageState extends State<SafeNetworkImage> {
     }
   }
 
+  // --- MangaFire scrambled pages ---
+
+  /// MangaFire serves some chapter images as a shuffled tile grid; URLs carry
+  /// a `#scrambled_N` fragment. Those pages can't be shown by the platform
+  /// decoder, so they are de-scrambled to PNG on a background isolate instead.
+  Widget _buildScrambled(int offset) {
+    return _sized(
+      FutureBuilder<Uint8List?>(
+        future: _loadScrambled(offset),
+        builder: (context, snapshot) {
+          if (snapshot.connectionState != ConnectionState.done) {
+            return widget.placeholder?.call(context, widget.imageUrl) ??
+                const _CoverFallback();
+          }
+          final bytes = snapshot.data;
+          if (bytes == null) return _showError('Failed to decode image');
+
+          return Image.memory(
+            bytes,
+            width: widget.width,
+            height: widget.height,
+            fit: widget.fit,
+            alignment: widget.alignment,
+            gaplessPlayback: widget.gaplessPlayback,
+            errorBuilder: (context, error, stack) => _showError(error),
+          );
+        },
+      ),
+    );
+  }
+
+  Future<Uint8List?> _loadScrambled(int offset) async {
+    try {
+      final file = await AppImageCache.instance.manager.getSingleFile(
+        widget.imageUrl,
+        headers: widget.httpHeaders,
+      );
+      final bytes = await file.readAsBytes();
+      final decoded = await compute(_unscrambleMfPage, (bytes, offset));
+      return decoded;
+    } catch (_) {
+      return null;
+    }
+  }
+
   Widget _showError(Object error) {
     final builder = widget.errorWidget;
     if (builder != null) {
@@ -106,6 +157,10 @@ class _SafeNetworkImageState extends State<SafeNetworkImage> {
 
   @override
   Widget build(BuildContext context) {
+    final mfOffset = MfScramble.offsetFromUrl(widget.imageUrl);
+    if (mfOffset != null) {
+      return _buildScrambled(mfOffset);
+    }
     if (!_fallback) {
       return CachedNetworkImage(
         imageUrl: widget.imageUrl,
