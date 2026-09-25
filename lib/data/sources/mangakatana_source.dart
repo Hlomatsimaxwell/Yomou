@@ -1,5 +1,6 @@
 import 'package:html/parser.dart' as parser;
 import '../models/manga_source.dart';
+import '../models/manga_filter.dart';
 import '../models/manga.dart';
 import '../models/chapter.dart';
 import '../models/manga_details.dart';
@@ -81,6 +82,14 @@ class MangakatanaSource extends DioSource implements MangaSource {
     } catch (_) {
       return [];
     }
+  }
+
+  @override
+  Future<List<Manga>> searchWithFilter(
+    MangaFilter filter, {
+    int page = 1,
+  }) async {
+    return searchMangaByTags(filter.genres, page: page);
   }
 
   @override

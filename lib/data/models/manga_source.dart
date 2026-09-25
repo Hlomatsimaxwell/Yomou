@@ -1,6 +1,7 @@
 import 'manga.dart';
 import 'chapter.dart';
 import 'manga_details.dart';
+import 'manga_filter.dart';
 
 abstract class MangaSource {
   String get id;
@@ -38,6 +39,17 @@ abstract class MangaSource {
   // Returns empty when the source doesn't expose a tag list.
   Future<List<String>> getAvailableTags() async {
     return [];
+  }
+
+  /// Browse the catalog with the rich filter sheet's [MangaFilter]. Sources
+  /// that can't honour every parameter fall back to the closest subset they
+  /// support — the shared fallback only covers the included genres via
+  /// [searchMangaByTags].
+  Future<List<Manga>> searchWithFilter(
+    MangaFilter filter, {
+    int page = 1,
+  }) async {
+    return searchMangaByTags(filter.genres, page: page);
   }
 
   /// Returns the most recent chapter (title + publish date) for a manga,

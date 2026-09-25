@@ -3,6 +3,7 @@ import 'dart:convert';
 import 'package:flutter/foundation.dart';
 import 'package:html/parser.dart' as parser;
 import '../models/manga_source.dart';
+import '../models/manga_filter.dart';
 import '../models/manga.dart';
 import '../models/chapter.dart';
 import '../models/manga_details.dart';
@@ -292,6 +293,14 @@ class ManganatoService extends DioSource implements MangaSource {
     if (json == null || json['success'] != true) return 0;
     final entries = ((json['data'] as Map?)?['chapters'] as List?) ?? const [];
     return entries.length;
+  }
+
+  @override
+  Future<List<Manga>> searchWithFilter(
+    MangaFilter filter, {
+    int page = 1,
+  }) async {
+    return searchMangaByTags(filter.genres, page: page);
   }
 
   @override

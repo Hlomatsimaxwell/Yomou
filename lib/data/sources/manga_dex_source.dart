@@ -3,6 +3,7 @@ import '../models/manga_source.dart';
 import '../models/manga.dart';
 import '../models/chapter.dart';
 import '../models/manga_details.dart';
+import '../models/manga_filter.dart';
 
 class MangaDexSource implements MangaSource {
   @override
@@ -338,6 +339,71 @@ class MangaDexSource implements MangaSource {
           'order': {'followedCount': 'desc'},
           'includes[]': 'cover_art',
           ...{for (final id in tagIds) 'includedTags[]': id},
+        },
+      );
+
+      return _parseMangaList(response.data);
+    } catch (e) {
+      return [];
+    }
+  }
+
+  @override
+  Future<List<Manga>> searchWithFilter(
+    MangaFilter filter, {
+    int page = 1,
+  }) async {
+    try {
+      final nameToId = await _getTagNameToId();
+      final includedIds = <String>[];
+      for (final tag in filter.genres) {
+        final id = nameToId[tag.toLowerCase()];
+        if (id != null) includedIds.add(id);
+      }
+      final excludedIds = <String>[];
+      for (final tag in filter.excludeGenres) {
+        final id = nameToId[tag.toLowerCase()];
+        if (id != null) excludedIds.add(id);
+      }
+
+      // MangaDex has no "Upcoming" status; map Finished->completed and
+      // Dropped->cancelled, skip anything that doesn't map.
+      const statusMap = {
+        'finished': 'completed',
+        'dropped': 'cancelled',
+      };
+      final statusParams = <String>[
+        for (final s in filter.status)
+          if (statusMap[s] != null) statusMap[s]!,
+      ];
+
+      // MangaDex only accepts a single exact year, so a proper range is not
+      // expressible — send the year only when from == to (best effort).
+      int? year;
+      final from = filter.yearFrom;
+      final to = filter.yearTo;
+      if (from != null && to != null && from == to) year = from;
+
+      final orders = {
+        'updated': {'latestUploadedChapter': 'desc'},
+        'alphabetical': {'title': 'asc'},
+        'popularity': {'followedCount': 'desc'},
+        'chapterCount': {'chapterCount': 'desc'},
+      };
+
+      final offset = (page - 1) * 20;
+      final response = await _dio.get(
+        '/manga',
+        queryParameters: {
+          'limit': 20,
+          'offset': offset,
+          'order': orders[filter.sort] ?? orders['updated'],
+          'includes[]': 'cover_art',
+          if (filter.language != null) 'originalLanguage[]': filter.language,
+          ...{for (final id in includedIds) 'includedTags[]': id},
+          ...{for (final id in excludedIds) 'excludedTags[]': id},
+          ...{for (final s in statusParams) 'status[]': s},
+          if (year != null) 'year': year,
         },
       );
 
