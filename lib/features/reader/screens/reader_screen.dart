@@ -5,6 +5,7 @@ import 'dart:io';
 import 'dart:ui' show ImageFilter;
 import 'package:battery_plus/battery_plus.dart';
 import 'package:flutter/material.dart';
+import 'package:flutter/gestures.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:http/http.dart' as http;
@@ -152,18 +153,21 @@ class _ReaderScreenState extends ConsumerState<ReaderScreen>
   int? _pendingJumpPage;
   final Set<String> _bookmarkedKeys = {};
 
-  // Set to false to render pages without the zoom wrapper (A/B diagnostic).
-  static const bool _zoomEnabled = false;
+  // Screen zoom: pinch + drag + double-tap that magnifies the WHOLE reader
+  // body (the entire manga/page canvas) as one uniform transform. The floating
+  // chrome cards and immersive status bar live outside the transform, so they
+  // stay put. Clamped so the canvas can never be panned past its own edges.
+  static const bool _zoomEnabled = true;
 
-  // Per-page double-tap zoom state.
-  final Map<int, TransformationController> _zoomControllers = {};
-  final Map<int, bool> _zoomed = {};
-  final Map<int, Offset> _zoomFocal = {};
+  final TransformationController _screenZoom = TransformationController();
+  Offset _zoomFocal = Offset.zero;
+  Matrix4? _zoomScaleStart;
   int? _zoomSeenPageCount;
   late final AnimationController _zoomAnimController;
   VoidCallback? _zoomAnimListener;
 
-  Size? _lastViewportSize; // page box size in horizontal mode
+  // The reader viewport size (used to clamp panning while zoomed).
+  Size? _zoomViewportSize;
 
   String _bookmarkKey(String chapterId, int pageIndex) =>
       '$chapterId:$pageIndex';
@@ -332,9 +336,7 @@ class _ReaderScreenState extends ConsumerState<ReaderScreen>
     _scrollController.dispose();
     _pageController.dispose();
     _trayExtentController.dispose();
-    for (final controller in _zoomControllers.values) {
-      controller.dispose();
-    }
+    _screenZoom.dispose();
     _toastTimer?.cancel();
     _scrollStopTimer?.cancel();
     _autoScrollTimer?.cancel();
@@ -2859,15 +2861,21 @@ class _ReaderScreenState extends ConsumerState<ReaderScreen>
           child: Stack(
             children: [
               // --- VIEWPORT AREA ---
+              // The whole reader body sits inside the screen-level zoom
+              // viewport, so pinching magnifies the entire manga/page canvas
+              // at once while the floating chrome + immersive status bar above
+              // stay fixed.
               _pages.isEmpty
                   ? Center(
                       child: CircularProgressIndicator(
                         color: ref.watch(accentProvider),
                       ),
                     )
-                  : _isHorizontal
-                  ? _buildHorizontalReader(headers)
-                  : _buildVerticalReader(headers),
+                  : _buildReaderZoomViewport(
+                      _isHorizontal
+                          ? _buildHorizontalReader(headers)
+                          : _buildVerticalReader(headers),
+                    ),
 
               // --- TOP APP BAR OVERLAY (same capsule theming as the bottom bar) ---
               AnimatedPositioned(
@@ -3266,11 +3274,9 @@ onPressed: _showSettingsSheet,
         }
         _lastPageIndex = index;
       },
-      // Mangayomi-style: while the current page is zoomed, give the page
-      // gesture ownership (swipe is disabled until the user zooms back out).
-      physics: (_zoomed[_currentPageIndex] ?? false)
-          ? const NeverScrollableScrollPhysics()
-          : null,
+      // Scrolling (flipping pages) is always allowed, whether the canvas is
+      // zoomed or not, so the user can read on at any zoom level.
+      physics: null,
       itemBuilder: (context, index) {
         final page = _buildPageImage(
           _pages[index],
@@ -3327,51 +3333,106 @@ onPressed: _showSettingsSheet,
         errorWidget: (context, url, error) => _buildPageError(index: index),
       );
     }
-    return _buildZoomablePage(index: index, child: _applyColorFilter(image));
+    return _applyColorFilter(image);
   }
 
-  // --- DOUBLE-TAP ZOOM WRAPPER (Mangayomi-style, no pinch) ---
-  Widget _buildZoomablePage({required int index, required Widget child}) {
-    _maybeResetZoomState();
-    // A/B kill-switch: rendering the page image directly (no zoom layer)
-    // isolates the wrapper from page-load/source issues.
+  // --- SCREEN-LEVEL ZOOM VIEWPORT ---
+  //
+  // Wraps the WHOLE reader body (pager or webtoon list) in one uniform
+  // transform: pinch or double-tap magnifies the entire page/canvas at once,
+  // not a single region, while the floating chrome + immersive status bar stay
+  // fixed on top. Pan with one finger (only in the horizontal pager) while
+  // zoomed; the webtoon list keeps its own scroll so you can keep reading.
+  Widget _buildReaderZoomViewport(Widget child) {
     if (!_zoomEnabled) return child;
-    // Keep a single controller per page alive from first build so the double
-    // tap always operates on the SAME matrix that is displayed. The page is
-    // drawn with a plain Transform of that matrix (identity when idle), so
-    // rendering is identical to the zoom-off path.
-    final controller = _zoomControllers.putIfAbsent(
-      index,
-      TransformationController.new,
+    return LayoutBuilder(
+      builder: (context, constraints) {
+        _maybeResetScreenZoom();
+        _zoomViewportSize = constraints.biggest;
+        return ClipRect(
+          child: GestureDetector(
+            behavior: HitTestBehavior.opaque,
+            onDoubleTapDown: (d) => _zoomFocal = d.localPosition,
+            onDoubleTap: _toggleScreenZoom,
+            child: RawGestureDetector(
+              behavior: HitTestBehavior.opaque,
+              gestures: {
+                _ReaderZoomRecognizer: GestureRecognizerFactoryWithHandlers<
+                    _ReaderZoomRecognizer>(
+                  () => _ReaderZoomRecognizer(
+                    shouldOwnGesture: _shouldOwnZoomGesture,
+                  ),
+                  (instance) {
+                    instance.onStart = _onZoomStart;
+                    instance.onUpdate = _onZoomUpdate;
+                    instance.onEnd = (_) => _onZoomEnd();
+                  },
+                ),
+              },
+              child: ValueListenableBuilder<Matrix4>(
+                valueListenable: _screenZoom,
+                builder: (context, value, _) =>
+                    Transform(transform: value, child: child),
+              ),
+            ),
+          ),
+        );
+      },
     );
-    return GestureDetector(
-      behavior: HitTestBehavior.opaque,
-      onDoubleTapDown: (details) => _zoomFocal[index] = details.localPosition,
-      onDoubleTap: () => _togglePageZoom(index),
-      // Single tap still toggles the reader chrome; Flutter disambiguates it
-      // from the double-tap above (single tap fires only after the double-tap
-      // window elapses).
-      onTap: _toggleControls,
-      child: LayoutBuilder(
-        builder: (context, constraints) {
-          _lastViewportSize = constraints.biggest;
-          return ValueListenableBuilder<Matrix4>(
-            valueListenable: controller,
-            builder: (context, value, _) =>
-                Transform(transform: value, child: child),
-          );
-        },
-      ),
-    );
+  }
+
+  // Single-finger drags are never taken over by the zoom transform: the inner
+  // pager/list keeps every un-zoomed drag so page flipping and webtoon
+  // scrolling work identically at any zoom level. Panning within a zoomed
+  // canvas is done with a two-finger drag.
+  bool _shouldOwnZoomGesture() => false;
+
+  void _onZoomStart(ScaleStartDetails details) {
+    if (!mounted) return;
+    _zoomScaleStart = _screenZoom.value.clone();
+  }
+
+  void _onZoomUpdate(ScaleUpdateDetails details) {
+    final base = _zoomScaleStart;
+    if (base == null) return;
+    final baseScale = base.getMaxScaleOnAxis();
+    final newScale = (baseScale * details.scale).clamp(1.0, 6.0);
+
+    // Pinch: scale the whole canvas about the fingers, keeping the spot fixed.
+    if (newScale != baseScale && newScale > 1.0) {
+      final focal = details.localFocalPoint;
+      final childFocal = MatrixUtils.transformPoint(Matrix4.inverted(base), focal);
+      final tx = focal.dx - newScale * childFocal.dx;
+      final ty = focal.dy - newScale * childFocal.dy;
+      _screenZoom.value = _zoomClampTranslation(
+        Matrix4.identity()
+          ..translateByDouble(tx, ty, 0, 1)
+          ..scaleByDouble(newScale, newScale, 1, 1),
+      );
+      return;
+    }
+
+    // Two-finger drag while already zoomed (focal point moves): pan.
+    if (baseScale > 1.0 && details.focalPointDelta != Offset.zero) {
+      final delta = details.focalPointDelta;
+      _screenZoom.value = _zoomClampTranslation(
+        base.clone()..translateByDouble(delta.dx, delta.dy, 0, 1),
+      );
+    }
+  }
+
+  void _onZoomEnd() {
+    if (!mounted) return;
+    final scale = _screenZoom.value.getMaxScaleOnAxis();
+    if (scale <= 1.02) _screenZoom.value = Matrix4.identity();
+    _zoomScaleStart = null;
   }
 
   Matrix4 _zoomClampTranslation(Matrix4 matrix) {
-    if (!_isHorizontal) return matrix.clone();
-    final size = _lastViewportSize;
     final s = matrix.getMaxScaleOnAxis();
     if (s <= 1.0) return Matrix4.identity();
-    if (size == null || size.width <= 0 || size.height <= 0)
-      return matrix.clone();
+    final size = _zoomViewportSize;
+    if (size == null || size.width <= 0 || size.height <= 0) return matrix.clone();
     final t = matrix.getTranslation();
     final dx = t.x.clamp(-(s - 1) * size.width, 0.0).toDouble();
     final dy = t.y.clamp(-(s - 1) * size.height, 0.0).toDouble();
@@ -3379,44 +3440,15 @@ onPressed: _showSettingsSheet,
     return matrix.clone()..setTranslationRaw(dx, dy, t.z);
   }
 
-  void _maybeResetZoomState() {
-    if (_zoomSeenPageCount != _pages.length) {
-      _zoomSeenPageCount = _pages.length;
-      final oldControllers = _zoomControllers.values.toList();
-      _zoomControllers.clear();
-      _zoomed.clear();
-      _zoomFocal.clear();
-      // Dispose outside of the build phase: _maybeResetZoomState runs from
-      // _buildZoomablePage while a frame builds, and disposing an attached
-      // controller fires its notifier listener during build.
-      WidgetsBinding.instance.addPostFrameCallback((_) {
-        for (final controller in oldControllers) {
-          controller.dispose();
-        }
-      });
-    }
-  }
-
-  void _togglePageZoom(int index) {
+  void _toggleScreenZoom() {
     if (!mounted) return;
-    final controller = _zoomControllers.putIfAbsent(
-      index,
-      TransformationController.new,
-    );
-    // The tap focal is reported in the *viewport* (widget) coordinate space,
-    // but the matrix operates on the *child* space. Map it to child
-    // coordinates under the current transform so the zoom anchor stays where
-    // the finger is when the page is already zoomed.
-    final viewportFocal = _zoomFocal[index] ?? Offset.zero;
+    final current = _screenZoom.value.getMaxScaleOnAxis();
+    final target = current > 1.5 ? 1.0 : 2.5;
+    final focal = _zoomFocal;
     final childFocal = MatrixUtils.transformPoint(
-      Matrix4.inverted(controller.value),
-      viewportFocal,
+      Matrix4.inverted(_screenZoom.value),
+      focal,
     );
-    final currentScale = controller.value.getMaxScaleOnAxis();
-    // Mangayomi-style: toggle between fit and a fixed 2.5x zoom on the tap.
-    final target = currentScale > 1.5 ? 1.0 : 2.5;
-
-    setState(() => _zoomed[index] = target > 1.5);
 
     _zoomAnimController.stop();
     if (_zoomAnimListener != null) {
@@ -3425,22 +3457,37 @@ onPressed: _showSettingsSheet,
     }
     _zoomAnimController.value = 0.0;
 
-    // Animate scale while keeping the tapped point fixed under the finger.
     void updateZoomMatrix() {
       if (!mounted) return;
       final t = Curves.easeInOutCubic.transform(_zoomAnimController.value);
-      final scale = currentScale + (target - currentScale) * t;
-      final tx = viewportFocal.dx - scale * childFocal.dx;
-      final ty = viewportFocal.dy - scale * childFocal.dy;
-      controller.value = Matrix4.identity()
-        ..translateByDouble(tx, ty, 0, 1)
-        ..scaleByDouble(scale, scale, 1, 1);
-      controller.value = _zoomClampTranslation(controller.value);
+      final scale = current + (target - current) * t;
+      final tx = focal.dx - scale * childFocal.dx;
+      final ty = focal.dy - scale * childFocal.dy;
+      _screenZoom.value = _zoomClampTranslation(
+        Matrix4.identity()
+          ..translateByDouble(tx, ty, 0, 1)
+          ..scaleByDouble(scale, scale, 1, 1),
+      );
     }
 
     _zoomAnimListener = updateZoomMatrix;
     _zoomAnimController.addListener(updateZoomMatrix);
     _zoomAnimController.forward();
+  }
+
+  // Reset the screen zoom whenever the page set changes (new chapter / retry),
+  // so a stale matrix never carries across.
+  void _maybeResetScreenZoom() {
+    if (_zoomSeenPageCount != _pages.length) {
+      _zoomSeenPageCount = _pages.length;
+      if (_zoomAnimListener != null) {
+        _zoomAnimController.removeListener(_zoomAnimListener!);
+        _zoomAnimListener = null;
+      }
+      WidgetsBinding.instance.addPostFrameCallback((_) {
+        if (mounted) _screenZoom.value = Matrix4.identity();
+      });
+    }
   }
 
   Future<void> _retryPage(int index, String? localPath) async {
@@ -3775,6 +3822,44 @@ class _ChapterDownloadTask {
   int total = 0;
 
   void cancel() => cancelled = true;
+}
+
+// --- READER PAGE ZOOM GESTURE RECOGNIZER ---
+//
+// A scale recognizer that only claims a drag when it should zoom or pan:
+// either two fingers are down (pinch on any page) or the page is already
+// zoomed (single-finger pan). In every other case it rejects immediately so
+// the pager / webtoon list keeps owning the scroll gesture.
+class _ReaderZoomRecognizer extends ScaleGestureRecognizer {
+  _ReaderZoomRecognizer({required this.shouldOwnGesture});
+
+  final bool Function() shouldOwnGesture;
+  int _pointers = 0;
+
+  @override
+  void addAllowedPointer(PointerDownEvent event) {
+    _pointers++;
+    super.addAllowedPointer(event);
+  }
+
+  @override
+  void didStopTrackingLastPointer(int pointer) {
+    _pointers--;
+    super.didStopTrackingLastPointer(pointer);
+  }
+
+  @override
+  void handleEvent(PointerEvent event) {
+    // Never reject on the DOWN event: the first finger of a fresh pinch lands
+    // alone and is not zoomed yet, but the second finger follows immediately.
+    // Reject only once a move shows it is a lone unzoomed drag, so normal
+    // swipes still pass to the pager/list.
+    if (event is! PointerDownEvent && !shouldOwnGesture() && _pointers < 2) {
+      resolve(GestureDisposition.rejected);
+      return;
+    }
+    super.handleEvent(event);
+  }
 }
 
 // --- CHAPTER TRANSITION TOAST WIDGET ---
