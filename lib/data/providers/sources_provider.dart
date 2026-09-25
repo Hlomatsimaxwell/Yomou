@@ -61,8 +61,6 @@ MangaSource? getSourceBySourceId(String sourceId) {
   switch (sourceId) {
     case 'mangadex':
       return getSourceByName('MangaDex');
-    case 'anime_api':
-      return getSourceByName('Anime-API');
     case 'weebcentral':
       return getSourceByName('WeebCentral');
     case 'mangakatana':
@@ -180,14 +178,6 @@ class SourcesNotifier extends StateNotifier<List<Map<String, dynamic>>> {
       'bgColor': const Color(0xFF7A1F1F),
       'text': 'M',
       'iconUrl': 'https://www.mangatown.com/favicon.ico',
-      'isPinned': true,
-    },
-    {
-      'name': 'Anime-API',
-      'language': 'English',
-      'bgColor': const Color(0xFF6200EE),
-      'text': 'A',
-      'iconUrl': 'https://anime-api.vercel.app/favicon.ico',
       'isPinned': true,
     },
     {
