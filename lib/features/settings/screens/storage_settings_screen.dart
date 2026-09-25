@@ -58,7 +58,7 @@ class _StorageSettingsScreenState extends ConsumerState<StorageSettingsScreen> {
             value: settings.precacheNextChapter,
             onChanged: (_) => notifier.togglePrecacheNextChapter(),
           ),
-          const Divider(),
+          const SizedBox(height: 8),
           FutureBuilder<String>(
             future: _usageFuture,
             builder: (context, snapshot) => ListTile(

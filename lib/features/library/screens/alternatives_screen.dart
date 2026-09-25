@@ -14,6 +14,7 @@ import 'package:yomou/features/library/providers/favorites_provider.dart';
 import 'package:yomou/features/library/screens/manga_detail_screen.dart';
 import 'package:yomou/l10n/generated/app_localizations.dart';
 import 'package:yomou/widgets/safe_image.dart';
+import 'package:yomou/widgets/source_icon.dart';
 
 enum _AltSort { best, chapters, closest, priority }
 
@@ -879,7 +880,7 @@ class _AlternativesScreenState extends ConsumerState<AlternativesScreen> {
                               l.altSortPriority,
                               dark,
                             ),
-                            const Divider(height: 1),
+                            const SizedBox(height: 8),
                             ListTile(
                               leading: Icon(
                                 RemixIcons.stack_line,
@@ -1039,35 +1040,10 @@ class _SourcePill extends StatelessWidget {
         mainAxisSize: MainAxisSize.min,
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          iconUrl.isNotEmpty
-              ? ClipRRect(
-                  borderRadius: BorderRadius.circular(4),
-                  child: SafeNetworkImage(
-                    imageUrl: iconUrl,
-                    width: 14,
-                    height: 14,
-                    fit: BoxFit.cover,
-                  ),
-                )
-              : Container(
-                  width: 14,
-                  height: 14,
-                  decoration: BoxDecoration(
-                    color: dark ? Colors.white24 : Colors.black12,
-                    borderRadius: BorderRadius.circular(4),
-                  ),
-                  child: Center(
-                    child: Text(
-                      alt.name.characters.first,
-                      style: TextStyle(
-                        color: dark ? Colors.white : Colors.black54,
-                        fontSize: 8,
-                        height: 1,
-                      ),
-                    ),
-                  ),
-                ),
-          if (iconUrl.isNotEmpty) const SizedBox(width: 5),
+          // Same universal plate as the sources list, downsized for an inline
+          // chip (still a rounded square with the letter fallback).
+          SourceIcon(name: alt.name, iconUrl: iconUrl, size: 14),
+          const SizedBox(width: 6),
           Flexible(
             child: Text(
               '${alt.name} (${alt.language.isNotEmpty ? alt.language : '?'})',

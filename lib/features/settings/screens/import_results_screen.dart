@@ -32,7 +32,7 @@ class ImportResultsScreen extends StatelessWidget {
               color: color.primary,
             ),
             for (final m in result.mangas) _ImportedTile(manga: m),
-            const Divider(height: 20),
+            const SizedBox(height: 20),
           ],
           if (result.skippedMangas.isNotEmpty) ...[
             _SectionHeader(

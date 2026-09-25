@@ -2,6 +2,7 @@ import 'package:remixicon/remixicon.dart';
 import 'dart:async';
 import 'dart:convert';
 import 'dart:io';
+import 'dart:ui' show ImageFilter;
 import 'package:battery_plus/battery_plus.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
@@ -21,6 +22,7 @@ import 'package:yomou/data/models/manga_source.dart';
 import 'package:yomou/features/history/providers/history_provider.dart';
 import 'package:yomou/features/library/providers/downloads_provider.dart';
 import 'package:yomou/features/settings/providers/cache_settings_provider.dart';
+import 'package:yomou/features/settings/providers/appearance_provider.dart';
 import 'package:yomou/core/widgets/empty_state.dart';
 import 'package:yomou/features/settings/screens/settings_screen.dart';
 import 'package:yomou/l10n/generated/app_localizations.dart';
@@ -400,6 +402,7 @@ class _ReaderScreenState extends ConsumerState<ReaderScreen>
     // Show the slider against the chapter under the reader, not the whole
     // concatenated list (which grows when adjacent chapters are loaded).
     final chapterIndex = _readChapterIndex;
+    final accent = ref.watch(accentProvider);
     int chapterStart = 0;
     var chapterCount = _pages.length;
     if (_pagesChapters.isNotEmpty) {
@@ -425,6 +428,7 @@ class _ReaderScreenState extends ConsumerState<ReaderScreen>
       scrollController: _scrollController,
       pageController: _pageController,
       onSeek: _jumpToPage,
+      accent: accent,
     );
   }
 
@@ -2825,6 +2829,7 @@ class _ReaderScreenState extends ConsumerState<ReaderScreen>
   @override
   Widget build(BuildContext context) {
     final dark = Theme.of(context).brightness == Brightness.dark;
+    final frosted = ref.watch(appearanceSettingsProvider).useFrostedGlass;
     final readChapterIndex = _readChapterIndex;
     final currentChapter = widget.allChapters[readChapterIndex];
     final chLabel = currentChapter.chapterNumber.isNotEmpty
@@ -2855,8 +2860,10 @@ class _ReaderScreenState extends ConsumerState<ReaderScreen>
             children: [
               // --- VIEWPORT AREA ---
               _pages.isEmpty
-                  ? const Center(
-                      child: CircularProgressIndicator(color: Colors.white),
+                  ? Center(
+                      child: CircularProgressIndicator(
+                        color: ref.watch(accentProvider),
+                      ),
                     )
                   : _isHorizontal
                   ? _buildHorizontalReader(headers)
@@ -2880,68 +2887,80 @@ class _ReaderScreenState extends ConsumerState<ReaderScreen>
                     left: 16,
                     right: 16,
                   ),
-                  child: Container(
-                    padding: const EdgeInsets.symmetric(
-                      horizontal: 8,
-                      vertical: 4,
-                    ),
-                    decoration: BoxDecoration(
-                      color: dark ? const Color(0xF228282A) : Colors.white,
-                      borderRadius: BorderRadius.circular(32),
-                      border: Border.all(
-                        color: dark ? Colors.white24 : Colors.black12,
+                  child: ClipRRect(
+                    borderRadius: BorderRadius.circular(32),
+                    child: BackdropFilter(
+                      filter: ImageFilter.blur(sigmaX: frosted ? 16 : 0, sigmaY: frosted ? 16 : 0),
+                      child: Container(
+                        padding: const EdgeInsets.symmetric(
+                          horizontal: 8,
+                          vertical: 4,
+                        ),
+                        decoration: BoxDecoration(
+                          color: frosted
+                                ? dark
+                                      ? const Color(0x661C1C1E)
+                                      : Colors.white.withValues(alpha: 0.62)
+                                : dark
+                                    ? const Color(0xF228282A)
+                                    : Colors.white,
+                          borderRadius: BorderRadius.circular(32),
+                          border: Border.all(
+                            color: dark ? Colors.white24 : Colors.black12,
+                          ),
+                        ),
+                        child: Row(
+                          children: [
+                            IconButton(
+                              icon: Icon(
+                                RemixIcons.arrow_left_line,
+                                color: dark
+                                    ? Colors.white
+                                    : const Color(0xFF1C1B1F),
+                              ),
+                              onPressed: () async {
+                                await _saveCascadingReadProgress();
+                                if (context.mounted) Navigator.pop(context);
+                              },
+                            ),
+                            const SizedBox(width: 4),
+                            Expanded(
+                              child: Column(
+                                crossAxisAlignment: CrossAxisAlignment.start,
+                                mainAxisSize: MainAxisSize.min,
+                                children: [
+                                  Text(
+                                    widget.mangaTitle ?? currentChapter.title,
+                                    style: TextStyle(
+                                      color: dark
+                                          ? Colors.white
+                                          : const Color(0xFF1C1B1F),
+                                      fontSize: 14,
+                                      fontWeight: FontWeight.w600,
+                                    ),
+                                    maxLines: 1,
+                                    overflow: TextOverflow.ellipsis,
+                                  ),
+                                  const SizedBox(height: 2),
+                                  Text(
+                                    AppLocalizations.of(
+                                      context,
+                                    ).readerChapterShort(chLabel),
+                                    style: TextStyle(
+                                      color: dark
+                                          ? Colors.white54
+                                          : const Color(0xFF49454F),
+                                      fontSize: 12,
+                                    ),
+                                    maxLines: 1,
+                                    overflow: TextOverflow.ellipsis,
+                                  ),
+                                ],
+                              ),
+                            ),
+                          ],
+                        ),
                       ),
-                    ),
-                    child: Row(
-                      children: [
-                        IconButton(
-                          icon: Icon(
-                            RemixIcons.arrow_left_line,
-                            color: dark
-                                ? Colors.white
-                                : const Color(0xFF1C1B1F),
-                          ),
-                          onPressed: () async {
-                            await _saveCascadingReadProgress();
-                            if (context.mounted) Navigator.pop(context);
-                          },
-                        ),
-                        const SizedBox(width: 4),
-                        Expanded(
-                          child: Column(
-                            crossAxisAlignment: CrossAxisAlignment.start,
-                            mainAxisSize: MainAxisSize.min,
-                            children: [
-                              Text(
-                                widget.mangaTitle ?? currentChapter.title,
-                                style: TextStyle(
-                                  color: dark
-                                      ? Colors.white
-                                      : const Color(0xFF1C1B1F),
-                                  fontSize: 14,
-                                  fontWeight: FontWeight.w600,
-                                ),
-                                maxLines: 1,
-                                overflow: TextOverflow.ellipsis,
-                              ),
-                              const SizedBox(height: 2),
-                              Text(
-                                AppLocalizations.of(
-                                  context,
-                                ).readerChapterShort(chLabel),
-                                style: TextStyle(
-                                  color: dark
-                                      ? Colors.white54
-                                      : const Color(0xFF49454F),
-                                  fontSize: 12,
-                                ),
-                                maxLines: 1,
-                                overflow: TextOverflow.ellipsis,
-                              ),
-                            ],
-                          ),
-                        ),
-                      ],
                     ),
                   ),
                 ),
@@ -3092,19 +3111,29 @@ class _ReaderScreenState extends ConsumerState<ReaderScreen>
                     final iconColor = dark
                         ? Colors.white
                         : const Color(0xFF1C1B1F);
-                    return Container(
-                      padding: const EdgeInsets.symmetric(
-                        horizontal: 8,
-                        vertical: 4,
-                      ),
-                      decoration: BoxDecoration(
-                        color: dark ? const Color(0xF228282A) : Colors.white,
-                        borderRadius: BorderRadius.circular(32),
-                        border: Border.all(
-                          color: dark ? Colors.white24 : Colors.black12,
-                        ),
-                      ),
-                      child: Row(
+                    return ClipRRect(
+                      borderRadius: BorderRadius.circular(32),
+                      child: BackdropFilter(
+                        filter: ImageFilter.blur(sigmaX: frosted ? 16 : 0, sigmaY: frosted ? 16 : 0),
+                        child: Container(
+                          padding: const EdgeInsets.symmetric(
+                            horizontal: 8,
+                            vertical: 4,
+                          ),
+                          decoration: BoxDecoration(
+                            color: frosted
+                                ? dark
+                                      ? const Color(0x661C1C1E)
+                                      : Colors.white.withValues(alpha: 0.62)
+                                : dark
+                                    ? const Color(0xF228282A)
+                                    : Colors.white,
+                            borderRadius: BorderRadius.circular(32),
+                            border: Border.all(
+                              color: dark ? Colors.white24 : Colors.black12,
+                            ),
+                          ),
+                          child: Row(
                         children: [
                           IconButton(
                             tooltip: AppLocalizations.of(
@@ -3170,14 +3199,16 @@ class _ReaderScreenState extends ConsumerState<ReaderScreen>
                               color: iconColor,
                               size: 24,
                             ),
-                            onPressed: _showSettingsSheet,
+onPressed: _showSettingsSheet,
                           ),
                         ],
                       ),
-                    );
-                  },
-                ),
-              ),
+                    ),
+                  ),
+                );
+              },
+            ),
+          ),
 
               // --- CHAPTER TRANSITION TOAST ---
               if (_toastShownChapter >= 0) _buildChapterToast()!,
@@ -3287,8 +3318,10 @@ class _ReaderScreenState extends ConsumerState<ReaderScreen>
         httpHeaders: headers,
         placeholder: (context, url) => SizedBox(
           height: MediaQuery.sizeOf(context).height,
-          child: const Center(
-            child: CircularProgressIndicator(color: Colors.white24),
+          child: Center(
+            child: CircularProgressIndicator(
+              color: ref.watch(accentProvider),
+            ),
           ),
         ),
         errorWidget: (context, url, error) => _buildPageError(index: index),
@@ -3459,7 +3492,7 @@ class _ReaderScreenState extends ConsumerState<ReaderScreen>
       child: _hasMoreChapters
           ? Column(
               children: [
-                const CircularProgressIndicator(color: Colors.white),
+                CircularProgressIndicator(color: ref.watch(accentProvider)),
                 const SizedBox(height: 12),
                 Text(
                   AppLocalizations.of(context).readerLoadingNextChapter,
@@ -3485,6 +3518,7 @@ class _ReaderProgressTrack extends StatefulWidget {
     required this.scrollController,
     required this.pageController,
     required this.onSeek,
+    required this.accent,
   });
 
   final int session;
@@ -3495,6 +3529,7 @@ class _ReaderProgressTrack extends StatefulWidget {
   final ScrollController scrollController;
   final PageController pageController;
   final ValueChanged<int> onSeek;
+  final Color accent;
 
   @override
   State<_ReaderProgressTrack> createState() => _ReaderProgressTrackState();
@@ -3569,7 +3604,7 @@ class _ReaderProgressTrackState extends State<_ReaderProgressTrack> {
       0,
       relativeMax,
     );
-    final accent = dark ? Colors.white : Theme.of(context).colorScheme.primary;
+    final accent = widget.accent;
     final dim = dark ? Colors.white70 : const Color(0xFF49454F);
 
     return Column(

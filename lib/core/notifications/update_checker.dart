@@ -1,7 +1,7 @@
 import 'dart:convert';
+import 'dart:isolate';
 
 import 'package:yomou/core/database/database_helper.dart';
-import 'package:yomou/core/notifications/notification_settings.dart';
 import 'package:yomou/data/providers/sources_provider.dart';
 
 /// A library entry enriched with its live chapter count from its source.
@@ -56,11 +56,48 @@ class LibraryStatus {
   /// the manga has chapters newer than read AND newer than last opened.
   bool get hasUnseenUpdate =>
       newSinceRead > 0 && liveTotal > lastSeenChapters;
+
+  Map<String, dynamic> toJson() => {
+    'mangaId': mangaId,
+    'title': title,
+    'coverUrl': coverUrl,
+    'sourceId': sourceId,
+    'liveTotal': liveTotal,
+    'storedTotal': storedTotal,
+    'lastNotifiedChapters': lastNotifiedChapters,
+    'lastSeenChapters': lastSeenChapters,
+    'latestChapterTitle': latestChapterTitle,
+    'latestChapterDate': latestChapterDate?.toIso8601String(),
+    'isFavorite': isFavorite,
+  };
+
+  factory LibraryStatus.fromJson(Map<String, dynamic> json) {
+    return LibraryStatus(
+      mangaId: json['mangaId'] as String? ?? '',
+      title: json['title'] as String? ?? 'Unknown',
+      coverUrl: json['coverUrl'] as String? ?? '',
+      sourceId: json['sourceId'] as String? ?? '',
+      liveTotal: json['liveTotal'] as int? ?? 0,
+      storedTotal: json['storedTotal'] as int? ?? 0,
+      lastNotifiedChapters: json['lastNotifiedChapters'] as int? ?? 0,
+      lastSeenChapters: json['lastSeenChapters'] as int? ?? 0,
+      latestChapterTitle: json['latestChapterTitle'] as String? ?? 'New chapter',
+      latestChapterDate:
+          json['latestChapterDate'] == null
+              ? null
+              : DateTime.tryParse(json['latestChapterDate'] as String),
+      isFavorite: json['isFavorite'] as bool? ?? false,
+    );
+  }
 }
 
 /// Fetches live chapter counts for every manga in the user's library
 /// (history + favorites), which is what drives both the updates feed and
 /// background notifications.
+///
+/// The whole scan (networking + HTML/JSON parsing) runs on a background
+/// isolate: it can be slow and allocation-heavy but must never stall the UI
+/// thread — that triggered application-not-responding dialogs on slow devices.
 class UpdateChecker {
   UpdateChecker._();
 
@@ -80,8 +117,12 @@ class UpdateChecker {
 
     // Sources are remote; cap concurrency so a large library does not fire
     // hundreds of requests at once (rate limits / battery).
-    const concurrency = 5;
-    final merged = <String, ({String mangaId, Map<String, dynamic> row})>{};
+    const concurrency = 2;
+    // Never scan the entire library in one burst: on slow devices a full scan
+    // can saturate the phone for a minute. Scan the most recent titles only;
+    // the rest get covered on later cycles.
+    const maxScannedEntries = 25;
+    final merged = <String, Map<String, dynamic>>{};
     for (final row in [...history, ...favorites]) {
       final id = row['mangaId']?.toString();
       if (id == null || id.isEmpty) continue;
@@ -89,41 +130,82 @@ class UpdateChecker {
       // (e.g. a series read on ComicK and on Manganato) never overwrites the
       // other's update entry.
       final src = row['sourceId']?.toString() ?? '';
-      merged['$src\x00$id'] = (mangaId: id, row: row);
+      merged['$src\x00$id'] = row;
     }
 
-    final entries = merged.values.toList();
-    final results = <LibraryStatus>[];
-    for (var i = 0; i < entries.length; i += concurrency) {
-      final end = (i + concurrency) < entries.length
-          ? i + concurrency
-          : entries.length;
-      final chunk = entries.sublist(i, end);
+    // Only the fields the scan needs, reduced to JSON-safe values so the list
+    // can travel across the isolate boundary. Keep a single scan bounded: on
+    // slow phones a library-wide sweep saturates the device and can ANR.
+    final allRows = merged.values.toList();
+    final capped = allRows.length > maxScannedEntries
+        ? allRows.sublist(allRows.length - maxScannedEntries)
+        : allRows;
+    final rows = capped.map((row) => <String, dynamic>{
+      'mangaId': row['mangaId']?.toString() ?? '',
+      'sourceId': row['sourceId']?.toString() ?? '',
+      'title': row['title']?.toString() ?? '',
+      'coverUrl': row['coverUrl']?.toString() ?? '',
+      'totalChapters': (row['totalChapters'] as int?) ?? 0,
+      'lastNotifiedChapters': (row['lastNotifiedChapters'] as int?) ?? 0,
+      'lastSeenChapters': (row['lastSeenChapters'] as int?) ?? 0,
+      'isFavorite': (row['isFavorite'] as int? ?? 0) == 1 ? 1 : 0,
+      'tags': row['tags']?.toString() ?? '',
+    }).toList();
+
+    // DB rows (maps of JSON-safe values) and the filter settings cross the
+    // isolate boundary; everything else — HTTP, parsing, allocations — stays
+    // off the UI thread. Cap concurrency with a small breather between
+    // batches to stay polite to the sources.
+    final results = await Isolate.run(
+      () => _scanRows(rows, concurrency, disabledSourceIds, allowedCategories,
+          excludeNsfw),
+    );
+
+    return results
+        .map(LibraryStatus.fromJson)
+        .where((s) => s.liveTotal > 0)
+        .toList();
+  }
+
+  static Future<List<Map<String, dynamic>>> _scanRows(
+    List<Map<String, dynamic>> rows,
+    int concurrency,
+    Set<String> disabledSourceIds,
+    Set<String> allowedCategories,
+    bool excludeNsfw,
+  ) async {
+    final results = <Map<String, dynamic>>[];
+    for (var i = 0; i < rows.length; i += concurrency) {
+      final end = (i + concurrency) < rows.length ? concurrency : rows.length - i;
+      final chunk = rows.sublist(i, i + end);
       final chunkResults = await Future.wait(
         chunk.map(
-          (entry) => _checkEntry(
-            entry.mangaId,
-            entry.row,
+          (row) => _checkEntry(
+            row,
             disabledSourceIds,
             allowedCategories,
             excludeNsfw,
           ),
         ),
       );
-      results.addAll(chunkResults.whereType<LibraryStatus>());
+      results.addAll(chunkResults.whereType<Map<String, dynamic>>());
+      if (i + concurrency < rows.length) {
+        await Future.delayed(const Duration(milliseconds: 80));
+      }
     }
-
     return results;
   }
 
-  static Future<LibraryStatus?> _checkEntry(
-    String mangaId,
+  static Future<Map<String, dynamic>?> _checkEntry(
     Map<String, dynamic> row,
     Set<String> disabledSourceIds,
     Set<String> allowedCategories,
     bool excludeNsfw,
   ) async {
     try {
+      final mangaId = row['mangaId']?.toString() ?? '';
+      if (mangaId.isEmpty) return null;
+
       final storedTotal = (row['totalChapters'] as int?) ?? 0;
       if (storedTotal <= 0) return null;
 
@@ -133,13 +215,14 @@ class UpdateChecker {
         return null;
       }
 
-      if (excludeNsfw && NotificationSettings.tagsAreNsfw(_storedTags(row))) {
-        return null;
-      }
+      final tags = _storedTags(row);
+      if (excludeNsfw && _tagsAreNsfw(tags)) return null;
       if (allowedCategories.isNotEmpty &&
-          _storedTags(row).toSet().intersection(allowedCategories).isEmpty) {
+          tags.toSet().intersection(allowedCategories).isEmpty) {
         return null;
       }
+
+      final isFavorite = (row['isFavorite'] as int? ?? 0) == 1;
 
       final source =
           getSourceBySourceId(mangaSourceId) ?? getSourceByName('MangaDex');
@@ -160,8 +243,8 @@ class UpdateChecker {
         lastSeenChapters: (row['lastSeenChapters'] as int?) ?? 0,
         latestChapterTitle: latest?.$1 ?? 'New chapter',
         latestChapterDate: latest?.$2,
-        isFavorite: (row['isFavorite'] as int? ?? 0) == 1,
-      );
+        isFavorite: isFavorite,
+      ).toJson();
     } catch (_) {
       return null;
     }
@@ -175,5 +258,10 @@ class UpdateChecker {
     } catch (_) {
       return [];
     }
+  }
+
+  static bool _tagsAreNsfw(List<String> tags) {
+    const nsfwSet = {'hentai', 'adult', 'smut', 'r18', 'nsfw', 'porn'};
+    return tags.any((t) => nsfwSet.contains(t.toLowerCase()));
   }
 }

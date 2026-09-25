@@ -92,6 +92,8 @@
   "appearanceThemeLight": "Light",
   "appearanceThemeDark": "Dark",
   "appearanceLanguageTitle": "Language",
+  "appearanceFrostedGlass": "Frosted glass",
+  "appearanceFrostedGlassSubtitle": "Frosted blur on the nav bar, reader controls and floating buttons",
   "languageFollowSystem": "Follow system",
   "languageEn": "English",
   "languageEs": "Español",
@@ -211,6 +213,8 @@
   "exploreRandom": "Random",
   "exploreManage": "Manage",
   "exploreMore": "More",
+  "featuredManga": "Featured",
+  "readNow": "Read now",
   "manageSources": "Manage sources",
   "incognitoMode": "Incognito mode",
   "noRandomRightNow": "No manga available for Random right now",
@@ -949,6 +953,24 @@
     }
   },
   "backupYearsAgo": "{count, plural, =1{1 year ago} other{{count} years ago}}",
+  "refreshEveryHour": "Every hour",
+  "refreshEvery3Hours": "Every 3 hours",
+  "refreshEvery6Hours": "Every 6 hours",
+  "refreshEvery12Hours": "Every 12 hours",
+  "refreshDaily": "Daily",
+  "refreshEvery2Days": "Every 2 days",
+  "refreshEvery4Days": "Every 4 days",
+  "refreshWeekly": "Every week",
+  "suggestionsRefresh": "Suggestions refresh",
+  "suggestionsRefreshTitle": "Suggestions refresh rate",
+  "@discoverPick": {
+    "placeholders": {
+      "source": {
+        "type": "String"
+      }
+    }
+  },
+  "discoverPick": "Discover this pick from {source}",
   "@backupYearsAgo": {
     "placeholders": {
       "count": {

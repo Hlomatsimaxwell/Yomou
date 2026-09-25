@@ -80,6 +80,8 @@
   "appearanceThemeLight": "Claro",
   "appearanceThemeDark": "Oscuro",
   "appearanceLanguageTitle": "Idioma",
+  "appearanceFrostedGlass": "Vidrio esmerilado",
+  "appearanceFrostedGlassSubtitle": "Desenfoque esmerilado en la barra de navegación, controles del lector y botones flotantes",
   "languageFollowSystem": "Seguir el sistema",
   "languageEn": "Inglés",
   "languageEs": "Español",
@@ -164,6 +166,8 @@
   "exploreRandom": "Aleatorio",
   "exploreManage": "Gestionar",
   "exploreMore": "Más",
+  "featuredManga": "Destacados",
+  "readNow": "Leer ahora",
   "manageSources": "Gestionar fuentes",
   "incognitoMode": "Modo incógnito",
   "noRandomRightNow": "No hay manga disponible para Aleatorio en este momento",
@@ -880,6 +884,24 @@
     }
   },
   "backupYearsAgo": "{count, plural, =1{hace 1 año} other{hace {count} años}}",
+  "refreshEveryHour": "Cada hora",
+  "refreshEvery3Hours": "Cada 3 horas",
+  "refreshEvery6Hours": "Cada 6 horas",
+  "refreshEvery12Hours": "Cada 12 horas",
+  "refreshDaily": "Cada día",
+  "refreshEvery2Days": "Cada 2 días",
+  "refreshEvery4Days": "Cada 4 días",
+  "refreshWeekly": "Cada semana",
+  "suggestionsRefresh": "Actualizar sugerencias",
+  "suggestionsRefreshTitle": "Frecuencia de sugerencias",
+  "@descubrePick": {
+    "placeholders": {
+      "source": {
+        "type": "String"
+      }
+    }
+  },
+  "descubrePick": "Descubre esta selección de {source}",
   "@backupYearsAgo": {
     "placeholders": {
       "count": {

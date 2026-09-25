@@ -260,6 +260,13 @@ class AppLocalizationsEn extends AppLocalizations {
   String get appearanceLanguageTitle => 'Language';
 
   @override
+  String get appearanceFrostedGlass => 'Frosted glass';
+
+  @override
+  String get appearanceFrostedGlassSubtitle =>
+      'Frosted blur on the nav bar, reader controls and floating buttons';
+
+  @override
   String get languageFollowSystem => 'Follow system';
 
   @override
@@ -529,6 +536,12 @@ class AppLocalizationsEn extends AppLocalizations {
 
   @override
   String get exploreMore => 'More';
+
+  @override
+  String get featuredManga => 'Featured';
+
+  @override
+  String get readNow => 'Read now';
 
   @override
   String get manageSources => 'Manage sources';
@@ -1851,5 +1864,40 @@ class AppLocalizationsEn extends AppLocalizations {
       one: '1 year ago',
     );
     return '$_temp0';
+  }
+
+  @override
+  String get refreshEveryHour => 'Every hour';
+
+  @override
+  String get refreshEvery3Hours => 'Every 3 hours';
+
+  @override
+  String get refreshEvery6Hours => 'Every 6 hours';
+
+  @override
+  String get refreshEvery12Hours => 'Every 12 hours';
+
+  @override
+  String get refreshDaily => 'Daily';
+
+  @override
+  String get refreshEvery2Days => 'Every 2 days';
+
+  @override
+  String get refreshEvery4Days => 'Every 4 days';
+
+  @override
+  String get refreshWeekly => 'Every week';
+
+  @override
+  String get suggestionsRefresh => 'Suggestions refresh';
+
+  @override
+  String get suggestionsRefreshTitle => 'Suggestions refresh rate';
+
+  @override
+  String discoverPick(String source) {
+    return 'Discover this pick from $source';
   }
 }

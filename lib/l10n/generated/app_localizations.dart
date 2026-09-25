@@ -578,6 +578,18 @@ abstract class AppLocalizations {
   /// **'Language'**
   String get appearanceLanguageTitle;
 
+  /// No description provided for @appearanceFrostedGlass.
+  ///
+  /// In en, this message translates to:
+  /// **'Frosted glass'**
+  String get appearanceFrostedGlass;
+
+  /// No description provided for @appearanceFrostedGlassSubtitle.
+  ///
+  /// In en, this message translates to:
+  /// **'Frosted blur on the nav bar, reader controls and floating buttons'**
+  String get appearanceFrostedGlassSubtitle;
+
   /// No description provided for @languageFollowSystem.
   ///
   /// In en, this message translates to:
@@ -1081,6 +1093,18 @@ abstract class AppLocalizations {
   /// In en, this message translates to:
   /// **'More'**
   String get exploreMore;
+
+  /// No description provided for @featuredManga.
+  ///
+  /// In en, this message translates to:
+  /// **'Featured'**
+  String get featuredManga;
+
+  /// No description provided for @readNow.
+  ///
+  /// In en, this message translates to:
+  /// **'Read now'**
+  String get readNow;
 
   /// No description provided for @manageSources.
   ///
@@ -3360,6 +3384,72 @@ abstract class AppLocalizations {
   /// In en, this message translates to:
   /// **'{count, plural, =1{1 year ago} other{{count} years ago}}'**
   String backupYearsAgo(int count);
+
+  /// No description provided for @refreshEveryHour.
+  ///
+  /// In en, this message translates to:
+  /// **'Every hour'**
+  String get refreshEveryHour;
+
+  /// No description provided for @refreshEvery3Hours.
+  ///
+  /// In en, this message translates to:
+  /// **'Every 3 hours'**
+  String get refreshEvery3Hours;
+
+  /// No description provided for @refreshEvery6Hours.
+  ///
+  /// In en, this message translates to:
+  /// **'Every 6 hours'**
+  String get refreshEvery6Hours;
+
+  /// No description provided for @refreshEvery12Hours.
+  ///
+  /// In en, this message translates to:
+  /// **'Every 12 hours'**
+  String get refreshEvery12Hours;
+
+  /// No description provided for @refreshDaily.
+  ///
+  /// In en, this message translates to:
+  /// **'Daily'**
+  String get refreshDaily;
+
+  /// No description provided for @refreshEvery2Days.
+  ///
+  /// In en, this message translates to:
+  /// **'Every 2 days'**
+  String get refreshEvery2Days;
+
+  /// No description provided for @refreshEvery4Days.
+  ///
+  /// In en, this message translates to:
+  /// **'Every 4 days'**
+  String get refreshEvery4Days;
+
+  /// No description provided for @refreshWeekly.
+  ///
+  /// In en, this message translates to:
+  /// **'Every week'**
+  String get refreshWeekly;
+
+  /// No description provided for @suggestionsRefresh.
+  ///
+  /// In en, this message translates to:
+  /// **'Suggestions refresh'**
+  String get suggestionsRefresh;
+
+  /// No description provided for @suggestionsRefreshTitle.
+  ///
+  /// In en, this message translates to:
+  /// **'Suggestions refresh rate'**
+  String get suggestionsRefreshTitle;
+
+  /// No description provided for @discoverPick.
+  ///
+  /// In en, this message translates to:
+  /// **'Discover this pick from {source}'**
+  String discoverPick(String source);
 }
 
 class _AppLocalizationsDelegate

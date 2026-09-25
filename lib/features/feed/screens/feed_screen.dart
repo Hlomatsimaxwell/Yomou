@@ -12,6 +12,7 @@ import 'package:yomou/features/library/widgets/downloaded_badge.dart';
 import 'package:yomou/features/library/widgets/favorite_badge.dart';
 import 'package:yomou/l10n/generated/app_localizations.dart';
 import 'package:yomou/core/widgets/search_bar.dart';
+import 'package:shared_preferences/shared_preferences.dart';
 
 class FeedScreen extends ConsumerStatefulWidget {
   const FeedScreen({super.key});
@@ -22,6 +23,24 @@ class FeedScreen extends ConsumerStatefulWidget {
 
 class _FeedScreenState extends ConsumerState<FeedScreen> {
   bool _refreshing = false;
+
+  @override
+  void initState() {
+    super.initState();
+    // Persist the badge count after every scan so cold starts are cheap and
+    // never trigger the heavy library scan themselves.
+    ref.listenManual(updatesProvider, (prev, next) {
+      next.whenData((updates) async {
+        final total = updates.fold<int>(
+          0,
+          (sum, u) => sum + (u.hasUnseenUpdate ? u.newCount : 0),
+        );
+        final prefs = await SharedPreferences.getInstance();
+        await prefs.setInt(kUpdatesBadgePrefKey, total);
+        if (mounted) ref.invalidate(updatesBadgeProvider);
+      });
+    });
+  }
 
   Future<void> _refresh() async {
     if (_refreshing) return;

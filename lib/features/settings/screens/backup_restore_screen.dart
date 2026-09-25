@@ -328,7 +328,7 @@ class _BackupRestoreScreenState extends ConsumerState<BackupRestoreScreen> {
             subtitle: l.restoreSubtitle,
             onTap: _restoreBackup,
           ),
-          const Divider(height: 1),
+          const SizedBox(height: 8),
           _BuildButton(
             icon: RemixIcons.upload_2_line,
             title: l.exportTachiyomi,
@@ -347,7 +347,7 @@ class _BackupRestoreScreenState extends ConsumerState<BackupRestoreScreen> {
             subtitle: l.backupFixLibrarySubtitle,
             onTap: _fixLibrary,
           ),
-          const Divider(height: 1),
+          const SizedBox(height: 8),
           _BuildButton(
             icon: RemixIcons.time_line,
             title: l.periodicBackups,

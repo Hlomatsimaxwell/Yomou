@@ -76,6 +76,12 @@ class AppearanceSettingsScreen extends ConsumerWidget {
             subtitle: Text(_languageLabel(l, settings.language)),
             onTap: () => _showLanguageSelector(context, ref, settings, notifier),
           ),
+          SwitchListTile(
+            title: Text(l.appearanceFrostedGlass),
+            subtitle: Text(l.appearanceFrostedGlassSubtitle),
+            value: settings.useFrostedGlass,
+            onChanged: (_) => notifier.toggleBool('useFrostedGlass'),
+          ),
 
           // Manga List Section
           M3SectionHeader(title: l.appearanceSectionMangaList),

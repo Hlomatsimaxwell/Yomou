@@ -262,6 +262,13 @@ class AppLocalizationsEs extends AppLocalizations {
   String get appearanceLanguageTitle => 'Idioma';
 
   @override
+  String get appearanceFrostedGlass => 'Vidrio esmerilado';
+
+  @override
+  String get appearanceFrostedGlassSubtitle =>
+      'Desenfoque esmerilado en la barra de navegación, controles del lector y botones flotantes';
+
+  @override
   String get languageFollowSystem => 'Seguir el sistema';
 
   @override
@@ -539,6 +546,12 @@ class AppLocalizationsEs extends AppLocalizations {
 
   @override
   String get exploreMore => 'Más';
+
+  @override
+  String get featuredManga => 'Destacados';
+
+  @override
+  String get readNow => 'Leer ahora';
 
   @override
   String get manageSources => 'Gestionar fuentes';
@@ -1873,5 +1886,40 @@ class AppLocalizationsEs extends AppLocalizations {
       one: 'hace 1 año',
     );
     return '$_temp0';
+  }
+
+  @override
+  String get refreshEveryHour => 'Cada hora';
+
+  @override
+  String get refreshEvery3Hours => 'Cada 3 horas';
+
+  @override
+  String get refreshEvery6Hours => 'Cada 6 horas';
+
+  @override
+  String get refreshEvery12Hours => 'Cada 12 horas';
+
+  @override
+  String get refreshDaily => 'Cada día';
+
+  @override
+  String get refreshEvery2Days => 'Cada 2 días';
+
+  @override
+  String get refreshEvery4Days => 'Cada 4 días';
+
+  @override
+  String get refreshWeekly => 'Cada semana';
+
+  @override
+  String get suggestionsRefresh => 'Actualizar sugerencias';
+
+  @override
+  String get suggestionsRefreshTitle => 'Frecuencia de sugerencias';
+
+  @override
+  String discoverPick(String source) {
+    return 'Discover this pick from $source';
   }
 }

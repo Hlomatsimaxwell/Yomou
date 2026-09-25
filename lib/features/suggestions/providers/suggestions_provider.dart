@@ -2,6 +2,7 @@ import 'dart:math';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:yomou/core/database/database_helper.dart';
 import 'package:yomou/core/database/source_cache.dart';
+import 'package:yomou/core/providers/periodic_refresh_provider.dart';
 import 'package:yomou/core/utils/concurrent.dart';
 import 'package:yomou/data/models/manga.dart';
 import 'package:yomou/data/models/manga_source.dart';
@@ -104,6 +105,9 @@ final suggestionsProvider = FutureProvider.family<List<Manga>, String?>((
   ref,
   genre,
 ) async {
+  // Re-roll the feed on a timer (recommendations + the Explore featured
+  // carousel) without any interaction.
+  ref.watch(periodicSuggestionsRefreshProvider);
   final sources = sourcesFromRows(ref.watch(visibleSourceRowsProvider));
   if (sources.isEmpty) return [];
 

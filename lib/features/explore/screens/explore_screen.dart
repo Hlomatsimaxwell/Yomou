@@ -9,6 +9,7 @@ import 'package:yomou/core/widgets/hide_on_scroll.dart';
 import 'package:yomou/core/widgets/search_bar.dart';
 import 'package:yomou/data/models/manga.dart';
 import 'package:yomou/features/explore/screens/global_search_screen.dart';
+import 'package:yomou/features/explore/widgets/featured_carousel.dart';
 import 'package:yomou/features/library/screens/bookmarks_screen.dart';
 import 'package:yomou/features/library/screens/downloads_screen.dart';
 import 'package:yomou/features/library/screens/manga_detail_screen.dart';
@@ -20,9 +21,7 @@ import 'package:yomou/features/settings/providers/cache_settings_provider.dart';
 import 'package:yomou/core/theme/layout.dart';
 import 'package:yomou/core/providers/incognito_provider.dart';
 import 'package:yomou/l10n/generated/app_localizations.dart';
-import 'package:yomou/widgets/recent_manga_shelf.dart';
-import 'package:yomou/widgets/safe_image.dart';
-import 'package:yomou/widgets/source_brand_logo.dart';
+import 'package:yomou/widgets/source_icon.dart';
 
 class ExploreScreen extends ConsumerStatefulWidget {
   const ExploreScreen({super.key});
@@ -87,9 +86,9 @@ class _ExploreScreenState extends ConsumerState<ExploreScreen> {
               children: [
                 const SizedBox(height: 16),
                 _buildQuickButtonsGrid(),
-                const SizedBox(height: 24),
-                const RecentMangaShelf(),
                 const SizedBox(height: 20),
+                const FeaturedCarousel(),
+                const SizedBox(height: 24),
                 _buildSectionHeader(
                   AppLocalizations.of(context).mangaSources,
                   actionLabel: AppLocalizations.of(context).exploreManage,
@@ -180,7 +179,7 @@ class _ExploreScreenState extends ConsumerState<ExploreScreen> {
 
   Widget _buildQuickButtonsGrid() {
     final dark = Theme.of(context).brightness == Brightness.dark;
-    final cardColor = dark ? const Color(0xFF2C2C2E) : Colors.white;
+    final pillColor = dark ? const Color(0xFF2C2C2E) : const Color(0xFFF8F9FA);
     final fgColor = dark ? Colors.white : const Color(0xFF1C1B1F);
     return Padding(
       padding: const EdgeInsets.symmetric(horizontal: 16),
@@ -189,9 +188,9 @@ class _ExploreScreenState extends ConsumerState<ExploreScreen> {
         physics: const NeverScrollableScrollPhysics(),
         gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
           crossAxisCount: 2,
-          childAspectRatio: 2.8,
+          childAspectRatio: 4.6,
           crossAxisSpacing: 12,
-          mainAxisSpacing: 12,
+          mainAxisSpacing: 10,
         ),
         itemCount: _quickButtons.length,
         itemBuilder: (context, index) {
@@ -201,33 +200,35 @@ class _ExploreScreenState extends ConsumerState<ExploreScreen> {
             onTap: () => _handleQuickButton(btn['type'] as String),
             child: Container(
               decoration: BoxDecoration(
-                color: cardColor,
-                borderRadius: BorderRadius.circular(24),
-                border: dark ? null : Border.all(color: Colors.black12),
+                color: pillColor,
+                borderRadius: BorderRadius.circular(16),
+                border: dark
+                    ? Border.all(color: Colors.white.withValues(alpha: 0.06))
+                    : Border.all(color: Colors.black.withValues(alpha: 0.05)),
               ),
               child: Padding(
-                padding: const EdgeInsets.symmetric(horizontal: 16),
+                padding: const EdgeInsets.symmetric(horizontal: 14),
                 child: Row(
                   children: [
                     if (isRandom && _loadingRandom)
                       SizedBox(
-                        width: 22,
-                        height: 22,
+                        width: 20,
+                        height: 20,
                         child: CircularProgressIndicator(
                           color: dark ? Colors.white38 : Colors.black38,
                           strokeWidth: 2,
                         ),
                       )
                     else
-                      Icon(btn['icon'] as IconData, color: fgColor, size: 22),
-                    const SizedBox(width: 12),
+                      Icon(btn['icon'] as IconData, color: fgColor, size: 20),
+                    const SizedBox(width: 10),
                     Expanded(
                       child: Text(
                         _quickLabel(btn['labelKey'] as String),
                         style: TextStyle(
                           color: fgColor,
-                          fontSize: 14,
-                          fontWeight: FontWeight.w600,
+                          fontSize: 13,
+                          fontWeight: FontWeight.w500,
                         ),
                         overflow: TextOverflow.ellipsis,
                       ),
@@ -387,7 +388,7 @@ class _ExploreScreenState extends ConsumerState<ExploreScreen> {
       physics: const NeverScrollableScrollPhysics(),
       padding: EdgeInsets.symmetric(
         horizontal: 16,
-        vertical: 4,
+        vertical: 2,
       ),
       itemCount: sources.length,
       itemBuilder: (context, index) {
@@ -407,10 +408,10 @@ class _ExploreScreenState extends ConsumerState<ExploreScreen> {
             );
           },
           child: Padding(
-            padding: const EdgeInsets.symmetric(vertical: 8),
+            padding: const EdgeInsets.symmetric(vertical: 4),
             child: Row(
               children: [
-                SourceBrandLogo(name: name, iconUrl: iconUrl),
+                SourceIcon(name: name, iconUrl: iconUrl),
                 const SizedBox(width: 16),
                 Expanded(
                   child: Column(
@@ -460,20 +461,16 @@ class _ExploreScreenState extends ConsumerState<ExploreScreen> {
 
   Widget _buildSourcesGrid(List<Map<String, dynamic>> sources) {
     final dark = Theme.of(context).brightness == Brightness.dark;
-    final tileBg = dark ? const Color(0xFF2C2C2E) : const Color(0xFFF5F5F5);
-    final tileBorder = dark
-        ? Colors.white.withValues(alpha: 0.08)
-        : Colors.black.withValues(alpha: 0.06);
     return Padding(
-      padding: const EdgeInsets.symmetric(horizontal: 16),
+      padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 8),
       child: GridView.builder(
         shrinkWrap: true,
         physics: const NeverScrollableScrollPhysics(),
         gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
           crossAxisCount: 4,
-          childAspectRatio: 0.74,
-          crossAxisSpacing: 12,
-          mainAxisSpacing: 12,
+          childAspectRatio: 0.92,
+          crossAxisSpacing: 10,
+          mainAxisSpacing: 8,
         ),
         itemCount: sources.length,
         itemBuilder: (context, index) {
@@ -482,33 +479,13 @@ class _ExploreScreenState extends ConsumerState<ExploreScreen> {
           final name = source['name'] as String;
           final iconUrl = source['iconUrl'] as String? ?? '';
 
-          Widget fallbackTile() => SourceBrandLogo(
+          // The universal rounded-square plate, sized to dominate the cell —
+          // a dense "app icon" wall rather than sparse blown-up tiles.
+          final tileIcon = SourceIcon(
             name: name,
             iconUrl: iconUrl,
-            size: 72,
+            size: 64,
           );
-
-          Widget tileIcon;
-          if (iconUrl.isNotEmpty) {
-            tileIcon = ClipRRect(
-              borderRadius: BorderRadius.circular(16),
-              child: ColoredBox(
-                color: tileBg,
-                child: Padding(
-                  padding: const EdgeInsets.all(14),
-                  child: SafeNetworkImage(
-                    imageUrl: iconUrl,
-                    fit: BoxFit.contain,
-                    width: double.infinity,
-                    height: double.infinity,
-                    errorWidget: (context, url, error) => fallbackTile(),
-                  ),
-                ),
-              ),
-            );
-          } else {
-            tileIcon = fallbackTile();
-          }
 
           return GestureDetector(
             onTap: () {
@@ -520,43 +497,42 @@ class _ExploreScreenState extends ConsumerState<ExploreScreen> {
               );
             },
             child: Column(
+              mainAxisSize: MainAxisSize.min,
+              crossAxisAlignment: CrossAxisAlignment.center,
+              mainAxisAlignment: MainAxisAlignment.center,
               children: [
                 Stack(
+                  clipBehavior: Clip.none,
                   children: [
-                    Container(
-                      width: 72,
-                      height: 72,
-                      decoration: BoxDecoration(
-                        color: tileBg,
-                        borderRadius: BorderRadius.circular(16),
-                        border: Border.all(color: tileBorder, width: 1),
-                      ),
-                      child: tileIcon,
-                    ),
+                    tileIcon,
                     if (isPinned)
                       Positioned(
-                        left: 6,
-                        bottom: 6,
+                        left: 4,
+                        bottom: 4,
                         child: Transform.rotate(
                           angle: -0.785398,
                           child: Icon(
                             RemixIcons.pushpin_2_fill,
-                            size: 14,
+                            size: 12,
                             color: dark ? Colors.white70 : Colors.black54,
                           ),
                         ),
                       ),
                   ],
                 ),
-                const SizedBox(height: 6),
-                Text(
-                  name,
-                  maxLines: 1,
-                  overflow: TextOverflow.ellipsis,
-                  style: TextStyle(
-                    color: dark ? Colors.white : const Color(0xFF1C1B1F),
-                    fontSize: 12,
-                    fontWeight: FontWeight.w500,
+                const SizedBox(height: 2),
+                Padding(
+                  padding: const EdgeInsets.symmetric(horizontal: 2),
+                  child: Text(
+                    name,
+                    maxLines: 1,
+                    overflow: TextOverflow.ellipsis,
+                    textAlign: TextAlign.center,
+                    style: TextStyle(
+                      color: dark ? Colors.white : const Color(0xFF1C1B1F),
+                      fontSize: 13,
+                      fontWeight: FontWeight.w600,
+                    ),
                   ),
                 ),
               ],

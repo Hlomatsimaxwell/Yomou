@@ -192,7 +192,6 @@ class _GlobalSearchScreenState extends ConsumerState<GlobalSearchScreen> {
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            Divider(color: dark ? Colors.white24 : Colors.black26, height: 1),
             const SizedBox(height: 12),
             _currentQuery.isEmpty
                 ? _buildInitialView()

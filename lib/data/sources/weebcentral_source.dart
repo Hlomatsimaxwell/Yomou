@@ -1,3 +1,4 @@
+import 'dart:isolate';
 import 'package:html/parser.dart' as parser;
 import 'package:html/dom.dart';
 import '../models/manga_source.dart';
@@ -5,6 +6,55 @@ import '../models/manga.dart';
 import '../models/chapter.dart';
 import '../models/manga_details.dart';
 import 'source_network.dart';
+
+/// Pure, isolate-safe chapter-list parser. WeebCentral's full-chapter-list
+/// page can be several megabytes with thousands of links; parsing it on the UI
+/// isolate freezes the app (ANR), so [getChapters] runs this in the
+/// background via [Isolate.run].
+List<Chapter> _parseWeebCentralChapters(String html, String baseUrl) {
+  final document = parser.parse(html);
+  final links = document.querySelectorAll('a[href*="/chapters/"]');
+  final chapters = <Chapter>[];
+  for (final link in links) {
+    final href = link.attributes['href'] ?? '';
+    final chapterId = Uri.parse(href).pathSegments.length > 1
+        ? Uri.parse(href).pathSegments[1]
+        : href;
+    if (chapterId.isEmpty) continue;
+
+    final span = link.querySelector('span.flex > span');
+    final title = span?.text.trim() ?? '';
+
+    final numberMatch = RegExp(
+      r'(?<!S)\b(\d+(\.\d+)?)\b',
+    ).firstMatch(title);
+    final chapterNumber = numberMatch?.group(1) ?? '';
+
+    final time =
+        link.querySelector('time[datetime]')?.attributes['datetime'] ?? '';
+    final scanlator =
+        link.querySelector('svg[stroke]')?.attributes['stroke'] == '#d8b4fe'
+        ? 'Official'
+        : '';
+
+    chapters.add(
+      Chapter(
+        id: chapterId,
+        title: title,
+        chapterNumber: chapterNumber,
+        releaseDate: time,
+        url: href.startsWith('http') ? href : '$baseUrl$href',
+        scanlator: scanlator,
+      ),
+    );
+  }
+  return chapters;
+}
+
+/// Short-lived parse cache so the updates scan (which reads both the total and
+/// the latest chapter for every library series) never parses the giant page
+/// twice back-to-back.
+final _chapterListCache = <String, ({DateTime at, List<Chapter> chapters})>{};
 
 /// WeebCentral (https://weebcentral.com) source.
 ///
@@ -258,6 +308,11 @@ class WeebCentralSource extends DioSource implements MangaSource {
 
   @override
   Future<List<Chapter>> getChapters(String mangaId) async {
+    final cached = _chapterListCache[mangaId];
+    if (cached != null &&
+        DateTime.now().difference(cached.at).inMinutes < 5) {
+      return cached.chapters;
+    }
     try {
       var html = await grabText('$baseUrl/series/$mangaId/full-chapter-list');
       if (!html.contains('/chapters/')) {
@@ -266,42 +321,10 @@ class WeebCentralSource extends DioSource implements MangaSource {
       }
       if (html.isEmpty) return [];
 
-      final document = parser.parse(html);
-      final links = document.querySelectorAll('a[href*="/chapters/"]');
-      final chapters = <Chapter>[];
-      for (final link in links) {
-        final href = link.attributes['href'] ?? '';
-        final chapterId = Uri.parse(href).pathSegments.length > 1
-            ? Uri.parse(href).pathSegments[1]
-            : href;
-        if (chapterId.isEmpty) continue;
-
-        final span = link.querySelector('span.flex > span');
-        final title = span?.text.trim() ?? '';
-
-        final numberMatch = RegExp(
-          r'(?<!S)\b(\d+(\.\d+)?)\b',
-        ).firstMatch(title);
-        final chapterNumber = numberMatch?.group(1) ?? '';
-
-        final time =
-            link.querySelector('time[datetime]')?.attributes['datetime'] ?? '';
-        final scanlator =
-            link.querySelector('svg[stroke]')?.attributes['stroke'] == '#d8b4fe'
-            ? 'Official'
-            : '';
-
-        chapters.add(
-          Chapter(
-            id: chapterId,
-            title: title,
-            chapterNumber: chapterNumber,
-            releaseDate: time,
-            url: href.startsWith('http') ? href : '$baseUrl$href',
-            scanlator: scanlator,
-          ),
-        );
-      }
+      final chapters = await Isolate.run(
+        () => _parseWeebCentralChapters(html, baseUrl),
+      );
+      _chapterListCache[mangaId] = (at: DateTime.now(), chapters: chapters);
       return chapters;
     } catch (_) {
       return [];

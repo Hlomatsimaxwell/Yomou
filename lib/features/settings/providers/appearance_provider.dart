@@ -100,6 +100,7 @@ class AppearanceSettings {
     required this.mainScreenSections,
     required this.protectApp,
     required this.screenshotPolicy,
+    required this.useFrostedGlass,
   });
 
   // All requested defaults from spec
@@ -137,6 +138,7 @@ class AppearanceSettings {
         },
         protectApp: false,
         screenshotPolicy: 'Allow',
+        useFrostedGlass: true,
       );
 
   final String colorScheme;
@@ -161,6 +163,7 @@ class AppearanceSettings {
   final Map<String, bool> mainScreenSections;
   final bool protectApp;
   final String screenshotPolicy;
+  final bool useFrostedGlass;
 
   AppearanceSettings copyWith({
     String? colorScheme,
@@ -185,6 +188,7 @@ class AppearanceSettings {
     Map<String, bool>? mainScreenSections,
     bool? protectApp,
     String? screenshotPolicy,
+    bool? useFrostedGlass,
   }) =>
       AppearanceSettings(
         colorScheme: colorScheme ?? this.colorScheme,
@@ -215,6 +219,7 @@ class AppearanceSettings {
             mainScreenSections ?? this.mainScreenSections,
         protectApp: protectApp ?? this.protectApp,
         screenshotPolicy: screenshotPolicy ?? this.screenshotPolicy,
+        useFrostedGlass: useFrostedGlass ?? this.useFrostedGlass,
       );
 }
 
@@ -246,6 +251,7 @@ class _AppearancePersistence {
   static const _mainSections = '${_prefix}mainSections';
   static const _protectApp = '${_prefix}protectApp';
   static const _screenshotPolicy = '${_prefix}screenshotPolicy';
+  static const _frostedGlass = '${_prefix}frostedGlass';
 
   static Future<AppearanceSettings> load() async {
     final p = await SharedPreferences.getInstance();
@@ -277,6 +283,7 @@ class _AppearancePersistence {
           AppearanceSettings.defaults().mainScreenSections,
       protectApp: p.getBool(_protectApp) ?? false,
       screenshotPolicy: p.getString(_screenshotPolicy) ?? 'Allow',
+      useFrostedGlass: p.getBool(_frostedGlass) ?? true,
     );
   }
 
@@ -304,6 +311,7 @@ class _AppearancePersistence {
     await p.setString(_mainSections, jsonEncode(s.mainScreenSections));
     await p.setBool(_protectApp, s.protectApp);
     await p.setString(_screenshotPolicy, s.screenshotPolicy);
+    await p.setBool(_frostedGlass, s.useFrostedGlass);
   }
 
   static Map<String, bool>? _decodeMap(String? json) {
@@ -374,6 +382,8 @@ class AppearanceSettingsNotifier extends StateNotifier<AppearanceSettings> {
       case 'hideNsfwFromShortcuts':
         set(
             (s) => s.copyWith(hideNsfwFromShortcuts: !s.hideNsfwFromShortcuts));
+      case 'useFrostedGlass':
+        set((s) => s.copyWith(useFrostedGlass: !s.useFrostedGlass));
     }
   }
 
@@ -601,16 +611,16 @@ ThemeData _applyBrightness(
       ? (isMonochrome ? Colors.black : const Color(0xFF121212))
       : Colors.white;
 
-  // High-contrast text roles for the light theme.
-  final textTheme = dark
-      ? base.textTheme
-      : ThemeData(
-          brightness: Brightness.light,
-          colorScheme: colorScheme,
-        ).textTheme.apply(
-          bodyColor: const Color(0xFF1C1B1F),
-          displayColor: const Color(0xFF1C1B1F),
-        );
+  // High-contrast text roles: the dark branch must build its own text theme
+  // from a dark scheme (ThemeData() defaults to light, so reusing the light
+  // textTheme left every color-less Text near-black on the black scaffold).
+  final textTheme = ThemeData(
+    brightness: brightness,
+    colorScheme: colorScheme,
+  ).textTheme.apply(
+    bodyColor: dark ? Colors.white : const Color(0xFF1C1B1F),
+    displayColor: dark ? Colors.white : const Color(0xFF1C1B1F),
+  );
 
   return base.copyWith(
     brightness: brightness,

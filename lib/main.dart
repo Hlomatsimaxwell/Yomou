@@ -276,7 +276,9 @@ class _HomeScreenState extends ConsumerState<HomeScreen>
 
   @override
   Widget build(BuildContext context) {
-    final updatesCount = ref.watch(updatesCountProvider);
+    // Badge comes from a persisted count (updated by the Feed screen), so the
+    // heavy library scan only runs when the user actually opens the Feed tab.
+    final updatesCount = ref.watch(updatesBadgeProvider).value ?? 0;
     final accent = ref.watch(accentProvider);
     final settings = ref.watch(appearanceSettingsProvider);
     // Keep the global incognito flag loaded from the very first frame so the
@@ -488,28 +490,38 @@ class _HomeScreenState extends ConsumerState<HomeScreen>
     AppearanceSettings settings,
     List<int> enabledTabs,
   ) {
-    return ClipRRect(
-      borderRadius: BorderRadius.circular(28),
-      child: BackdropFilter(
-        filter: ImageFilter.blur(sigmaX: 16, sigmaY: 16),
-        child: Container(
-          height: kBottomBarHeight,
-          padding: const EdgeInsets.symmetric(vertical: 8, horizontal: 8),
-          decoration: BoxDecoration(
-            color: Theme.of(context).brightness == Brightness.dark
-                ? const Color(0x661C1C1E)
-                : Colors.white.withValues(alpha: 0.62),
-            borderRadius: BorderRadius.circular(28),
-            border: Border.all(
-              color: Theme.of(context).brightness == Brightness.dark
-                  ? const Color(0x332C2C30)
-                  : Colors.black.withValues(alpha: 0.08),
-            ),
-          ),
-          child: _buildNavRow(updatesCount, accent, settings, enabledTabs),
-        ),
+    final dark = Theme.of(context).brightness == Brightness.dark;
+    final frosted = settings.useFrostedGlass;
+    final pillColor = frosted
+        ? dark
+              ? const Color(0x661C1C1E)
+              : Colors.white.withValues(alpha: 0.62)
+        : dark
+            ? const Color(0xF21C1C1E)
+            : Colors.white;
+    final pillBorder = dark
+        ? const Color(0x332C2C30)
+        : Colors.black.withValues(alpha: 0.08);
+    final pill = Container(
+      height: kBottomBarHeight,
+      padding: const EdgeInsets.fromLTRB(11, 8, 11, 8),
+      decoration: BoxDecoration(
+        color: pillColor,
+        borderRadius: BorderRadius.circular(28),
+        border: Border.all(color: pillBorder),
       ),
+      child: _buildNavRow(updatesCount, accent, settings, enabledTabs),
     );
+    if (frosted) {
+      return ClipRRect(
+        borderRadius: BorderRadius.circular(28),
+        child: BackdropFilter(
+          filter: ImageFilter.blur(sigmaX: 16, sigmaY: 16),
+          child: pill,
+        ),
+      );
+    }
+    return pill;
   }
 
   Widget _buildSolidNav(
@@ -539,10 +551,12 @@ class _HomeScreenState extends ConsumerState<HomeScreen>
     AppearanceSettings settings,
     List<int> enabledTabs,
   ) {
-    // Items size to their content; spacing stretches to fill whatever the pill
-    // gives us, so the row adapts as the width changes (e.g. FAB visibility).
+    // Items size to their content and spread with spaceBetween: the edges are
+    // pinned to the bar's padding (11dp horizontal, matching the pill's 11dp
+    // top gap) instead of being re-centered in an overflowing slot, which used
+    // to glue the wide active pill to the bar's left/right edge.
     return Row(
-      mainAxisAlignment: MainAxisAlignment.spaceEvenly,
+      mainAxisAlignment: MainAxisAlignment.spaceBetween,
       children: [
         for (final index in enabledTabs)
           _buildNavItem(index, updatesCount, accent, settings),
@@ -740,6 +754,7 @@ class _HomeScreenState extends ConsumerState<HomeScreen>
 
   Widget _buildContinueFab(Color accent) {
     final dark = Theme.of(context).brightness == Brightness.dark;
+    final frosted = ref.watch(appearanceSettingsProvider).useFrostedGlass;
     // Pill's frosted recipe, gelled with the app accent: reads like the pill's
     // active-nav capsule while staying visible over busy covers.
     final glass = dark
@@ -747,6 +762,30 @@ class _HomeScreenState extends ConsumerState<HomeScreen>
         : Colors.white.withValues(alpha: 0.62);
     final tint = accent.withValues(alpha: dark ? 0.45 : 0.32);
     final gel = Color.alphaBlend(tint, glass);
+    final gelSolid =
+        Color.alphaBlend(tint, dark ? const Color(0xFF1C1C1E) : Colors.white);
+
+    final inner = Container(
+      width: 60,
+      height: 60,
+      color: _isContinuing ? const Color(0xFF2A2A2E) : gel,
+      child: Center(
+        child: _isContinuing
+            ? const SizedBox(
+                width: 24,
+                height: 24,
+                child: CircularProgressIndicator(
+                  color: Colors.white,
+                  strokeWidth: 2.5,
+                ),
+              )
+            : Icon(
+                RemixIcons.book_open_line,
+                color: accent,
+                size: 30,
+              ),
+      ),
+    );
 
     return GestureDetector(
       onTap: _isContinuing ? null : _continueReading,
@@ -767,30 +806,34 @@ class _HomeScreenState extends ConsumerState<HomeScreen>
           ],
         ),
         child: ClipOval(
-          child: BackdropFilter(
-            filter: ImageFilter.blur(sigmaX: 16, sigmaY: 16),
-            child: Container(
-              width: 60,
-              height: 60,
-              color: _isContinuing ? const Color(0xFF2A2A2E) : gel,
-              child: Center(
-                child: _isContinuing
-                    ? const SizedBox(
-                        width: 24,
-                        height: 24,
-                        child: CircularProgressIndicator(
-                          color: Colors.white,
-                          strokeWidth: 2.5,
-                        ),
-                      )
-                    : Icon(
-                        RemixIcons.book_open_line,
-                        color: accent,
-                        size: 30,
-                      ),
-              ),
-            ),
-          ),
+          child: frosted
+              ? BackdropFilter(
+                  filter: ImageFilter.blur(sigmaX: 16, sigmaY: 16),
+                  child: inner,
+                )
+              : Container(
+                  width: 60,
+                  height: 60,
+                  color: _isContinuing
+                      ? const Color(0xFF2A2A2E)
+                      : gelSolid,
+                  child: Center(
+                    child: _isContinuing
+                        ? const SizedBox(
+                            width: 24,
+                            height: 24,
+                            child: CircularProgressIndicator(
+                              color: Colors.white,
+                              strokeWidth: 2.5,
+                            ),
+                          )
+                        : Icon(
+                            RemixIcons.book_open_line,
+                            color: accent,
+                            size: 30,
+                          ),
+                  ),
+                ),
         ),
       ),
     );

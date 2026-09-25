@@ -148,18 +148,14 @@ class IosMenuRow extends StatelessWidget {
   }
 }
 
-/// A thin divider between rows inside a [showIosMenuPanel].
+/// A slim gap between rows inside a [showIosMenuPanel] (deliberately no line:
+/// dividers make the app read as Android — iOS menus just breathe).
 class IosMenuDivider extends StatelessWidget {
   const IosMenuDivider({super.key});
 
   @override
   Widget build(BuildContext context) {
-    final dark = Theme.of(context).brightness == Brightness.dark;
-    return Divider(
-      height: 1,
-      thickness: 1,
-      color: dark ? const Color(0xFF2C2C2E) : Colors.black12,
-    );
+    return const SizedBox(height: 1);
   }
 }
 

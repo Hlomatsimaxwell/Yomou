@@ -27,6 +27,7 @@ class CacheSettings {
     required this.chooseMirrorAutomatically,
     required this.handleLinks,
     required this.incognitoMode,
+    required this.suggestionsRefreshMinutes,
   });
 
   factory CacheSettings.defaults() => const CacheSettings(
@@ -46,6 +47,7 @@ class CacheSettings {
         chooseMirrorAutomatically: false,
         handleLinks: false,
         incognitoMode: 'ask',
+        suggestionsRefreshMinutes: 720,
       );
 
   final int staleDays;
@@ -82,6 +84,10 @@ class CacheSettings {
   /// Incognito prompt for NSFW manga: 'enable', 'ask', or 'disable'.
   final String incognitoMode;
 
+  /// How often (in minutes) the suggestions feed and the Explore featured
+  /// carousel re-roll themselves automatically while the app is open.
+  final int suggestionsRefreshMinutes;
+
   CacheSettings copyWith({
     int? staleDays,
     int? maxCacheObjects,
@@ -99,6 +105,7 @@ class CacheSettings {
     bool? chooseMirrorAutomatically,
     bool? handleLinks,
     String? incognitoMode,
+    int? suggestionsRefreshMinutes,
   }) => CacheSettings(
         staleDays: staleDays ?? this.staleDays,
         maxCacheObjects: maxCacheObjects ?? this.maxCacheObjects,
@@ -116,6 +123,8 @@ class CacheSettings {
         chooseMirrorAutomatically: chooseMirrorAutomatically ?? this.chooseMirrorAutomatically,
         handleLinks: handleLinks ?? this.handleLinks,
         incognitoMode: incognitoMode ?? this.incognitoMode,
+        suggestionsRefreshMinutes:
+            suggestionsRefreshMinutes ?? this.suggestionsRefreshMinutes,
       );
 }
 
@@ -137,6 +146,7 @@ class _CacheSettingsPersistence {
   static const _chooseMirror = '${_prefix}chooseMirror';
   static const _handleLinks = '${_prefix}handleLinks';
   static const _incognitoMode = '${_prefix}incognitoMode';
+  static const _suggestionsRefresh = '${_prefix}suggestionsRefresh';
 
   static Future<CacheSettings> load() async {
     final p = await SharedPreferences.getInstance();
@@ -157,6 +167,7 @@ class _CacheSettingsPersistence {
       chooseMirrorAutomatically: p.getBool(_chooseMirror) ?? false,
       handleLinks: p.getBool(_handleLinks) ?? false,
       incognitoMode: p.getString(_incognitoMode) ?? 'ask',
+      suggestionsRefreshMinutes: p.getInt(_suggestionsRefresh) ?? 720,
     );
   }
 
@@ -178,6 +189,7 @@ class _CacheSettingsPersistence {
     await p.setBool(_chooseMirror, s.chooseMirrorAutomatically);
     await p.setBool(_handleLinks, s.handleLinks);
     await p.setString(_incognitoMode, s.incognitoMode);
+    await p.setInt(_suggestionsRefresh, s.suggestionsRefreshMinutes);
   }
 }
 
@@ -282,6 +294,11 @@ class CacheSettingsNotifier extends StateNotifier<CacheSettings> {
     await _persist();
   }
 
+  Future<void> setSuggestionsRefreshMinutes(int minutes) async {
+    state = state.copyWith(suggestionsRefreshMinutes: minutes);
+    await _persist();
+  }
+
   Future<void> _persist() async {
     await _CacheSettingsPersistence.save(state);
     await applyToCache();
@@ -339,6 +356,12 @@ final handleLinksProvider = StateProvider<bool>((ref) {
 
 final incognitoModeProvider = StateProvider<String>((ref) {
   return ref.watch(cacheSettingsProvider).incognitoMode;
+});
+
+/// How often the suggestions feed and Explore's featured carousel are
+/// re-rolled automatically (minutes).
+final suggestionsRefreshMinutesProvider = StateProvider<int>((ref) {
+  return ref.watch(cacheSettingsProvider).suggestionsRefreshMinutes;
 });
 
 /// Human-readable image-cache disk usage (e.g. "124.5 MB") recomputed on demand.

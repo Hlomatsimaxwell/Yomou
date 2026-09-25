@@ -10,6 +10,7 @@ import 'package:yomou/features/settings/screens/settings_screen.dart';
 import 'package:yomou/core/database/database_helper.dart';
 import 'package:yomou/core/widgets/empty_state.dart';
 import 'package:yomou/core/widgets/hide_on_scroll.dart';
+import 'package:yomou/core/widgets/ios/ios_menu.dart';
 import 'package:yomou/core/widgets/ios/ios_nav_bar.dart';
 import 'package:yomou/core/widgets/ios/ios_press.dart';
 import 'package:yomou/core/widgets/ios/ios_sheet.dart';
@@ -57,9 +58,8 @@ class ProgressBadge extends ConsumerWidget {
               value: value,
               strokeWidth: 2.5,
               backgroundColor: Colors.transparent,
-              valueColor: const AlwaysStoppedAnimation<Color>(
-                Color(0xFF8E8E93),
-              ),
+              valueColor:
+                  AlwaysStoppedAnimation<Color>(ref.watch(accentProvider)),
             ),
           ),
           Text(
@@ -448,23 +448,13 @@ class _HistoryScreenState extends ConsumerState<HistoryScreen> {
                           RemixIcons.list_unordered,
                           setSheetState,
                         ),
-                        VerticalDivider(
-                          width: 1,
-                          color: dark ? Colors.white24 : Colors.black12,
-                          indent: 8,
-                          endIndent: 8,
-                        ),
+                        const SizedBox(width: 8),
                         _buildSegmentTab(
                           'Details',
                           RemixIcons.list_view,
                           setSheetState,
                         ),
-                        VerticalDivider(
-                          width: 1,
-                          color: dark ? Colors.white24 : Colors.black12,
-                          indent: 8,
-                          endIndent: 8,
-                        ),
+                        const SizedBox(width: 8),
                         _buildSegmentTab(
                           'Grid',
                           RemixIcons.grid_line,
@@ -740,76 +730,81 @@ class _HistoryScreenState extends ConsumerState<HistoryScreen> {
 
   void _showOverflowMenu(BuildContext context) async {
     final l = AppLocalizations.of(context);
-    showIosSheet(
+    await showIosMenuPanel<void>(
       context,
-      builder: (context) {
-        final dark = Theme.of(context).brightness == Brightness.dark;
-        final fg = dark ? Colors.white : const Color(0xFF1C1B1F);
-        final divider = dark ? Colors.white12 : Colors.black12;
-
-        return Padding(
-          padding: const EdgeInsets.fromLTRB(20, 6, 20, 6),
-          child: Column(
-            mainAxisSize: MainAxisSize.min,
-            children: [
-              _buildSheetRow(
-                icon: RemixIcons.refresh_line,
-                label: l.refresh,
-                color: fg,
-                onTap: () {
-                  Navigator.pop(context);
-                  _refreshHistory();
-                },
+      children: [
+        IosMenuRow(
+          icon: RemixIcons.refresh_line,
+          label: l.refresh,
+          onTap: () {
+            Navigator.pop(context);
+            _refreshHistory();
+          },
+        ),
+        IosMenuRow(
+          icon: RemixIcons.delete_bin_5_line,
+          label: l.historyClearTitle,
+          destructive: true,
+          onTap: () {
+            Navigator.pop(context);
+            _showClearHistoryDialog(context);
+          },
+        ),
+        IosMenuRow(
+          icon: RemixIcons.list_unordered,
+          label: l.historyListOptions,
+          onTap: () {
+            Navigator.pop(context);
+            _showListOptionsSheet(context);
+          },
+        ),
+        IosMenuRow(
+          icon: RemixIcons.pie_chart_2_line,
+          label: l.historyStatistics,
+          onTap: () {
+            Navigator.pop(context);
+            Navigator.push(
+              context,
+              MaterialPageRoute(
+                builder: (context) => const ReadingStatisticsScreen(),
               ),
-              Divider(color: divider, height: 1, thickness: 1),
-              _buildSheetRow(
-                icon: RemixIcons.delete_bin_5_line,
-                label: l.historyClearTitle,
-                color: fg,
-                onTap: () {
-                  Navigator.pop(context);
-                  _showClearHistoryDialog(context);
-                },
-              ),
-              Divider(color: divider, height: 1, thickness: 1),
-              _buildSheetRow(
-                icon: RemixIcons.list_unordered,
-                label: l.historyListOptions,
-                color: fg,
-                onTap: () {
-                  Navigator.pop(context);
-                  _showListOptionsSheet(context);
-                },
-              ),
-              Divider(color: divider, height: 1, thickness: 1),
-              _buildSheetRow(
-                icon: RemixIcons.pie_chart_2_line,
-                label: l.historyStatistics,
-                color: fg,
-                onTap: () {
-                  Navigator.pop(context);
-                  Navigator.push(
-                    context,
-                    MaterialPageRoute(
-                      builder: (context) => const ReadingStatisticsScreen(),
+            );
+          },
+        ),
+        const IosMenuDivider(),
+        Consumer(
+          builder: (context, ref, _) {
+            final dark = Theme.of(context).brightness == Brightness.dark;
+            final fg = dark
+                ? Colors.white
+                : Theme.of(context).colorScheme.onSurface;
+            return AppSheetPress(
+              onTap: () {},
+              child: SizedBox(
+                height: 52,
+                child: Row(
+                  children: [
+                    const SizedBox(width: 18),
+                    Icon(
+                      RemixIcons.eye_off_line,
+                      size: 20,
+                      color: fg.withValues(alpha: 0.9),
                     ),
-                  );
-                },
-              ),
-              Divider(color: divider, height: 1, thickness: 1),
-              Consumer(
-                builder: (context, ref, _) {
-                  return _buildSheetRow(
-                    icon: RemixIcons.eye_off_line,
-                    label: l.incognitoMode,
-                    color: fg,
-                    trailing: Switch(
+                    const SizedBox(width: 14),
+                    Expanded(
+                      child: Text(
+                        l.incognitoMode,
+                        style: TextStyle(fontSize: 16, color: fg),
+                      ),
+                    ),
+                    Switch(
                       value: ref.watch(incognitoProvider),
                       activeThumbColor: dark ? Colors.black : Colors.white,
                       activeTrackColor: dark
                           ? Colors.white
                           : Theme.of(context).colorScheme.primary,
-                      inactiveThumbColor: dark ? Colors.white54 : Colors.black54,
+                      inactiveThumbColor:
+                          dark ? Colors.white54 : Colors.black54,
                       inactiveTrackColor: dark
                           ? const Color(0xFF2C2C2E)
                           : Colors.black12,
@@ -817,28 +812,28 @@ class _HistoryScreenState extends ConsumerState<HistoryScreen> {
                         ref.read(incognitoProvider.notifier).set(value);
                       },
                     ),
-                  );
-                },
+                    const SizedBox(width: 12),
+                  ],
+                ),
               ),
-              Divider(color: divider, height: 1, thickness: 1),
-              _buildSheetRow(
-                icon: RemixIcons.settings_3_line,
-                label: l.settings,
-                color: fg,
-                onTap: () {
-                  Navigator.pop(context);
-                  Navigator.push(
-                    context,
-                    MaterialPageRoute(
-                      builder: (context) => const SettingsScreen(),
-                    ),
-                  );
-                },
+            );
+          },
+        ),
+        const IosMenuDivider(),
+        IosMenuRow(
+          icon: RemixIcons.settings_3_line,
+          label: l.settings,
+          onTap: () {
+            Navigator.pop(context);
+            Navigator.push(
+              context,
+              MaterialPageRoute(
+                builder: (context) => const SettingsScreen(),
               ),
-            ],
-          ),
-        );
-      },
+            );
+          },
+        ),
+      ],
     );
   }
 
@@ -1226,11 +1221,6 @@ class _HistoryScreenState extends ConsumerState<HistoryScreen> {
                   _favoriteSelected(remove: allFavorited);
                 },
               ),
-              Divider(
-                color: dark ? Colors.white12 : Colors.black12,
-                height: 1,
-                thickness: 1,
-              ),
               _buildSheetRow(
                 icon: RemixIcons.edit_line,
                 label: l.historyEdit,
@@ -1421,12 +1411,7 @@ class _HistoryScreenState extends ConsumerState<HistoryScreen> {
       physics: const NeverScrollableScrollPhysics(),
       padding: const EdgeInsets.symmetric(horizontal: 16),
       itemCount: items.length,
-      separatorBuilder: (context, index) => Divider(
-        color: Theme.of(context).brightness == Brightness.dark
-            ? Colors.white12
-            : Colors.black12,
-        height: 1,
-      ),
+      separatorBuilder: (context, index) => const SizedBox(height: 1),
       itemBuilder: (context, index) {
         final item = items[index];
         return CompactHistoryCard(
@@ -1773,9 +1758,7 @@ class _DetailedHistoryCardState extends State<DetailedHistoryCard> {
                               ? Colors.white12
                               : Colors.black12,
                           valueColor: AlwaysStoppedAnimation<Color>(
-                            dark
-                                ? Colors.white
-                                : Theme.of(context).colorScheme.primary,
+                            ref.watch(accentProvider),
                           ),
                           minHeight: 3,
                         );

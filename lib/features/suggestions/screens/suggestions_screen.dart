@@ -20,6 +20,8 @@ import 'package:yomou/core/widgets/ios/ios_toast.dart';
 import 'package:yomou/core/widgets/manga_grid_metrics.dart';
 import 'package:yomou/l10n/generated/app_localizations.dart';
 import 'package:yomou/core/widgets/search_bar.dart';
+import 'package:yomou/features/settings/providers/cache_settings_provider.dart';
+import 'package:yomou/features/settings/screens/manga_sources_settings_screen.dart';
 import 'package:yomou/features/settings/screens/settings_screen.dart';
 
 class SuggestionsScreen extends ConsumerStatefulWidget {
@@ -218,6 +220,12 @@ class _SuggestionsScreenState extends ConsumerState<SuggestionsScreen> {
           onTap: () => Navigator.pop(context, 'update'),
         ),
         const IosMenuDivider(),
+        IosMenuRow(
+          icon: RemixIcons.time_line,
+          label: AppLocalizations.of(context).suggestionsRefresh,
+          onTap: () => Navigator.pop(context, 'refreshInterval'),
+        ),
+        const IosMenuDivider(),
         Consumer(
           builder: (context, ref, _) => MenuToggleRow(
             label: AppLocalizations.of(context).incognitoMode,
@@ -249,7 +257,55 @@ class _SuggestionsScreenState extends ConsumerState<SuggestionsScreen> {
         context,
         MaterialPageRoute(builder: (_) => const SettingsScreen()),
       );
+    } else if (action == 'refreshInterval') {
+      await _pickRefreshInterval();
     }
+  }
+
+  static const _refreshIntervalMinutes = <int>[
+    60,
+    180,
+    360,
+    720,
+    1440,
+    2880,
+    5760,
+    10080,
+  ];
+
+  String _refreshIntervalLabel(int minutes, AppLocalizations l) {
+    return switch (minutes) {
+      60 => l.refreshEveryHour,
+      180 => l.refreshEvery3Hours,
+      360 => l.refreshEvery6Hours,
+      720 => l.refreshEvery12Hours,
+      1440 => l.refreshDaily,
+      2880 => l.refreshEvery2Days,
+      5760 => l.refreshEvery4Days,
+      _ => l.refreshWeekly,
+    };
+  }
+
+  Future<void> _pickRefreshInterval() async {
+    final l = AppLocalizations.of(context);
+    final current = ref.read(suggestionsRefreshMinutesProvider);
+    final chosen = await showSourceChoiceDialog(
+      context,
+      title: l.suggestionsRefreshTitle,
+      options: [
+        for (final minutes in _refreshIntervalMinutes)
+          _refreshIntervalLabel(minutes, l),
+      ],
+      selected: _refreshIntervalLabel(current, l),
+    );
+    if (chosen == null) return;
+    final minutes = _refreshIntervalMinutes.firstWhere(
+      (m) => _refreshIntervalLabel(m, l) == chosen,
+      orElse: () => current,
+    );
+    await ref
+        .read(cacheSettingsProvider.notifier)
+        .setSuggestionsRefreshMinutes(minutes);
   }
 
   Future<void> _showListOptionsSheet() async {
@@ -290,23 +346,13 @@ class _SuggestionsScreenState extends ConsumerState<SuggestionsScreen> {
                           RemixIcons.list_unordered,
                           setSheetState,
                         ),
-                        VerticalDivider(
-                          width: 1,
-                          color: dark ? Colors.white24 : Colors.black12,
-                          indent: 8,
-                          endIndent: 8,
-                        ),
+                        const SizedBox(width: 8),
                         _buildSegmentTab(
                           'Details',
                           RemixIcons.list_view,
                           setSheetState,
                         ),
-                        VerticalDivider(
-                          width: 1,
-                          color: dark ? Colors.white24 : Colors.black12,
-                          indent: 8,
-                          endIndent: 8,
-                        ),
+                        const SizedBox(width: 8),
                         _buildSegmentTab(
                           'Grid',
                           RemixIcons.grid_line,
@@ -549,15 +595,11 @@ class _SuggestionsScreenState extends ConsumerState<SuggestionsScreen> {
 
   Widget _buildCompactList(BuildContext context, List<Manga> items) {
     final onSurface = Theme.of(context).colorScheme.onSurface;
-    final dark = Theme.of(context).brightness == Brightness.dark;
     return SliverPadding(
       padding: const EdgeInsets.symmetric(horizontal: 16),
       sliver: SliverList.separated(
         itemCount: items.length,
-        separatorBuilder: (context, index) => Divider(
-          color: dark ? Colors.white12 : Colors.black12,
-          height: 1,
-        ),
+        separatorBuilder: (context, index) => const SizedBox(height: 1),
         itemBuilder: (context, index) {
           final manga = items[index];
           return ListTile(

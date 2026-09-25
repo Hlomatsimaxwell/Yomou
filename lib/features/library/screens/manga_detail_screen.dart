@@ -27,7 +27,7 @@ import 'package:yomou/features/feed/providers/updates_provider.dart';
 import 'package:yomou/features/explore/screens/global_search_results_screen.dart';
 import 'package:yomou/features/settings/providers/appearance_provider.dart';
 import 'package:yomou/l10n/generated/app_localizations.dart';
-import 'package:yomou/widgets/source_brand_logo.dart';
+import 'package:yomou/widgets/source_icon.dart';
 
 class MangaDetailScreen extends ConsumerStatefulWidget {
   final String mangaId;
@@ -2105,7 +2105,7 @@ class _MangaDetailScreenState extends ConsumerState<MangaDetailScreen> {
                           ),
                         ),
                       ),
-                      const Divider(height: 16, color: Colors.white24),
+                      const SizedBox(height: 16),
                       Theme(
                         data: Theme.of(
                           ctx,
@@ -2400,9 +2400,7 @@ class _MangaDetailScreenState extends ConsumerState<MangaDetailScreen> {
                         : 0,
                     backgroundColor: dark ? Colors.white12 : Colors.black12,
                     valueColor: AlwaysStoppedAnimation<Color>(
-                      dark
-                          ? Colors.white
-                          : Theme.of(context).colorScheme.primary,
+                      ref.watch(accentProvider),
                     ),
                     minHeight: 6,
                   ),
@@ -2439,7 +2437,7 @@ class _MangaDetailScreenState extends ConsumerState<MangaDetailScreen> {
   Widget _buildSourceIcon() {
     final name = _sourceName ?? '';
     final source = getSourceBySourceId(widget.sourceId ?? '');
-    return SourceBrandLogo(
+    return SourceIcon(
       name: name,
       iconUrl: source?.iconUrl ?? '',
       size: 20,

@@ -6,8 +6,7 @@ import '../models/manga_source.dart';
 import 'package:yomou/features/settings/providers/cache_settings_provider.dart';
 import '../sources/manganato_service.dart';
 import '../sources/mock_source.dart';
-import '../sources/anime_api_source.dart';
-import '../sources/manga_dex_source.dart'; // <--- 1. ADD THIS IMPORT
+import '../sources/manga_dex_source.dart';
 import '../sources/weebcentral_source.dart';
 import '../sources/mangakatana_source.dart';
 import '../sources/mangatown_source.dart';
@@ -38,8 +37,6 @@ MangaSource getSourceByName(String name) {
       return _shared('mangakatana', MangakatanaSource.new);
     case 'MangaTown':
       return _shared('mangatown', MangatownSource.new);
-    case 'Anime-API':
-      return _shared('anime_api', AnimeApiSource.new);
     case 'Manganato':
       return _shared('manganato', ManganatoService.new);
     case 'Arenascan':

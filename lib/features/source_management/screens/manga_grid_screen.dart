@@ -13,6 +13,7 @@ import 'package:yomou/data/models/manga.dart';
 import 'package:yomou/data/providers/sources_provider.dart';
 import 'package:yomou/features/settings/providers/appearance_provider.dart';
 import 'package:yomou/l10n/generated/app_localizations.dart';
+import 'package:yomou/widgets/source_icon.dart';
 
 class MangaGridScreen extends ConsumerStatefulWidget {
   final String sourceName;
@@ -25,6 +26,8 @@ class MangaGridScreen extends ConsumerStatefulWidget {
 
 class _MangaGridScreenState extends ConsumerState<MangaGridScreen> {
   int _selectedFilterIndex = -1;
+  String? _activeTag;
+  List<String> _tags = const <String>[];
   final TextEditingController _searchController = TextEditingController();
   bool _isSearching = false;
   String _searchQuery = '';
@@ -33,38 +36,68 @@ class _MangaGridScreenState extends ConsumerState<MangaGridScreen> {
   bool _isLoading = true;
   String? _error;
 
-  final List<String> _filters = [
-    'Genres',
-    'Web Comic',
-    'Reincarnation',
-    'Martial Arts',
-    'Action',
-    'Romance',
-  ];
+  // Continuous ("endless") scrolling state: page 1 loads first, then scrolling
+  // near the bottom fetches the next page and appends it, forever.
+  int _page = 1;
+  bool _hasMore = true;
+  bool _isLoadingMore = false;
+  final Set<String> _seenIds = {};
+  final ScrollController _scrollController = ScrollController();
+
+  // Real genre/theme tags offered by the current source (via getAvailableTags);
+  // empty when the source exposes no tag list. The "Genres" placeholder chips
+  // were dropped in favour of these source-backed tags, which actually filter
+  // the grid through searchMangaByTags.
 
   @override
   void initState() {
     super.initState();
+    _scrollController.addListener(_onScroll);
+    _loadTags();
     _loadManga();
+  }
+
+  Future<void> _loadTags() async {
+    try {
+      final source = getSourceByName(widget.sourceName);
+      final tags = await SourceCache.tags(
+        sourceId: source.id,
+        fetch: source.getAvailableTags,
+      );
+      if (!mounted) return;
+      setState(() => _tags = tags);
+    } catch (_) {
+      // No tag list available — leave the row hidden.
+    }
   }
 
   Future<void> _loadManga({bool forceRefresh = false}) async {
     setState(() {
       _isLoading = true;
       _error = null;
+      _page = 1;
+      _hasMore = true;
+      _isLoadingMore = false;
     });
     try {
       final source = getSourceByName(widget.sourceName);
+      final tag = _activeTag;
       final manga = await SourceCache.mangaList(
         sourceId: source.id,
-        kind: 'popular',
+        kind: tag != null ? 'tag' : 'popular',
+        arg: tag ?? '',
         page: 1,
         forceRefresh: forceRefresh,
-        fetch: source.getPopularManga,
+        fetch: tag != null
+            ? () => source.searchMangaByTags([tag])
+            : source.getPopularManga,
       );
       setState(() {
         _mangaList = manga;
         _isLoading = false;
+        _seenIds
+          ..clear()
+          ..addAll(manga.map((m) => m.id));
       });
     } catch (e) {
       setState(() {
@@ -74,10 +107,66 @@ class _MangaGridScreenState extends ConsumerState<MangaGridScreen> {
     }
   }
 
+  // Near the bottom, kick off the next page (once at a time).
+  void _onScroll() {
+    if (!_scrollController.hasClients) return;
+    final pos = _scrollController.position;
+    if (pos.pixels >= pos.maxScrollExtent - 400) {
+      _loadMore();
+    }
+  }
+
+  Future<void> _loadMore() async {
+    if (_isLoadingMore || !_hasMore || _isLoading) return;
+    final next = _page + 1;
+    setState(() => _isLoadingMore = true);
+    try {
+      final source = getSourceByName(widget.sourceName);
+      final tag = _activeTag;
+      final manga = await SourceCache.mangaList(
+        sourceId: source.id,
+        kind: tag != null ? 'tag' : 'popular',
+        arg: tag ?? '',
+        page: next,
+        fetch: tag != null
+            ? () => source.searchMangaByTags([tag], page: next)
+            : () => source.getPopularManga(page: next),
+      );
+      // Sources occasionally repeat titles across pages; keep the grid clean.
+      final fresh = <Manga>[];
+      for (final m in manga) {
+        if (_seenIds.add(m.id)) fresh.add(m);
+      }
+      if (!mounted) return;
+      setState(() {
+        _page = next;
+        _mangaList = [..._mangaList, ...fresh];
+        _isLoadingMore = false;
+        // An empty page means we hit the end of the catalog.
+        if (manga.isEmpty) _hasMore = false;
+      });
+    } catch (_) {
+      if (!mounted) return;
+      // Stop paginating quietly (the existing content stays usable).
+      setState(() {
+        _isLoadingMore = false;
+        _hasMore = false;
+      });
+    }
+  }
+
   Future<void> _refresh() async {
     final source = getSourceByName(widget.sourceName);
-    SourceCache.invalidatePrefix('${source.id}/list/popular/');
+    SourceCache.invalidatePrefix('${source.id}/list/');
     await _loadManga(forceRefresh: true);
+  }
+
+  void _applyTag(String? tag) {
+    setState(() {
+      _activeTag = tag;
+      _selectedFilterIndex = tag == null ? -1 : _tags.indexOf(tag);
+    });
+    _loadManga();
   }
 
   void _openRandomManga() {
@@ -101,6 +190,7 @@ class _MangaGridScreenState extends ConsumerState<MangaGridScreen> {
 
   @override
   void dispose() {
+    _scrollController.dispose();
     _searchController.dispose();
     super.dispose();
   }
@@ -186,6 +276,7 @@ class _MangaGridScreenState extends ConsumerState<MangaGridScreen> {
         backgroundColor: dark ? const Color(0xFF2C2C2E) : Colors.white,
         onRefresh: _refresh,
         child: SingleChildScrollView(
+          controller: _scrollController,
           physics: const AlwaysScrollableScrollPhysics(),
           padding: const EdgeInsets.only(bottom: 40),
           child: Column(
@@ -199,13 +290,24 @@ class _MangaGridScreenState extends ConsumerState<MangaGridScreen> {
                 child: Row(
                   mainAxisAlignment: MainAxisAlignment.spaceBetween,
                   children: [
-                    Text(
-                      widget.sourceName,
-                      style: TextStyle(
-                        color: dark ? Colors.white : scheme.onSurface,
-                        fontSize: 22,
-                        fontWeight: FontWeight.bold,
-                      ),
+                    Row(
+                      children: [
+                        SourceIcon(
+                          name: widget.sourceName,
+                          iconUrl:
+                              getSourceByName(widget.sourceName).iconUrl,
+                          size: 40,
+                        ),
+                        const SizedBox(width: 12),
+                        Text(
+                          widget.sourceName,
+                          style: TextStyle(
+                            color: dark ? Colors.white : scheme.onSurface,
+                            fontSize: 22,
+                            fontWeight: FontWeight.bold,
+                          ),
+                        ),
+                      ],
                     ),
                     Row(
                       children: [
@@ -231,7 +333,8 @@ class _MangaGridScreenState extends ConsumerState<MangaGridScreen> {
                 ),
               ),
               const SizedBox(height: 12),
-              if (ref.watch(appearanceSettingsProvider).showQuickFilters)
+              if (ref.watch(appearanceSettingsProvider).showQuickFilters &&
+                  _tags.isNotEmpty)
                 _buildFilterChips(),
               const SizedBox(height: 16),
               if (_isLoading)
@@ -287,6 +390,20 @@ class _MangaGridScreenState extends ConsumerState<MangaGridScreen> {
                 )
               else
                 _buildMangaGrid(displayedManga),
+              if (_isLoadingMore)
+                Padding(
+                  padding: const EdgeInsets.symmetric(vertical: 24),
+                  child: Center(
+                    child: SizedBox(
+                      width: 28,
+                      height: 28,
+                      child: CircularProgressIndicator(
+                        strokeWidth: 2.5,
+                        color: dark ? Colors.white54 : scheme.primary,
+                      ),
+                    ),
+                  ),
+                ),
             ],
           ),
         ),
@@ -302,18 +419,16 @@ class _MangaGridScreenState extends ConsumerState<MangaGridScreen> {
         scrollDirection: Axis.horizontal,
         physics: const BouncingScrollPhysics(),
         padding: const EdgeInsets.symmetric(horizontal: 16),
-        itemCount: _filters.length,
+        itemCount: _tags.length,
         itemBuilder: (context, index) {
           final isSelected = _selectedFilterIndex == index;
-          final isGenresButton = index == 0;
 
           return Padding(
             padding: const EdgeInsets.only(right: 8),
             child: GestureDetector(
               onTap: () {
-                setState(() {
-                  _selectedFilterIndex = isSelected ? -1 : index;
-                });
+                final tag = _tags[index];
+                _applyTag(isSelected ? null : tag);
               },
               child: Container(
                 padding: const EdgeInsets.symmetric(
@@ -332,20 +447,8 @@ class _MangaGridScreenState extends ConsumerState<MangaGridScreen> {
                 child: Row(
                   mainAxisSize: MainAxisSize.min,
                   children: [
-                    if (isGenresButton) ...[
-                      Icon(
-                        RemixIcons.equalizer_line,
-                        size: 16,
-                        color: isSelected
-                            ? Colors.black
-                            : (dark
-                                  ? Colors.white
-                                  : Theme.of(context).colorScheme.onSurface),
-                      ),
-                      const SizedBox(width: 6),
-                    ],
                     Text(
-                      _filters[index],
+                      _tags[index],
                       style: TextStyle(
                         color: isSelected
                             ? Colors.black

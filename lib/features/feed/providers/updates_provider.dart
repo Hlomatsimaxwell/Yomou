@@ -1,4 +1,5 @@
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:shared_preferences/shared_preferences.dart';
 import 'package:yomou/core/notifications/update_checker.dart';
 import 'package:yomou/data/providers/sources_provider.dart';
 
@@ -54,6 +55,10 @@ class MangaUpdate {
 /// the last count stored when they were read. Each series is checked against
 /// the source it was read from; sources the user disabled are skipped.
 final updatesProvider = FutureProvider<List<MangaUpdate>>((ref) async {
+  // Let the first frames render before the (heavy) library scan kicks in, so
+  // the app never feels frozen at launch on slower devices.
+  await Future.delayed(const Duration(seconds: 2));
+
   final disabled = <String>{
     for (final row in ref.watch(sourcesProvider))
       if (!isSourceEnabled(row) && (row['name'] as String? ?? '').isNotEmpty)
@@ -87,17 +92,13 @@ final updatesProvider = FutureProvider<List<MangaUpdate>>((ref) async {
   return updates;
 });
 
-/// Total number of unread new chapters across updated manga that the user
-/// hasn't opened yet (drives the badge). Opening a manga's detail drops its
-/// contribution from the badge along with its dot.
-final updatesCountProvider = Provider<int>((ref) {
-  final updates = ref.watch(updatesProvider);
-  return updates.when(
-    data: (list) => list.fold<int>(
-      0,
-      (sum, u) => sum + (u.hasUnseenUpdate ? u.newCount : 0),
-    ),
-    loading: () => 0,
-    error: (_, _) => 0,
-  );
+/// Unread-chapter badge count shown on the Home/Feed tabs. It is persisted to
+/// SharedPreferences by the Feed screen after every scan so the widget tree
+/// never triggers the (heavy) library scan at cold start — opening the Feed
+/// screen is what starts a scan.
+final updatesBadgeProvider = FutureProvider<int>((ref) async {
+  final prefs = await SharedPreferences.getInstance();
+  return prefs.getInt('updatesBadgeCount') ?? 0;
 });
+
+const kUpdatesBadgePrefKey = 'updatesBadgeCount';

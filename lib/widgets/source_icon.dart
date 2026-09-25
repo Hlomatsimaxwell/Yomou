@@ -1,21 +1,27 @@
 import 'package:flutter/material.dart';
 import 'package:yomou/widgets/safe_image.dart';
 
-/// Premium source "Logo Card": every source icon sits on a rounded-square
-/// background plate so light/white logos stay visible against the screen.
+/// Universal "Premium Icon Plate": every source icon, everywhere, sits on the
+/// exact same rounded square so grids read as a uniform "gallery of apps" and
+/// lists read as one straight vertical line of identical geometry.
 ///
-/// * Plate: rounded square (radius ≈ 22% of size), very light grey/white in
-///   light mode, elevated panel in dark mode, with a hairline border.
-/// * Logo: rendered with [BoxFit.contain] and internal padding so it is never
-///   cropped or stretched, and never touches the plate edges.
+/// * Plate: fixed 56×56, radius 16dp, solid background (`#F5F5F5` off-white in
+///   light mode, elevated panel in dark mode) with a hairline border. Never
+///   transparent.
+/// * Logo: full-bleed app-icon style — clipped with [ClipRRect] into the
+///   rounded square and [BoxFit.cover] so it fills the plate edge to edge like
+///   a launcher icon, exactly matching the letter-tile fallback.
 /// * Fallback: when no logo exists, the plate holds a soft deterministic
-///   gradient brand tile with a single letter.
-class SourceBrandLogo extends StatelessWidget {
-  const SourceBrandLogo({
+///   gradient brand tile with a single letter — a rounded square, never a
+///   circle.
+/// * Non-default sizes scale radius proportionally so the plate keeps its
+///   rounded-square identity at every visual weight.
+class SourceIcon extends StatelessWidget {
+  const SourceIcon({
     super.key,
     required this.name,
     this.iconUrl = '',
-    this.size = 40,
+    this.size = 56,
   });
 
   final String name;
@@ -34,8 +40,10 @@ class SourceBrandLogo extends StatelessWidget {
       fontSize: size * 0.42,
     );
 
-    final radius = size * 0.22;
-    final padding = size * 0.12;
+    // The mandatory plate geometry. At the standard 56dp the spec is exact:
+    // radius 16dp. Smaller chips scale proportionally so they never collapse
+    // into circles.
+    final radius = size >= 40 ? 16.0 : size * (16 / 56);
 
     return Container(
       width: size,
@@ -53,15 +61,12 @@ class SourceBrandLogo extends StatelessWidget {
       child: ClipRRect(
         borderRadius: BorderRadius.circular(radius),
         child: iconUrl.isNotEmpty
-            ? Padding(
-                padding: EdgeInsets.all(padding),
-                child: SafeNetworkImage(
-                  imageUrl: iconUrl,
-                  fit: BoxFit.contain,
-                  width: double.infinity,
-                  height: double.infinity,
-                  errorWidget: (context, url, error) => fallback(),
-                ),
+            ? SafeNetworkImage(
+                imageUrl: iconUrl,
+                fit: BoxFit.cover,
+                width: double.infinity,
+                height: double.infinity,
+                errorWidget: (context, url, error) => fallback(),
               )
             : fallback(),
       ),

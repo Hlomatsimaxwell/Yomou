@@ -4,8 +4,9 @@ import 'package:remixicon/remixicon.dart';
 import 'package:yomou/data/providers/sources_provider.dart';
 import 'package:yomou/features/settings/providers/cache_settings_provider.dart';
 import 'package:yomou/core/widgets/ios/ios_menu.dart';
+import 'package:yomou/features/source_management/screens/manga_grid_screen.dart';
 import 'package:yomou/l10n/generated/app_localizations.dart';
-import 'package:yomou/widgets/source_brand_logo.dart';
+import 'package:yomou/widgets/source_icon.dart';
 
 class ManageSourcesScreen extends ConsumerStatefulWidget {
   const ManageSourcesScreen({super.key});
@@ -131,7 +132,7 @@ class _ManageSourcesScreenState extends ConsumerState<ManageSourcesScreen> {
         ],
       ),
       body: ListView.builder(
-        padding: const EdgeInsets.symmetric(vertical: 8),
+        padding: const EdgeInsets.symmetric(vertical: 4),
         itemCount: filteredSources.length,
         itemBuilder: (context, index) {
           final source = filteredSources[index];
@@ -153,36 +154,28 @@ class _ManageSourcesScreenState extends ConsumerState<ManageSourcesScreen> {
                 return;
               }
 
-              // 1. Switch the active source using our new registry
-              ref.read(currentSourceProvider.notifier).state = getSourceByName(
-                sourceName,
-              );
-
-              // 2. Show a a nice confirmation to the user
-              ScaffoldMessenger.of(context).showSnackBar(
-                SnackBar(
-                  content: Text(
-                    AppLocalizations.of(context).switchedToSource(sourceName),
-                    style: const TextStyle(color: Colors.white),
-                  ),
-                  backgroundColor: source['bgColor'] as Color,
-                  duration: const Duration(seconds: 1),
+              Navigator.push(
+                context,
+                MaterialPageRoute(
+                  builder: (context) => MangaGridScreen(sourceName: sourceName),
                 ),
               );
-
-              // 3. Go back to the home screen to see the new content
-              Navigator.pop(context);
             },
             // ------------------------------
+            visualDensity: const VisualDensity(vertical: -2),
             contentPadding: const EdgeInsets.symmetric(
               horizontal: 16,
-              vertical: 8,
+              vertical: 4,
             ),
             leading: Opacity(
               opacity: isEnabled ? 1 : 0.4,
-              child: SourceBrandLogo(
-                name: sourceName,
-                iconUrl: source['iconUrl'] as String? ?? '',
+              child: SizedBox(
+                width: 56,
+                height: 56,
+                child: SourceIcon(
+                  name: sourceName,
+                  iconUrl: source['iconUrl'] as String? ?? '',
+                ),
               ),
             ),
             title: Row(

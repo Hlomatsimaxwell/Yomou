@@ -193,15 +193,7 @@ class _MangaSourcesSettingsScreenState
     final enabledCount = rows.where(isSourceEnabled).length;
     final totalCount = rows.length;
 
-    final divider = dark
-        ? Colors.white.withValues(alpha: 0.08)
-        : const Color(0xFFE0E0E0);
-
-    Widget sectionDivider() => Divider(
-      height: 1,
-      thickness: 1,
-      color: divider,
-    );
+    Widget sectionDivider() => const SizedBox(height: 6);
 
     return Scaffold(
       backgroundColor: Theme.of(context).scaffoldBackgroundColor,
