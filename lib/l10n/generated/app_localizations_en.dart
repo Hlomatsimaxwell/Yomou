@@ -224,7 +224,16 @@ class AppLocalizationsEn extends AppLocalizations {
   String get settingsAbout => 'About';
 
   @override
-  String get settingsAboutSubtitle => 'Version 9.8.1';
+  String get settingsAboutVersion => 'Version';
+
+  @override
+  String get settingsAboutBuild => 'Build';
+
+  @override
+  String get settingsAboutPackage => 'Package';
+
+  @override
+  String get settingsAboutPlatform => 'Platform';
 
   @override
   String get appearanceTitle => 'Appearance';

@@ -506,11 +506,29 @@ abstract class AppLocalizations {
   /// **'About'**
   String get settingsAbout;
 
-  /// No description provided for @settingsAboutSubtitle.
+  /// No description provided for @settingsAboutVersion.
   ///
   /// In en, this message translates to:
-  /// **'Version 9.8.1'**
-  String get settingsAboutSubtitle;
+  /// **'Version'**
+  String get settingsAboutVersion;
+
+  /// No description provided for @settingsAboutBuild.
+  ///
+  /// In en, this message translates to:
+  /// **'Build'**
+  String get settingsAboutBuild;
+
+  /// No description provided for @settingsAboutPackage.
+  ///
+  /// In en, this message translates to:
+  /// **'Package'**
+  String get settingsAboutPackage;
+
+  /// No description provided for @settingsAboutPlatform.
+  ///
+  /// In en, this message translates to:
+  /// **'Platform'**
+  String get settingsAboutPlatform;
 
   /// No description provided for @appearanceTitle.
   ///

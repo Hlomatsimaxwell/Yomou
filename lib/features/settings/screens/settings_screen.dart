@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:package_info_plus/package_info_plus.dart';
 import 'package:remixicon/remixicon.dart';
 import 'package:yomou/l10n/generated/app_localizations.dart';
 import 'package:yomou/features/settings/screens/appearance_settings_screen.dart';
@@ -117,15 +118,100 @@ class SettingsScreen extends ConsumerWidget {
               );
             },
           ),
-          _buildSettingTile(
+          _buildAboutTile(
             context: context,
             icon: RemixIcons.information_line,
             title: l.settingsAbout,
-            subtitle: l.settingsAboutSubtitle,
-            onTap: () {},
           ),
         ],
       ),
+    );
+  }
+
+  Widget _buildAboutTile({
+    required BuildContext context,
+    required IconData icon,
+    required String title,
+  }) {
+    return FutureBuilder<PackageInfo>(
+      future: PackageInfo.fromPlatform(),
+      builder: (context, snapshot) {
+        final info = snapshot.data;
+        final subtitle = info == null
+            ? '--'
+            : 'Version ${info.version} (${info.buildNumber})';
+        return _buildSettingTile(
+          context: context,
+          icon: icon,
+          title: title,
+          subtitle: subtitle,
+          onTap: () => _showAboutDialog(context, info),
+        );
+      },
+    );
+  }
+
+  void _showAboutDialog(BuildContext context, PackageInfo? info) {
+    final l = AppLocalizations.of(context);
+    final rows = <List<String>>[
+      [l.settingsAboutVersion, info?.version ?? '--'],
+      [l.settingsAboutBuild, info?.buildNumber ?? '--'],
+      [l.settingsAboutPackage, info?.packageName ?? '--'],
+    ];
+    showDialog<void>(
+      context: context,
+      builder: (dialogContext) {
+        final dark = Theme.of(dialogContext).brightness == Brightness.dark;
+        return AlertDialog(
+          backgroundColor: dark ? const Color(0xFF2C2C2E) : Colors.white,
+          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(14)),
+          title: Text(
+            l.settingsAbout,
+            style: const TextStyle(fontSize: 17, fontWeight: FontWeight.w600),
+          ),
+          content: Column(
+            mainAxisSize: MainAxisSize.min,
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              for (final row in rows)
+                Padding(
+                  padding: const EdgeInsets.symmetric(vertical: 2),
+                  child: Text.rich(
+                    TextSpan(
+                      children: [
+                        TextSpan(
+                          text: '${row[0]}:  ',
+                          style: TextStyle(
+                            color: dark ? Colors.white54 : const Color(0xFF49454F),
+                          ),
+                        ),
+                        TextSpan(
+                          text: row[1],
+                          style: TextStyle(
+                            fontSize: 14,
+                            fontWeight: FontWeight.w600,
+                            color: dark ? Colors.white : const Color(0xFF1C1B1F),
+                          ),
+                        ),
+                      ],
+                    ),
+                  ),
+                ),
+            ],
+          ),
+          actions: [
+            TextButton(
+              onPressed: () => Navigator.pop(dialogContext),
+              child: Text(
+                l.filterCancel,
+                style: TextStyle(
+                  color: dark ? Colors.white70 : const Color(0xFF49454F),
+                ),
+              ),
+            ),
+          ],
+        );
+      },
     );
   }
 
