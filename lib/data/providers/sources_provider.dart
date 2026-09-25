@@ -15,6 +15,13 @@ import '../sources/asurascans_source.dart';
 import '../sources/comick_source.dart';
 import '../sources/mgeko_source.dart';
 import '../sources/likemanga_source.dart';
+import '../sources/toonily_source.dart';
+import '../sources/reaperscans_source.dart';
+import '../sources/mangapill_source.dart';
+import '../sources/manhwa18_source.dart';
+import '../sources/flame_source.dart';
+import '../sources/komga_source.dart';
+import '../sources/mangabat_source.dart';
 
 // 1. THE SOURCE REGISTRY
 //
@@ -49,6 +56,20 @@ MangaSource getSourceByName(String name) {
       return _shared('mgeko', MgekoSource.new);
     case 'Like Manga':
       return _shared('likemanga', LikeMangaSource.new);
+    case 'Toonily':
+      return _shared('toonily', ToonilySource.new);
+    case 'Reaper Scans':
+      return _shared('reaperscans', ReaperScansSource.new);
+    case 'MangaPill':
+      return _shared('mangapill', MangaPillSource.new);
+    case 'Manhwa18':
+      return _shared('manhwa18', Manhwa18Source.new);
+    case 'Flame Scans':
+      return _shared('flamescans', FlameScansSource.new);
+    case 'Komga':
+      return _shared('komga', KomgaSource.new);
+    case 'MangaBat':
+      return _shared('mangabat', MangaBatSource.new);
     case 'Mock Source':
       return _shared('mock', MockSource.new);
     default:
@@ -77,6 +98,20 @@ MangaSource? getSourceBySourceId(String sourceId) {
       return getSourceByName('Mgeko');
     case 'likemanga':
       return getSourceByName('Like Manga');
+    case 'toonily':
+      return getSourceByName('Toonily');
+    case 'reaperscans':
+      return getSourceByName('Reaper Scans');
+    case 'mangapill':
+      return getSourceByName('MangaPill');
+    case 'manhwa18':
+      return getSourceByName('Manhwa18');
+    case 'flamescans':
+      return getSourceByName('Flame Scans');
+    case 'komga':
+      return getSourceByName('Komga');
+    case 'mangabat':
+      return getSourceByName('MangaBat');
     case 'manganato':
       return getSourceByName('Manganato');
     case 'mock':
@@ -226,6 +261,66 @@ class SourcesNotifier extends StateNotifier<List<Map<String, dynamic>>> {
       'bgColor': const Color(0xFF95A5A6),
       'text': '?',
       'iconUrl': '',
+      'isPinned': false,
+    },
+    {
+      'name': 'Toonily',
+      'language': 'Manhwa, Manhua, English',
+      'bgColor': const Color(0xFF7A1F2B),
+      'text': 'T',
+      'iconUrl': 'https://static.tnlycdn.com/2017/10/toonily_favicon2-300x300.png',
+      'isPinned': false,
+      'nsfw': true,
+    },
+    {
+      'name': 'Reaper Scans',
+      'language': 'Manhwa, Manhua, English',
+      'bgColor': const Color(0xFFDB0032),
+      'text': 'R',
+      'iconUrl': 'https://reaperscans.com/favicon.ico',
+      'isPinned': false,
+      'nsfw': true,
+    },
+    {
+      'name': 'MangaPill',
+      'language': 'Manga, English',
+      'bgColor': const Color(0xFF2563EB),
+      'text': 'P',
+      'iconUrl': 'https://mangapill.com/favicon.ico',
+      'isPinned': false,
+    },
+    {
+      'name': 'Manhwa18',
+      'language': 'Manhwa, Manhua, English',
+      'bgColor': const Color(0xFFB4345C),
+      'text': 'M',
+      'iconUrl': 'https://manhwa18.com/favicon.ico',
+      'isPinned': false,
+      'nsfw': true,
+    },
+    {
+      'name': 'Flame Scans',
+      'language': 'Manhwa, Manhua, English',
+      'bgColor': const Color(0xFF101113),
+      'text': 'F',
+      'iconUrl': 'https://flamecomics.xyz/favicon.ico',
+      'isPinned': false,
+    },
+    {
+      'name': 'Komga',
+      'language': 'Self-hosted (API)',
+      'bgColor': const Color(0xFF334155),
+      'text': 'K',
+      'iconUrl': '',
+      'isPinned': false,
+      'isEnabled': false,
+    },
+    {
+      'name': 'MangaBat',
+      'language': 'Manga, English',
+      'bgColor': const Color(0xFF9C27B0),
+      'text': 'B',
+      'iconUrl': 'https://www.mangabats.com/favicon.ico',
       'isPinned': false,
     },
     {
