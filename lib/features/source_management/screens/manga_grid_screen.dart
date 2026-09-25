@@ -1,5 +1,7 @@
 import 'package:remixicon/remixicon.dart';
 import 'dart:math';
+import 'dart:convert';
+import 'package:shared_preferences/shared_preferences.dart';
 import 'package:yomou/widgets/cached_manga_image.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
@@ -10,8 +12,10 @@ import 'package:yomou/features/library/widgets/favorite_badge.dart';
 import 'package:yomou/core/widgets/empty_state.dart';
 import 'package:yomou/core/widgets/manga_grid_metrics.dart';
 import 'package:yomou/data/models/manga.dart';
+import 'package:yomou/data/models/manga_filter.dart';
 import 'package:yomou/data/providers/sources_provider.dart';
 import 'package:yomou/features/settings/providers/appearance_provider.dart';
+import 'package:yomou/features/source_management/screens/manga_filter_sheet.dart';
 import 'package:yomou/l10n/generated/app_localizations.dart';
 import 'package:yomou/widgets/source_icon.dart';
 
@@ -28,6 +32,7 @@ class _MangaGridScreenState extends ConsumerState<MangaGridScreen> {
   int _selectedFilterIndex = -1;
   String? _activeTag;
   List<String> _tags = const <String>[];
+  MangaFilter _filter = const MangaFilter();
   final TextEditingController _searchController = TextEditingController();
   bool _isSearching = false;
   String _searchQuery = '';
@@ -54,6 +59,54 @@ class _MangaGridScreenState extends ConsumerState<MangaGridScreen> {
     super.initState();
     _scrollController.addListener(_onScroll);
     _loadTags();
+    _initGrid();
+  }
+
+  Future<void> _initGrid() async {
+    await _loadPersistedFilter();
+    if (!mounted) return;
+    await _loadManga();
+  }
+
+  Future<void> _loadPersistedFilter() async {
+    try {
+      final source = getSourceByName(widget.sourceName);
+      final prefs = await SharedPreferences.getInstance();
+      final raw = prefs.getString('source_filter_${source.id}');
+      if (raw == null) return;
+      final filter = MangaFilter.fromJson(jsonDecode(raw) as Map<String, dynamic>);
+      if (!mounted) return;
+      if (filter.isDefault) return;
+      setState(() => _filter = filter);
+    } catch (_) {
+      // No saved filter — use defaults.
+    }
+  }
+
+  Future<void> _saveFilter(MangaFilter filter) async {
+    final source = getSourceByName(widget.sourceName);
+    final prefs = await SharedPreferences.getInstance();
+    await prefs.setString(
+      'source_filter_${source.id}',
+      jsonEncode(filter.toJson()),
+    );
+  }
+
+  Future<void> _openFilterSheet() async {
+    final source = getSourceByName(widget.sourceName);
+    final result = await showMangaFilterSheet(
+      context,
+      initial: _filter,
+      tags: _tags,
+      presetsKey: 'source_presets_${source.id}',
+      onSave: _saveFilter,
+    );
+    if (result == null) return;
+    setState(() {
+      _filter = result;
+      _activeTag = null;
+      _selectedFilterIndex = -1;
+    });
     _loadManga();
   }
 
@@ -82,15 +135,21 @@ class _MangaGridScreenState extends ConsumerState<MangaGridScreen> {
     try {
       final source = getSourceByName(widget.sourceName);
       final tag = _activeTag;
+      final filter = _filter;
+      final usingFilter = tag == null && !filter.isDefault;
       final manga = await SourceCache.mangaList(
         sourceId: source.id,
-        kind: tag != null ? 'tag' : 'popular',
-        arg: tag ?? '',
+        kind: usingFilter ? 'filter' : (tag != null ? 'tag' : 'popular'),
+        arg: usingFilter
+            ? filter.cacheKey
+            : (tag ?? ''),
         page: 1,
         forceRefresh: forceRefresh,
         fetch: tag != null
             ? () => source.searchMangaByTags([tag])
-            : source.getPopularManga,
+            : usingFilter
+                ? () => source.searchWithFilter(filter)
+                : source.getPopularManga,
       );
       setState(() {
         _mangaList = manga;
@@ -123,14 +182,20 @@ class _MangaGridScreenState extends ConsumerState<MangaGridScreen> {
     try {
       final source = getSourceByName(widget.sourceName);
       final tag = _activeTag;
+      final filter = _filter;
+      final usingFilter = tag == null && !filter.isDefault;
       final manga = await SourceCache.mangaList(
         sourceId: source.id,
-        kind: tag != null ? 'tag' : 'popular',
-        arg: tag ?? '',
+        kind: usingFilter ? 'filter' : (tag != null ? 'tag' : 'popular'),
+        arg: usingFilter
+            ? filter.cacheKey
+            : (tag ?? ''),
         page: next,
         fetch: tag != null
             ? () => source.searchMangaByTags([tag], page: next)
-            : () => source.getPopularManga(page: next),
+            : usingFilter
+                ? () => source.searchWithFilter(filter, page: next)
+                : () => source.getPopularManga(page: next),
       );
       // Sources occasionally repeat titles across pages; keep the grid clean.
       final fresh = <Manga>[];
@@ -167,6 +232,13 @@ class _MangaGridScreenState extends ConsumerState<MangaGridScreen> {
       _selectedFilterIndex = tag == null ? -1 : _tags.indexOf(tag);
     });
     _loadManga();
+  }
+
+  String _sortLabel(AppLocalizations l) {
+    for (final (code, label) in kFilterSorts) {
+      if (code == _filter.sort) return label;
+    }
+    return l.filterUpdated;
   }
 
   void _openRandomManga() {
@@ -311,20 +383,28 @@ class _MangaGridScreenState extends ConsumerState<MangaGridScreen> {
                     ),
                     Row(
                       children: [
-                        Icon(
-                          RemixIcons.filter_line,
-                          color: dark
-                              ? Colors.white70
-                              : const Color(0xFF49454F),
-                          size: 18,
-                        ),
-                        const SizedBox(width: 4),
-                        Text(
-                          AppLocalizations.of(context).filterUpdated,
-                          style: TextStyle(
-                            color: dark ? Colors.white : scheme.onSurface,
-                            fontSize: 14,
-                            fontWeight: FontWeight.w600,
+                        GestureDetector(
+                          behavior: HitTestBehavior.opaque,
+                          onTap: _openFilterSheet,
+                          child: Row(
+                            children: [
+                              Icon(
+                                RemixIcons.filter_line,
+                                color: dark
+                                    ? Colors.white70
+                                    : const Color(0xFF49454F),
+                                size: 18,
+                              ),
+                              const SizedBox(width: 4),
+                              Text(
+                                _sortLabel(AppLocalizations.of(context)),
+                                style: TextStyle(
+                                  color: dark ? Colors.white : scheme.onSurface,
+                                  fontSize: 14,
+                                  fontWeight: FontWeight.w600,
+                                ),
+                              ),
+                            ],
                           ),
                         ),
                       ],

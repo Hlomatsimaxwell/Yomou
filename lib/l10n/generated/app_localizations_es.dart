@@ -1301,6 +1301,96 @@ class AppLocalizationsEs extends AppLocalizations {
   String get filterUpdated => 'Actualizado';
 
   @override
+  String get filterTitle => 'Filtro';
+
+  @override
+  String get filterClose => 'Cerrar filtros';
+
+  @override
+  String get filterReset => 'Restablecer filtros';
+
+  @override
+  String get filterSort => 'Ordenar';
+
+  @override
+  String get filterLanguage => 'Idioma';
+
+  @override
+  String get filterGenres => 'Géneros';
+
+  @override
+  String get filterExcludeGenres => 'Excluir géneros';
+
+  @override
+  String get filterMangaState => 'Estado del manga';
+
+  @override
+  String get filterYear => 'Año de publicación';
+
+  @override
+  String get filterSaved => 'Filtro guardado';
+
+  @override
+  String get filterSavePresetTitle => 'Guardar filtro';
+
+  @override
+  String get filterSavePresetHint => 'Nombre del filtro';
+
+  @override
+  String filterSavedPreset(String name) {
+    return 'Guardado \"$name\"';
+  }
+
+  @override
+  String get filterCancel => 'Cancelar';
+
+  @override
+  String get filterSavedFilters => 'Filtros guardados';
+
+  @override
+  String filterPresetApplied(String name) {
+    return 'Aplicado \"$name\"';
+  }
+
+  @override
+  String get filterRename => 'Renombrar';
+
+  @override
+  String get filterDelete => 'Eliminar';
+
+  @override
+  String get filterDeleteConfirmTitle => '¿Eliminar filtro?';
+
+  @override
+  String filterDeleteConfirmBody(String name) {
+    return 'Se eliminará \"$name\".';
+  }
+
+  @override
+  String get filterPresetDeleted => 'Filtro eliminado';
+
+  @override
+  String get filterSave => 'Guardar';
+
+  @override
+  String get filterDone => 'Hecho';
+
+  @override
+  String get filterAllLanguages => 'Todos';
+
+  @override
+  String get filterStateFinished => 'Terminado';
+
+  @override
+  String get filterStateDropped => 'Abandonado';
+
+  @override
+  String get filterStateUpcoming => 'Próximamente';
+
+  @override
+  String get filterNoTags => 'Esta fuente no tiene lista de géneros.';
+
+  @override
   String get failedToLoadManga => 'No se pudo cargar el manga';
 
   @override

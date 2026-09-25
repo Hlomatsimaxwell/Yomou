@@ -1288,6 +1288,96 @@ class AppLocalizationsEn extends AppLocalizations {
   String get filterUpdated => 'Updated';
 
   @override
+  String get filterTitle => 'Filter';
+
+  @override
+  String get filterClose => 'Close filters';
+
+  @override
+  String get filterReset => 'Reset filters';
+
+  @override
+  String get filterSort => 'Sort';
+
+  @override
+  String get filterLanguage => 'Language';
+
+  @override
+  String get filterGenres => 'Genres';
+
+  @override
+  String get filterExcludeGenres => 'Exclude genres';
+
+  @override
+  String get filterMangaState => 'Manga state';
+
+  @override
+  String get filterYear => 'Release year';
+
+  @override
+  String get filterSaved => 'Filter saved';
+
+  @override
+  String get filterSavePresetTitle => 'Save filter';
+
+  @override
+  String get filterSavePresetHint => 'Filter name';
+
+  @override
+  String filterSavedPreset(String name) {
+    return 'Saved \"$name\"';
+  }
+
+  @override
+  String get filterCancel => 'Cancel';
+
+  @override
+  String get filterSavedFilters => 'Saved Filters';
+
+  @override
+  String filterPresetApplied(String name) {
+    return 'Applied \"$name\"';
+  }
+
+  @override
+  String get filterRename => 'Rename';
+
+  @override
+  String get filterDelete => 'Delete';
+
+  @override
+  String get filterDeleteConfirmTitle => 'Delete filter?';
+
+  @override
+  String filterDeleteConfirmBody(String name) {
+    return 'This will remove \"$name\".';
+  }
+
+  @override
+  String get filterPresetDeleted => 'Filter deleted';
+
+  @override
+  String get filterSave => 'Save';
+
+  @override
+  String get filterDone => 'Done';
+
+  @override
+  String get filterAllLanguages => 'All';
+
+  @override
+  String get filterStateFinished => 'Finished';
+
+  @override
+  String get filterStateDropped => 'Dropped';
+
+  @override
+  String get filterStateUpcoming => 'Upcoming';
+
+  @override
+  String get filterNoTags => 'This source has no genre list.';
+
+  @override
   String get failedToLoadManga => 'Failed to load manga';
 
   @override

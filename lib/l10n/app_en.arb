@@ -619,6 +619,55 @@
   "refreshResults": "Refresh results",
   "clearSearchQuery": "Clear search query",
   "filterUpdated": "Updated",
+  "filterTitle": "Filter",
+  "filterClose": "Close filters",
+  "filterReset": "Reset filters",
+  "filterSort": "Sort",
+  "filterLanguage": "Language",
+  "filterGenres": "Genres",
+  "filterExcludeGenres": "Exclude genres",
+  "filterMangaState": "Manga state",
+  "filterYear": "Release year",
+  "filterSaved": "Filter saved",
+  "filterSavePresetTitle": "Save filter",
+  "filterSavePresetHint": "Filter name",
+  "filterSavedPreset": "Saved \"{name}\"",
+  "@filterSavedPreset": {
+    "placeholders": {
+      "name": {
+        "type": "String"
+      }
+    }
+  },
+  "filterCancel": "Cancel",
+  "filterSavedFilters": "Saved Filters",
+  "filterPresetApplied": "Applied \"{name}\"",
+  "@filterPresetApplied": {
+    "placeholders": {
+      "name": {
+        "type": "String"
+      }
+    }
+  },
+  "filterRename": "Rename",
+  "filterDelete": "Delete",
+  "filterDeleteConfirmTitle": "Delete filter?",
+  "filterDeleteConfirmBody": "This will remove \"{name}\".",
+  "@filterDeleteConfirmBody": {
+    "placeholders": {
+      "name": {
+        "type": "String"
+      }
+    }
+  },
+  "filterPresetDeleted": "Filter deleted",
+  "filterSave": "Save",
+  "filterDone": "Done",
+  "filterAllLanguages": "All",
+  "filterStateFinished": "Finished",
+  "filterStateDropped": "Dropped",
+  "filterStateUpcoming": "Upcoming",
+  "filterNoTags": "This source has no genre list.",
   "failedToLoadManga": "Failed to load manga",
   "hideFailedSources": "Hide failed sources",
   "showFailedSources": "Show failed sources",

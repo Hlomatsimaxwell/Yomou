@@ -572,6 +572,55 @@
   "refreshResults": "Actualizar resultados",
   "clearSearchQuery": "Borrar consulta de búsqueda",
   "filterUpdated": "Actualizado",
+  "filterTitle": "Filtro",
+  "filterClose": "Cerrar filtros",
+  "filterReset": "Restablecer filtros",
+  "filterSort": "Ordenar",
+  "filterLanguage": "Idioma",
+  "filterGenres": "Géneros",
+  "filterExcludeGenres": "Excluir géneros",
+  "filterMangaState": "Estado del manga",
+  "filterYear": "Año de publicación",
+  "filterSaved": "Filtro guardado",
+  "filterSavePresetTitle": "Guardar filtro",
+  "filterSavePresetHint": "Nombre del filtro",
+  "filterSavedPreset": "Guardado \"{name}\"",
+  "@filterSavedPreset": {
+    "placeholders": {
+      "name": {
+        "type": "String"
+      }
+    }
+  },
+  "filterCancel": "Cancelar",
+  "filterSavedFilters": "Filtros guardados",
+  "filterPresetApplied": "Aplicado \"{name}\"",
+  "@filterPresetApplied": {
+    "placeholders": {
+      "name": {
+        "type": "String"
+      }
+    }
+  },
+  "filterRename": "Renombrar",
+  "filterDelete": "Eliminar",
+  "filterDeleteConfirmTitle": "¿Eliminar filtro?",
+  "filterDeleteConfirmBody": "Se eliminará \"{name}\".",
+  "@filterDeleteConfirmBody": {
+    "placeholders": {
+      "name": {
+        "type": "String"
+      }
+    }
+  },
+  "filterPresetDeleted": "Filtro eliminado",
+  "filterSave": "Guardar",
+  "filterDone": "Hecho",
+  "filterAllLanguages": "Todos",
+  "filterStateFinished": "Terminado",
+  "filterStateDropped": "Abandonado",
+  "filterStateUpcoming": "Próximamente",
+  "filterNoTags": "Esta fuente no tiene lista de géneros.",
   "failedToLoadManga": "No se pudo cargar el manga",
   "hideFailedSources": "Ocultar fuentes con errores",
   "showFailedSources": "Mostrar fuentes con errores",

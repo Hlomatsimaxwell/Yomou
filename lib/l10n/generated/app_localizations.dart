@@ -2456,6 +2456,174 @@ abstract class AppLocalizations {
   /// **'Updated'**
   String get filterUpdated;
 
+  /// No description provided for @filterTitle.
+  ///
+  /// In en, this message translates to:
+  /// **'Filter'**
+  String get filterTitle;
+
+  /// No description provided for @filterClose.
+  ///
+  /// In en, this message translates to:
+  /// **'Close filters'**
+  String get filterClose;
+
+  /// No description provided for @filterReset.
+  ///
+  /// In en, this message translates to:
+  /// **'Reset filters'**
+  String get filterReset;
+
+  /// No description provided for @filterSort.
+  ///
+  /// In en, this message translates to:
+  /// **'Sort'**
+  String get filterSort;
+
+  /// No description provided for @filterLanguage.
+  ///
+  /// In en, this message translates to:
+  /// **'Language'**
+  String get filterLanguage;
+
+  /// No description provided for @filterGenres.
+  ///
+  /// In en, this message translates to:
+  /// **'Genres'**
+  String get filterGenres;
+
+  /// No description provided for @filterExcludeGenres.
+  ///
+  /// In en, this message translates to:
+  /// **'Exclude genres'**
+  String get filterExcludeGenres;
+
+  /// No description provided for @filterMangaState.
+  ///
+  /// In en, this message translates to:
+  /// **'Manga state'**
+  String get filterMangaState;
+
+  /// No description provided for @filterYear.
+  ///
+  /// In en, this message translates to:
+  /// **'Release year'**
+  String get filterYear;
+
+  /// No description provided for @filterSaved.
+  ///
+  /// In en, this message translates to:
+  /// **'Filter saved'**
+  String get filterSaved;
+
+  /// No description provided for @filterSavePresetTitle.
+  ///
+  /// In en, this message translates to:
+  /// **'Save filter'**
+  String get filterSavePresetTitle;
+
+  /// No description provided for @filterSavePresetHint.
+  ///
+  /// In en, this message translates to:
+  /// **'Filter name'**
+  String get filterSavePresetHint;
+
+  /// No description provided for @filterSavedPreset.
+  ///
+  /// In en, this message translates to:
+  /// **'Saved \"{name}\"'**
+  String filterSavedPreset(String name);
+
+  /// No description provided for @filterCancel.
+  ///
+  /// In en, this message translates to:
+  /// **'Cancel'**
+  String get filterCancel;
+
+  /// No description provided for @filterSavedFilters.
+  ///
+  /// In en, this message translates to:
+  /// **'Saved Filters'**
+  String get filterSavedFilters;
+
+  /// No description provided for @filterPresetApplied.
+  ///
+  /// In en, this message translates to:
+  /// **'Applied \"{name}\"'**
+  String filterPresetApplied(String name);
+
+  /// No description provided for @filterRename.
+  ///
+  /// In en, this message translates to:
+  /// **'Rename'**
+  String get filterRename;
+
+  /// No description provided for @filterDelete.
+  ///
+  /// In en, this message translates to:
+  /// **'Delete'**
+  String get filterDelete;
+
+  /// No description provided for @filterDeleteConfirmTitle.
+  ///
+  /// In en, this message translates to:
+  /// **'Delete filter?'**
+  String get filterDeleteConfirmTitle;
+
+  /// No description provided for @filterDeleteConfirmBody.
+  ///
+  /// In en, this message translates to:
+  /// **'This will remove \"{name}\".'**
+  String filterDeleteConfirmBody(String name);
+
+  /// No description provided for @filterPresetDeleted.
+  ///
+  /// In en, this message translates to:
+  /// **'Filter deleted'**
+  String get filterPresetDeleted;
+
+  /// No description provided for @filterSave.
+  ///
+  /// In en, this message translates to:
+  /// **'Save'**
+  String get filterSave;
+
+  /// No description provided for @filterDone.
+  ///
+  /// In en, this message translates to:
+  /// **'Done'**
+  String get filterDone;
+
+  /// No description provided for @filterAllLanguages.
+  ///
+  /// In en, this message translates to:
+  /// **'All'**
+  String get filterAllLanguages;
+
+  /// No description provided for @filterStateFinished.
+  ///
+  /// In en, this message translates to:
+  /// **'Finished'**
+  String get filterStateFinished;
+
+  /// No description provided for @filterStateDropped.
+  ///
+  /// In en, this message translates to:
+  /// **'Dropped'**
+  String get filterStateDropped;
+
+  /// No description provided for @filterStateUpcoming.
+  ///
+  /// In en, this message translates to:
+  /// **'Upcoming'**
+  String get filterStateUpcoming;
+
+  /// No description provided for @filterNoTags.
+  ///
+  /// In en, this message translates to:
+  /// **'This source has no genre list.'**
+  String get filterNoTags;
+
   /// No description provided for @failedToLoadManga.
   ///
   /// In en, this message translates to:
