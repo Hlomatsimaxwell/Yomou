@@ -9,6 +9,7 @@ import 'package:yomou/core/widgets/ios/ios_press.dart';
 import 'package:yomou/core/database/source_cache.dart';
 import 'package:yomou/features/library/providers/favorites_provider.dart';
 import 'package:yomou/features/library/providers/downloads_provider.dart';
+import 'package:yomou/features/history/providers/history_provider.dart';
 import 'package:yomou/features/library/widgets/downloaded_badge.dart';
 import 'package:yomou/features/library/screens/related_manga_screen.dart';
 import 'package:yomou/features/library/screens/edit_manga_screen.dart';
@@ -19,6 +20,7 @@ import 'package:yomou/data/models/chapter.dart';
 import 'package:yomou/data/models/manga.dart';
 import 'package:yomou/data/models/manga_source.dart';
 import 'package:yomou/core/widgets/empty_state.dart';
+import 'package:yomou/core/widgets/ios/ios_toast.dart';
 import 'package:yomou/data/models/manga_details.dart';
 import 'package:yomou/data/models/bookmark.dart';
 import 'package:yomou/data/providers/sources_provider.dart';
@@ -70,6 +72,7 @@ class _MangaDetailScreenState extends ConsumerState<MangaDetailScreen> {
 
   List<Chapter> _chapters = [];
   bool _isLoadingChapters = true;
+  bool _isRefreshing = false;
   String? _chapterError;
   MangaSource? _source;
 
@@ -117,8 +120,11 @@ class _MangaDetailScreenState extends ConsumerState<MangaDetailScreen> {
   // Displayed title/cover: prefer the local override, else the passed-in value.
   String get _title =>
       (_customTitle?.isNotEmpty ?? false) ? _customTitle! : widget.title;
-  String get _coverUrl =>
-      (_customCover?.isNotEmpty ?? false) ? _customCover! : widget.imageUrl;
+  String get _coverUrl => (_customCover?.isNotEmpty ?? false)
+      ? _customCover!
+      : (_details?.coverUrl.isNotEmpty == true
+          ? _details!.coverUrl
+          : widget.imageUrl);
 
   @override
   void initState() {
@@ -1595,8 +1601,28 @@ class _MangaDetailScreenState extends ConsumerState<MangaDetailScreen> {
           ),
           const Spacer(),
           IconButton(
-            icon: Icon(RemixIcons.refresh_line, color: iconColor),
-            onPressed: () => _loadChapters(forceRefresh: true),
+            icon: _isRefreshing
+                ? SizedBox(
+                    width: 22,
+                    height: 22,
+                    child: CircularProgressIndicator(
+                      strokeWidth: 2,
+                      color: iconColor,
+                    ),
+                  )
+                : Icon(RemixIcons.refresh_line, color: iconColor),
+            onPressed: _isRefreshing
+                ? null
+                : () async {
+                    setState(() => _isRefreshing = true);
+                    await _loadChapters(forceRefresh: true);
+                    if (!mounted) return;
+                    setState(() => _isRefreshing = false);
+                    showIosToast(
+                      context,
+                      message: AppLocalizations.of(context).refreshed,
+                    );
+                  },
           ),
           IconButton(
             icon: Icon(RemixIcons.share_line, color: iconColor),
@@ -1813,6 +1839,7 @@ class _MangaDetailScreenState extends ConsumerState<MangaDetailScreen> {
       if (!context.mounted) return;
       setState(() {});
       bumpFavoritesRevision(ref);
+      bumpHistoryRevision(ref);
       _showMessage(AppLocalizations.of(context).metadataSaved);
     }
   }

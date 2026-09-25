@@ -18,6 +18,7 @@ import 'package:yomou/features/source_management/screens/manga_grid_screen.dart'
 import 'package:yomou/features/source_management/screens/manga_sources_screen.dart';
 import 'package:yomou/data/providers/sources_provider.dart';
 import 'package:yomou/features/settings/providers/cache_settings_provider.dart';
+import 'package:yomou/features/suggestions/providers/suggestions_provider.dart';
 import 'package:yomou/core/theme/layout.dart';
 import 'package:yomou/core/providers/incognito_provider.dart';
 import 'package:yomou/l10n/generated/app_localizations.dart';
@@ -79,34 +80,38 @@ class _ExploreScreenState extends ConsumerState<ExploreScreen> {
               _buildSearchBar(),
             ],
           ),
-          body: SingleChildScrollView(
-            padding: EdgeInsets.only(bottom: bottomBarClearance(context)),
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                const SizedBox(height: 16),
-                _buildQuickButtonsGrid(),
-                const SizedBox(height: 20),
-                const FeaturedCarousel(),
-                const SizedBox(height: 24),
-                _buildSectionHeader(
-                  AppLocalizations.of(context).mangaSources,
-                  actionLabel: AppLocalizations.of(context).exploreManage,
-                  actionColor: Theme.of(context).colorScheme.primary,
-                  onMorePressed: () {
-                    Navigator.push(
-                      context,
-                      MaterialPageRoute(
-                        builder: (context) => const ManageSourcesScreen(),
-                      ),
-                    );
-                  },
-                ),
-                const SizedBox(height: 8),
-                showInGrid
-                    ? _buildSourcesGrid(enabledSources)
-                    : _buildSourcesList(enabledSources),
-              ],
+          body: RefreshIndicator(
+            onRefresh: _refresh,
+            child: SingleChildScrollView(
+              physics: const AlwaysScrollableScrollPhysics(),
+              padding: EdgeInsets.only(bottom: bottomBarClearance(context)),
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  const SizedBox(height: 16),
+                  _buildQuickButtonsGrid(),
+                  const SizedBox(height: 20),
+                  const FeaturedCarousel(),
+                  const SizedBox(height: 24),
+                  _buildSectionHeader(
+                    AppLocalizations.of(context).mangaSources,
+                    actionLabel: AppLocalizations.of(context).exploreManage,
+                    actionColor: Theme.of(context).colorScheme.primary,
+                    onMorePressed: () {
+                      Navigator.push(
+                        context,
+                        MaterialPageRoute(
+                          builder: (context) => const ManageSourcesScreen(),
+                        ),
+                      );
+                    },
+                  ),
+                  const SizedBox(height: 8),
+                  showInGrid
+                      ? _buildSourcesGrid(enabledSources)
+                      : _buildSourcesList(enabledSources),
+                ],
+              ),
             ),
           ),
         ),
@@ -241,6 +246,23 @@ class _ExploreScreenState extends ConsumerState<ExploreScreen> {
         },
       ),
     );
+  }
+
+  Future<void> _refresh() async {
+    final rows = ref.read(visibleSourceRowsProvider);
+    for (final row in rows) {
+      if (!isSourceEnabled(row)) continue;
+      final name = row['name'] as String? ?? '';
+      if (name.isEmpty) continue;
+      try {
+        final src = getSourceByName(name);
+        SourceCache.invalidatePrefix('${src.id}/list/');
+      } catch (_) {
+        // Source registry hiccup: skip, the rest still refresh.
+      }
+    }
+    ref.invalidate(suggestionsProvider(null));
+    await Future<void>.delayed(const Duration(milliseconds: 300));
   }
 
   Future<void> _handleQuickButton(String type) async {

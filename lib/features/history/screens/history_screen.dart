@@ -8,6 +8,7 @@ import 'package:yomou/features/library/screens/manga_detail_screen.dart';
 import 'package:yomou/features/library/screens/edit_manga_screen.dart';
 import 'package:yomou/features/settings/screens/settings_screen.dart';
 import 'package:yomou/core/database/database_helper.dart';
+import 'package:yomou/core/database/source_cache.dart';
 import 'package:yomou/core/widgets/empty_state.dart';
 import 'package:yomou/core/widgets/hide_on_scroll.dart';
 import 'package:yomou/core/widgets/ios/ios_menu.dart';
@@ -22,6 +23,7 @@ import 'package:yomou/features/history/screens/reading_statistics_screen.dart';
 import 'package:yomou/features/library/providers/downloads_provider.dart';
 import 'package:yomou/features/library/providers/favorites_provider.dart';
 import 'package:yomou/features/settings/providers/appearance_provider.dart';
+import 'package:yomou/data/providers/sources_provider.dart';
 import 'package:yomou/l10n/generated/app_localizations.dart';
 import 'package:yomou/core/widgets/search_bar.dart';
 
@@ -154,11 +156,65 @@ class _HistoryScreenState extends ConsumerState<HistoryScreen> {
     }
   }
 
-  // Pull-to-refresh and the overflow-menu "Refresh" action both reload history
-  // straight from the database (imports/edits land immediately).
+  // Pull-to-refresh and the overflow-menu "Refresh" action reload history
+  // straight from the database (imports/edits land immediately), then re-fetch
+  // each series' metadata from its source so covers/titles/chapter counts
+  // stay current.
   Future<void> _refreshHistory() async {
+    await _refreshHistoryMetadata();
+    if (!mounted) return;
     await _loadFromProvider();
     bumpHistoryRevision(ref);
+    if (mounted) {
+      showIosToast(context, message: AppLocalizations.of(context).refreshed);
+    }
+  }
+
+  Future<void> _refreshHistoryMetadata() async {
+    try {
+      final rows = await DatabaseHelper.instance.getHistory();
+      final seen = <String>{};
+      var batch = <Future<void>>[];
+      for (final row in rows) {
+        final mangaId = (row['mangaId'] as String?) ?? '';
+        final sourceId = (row['sourceId'] as String?) ?? '';
+        if (mangaId.isEmpty || sourceId.isEmpty || seen.contains(mangaId)) {
+          continue;
+        }
+        seen.add(mangaId);
+        batch.add(_refreshOneEntry(mangaId, sourceId));
+        if (batch.length >= 4) {
+          await Future.wait(batch);
+          batch = <Future<void>>[];
+        }
+      }
+      await Future.wait(batch);
+    } catch (_) {
+      // Best-effort: a failed source refresh never blocks the reload below.
+    }
+  }
+
+  Future<void> _refreshOneEntry(String mangaId, String sourceId) async {
+    try {
+      final source = getSourceBySourceId(sourceId);
+      if (source == null) return;
+      final details = await SourceCache.mangaDetails(
+        sourceId: source.id,
+        mangaId: mangaId,
+        forceRefresh: true,
+        fetch: () => source.getMangaDetails(mangaId),
+      );
+      if (details == null || details.id.isEmpty) return;
+      await DatabaseHelper.instance.upsertManga(
+        mangaId: mangaId,
+        title: details.title,
+        coverUrl: details.coverUrl,
+        sourceId: sourceId,
+        totalChapters: details.totalChapters,
+      );
+    } catch (_) {
+      // A single unresolvable series should not fail the whole refresh.
+    }
   }
 
   Future<void> _savePreference(String key, dynamic value) async {
