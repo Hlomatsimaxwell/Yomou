@@ -26,6 +26,7 @@ import 'package:yomou/data/providers/sources_provider.dart';
 import 'package:yomou/features/settings/providers/appearance_provider.dart';
 import 'package:yomou/core/security/app_lock.dart';
 import 'package:yomou/core/security/pin_lock_screen.dart';
+import 'package:yomou/core/diagnostics/source_selftest.dart';
 import 'package:yomou/core/providers/incognito_provider.dart';
 import 'package:yomou/l10n/generated/app_localizations.dart';
 import 'package:remixicon/remixicon.dart';
@@ -62,6 +63,9 @@ void main() async {
 
   // 2. Run the app.
   runApp(const ProviderScope(child: YomouApp()));
+
+  // 2b. Opt-in bring-up check for browser-rendered sources.
+  SourceSelfTest.schedule();
 
   // 3. If a notification launched the app, open the feed once we have a frame.
   if (mobile) {

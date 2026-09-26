@@ -3,6 +3,7 @@ import '../models/manga_filter.dart';
 import '../models/manga.dart';
 import '../models/chapter.dart';
 import '../models/manga_details.dart';
+import '../models/manga_translation.dart';
 
 class MockSource implements MangaSource {
   @override
@@ -17,6 +18,12 @@ class MockSource implements MangaSource {
 
   @override
   String get readerBaseUrl => 'https://mock-reader.com';
+  @override
+  bool get supportsSignIn => false;
+  @override
+  String get languageCode => 'en';
+  @override
+  Future<List<MangaTranslation>> getTranslations(String mangaId) async => [];
 
   @override
   Future<List<(String url, String? label)>> getAltCovers(String mangaId) async {

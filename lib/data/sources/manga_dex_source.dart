@@ -4,20 +4,45 @@ import '../models/manga.dart';
 import '../models/chapter.dart';
 import '../models/manga_details.dart';
 import '../models/manga_filter.dart';
+import '../models/manga_translation.dart';
 
 class MangaDexSource implements MangaSource {
-  @override
-  String get id => 'mangadex';
+  MangaDexSource({
+    this.sourceId = 'mangadex',
+    this.displayName = 'MangaDex',
+    this.langCode = 'en',
+  });
+
+  /// Source id, e.g. `mangadex` / `mangadex-es`.
+  final String sourceId;
+
+  /// Display name, e.g. `MangaDex` / `MangaDex Español`.
+  final String displayName;
+
+  /// Chapter language branch (`en`, `es`, `pt-br`, ...).
+  final String langCode;
 
   @override
-  String get name => 'MangaDex';
+  String get id => sourceId;
+
+  @override
+  String get name => displayName;
 
   @override
   String get baseUrl => 'https://api.mangadex.org';
+  @override
   String get iconUrl => 'https://mangadex.org/favicon.ico';
 
   @override
   String get readerBaseUrl => 'https://cdn.mangadex.org';
+
+  String get networkSourceId => id;
+
+  @override
+  String get languageCode => langCode;
+
+  @override
+  bool get supportsSignIn => false;
 
   @override
   Map<String, String>? get headers => {
@@ -37,6 +62,53 @@ class MangaDexSource implements MangaSource {
 
   // Cached tag name → id mapping (fetched once per session).
   Map<String, String>? _tagNameToId;
+
+  /// The manga id may carry a `.language` suffix addressing one translation of
+  /// a work (MangaDex publishes the same title with chapters in many
+  /// languages). `abc123.es` = the Spanish translation of title `abc123`.
+  String _baseId(String mangaId) => MangaLanguage.baseIdOf(mangaId);
+
+  /// The language this manga id refers to (suffix when present).
+  String _langOf(String mangaId) => MangaLanguage.suffixOf(mangaId) ?? langCode;
+
+  /// Every translation of [baseId] that has at least one chapter, from the
+  /// aggregate endpoint (volume -> chapter map, each chapter carrying its
+  /// `translatedLanguage`).
+  Future<List<Map<String, dynamic>>> _aggregateChapters(String baseId) async {
+    try {
+      final response = await _dio.get('/manga/$baseId/aggregate');
+      final volumes = response.data['volumes'] ?? {};
+      final chapters = <Map<String, dynamic>>[];
+      volumes.forEach((volKey, vol) {
+        final list = (vol is Map) ? (vol['chapters'] ?? {}) : {};
+        if (list is! Map) return;
+        for (final entry in list.values) {
+          if (entry is Map) chapters.add(entry.cast<String, dynamic>());
+        }
+      });
+      return chapters;
+    } catch (_) {
+      return [];
+    }
+  }
+
+  @override
+  Future<List<MangaTranslation>> getTranslations(String mangaId) async {
+    final baseId = _baseId(mangaId);
+    final chapters = await _aggregateChapters(baseId);
+    final langs = <String>{};
+    for (final c in chapters) {
+      final l = c['translatedLanguage']?.toString();
+      if (l != null && l.isNotEmpty) langs.add(l);
+    }
+    return [
+      for (final l in langs)
+        MangaTranslation(
+          language: l,
+          mangaId: MangaLanguage.withSuffix(baseId, l),
+        ),
+    ];
+  }
 
   @override
   Future<List<Manga>> getPopularManga({int page = 1}) async {
@@ -62,8 +134,10 @@ class MangaDexSource implements MangaSource {
   @override
   Future<MangaDetails?> getMangaDetails(String mangaId) async {
     try {
+      final baseId = _baseId(mangaId);
+      final language = _langOf(mangaId);
       final response = await _dio.get(
-        '/manga/$mangaId',
+        '/manga/$baseId',
         queryParameters: {
           'includes[]': ['author', 'artist', 'cover_art'],
         },
@@ -76,7 +150,7 @@ class MangaDexSource implements MangaSource {
       String description = '';
       final descMap = attrs['description'];
       if (descMap is Map) {
-        description = _extractLocalized(descMap);
+        description = _extractLocalized(descMap, preferred: language);
       }
 
       // Author(s)/artist(s) from relationships.
@@ -116,11 +190,13 @@ class MangaDexSource implements MangaSource {
       }
 
       final year = attrs['year']?.toString() ?? '';
+      final translations = await getTranslations(mangaId);
+      final total = await _chapterCount(baseId, language);
 
       return MangaDetails(
         id: mangaId,
         sourceId: this.id,
-        title: _extractTitle(attrs['title'] ?? {}),
+        title: _extractTitle(attrs['title'] ?? {}, preferred: language),
         coverUrl: _coverUrlFor(item),
         description: description,
         author: authorNames.join(', '),
@@ -128,13 +204,31 @@ class MangaDexSource implements MangaSource {
         year: year,
         tags: tags,
         followers: attrs['followedCount'] ?? 0,
-        totalChapters: attrs['lastChapter'] is num
-            ? (attrs['lastChapter'] as num).round()
-            : 0,
+        totalChapters: total > 0
+            ? total
+            : attrs['lastChapter'] is num
+                ? (attrs['lastChapter'] as num).round()
+                : 0,
+        language: language,
+        translations: translations,
       );
     } catch (e) {
       return null;
     }
+  }
+
+  /// Number of chapters published in [language] (the aggregate endpoint is
+  /// per-language; falls back to the whole title when unknown).
+  Future<int> _chapterCount(String baseId, String language) async {
+    final chapters = await _aggregateChapters(baseId);
+    if (chapters.isEmpty) return 0;
+    var maxChapter = 0.0;
+    for (final c in chapters) {
+      if (c['translatedLanguage']?.toString() != language) continue;
+      final n = c['chapter'];
+      if (n is num && n.toDouble() > maxChapter) maxChapter = n.toDouble();
+    }
+    return maxChapter.round();
   }
 
   String _coverUrlFor(dynamic item) {
@@ -152,11 +246,15 @@ class MangaDexSource implements MangaSource {
         : '';
   }
 
-  // Pick the best localized string (prefer English, fall back to any).
-  String _extractLocalized(dynamic map) {
+  // Pick the best localized string (prefer [preferred] (the translation being
+  // viewed), then the source language, then English, then anything).
+  String _extractLocalized(dynamic map, {String? preferred}) {
     if (map is! Map) return map?.toString() ?? '';
-    if (map['en'] is String && (map['en'] as String).isNotEmpty) {
-      return map['en'] as String;
+    for (final key in [preferred, langCode, 'en']) {
+      if (key == null) continue;
+      if (map[key] is String && (map[key] as String).isNotEmpty) {
+        return map[key] as String;
+      }
     }
     for (final v in map.values) {
       if (v is String && v.isNotEmpty) return v;
@@ -166,11 +264,15 @@ class MangaDexSource implements MangaSource {
 
   // The authoritative chapter count = the highest chapter number across all
   // published chapters (from the aggregate endpoint). This may be larger than
-  // the number of English chapter entries actually loaded.
+  // the number of chapter entries actually loaded. Scoped to the translation
+  // addressed by [mangaId] when it carries a language suffix.
   @override
   Future<int> getTotalChapters(String mangaId) async {
+    final count = await _chapterCount(_baseId(mangaId), _langOf(mangaId));
+    if (count > 0) return count;
     try {
-      final response = await _dio.get('/manga/$mangaId/aggregate');
+      final response =
+          await _dio.get('/manga/${_baseId(mangaId)}/aggregate');
       final volumes = response.data['volumes'] ?? {};
       double maxChapter = 0;
       volumes.forEach((volKey, vol) {
@@ -194,10 +296,10 @@ class MangaDexSource implements MangaSource {
     final chapters = <Chapter>[];
     try {
       final response = await _dio.get(
-        '/manga/$mangaId/feed',
+        '/manga/${_baseId(mangaId)}/feed',
         queryParameters: {
           'order': {'chapter': 'desc'},
-          'translatedLanguage[]': 'en',
+          'translatedLanguage[]': _langOf(mangaId),
           'limit': 500,
           'offset': 0,
         },
@@ -251,12 +353,16 @@ class MangaDexSource implements MangaSource {
     }
   }
 
-  // Pick the best available title (prefer English, fall back to any language)
-  String _extractTitle(dynamic titleMap) {
+  // Pick the best available title (prefer [preferred] (the translation being
+  // viewed), then the source language, then English, then anything).
+  String _extractTitle(dynamic titleMap, {String? preferred}) {
     if (titleMap is! Map) return 'Unknown Title';
     final t = titleMap;
-    if (t['en'] is String && (t['en'] as String).isNotEmpty) {
-      return t['en'] as String;
+    for (final key in [preferred, langCode, 'en']) {
+      if (key == null) continue;
+      if (t[key] is String && (t[key] as String).isNotEmpty) {
+        return t[key] as String;
+      }
     }
     for (final v in t.values) {
       if (v is String && v.isNotEmpty) return v;
@@ -270,7 +376,7 @@ class MangaDexSource implements MangaSource {
   Future<List<(String url, String? label)>> getAltCovers(String mangaId) async {
     try {
       final response = await _dio.get(
-        '/manga/$mangaId/covers',
+        '/manga/${_baseId(mangaId)}/covers',
         queryParameters: {'limit': 96},
       );
       final data = response.data['data'] as List? ?? [];
@@ -483,10 +589,10 @@ class MangaDexSource implements MangaSource {
   Future<(String, DateTime)?> getLatestChapter(String mangaId) async {
     try {
       final response = await _dio.get(
-        '/manga/$mangaId/feed',
+        '/manga/${_baseId(mangaId)}/feed',
         queryParameters: {
           'order': {'chapter': 'desc'},
-          'translatedLanguage[]': 'en',
+          'translatedLanguage[]': _langOf(mangaId),
           'limit': 1,
           'offset': 0,
         },

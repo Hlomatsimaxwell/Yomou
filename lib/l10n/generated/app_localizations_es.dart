@@ -834,6 +834,9 @@ class AppLocalizationsEs extends AppLocalizations {
   String get detailAuthor => 'Autor';
 
   @override
+  String get detailTranslation => 'Traducción';
+
+  @override
   String get detailYear => 'Año';
 
   @override
@@ -2092,8 +2095,71 @@ class AppLocalizationsEs extends AppLocalizations {
       'Ayuda a evitar el bloqueo de tu dirección IP.';
 
   @override
+  String get sourceTest => 'Probar fuente';
+
+  @override
+  String get sourceTestSubtitle =>
+      'Comprueba la conexión y muestra la respuesta';
+
+  @override
+  String get sourceTestTitles => 'Títulos';
+
+  @override
+  String get sourceTestError => 'Error';
+
+  @override
+  String get sourceTestUnknown => 'Fuente no encontrada';
+
+  @override
   String get sourceOpenInBrowser => 'Abrir en el navegador web';
 
   @override
   String get signInLoggedInAs => 'Sesión iniciada como';
+
+  @override
+  String get captchaRequiredTitle =>
+      'Esta fuente requiere resolver un captcha para continuar.';
+
+  @override
+  String get captchaSolve => 'Resolver';
+
+  @override
+  String get captchaSolveTitle => 'Resolver captcha';
+
+  @override
+  String get captchaSolveHint =>
+      'Completa la verificacion en el navegador y continua.';
+
+  @override
+  String get captchaContinue => 'Continuar';
+
+  @override
+  String get captchaStatusTitle => 'Lo que muestra el navegador';
+
+  @override
+  String get captchaStatusPage => 'Pagina';
+
+  @override
+  String get captchaStatusChallenge => 'Desafio';
+
+  @override
+  String get captchaStatusContent => 'Contenido';
+
+  @override
+  String get captchaStatusCookies => 'Cookies';
+
+  @override
+  String get captchaChallengeNone => 'ninguno visible';
+
+  @override
+  String get captchaChallengeOnScreen => 'EN PANTALLA';
+
+  @override
+  String get captchaChallengeUnknown => 'la pagina aun no ha cargado';
+
+  @override
+  String get captchaContentEmpty => 'vacio';
+
+  @override
+  String get captchaContentLoaded => 'cargado';
 }

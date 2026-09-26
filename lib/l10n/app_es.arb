@@ -324,6 +324,7 @@
   },
   "detailSource": "Fuente",
   "detailAuthor": "Autor",
+  "detailTranslation": "Traducción",
   "detailYear": "Año",
   "detailState": "Estado",
   "detailChapters": "Capítulos",
@@ -653,18 +654,30 @@
   "altSourcesCount": "{x}/{y} fuentes",
   "@altSourcesCount": {
     "placeholders": {
-      "x": {"type": "num"},
-      "y": {"type": "num"}
+      "x": {
+        "type": "num"
+      },
+      "y": {
+        "type": "num"
+      }
     }
   },
   "altMigrateTitle": "Migración de manga",
   "altMigrateBody": "{fromTitle} de {fromSource} será reemplazado por {toTitle} de {toSource} en tu historial y favoritos (si existen).",
   "@altMigrateBody": {
     "placeholders": {
-      "fromTitle": {"type": "String"},
-      "fromSource": {"type": "String"},
-      "toTitle": {"type": "String"},
-      "toSource": {"type": "String"}
+      "fromTitle": {
+        "type": "String"
+      },
+      "fromSource": {
+        "type": "String"
+      },
+      "toTitle": {
+        "type": "String"
+      },
+      "toSource": {
+        "type": "String"
+      }
     }
   },
   "altMigrate": "Migrar",
@@ -995,6 +1008,71 @@
   "sourceCaptchaNotifSubtitle": "No recibirás notificaciones sobre la resolución de CAPTCHA en esta fuente, pero esto puede romper operaciones en segundo plano (comprobación de capítulos nuevos, obtener recomendaciones, etc.).",
   "sourceDownloadSlowdown": "Ralentizar descargas",
   "sourceDownloadSlowdownSubtitle": "Ayuda a evitar el bloqueo de tu dirección IP.",
+  "sourceTest": "Probar fuente",
+  "sourceTestSubtitle": "Comprueba la conexión y muestra la respuesta",
+  "sourceTestTitles": "Títulos",
+  "sourceTestError": "Error",
+  "sourceTestUnknown": "Fuente no encontrada",
   "sourceOpenInBrowser": "Abrir en el navegador web",
-  "signInLoggedInAs": "Sesión iniciada como"
+  "signInLoggedInAs": "Sesión iniciada como",
+  "captchaRequiredTitle": "Esta fuente requiere resolver un captcha para continuar.",
+  "@captchaRequiredTitle": {
+    "description": "captchaRequiredTitle"
+  },
+  "captchaSolve": "Resolver",
+  "@captchaSolve": {
+    "description": "captchaSolve"
+  },
+  "captchaSolveTitle": "Resolver captcha",
+  "@captchaSolveTitle": {
+    "description": "captchaSolveTitle"
+  },
+  "captchaSolveHint": "Completa la verificacion en el navegador y continua.",
+  "@captchaSolveHint": {
+    "description": "captchaSolveHint"
+  },
+  "captchaContinue": "Continuar",
+  "@captchaContinue": {
+    "description": "captchaContinue"
+  },
+  "captchaStatusTitle": "Lo que muestra el navegador",
+  "@captchaStatusTitle": {
+    "description": "captchaStatusTitle"
+  },
+  "captchaStatusPage": "Pagina",
+  "@captchaStatusPage": {
+    "description": "captchaStatusPage"
+  },
+  "captchaStatusChallenge": "Desafio",
+  "@captchaStatusChallenge": {
+    "description": "captchaStatusChallenge"
+  },
+  "captchaStatusContent": "Contenido",
+  "@captchaStatusContent": {
+    "description": "captchaStatusContent"
+  },
+  "captchaStatusCookies": "Cookies",
+  "@captchaStatusCookies": {
+    "description": "captchaStatusCookies"
+  },
+  "captchaChallengeNone": "ninguno visible",
+  "@captchaChallengeNone": {
+    "description": "captchaChallengeNone"
+  },
+  "captchaChallengeOnScreen": "EN PANTALLA",
+  "@captchaChallengeOnScreen": {
+    "description": "captchaChallengeOnScreen"
+  },
+  "captchaChallengeUnknown": "la pagina aun no ha cargado",
+  "@captchaChallengeUnknown": {
+    "description": "captchaChallengeUnknown"
+  },
+  "captchaContentEmpty": "vacio",
+  "@captchaContentEmpty": {
+    "description": "captchaContentEmpty"
+  },
+  "captchaContentLoaded": "cargado",
+  "@captchaContentLoaded": {
+    "description": "captchaContentLoaded"
+  }
 }

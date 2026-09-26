@@ -53,6 +53,9 @@ class CachedMangaImage extends StatelessWidget {
     'mgeko.cc': 'https://www.mgeko.cc/',
     'imgsrv4.com': 'https://www.mgeko.cc/',
     'imgsrv5.com': 'https://www.mgeko.cc/',
+    // MangaBall rotates the subdomain per cover (bulbasaur./jigglypuff./...),
+    // all under one hotlink-protected domain.
+    'poke-black-and-white.net': 'https://mangaball.com/',
   };
 
   Map<String, String>? get _headers {

@@ -2,6 +2,7 @@ import 'manga.dart';
 import 'chapter.dart';
 import 'manga_details.dart';
 import 'manga_filter.dart';
+import 'manga_translation.dart';
 
 abstract class MangaSource {
   String get id;
@@ -9,11 +10,28 @@ abstract class MangaSource {
   String get baseUrl;
   String get readerBaseUrl;
 
+  /// The language this source's manga are published in (e.g. `en`). Shown on
+  /// the manga detail screen's "Translation" row when the details lookup does
+  /// not report a more specific one.
+  String get languageCode => 'en';
+
+  /// Alternative translations of [mangaId] published by this source, if any.
+  /// Sources that publish a single language return an empty list; the details
+  /// lookup also embeds them in [MangaDetails.translations].
+  Future<List<MangaTranslation>> getTranslations(String mangaId) async {
+    return [];
+  }
+
   /// URL of the source's favicon/logo, used as the tile icon in UIs.
   /// Empty when the source has no usable icon (callers fall back to a letter).
   String get iconUrl => '';
 
   Map<String, String>? get headers => null;
+
+  /// Whether the source's website offers a login that can be performed in the
+  /// in-app browser (used to capture cookies). Sources without a web login
+  /// (e.g. app-only accounts) return false and hide the Sign-in row.
+  bool get supportsSignIn => true;
 
   Future<List<Manga>> getPopularManga({int page = 1});
   Future<MangaDetails?> getMangaDetails(String mangaId);

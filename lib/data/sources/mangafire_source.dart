@@ -1,17 +1,46 @@
-import 'dart:convert';
+import 'package:flutter/foundation.dart';
 import 'package:html/parser.dart' as parser;
 import '../models/manga_source.dart';
 import '../models/manga_filter.dart';
 import '../models/manga.dart';
 import '../models/chapter.dart';
 import '../models/manga_details.dart';
+import '../models/manga_translation.dart';
 import 'mangafire_vrf.dart';
 import 'source_network.dart';
+import 'webview_fetcher.dart';
 
 /// MangaFire (mangafire.to) — one entry per language branch, mirroring
 /// Kotatsu's MangaFire English / Spanish / Spanish (Latin) / French / Japanese
 /// / Portuguese / Portuguese (Brazil) sources. Each variant shares the domain
 /// but only reads its own language's chapter branches.
+///
+/// The site is a client-rendered SPA behind a Cloudflare JavaScript challenge:
+/// plain requests receive an empty shell (no cards) and the JSON API answers
+/// `403 {"message":"Missing token."}`. Pages are therefore rendered in a
+/// hidden WebView (see [WebViewFetcher]), which executes the challenge and
+/// yields the real markup.
+/// A parsed title page.
+class _MangaFireDetail {
+  _MangaFireDetail({
+    required this.title,
+    required this.cover,
+    required this.description,
+    required this.authors,
+    required this.tags,
+    required this.status,
+    required this.translations,
+  });
+
+  final String title;
+  final String cover;
+  final String description;
+  final List<String> authors;
+  final List<String> tags;
+  final String status;
+  final List<MangaTranslation> translations;
+}
+
 class MangaFireSource extends DioSource implements MangaSource {
   /// Source id, e.g. `mangafire-en`.
   final String sourceId;
@@ -30,10 +59,75 @@ class MangaFireSource extends DioSource implements MangaSource {
   String get name => _nameFor(sourceId);
   @override
   String get baseUrl => 'https://mangafire.to';
+
+  /// MangaFire is a client-rendered SPA, so the front page always answers even
+  /// when the listings are blocked. Test the listing endpoint instead.
+  @override
+  String get testUrl => '$baseUrl/filter';
   @override
   String get readerBaseUrl => 'https://mangafire.to';
   @override
-  String get iconUrl => 'https://mangafire.to/assets/mangafire/favicon.svg';
+  String get languageCode => langCode;
+
+  // Kept while the rendered page still shows the challenge/last stage only, so
+  // we do not hand back a shell that parses to nothing.
+  static const String _shellMarker = 'app-root';
+
+  /// Fetches a MangaFire page, rendering it in the hidden WebView when the
+  /// plain request comes back as the empty SPA shell.
+  ///
+  /// [expect] is a substring the finished page must contain (e.g. a card
+  /// class); when even the rendered page lacks it the caller's normal
+  /// "no results" path runs.
+  Future<String> _page(
+    String url, {
+    String? expect,
+    Map<String, String>? extraHeaders,
+  }) async {
+    final plain = await grabText(url, extraHeaders: extraHeaders);
+    if (_hasContent(plain, expect)) {
+      debugPrint('[mangafire] $id plain ok (${plain.length}b) $url');
+      return plain;
+    }
+
+    try {
+      final rendered = await WebViewFetcher.instance.render(
+        url,
+        sourceId: id,
+        expected: expect == 'card' ? 'title-grid__link' : null,
+      );
+      debugPrint(
+        '[mangafire] $id rendered ${rendered.length}b '
+        'want=$expect has=${_hasContent(rendered, expect)} $url',
+      );
+      if (_hasContent(rendered, expect)) return rendered;
+      // A partially rendered page is still better than the shell.
+      if (!_isShell(rendered)) return rendered;
+    } catch (e) {
+      debugPrint('[mangafire] render failed for $url: $e');
+    }
+    debugPrint('[mangafire] $id falling back to shell for $url');
+    return plain;
+  }
+
+  bool _isShell(String html) =>
+      html.isEmpty || (html.contains(_shellMarker) && !html.contains('card'));
+
+  bool _hasContent(String html, String? expect) {
+    if (html.isEmpty) return false;
+    if (expect == null) return !_isShell(html);
+    return html.contains(expect);
+  }
+
+  /// A manga id may carry a `.language` suffix addressing one translation of
+  /// the work (MangaFire publishes the same title in several language
+  /// branches): `berserk.5134.es` = the Spanish translation.
+  String _baseId(String mangaId) => MangaLanguage.baseIdOf(mangaId);
+
+  /// The language branch a manga id refers to (its suffix, else this source's).
+  String _langOf(String mangaId) => MangaLanguage.suffixOf(mangaId) ?? langCode;
+  @override
+  String get iconUrl => 'https://mangafire.to/assets/mangafire/logo.png';
 
   static String _nameFor(String sourceId) {
     const names = {
@@ -63,31 +157,51 @@ class MangaFireSource extends DioSource implements MangaSource {
     return '$baseUrl$url';
   }
 
-  /// Extracts the numeric manga id (".../manga/xxx-slug.38922" -> "38922").
-  String _numericId(String mangaId) =>
-      mangaId.contains('.') ? mangaId.substring(mangaId.lastIndexOf('.') + 1) : mangaId;
+  /// The canonical page of a title.
+  ///
+  /// The current site addresses titles as `/title/<slug>`; the id a listing
+  /// yields already *is* that slug, so it must not be appended to the bare
+  /// domain (which 404s and leaves the page without chapters).
+  String _mangaUrl(String mangaId) => '$baseUrl/title/${_baseId(mangaId)}';
 
-  /// Listings come from the `/filter` page (same layout whether browsed by
-  /// genre, status, sort or keyword).
+  /// Listings come from the `/filter` page. The current site is a React SPA
+  /// whose rendered grid is a list of `a.title-grid__link` cards:
+  ///
+  /// ```html
+  /// <a class="title-grid__link" href="/title/<slug>">
+  ///   <div class="card manga-card">
+  ///     <div class="card__poster manga-card__poster">
+  ///       <img class="manga-card__img" alt="Title" src="...@280.jpg">
+  ///     ...
+  ///     <div class="card__title manga-card__title">Title</div>
+  /// ```
+  ///
+  /// The slug is the manga id (the old `slug.38922` numeric ids are gone, and
+  /// with them the `/ajax/read/{numericId}` chapter endpoint).
   List<Manga> _parseFilter(String html) {
     final document = parser.parse(html);
     final result = <Manga>[];
     final seen = <String>{};
-    for (final unit in document.querySelectorAll('.original.card-lg .unit .inner')) {
-      final a = unit.querySelector('.info > a');
-      final href = a?.attributes['href'] ?? '';
-      if (href.isEmpty) continue;
-      final path = href.replaceAll(RegExp(r'^/+'), '');
-      if (seen.contains(path)) continue;
-      final title = a?.text.trim() ?? '';
+    for (final a in document.querySelectorAll('a[href^="/title/"]')) {
+      final href = a.attributes['href'] ?? '';
+      final path = href
+          .replaceFirst(RegExp(r'^/title/'), '')
+          .split(RegExp(r'[?#]'))
+          .first
+          .trim();
+      if (path.isEmpty || seen.contains(path)) continue;
+      final titleEl = a.querySelector('.card__title');
+      final img = a.querySelector('img');
+      final title = (titleEl?.text.trim().isNotEmpty ?? false)
+          ? titleEl!.text.trim()
+          : (img?.attributes['alt']?.trim() ?? '');
       if (title.isEmpty) continue;
-      final cover = _abs(unit.querySelector('img')?.attributes['src'] ?? '');
       seen.add(path);
       result.add(
         Manga(
           id: path,
           title: title,
-          coverUrl: cover,
+          coverUrl: _abs(img?.attributes['src'] ?? ''),
           sourceId: id,
         ),
       );
@@ -103,11 +217,7 @@ class MangaFireSource extends DioSource implements MangaSource {
     List<String>? genres,
     List<String>? excludeGenres,
   }) {
-    final params = <String>[
-      'page=$page',
-      'language[]=$langCode',
-      'sort=$sort',
-    ];
+    final params = <String>['page=$page', 'language[]=$langCode', 'sort=$sort'];
     if (keyword != null && keyword.isNotEmpty) {
       final parts = keyword
           .trim()
@@ -127,26 +237,45 @@ class MangaFireSource extends DioSource implements MangaSource {
   }
 
   @override
-  Future<List<Manga>> getPopularManga({int page = 1}) async {
+  Future<List<Manga>> getPopularManga({int page = 1}) =>
+      _listing(_filterUrl(page: page));
+
+  /// Fetches a listing and only accepts a response that actually yields
+  /// titles.
+  ///
+  /// A substring check cannot tell a rendered grid from a page that merely
+  /// mentions the word (the SPA shell and the Cloudflare interstitial both
+  /// ship CSS/JS full of it), so the plain response is accepted only when it
+  /// parses; otherwise the page is rendered in the hidden WebView and the
+  /// *rendered* markup decides.
+  Future<List<Manga>> _listing(String url) async {
+    final plain = await grabText(url);
+    if (!_isShell(plain)) {
+      final list = _parseFilter(plain);
+      if (list.isNotEmpty) {
+        debugPrint('[mangafire] $id listing plain ok (${list.length}) $url');
+        return list;
+      }
+    }
     try {
-      final html = await grabText(_filterUrl(page: page));
-      if (html.isEmpty) return [];
-      return _parseFilter(html);
-    } catch (_) {
-      return [];
+      final rendered = await WebViewFetcher.instance.render(
+        url,
+        sourceId: id,
+        expected: 'title-grid__link',
+      );
+      final list = _parseFilter(rendered);
+      debugPrint('[mangafire] $id listing rendered -> ${list.length} $url');
+      return list;
+    } catch (e) {
+      debugPrint('[mangafire] $id render failed for $url: $e');
+      return const [];
     }
   }
 
   @override
   Future<List<Manga>> searchByTitle(String query, {int page = 1}) async {
-    try {
-      if (query.trim().isEmpty) return [];
-      final html = await grabText(_filterUrl(page: page, keyword: query));
-      if (html.isEmpty) return [];
-      return _parseFilter(html);
-    } catch (_) {
-      return [];
-    }
+    if (query.trim().isEmpty) return [];
+    return _listing(_filterUrl(page: page, keyword: query));
   }
 
   @override
@@ -160,7 +289,7 @@ class MangaFireSource extends DioSource implements MangaSource {
   @override
   Future<List<String>> getAvailableTags() async {
     try {
-      final html = await grabText('$baseUrl/filter');
+      final html = await _page('$baseUrl/filter', expect: 'card');
       if (html.isEmpty) return [];
       final document = parser.parse(html);
       final tags = <String>[];
@@ -177,189 +306,289 @@ class MangaFireSource extends DioSource implements MangaSource {
   @override
   Future<MangaDetails?> getMangaDetails(String mangaId) async {
     try {
-      final html = await grabText('$baseUrl/$mangaId');
+      final html = await _page(_mangaUrl(mangaId), expect: _detailMarker);
       if (html.isEmpty) return null;
       final document = parser.parse(html);
-
-      final title = document.querySelector('.info > h1')?.text.trim() ?? '';
-
-      final poster = document.querySelector('div.manga-detail div.poster img');
-      final cover = _abs(poster?.attributes['src'] ?? '');
-
-      var description = '';
-      final synopsis = document.querySelector('#synopsis div.modal-content');
-      if (synopsis != null) {
-        if (synopsis.querySelector('div') != null) {
-          description = synopsis.querySelectorAll('div').map((d) => d.text.trim()).where((t) => t.isNotEmpty).join('\n');
-        } else {
-          description = synopsis.text.trim();
-        }
-      }
-
-      final tags = <String>[];
-      for (final a in document.querySelectorAll('div.meta a[href*="/genre/"]')) {
-        final t = a.text.trim();
-        if (t.isNotEmpty && !tags.contains(t)) tags.add(t);
-      }
-
-      final authors = <String>[];
-      for (final a
-          in document.querySelectorAll('div.meta a[href*="/author/"]')) {
-        final t = a.text.trim();
-        if (t.isNotEmpty && !authors.contains(t)) authors.add(t);
-      }
-
-      var status = '';
-      final statusEl = document.querySelector('.info > p');
-      if (statusEl != null) {
-        status = switch (statusEl.text.trim().toLowerCase()) {
-          'releasing' => 'ongoing',
-          'completed' => 'completed',
-          'discontinued' => 'discontinued',
-          'on_hiatus' => 'on hiatus',
-          'info' => 'upcoming',
-          final other => other,
-        };
-      }
-
+      final info = _parseDetail(document, mangaId);
+      if (info == null) return null;
       return MangaDetails(
         id: mangaId,
-        title: title,
-        coverUrl: cover,
+        title: info.title,
+        coverUrl: info.cover,
         sourceId: id,
-        description: description,
-        author: authors.join(', '),
-        status: status,
-        tags: tags,
+        description: info.description,
+        author: info.authors.join(', '),
+        status: info.status,
+        tags: info.tags,
+        language: _langOf(mangaId),
+        translations: info.translations,
       );
-    } catch (_) {
+    } catch (e) {
+      debugPrint('[mangafire] $id details failed for $mangaId: $e');
       return null;
     }
+  }
+
+  /// Marker of a rendered title page: the chapter panel only exists there.
+  static const String _detailMarker = 'title-detail__chapters';
+
+  /// Reads the rendered title page (`/title/<slug>`).
+  ///
+  /// ```html
+  /// <div class="title-detail__poster"><img src=".../cover.jpg"></div>
+  /// <h1 class="title-detail__title">Title</h1>
+  /// <span class="title-detail__alt-line">Other title</span>
+  /// <a class="title-detail__tag" href="/browse?genres_in=1">Action</a>
+  /// <a class="title-detail__credit-link" href="/browse?authors=1">Author</a>
+  /// <div class="title-detail__synopsis"><p>...</p></div>
+  /// <span class="badge badge--status">Releasing</span>
+  /// ```
+  _MangaFireDetail? _parseDetail(dynamic document, String mangaId) {
+    final title =
+        document.querySelector('h1.title-detail__title')?.text.trim() ?? '';
+    if (title.isEmpty) return null;
+
+    final cover = _abs(
+      document.querySelector('.title-detail__poster img')?.attributes['src'] ??
+          '',
+    );
+
+    final altTitles = <String>[];
+    for (final el in document.querySelectorAll('.title-detail__alt-line')) {
+      final t = el.text.trim();
+      if (t.isNotEmpty && t != title && !altTitles.contains(t)) {
+        altTitles.add(t);
+      }
+    }
+
+    final synopsis = document.querySelector('.title-detail__synopsis');
+    var description = synopsis?.text.trim() ?? '';
+    if (description.length > 4000) {
+      description = '${description.substring(0, 4000)}…';
+    }
+
+    final tags = <String>[];
+    for (final a in document.querySelectorAll('a.title-detail__tag')) {
+      final t = a.text.trim();
+      if (t.isNotEmpty && !tags.contains(t)) tags.add(t);
+    }
+
+    final authors = <String>[];
+    for (final a in document.querySelectorAll('a.title-detail__credit-link')) {
+      final t = a.text.trim();
+      if (t.isNotEmpty && !authors.contains(t)) authors.add(t);
+    }
+
+    var status = '';
+    final statusEl = document.querySelector('.badge--status');
+    if (statusEl != null) {
+      status = switch (statusEl.text.trim().toLowerCase()) {
+        'releasing' => 'ongoing',
+        'completed' => 'completed',
+        'discontinued' => 'discontinued',
+        'hiatus' || 'on hiatus' => 'on hiatus',
+        final other => other,
+      };
+    }
+
+    return _MangaFireDetail(
+      title: title,
+      cover: cover,
+      description: description,
+      authors: authors,
+      tags: tags,
+      status: status,
+      translations: _translationsFrom(document, mangaId, altTitles),
+    );
+  }
+
+  /// The language branches the title is published in.
+  ///
+  /// The page lists every alternate title it knows, but the branch a reader
+  /// can actually open is not linked in the markup (the language picker is a
+  /// JS dropdown), so the site's own chapter branches are the source of
+  /// truth: each chapter row carries the language it belongs to. Titles whose
+  /// alternate names exist are still recorded so the picker can show them.
+  List<MangaTranslation> _translationsFrom(
+    dynamic document,
+    String mangaId,
+    List<String> altTitles,
+  ) {
+    final baseId = _baseId(mangaId);
+    final codes = <String>{langCode};
+    for (final flag in document.querySelectorAll('.title-detail__row-flag')) {
+      final code = (flag.attributes['title'] ?? '').trim().toLowerCase();
+      if (code.isNotEmpty) codes.add(_normalizeLang(code));
+    }
+    return [
+      for (var i = 0; i < codes.length; i++)
+        MangaTranslation(
+          language: codes.elementAt(i),
+          mangaId: MangaLanguage.withSuffix(baseId, codes.elementAt(i)),
+          title: i == 0 && altTitles.isNotEmpty ? altTitles.first : '',
+        ),
+    ];
+  }
+
+  /// MangaFire branch codes are not always the ISO ones we track
+  /// (`pt-br`, `es-la`, ...).
+  String _normalizeLang(String code) => switch (code) {
+    'pt-br' || 'ptbr' => 'pt-br',
+    'es-la' || 'esla' => 'es-la',
+    _ => code,
+  };
+
+  @override
+  Future<List<MangaTranslation>> getTranslations(String mangaId) async {
+    final html = await _page(_mangaUrl(mangaId), expect: _detailMarker);
+    if (html.isEmpty) return [];
+    final detail = _parseDetail(parser.parse(html), mangaId);
+    return detail?.translations ?? const [];
   }
 
   @override
   Future<List<Chapter>> getChapters(String mangaId) async {
     try {
-      final mangaUrl = '$baseUrl/$mangaId';
-      final html = await grabText(mangaUrl);
+      final html = await _page(_mangaUrl(mangaId), expect: _detailMarker);
       if (html.isEmpty) return [];
-      final document = parser.parse(html);
-
-      // Available chapter/volume types and their language branches.
-      final types = <String>[];
-      for (final a in document.querySelectorAll('.chapvol-tab > a')) {
-        final t = a.attributes['data-name'] ?? '';
-        if (t.isNotEmpty && !types.contains(t)) types.add(t);
-      }
-
-      final codeToTitle = <String, String>{};
-      for (final el in document.querySelectorAll('.m-list div.tab-content')) {
-        final type = el.attributes['data-name'] ?? '';
-        if (!types.contains(type)) continue;
-        for (final item in el.querySelectorAll('.list-menu .dropdown-item')) {
-          final code = (item.attributes['data-code'] ?? '').toLowerCase();
-          if (code == langCode && !codeToTitle.containsKey(code)) {
-            codeToTitle[code] = item.attributes['data-title'] ?? code;
-          }
-        }
-      }
-
-      if (types.isEmpty || codeToTitle.isEmpty) return [];
-
-      final numericId = _numericId(mangaId);
-      final chapters = <Chapter>[];
-      for (final type in types) {
-        final body = await grabText(
-          '$baseUrl/ajax/read/$numericId/$type/$langCode?vrf='
-          '${MfVrf.generate('$numericId@$type@$langCode')}',
-          extraHeaders: {'Accept': 'application/json'},
-        );
-        if (body.isEmpty) continue;
-        final decoded = _decodeJsonBody(body);
-        if (decoded == null) continue;
-        final result = decoded['result'];
-        if (result is! Map) continue;
-        final fragment = _htmlFragment(result['html']?.toString() ?? '');
-        if (fragment == null) continue;
-
-        for (final a in fragment.querySelectorAll('ul li a')) {
-          final chapterId = a.attributes['data-id'] ?? '';
-          if (chapterId.isEmpty) continue;
-          final dataNumber = a.attributes['data-number'] ?? '';
-          final title = a.attributes['title']?.trim().isNotEmpty == true
-              ? a.attributes['title']!.trim()
-              : '${_titleCase(type)} $dataNumber';
-          chapters.add(
-            Chapter(
-              id: '$mangaId/$type/$langCode/$chapterId',
-              title: title,
-              chapterNumber: dataNumber,
-              url: '$baseUrl/read/$numericId/$type/$langCode/$chapterId',
-            ),
-          );
-        }
-      }
-      // The AJAX list is newest-first; the app expects oldest-first.
-      return chapters.reversed.toList();
-    } catch (_) {
+      return _parseChapters(parser.parse(html), mangaId);
+    } catch (e) {
+      debugPrint('[mangafire] $id chapters failed for $mangaId: $e');
       return [];
     }
   }
 
+  /// `"Ch. 164"` -> `"164"`, so sorting and grouping work on numbers.
+  static String _chapterNumber(String label) {
+    final m = RegExp(r'(\d+(?:\.\d+)?)').firstMatch(label);
+    return m?.group(1) ?? '';
+  }
+
+  /// `/title/<slug>/chapter/9451645` -> `<slug>`.
+  static String? _slugFromChapterHref(String href) {
+    final m = RegExp(r'/title/([^/]+)/chapter/\d+').firstMatch(href);
+    return m?.group(1);
+  }
+
+  /// Reads the rendered chapter list.
+  ///
+  /// ```html
+  /// <div class="title-detail__list">
+  ///   <div class="title-detail__row">
+  ///     <span class="title-detail__row-flag" title="en">🇬🇧</span>
+  ///     <a class="title-detail__row-link"
+  ///        href="/title/<slug>/chapter/9451645">
+  ///       <span class="title-detail__row-num">Ch. 164</span>
+  ///     </a>
+  ///     <span class="title-detail__row-date">15h ago</span>
+  /// ```
+  ///
+  /// A chapter is addressed as `/title/<slug>/chapter/<id>`, so the chapter id
+  /// is that trailing number.
+  List<Chapter> _parseChapters(dynamic document, String mangaId) {
+    final result = <Chapter>[];
+    final seen = <String>{};
+    for (final a in document.querySelectorAll('a.title-detail__row-link')) {
+      final href = a.attributes['href'] ?? '';
+      final m = RegExp(r'/chapter/(\d+)').firstMatch(href);
+      if (m == null) continue;
+      final id = m.group(1)!;
+      if (!seen.add(id)) continue;
+
+      final row = a.parent?.parent;
+      final number =
+          a.querySelector('.title-detail__row-num')?.text.trim() ??
+          a.text.trim();
+      final flag = row?.querySelector('.title-detail__row-flag');
+      final date = row?.querySelector('.title-detail__row-date')?.text.trim();
+      final chapterLang = _normalizeLang(
+        (flag?.attributes['title'] ?? '').trim().toLowerCase(),
+      );
+
+      // The reader route needs the title slug (`/title/<slug>/chapter/<id>`)
+      // but only the id is handed to [getPageUrls], and the id is also used as
+      // a directory name when downloading — so the slug travels with it,
+      // separated by a character a slug can never contain.
+      final slug = _slugFromChapterHref(href);
+
+      result.add(
+        Chapter(
+          id: slug == null ? id : '$slug~$id',
+          title: number.isEmpty ? 'Chapter $id' : number,
+          chapterNumber: _chapterNumber(number),
+          url: _abs(href),
+          releaseDate: (date ?? '').isEmpty ? null : date,
+          scanlator: chapterLang,
+        ),
+      );
+    }
+    return result;
+  }
+
+  /// Chapter pages are rendered in the hidden WebView too: the page is a
+  /// client-rendered reader and its image list never appears in plain HTML.
+  ///
+  /// The chapter id is the trailing number of
+  /// `/title/<slug>/chapter/<id>`, but the reader needs the slug as well, so
+  /// the chapter url recorded while listing is replayed.
   @override
   Future<List<String>> getPageUrls(String chapterId) async {
+    final url = _chapterPageUrl(chapterId);
+    if (url == null || url.isEmpty) return [];
     try {
-      final realId = chapterId.contains('/')
-          ? chapterId.substring(chapterId.lastIndexOf('/') + 1)
-          : chapterId;
-      if (realId.isEmpty) return [];
-      final body = await grabText(
-        '$baseUrl/ajax/read/chapter/$realId?vrf='
-        '${MfVrf.generate('chapter@$realId')}',
-        extraHeaders: {'Accept': 'application/json'},
-      );
-      if (body.isEmpty) return [];
-      final decoded = _decodeJsonBody(body);
-      if (decoded == null) return [];
-      final result = decoded['result'];
-      if (result is! Map) return [];
-      final images = result['images'];
-      if (images is! List) return [];
-
-      final urls = <String>[];
-      for (final raw in images) {
-        if (raw is! List || raw.isEmpty) continue;
-        final url = raw[0]?.toString() ?? '';
-        if (url.isEmpty) continue;
-        final offset = raw.length > 2 ? raw[2] : 0;
-        final o = offset is int ? offset : int.tryParse('$offset') ?? 0;
-        urls.add(o < 1 ? url : '$url#scrambled_$o');
-      }
-      return urls;
-    } catch (_) {
+      final html = await _page(url, expect: 'chapter-reader');
+      return _parsePageUrls(html);
+    } catch (e) {
+      debugPrint('[mangafire] $id pages failed for $chapterId: $e');
       return [];
     }
   }
 
-  dynamic _decodeJsonBody(String body) {
-    try {
-      return json.decode(body);
-    } catch (_) {
-      return null;
+  /// Rebuilds the reader url of a chapter id.
+  ///
+  /// A chapter id is `<slug>~<number>` (see [_parseChapters]); the reader
+  /// route needs both parts. Ids that carry only a number cannot be resolved
+  /// without the slug, so they yield `null` rather than a wrong page.
+  String? _chapterPageUrl(String chapterId) {
+    final id = chapterId.trim();
+    if (id.isEmpty) return null;
+
+    final sep = id.indexOf('~');
+    if (sep > 0 && sep < id.length - 1) {
+      final slug = id.substring(0, sep);
+      final num = id.substring(sep + 1);
+      return '$baseUrl/title/$slug/chapter/$num';
     }
+
+    // Tolerate an id that still carries the full route.
+    final m = RegExp(r'/title/([^/]+)/chapter/(\d+)').firstMatch(id);
+    if (m != null) return '$baseUrl/title/${m.group(1)}/chapter/${m.group(2)}';
+
+    return null;
   }
 
-  dynamic _htmlFragment(String html) {
-    try {
-      return parser.parseFragment(html);
-    } catch (_) {
-      return null;
+  /// Collects the reader's page images.
+  ///
+  /// Images are CDN urls; a scrambled page is marked with a
+  /// `#scrambled_<offset>` fragment, which the image widget reassembles.
+  List<String> _parsePageUrls(String html) {
+    if (html.isEmpty) return [];
+    final document = parser.parse(html);
+    final urls = <String>[];
+    final seen = <String>{};
+    for (final img in document.querySelectorAll('img')) {
+      final src =
+          img.attributes['data-src'] ??
+          img.attributes['src'] ??
+          img.attributes['data-original'] ??
+          '';
+      if (src.isEmpty) continue;
+      if (!src.contains('mfcdn') && !src.contains('/i/')) continue;
+      final url = _abs(src);
+      if (!seen.add(url)) continue;
+      urls.add(url);
     }
-  }
-
-  String _titleCase(String s) {
-    if (s.isEmpty) return s;
-    return s[0].toUpperCase() + s.substring(1);
+    return urls;
   }
 
   @override
@@ -387,13 +616,7 @@ class MangaFireSource extends DioSource implements MangaSource {
     List<String> tags, {
     int page = 1,
   }) async {
-    try {
-      if (tags.isEmpty) return [];
-      final html = await grabText(_filterUrl(page: page, genres: tags));
-      if (html.isEmpty) return [];
-      return _parseFilter(html);
-    } catch (_) {
-      return [];
-    }
+    if (tags.isEmpty) return [];
+    return _listing(_filterUrl(page: page, genres: tags));
   }
 }

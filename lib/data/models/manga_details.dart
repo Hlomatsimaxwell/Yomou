@@ -1,3 +1,5 @@
+import 'manga_translation.dart';
+
 class MangaDetails {
   final String id;
   final String title;
@@ -11,6 +13,15 @@ class MangaDetails {
   final int followers;
   final int totalChapters;
 
+  /// Language code of this translation (e.g. `en`, `es`, `pt-br`). Empty when
+  /// the source doesn't report one; the UI then falls back to the source's
+  /// declared language.
+  final String language;
+
+  /// Other translations of the same work, when the source publishes more than
+  /// one. Empty for single-language sources.
+  final List<MangaTranslation> translations;
+
   const MangaDetails({
     required this.id,
     required this.title,
@@ -23,6 +34,8 @@ class MangaDetails {
     this.tags = const [],
     this.followers = 0,
     this.totalChapters = 0,
+    this.language = '',
+    this.translations = const [],
   });
 
   factory MangaDetails.fromJson(Map<String, dynamic> json) {
@@ -38,6 +51,13 @@ class MangaDetails {
       tags: (json['tags'] as List?)?.cast<String>() ?? const [],
       followers: (json['followers'] as num?)?.toInt() ?? 0,
       totalChapters: (json['totalChapters'] as num?)?.toInt() ?? 0,
+      language: json['language'] ?? '',
+      translations: (json['translations'] as List?)
+              ?.map((e) => MangaTranslation.fromJson(
+                    (e as Map).cast<String, dynamic>(),
+                  ))
+              .toList() ??
+          const [],
     );
   }
 
@@ -54,6 +74,8 @@ class MangaDetails {
       'tags': tags,
       'followers': followers,
       'totalChapters': totalChapters,
+      'language': language,
+      'translations': translations.map((t) => t.toJson()).toList(),
     };
   }
 }

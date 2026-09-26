@@ -1616,6 +1616,12 @@ abstract class AppLocalizations {
   /// **'Author'**
   String get detailAuthor;
 
+  /// No description provided for @detailTranslation.
+  ///
+  /// In en, this message translates to:
+  /// **'Translation'**
+  String get detailTranslation;
+
   /// No description provided for @detailYear.
   ///
   /// In en, this message translates to:
@@ -3757,6 +3763,36 @@ abstract class AppLocalizations {
   /// **'Helps avoid blocking your IP address.'**
   String get sourceDownloadSlowdownSubtitle;
 
+  /// No description provided for @sourceTest.
+  ///
+  /// In en, this message translates to:
+  /// **'Test source'**
+  String get sourceTest;
+
+  /// No description provided for @sourceTestSubtitle.
+  ///
+  /// In en, this message translates to:
+  /// **'Check the connection and see the raw response'**
+  String get sourceTestSubtitle;
+
+  /// No description provided for @sourceTestTitles.
+  ///
+  /// In en, this message translates to:
+  /// **'Titles'**
+  String get sourceTestTitles;
+
+  /// No description provided for @sourceTestError.
+  ///
+  /// In en, this message translates to:
+  /// **'Error'**
+  String get sourceTestError;
+
+  /// No description provided for @sourceTestUnknown.
+  ///
+  /// In en, this message translates to:
+  /// **'Source not found'**
+  String get sourceTestUnknown;
+
   /// No description provided for @sourceOpenInBrowser.
   ///
   /// In en, this message translates to:
@@ -3768,6 +3804,96 @@ abstract class AppLocalizations {
   /// In en, this message translates to:
   /// **'Logged in as'**
   String get signInLoggedInAs;
+
+  /// captchaRequiredTitle
+  ///
+  /// In en, this message translates to:
+  /// **'This source requires solving a captcha to continue.'**
+  String get captchaRequiredTitle;
+
+  /// captchaSolve
+  ///
+  /// In en, this message translates to:
+  /// **'Solve'**
+  String get captchaSolve;
+
+  /// captchaSolveTitle
+  ///
+  /// In en, this message translates to:
+  /// **'Solve captcha'**
+  String get captchaSolveTitle;
+
+  /// captchaSolveHint
+  ///
+  /// In en, this message translates to:
+  /// **'Finish the check in the browser below, then continue.'**
+  String get captchaSolveHint;
+
+  /// captchaContinue
+  ///
+  /// In en, this message translates to:
+  /// **'Continue'**
+  String get captchaContinue;
+
+  /// captchaStatusTitle
+  ///
+  /// In en, this message translates to:
+  /// **'What the browser is showing'**
+  String get captchaStatusTitle;
+
+  /// captchaStatusPage
+  ///
+  /// In en, this message translates to:
+  /// **'Page'**
+  String get captchaStatusPage;
+
+  /// captchaStatusChallenge
+  ///
+  /// In en, this message translates to:
+  /// **'Challenge'**
+  String get captchaStatusChallenge;
+
+  /// captchaStatusContent
+  ///
+  /// In en, this message translates to:
+  /// **'Content'**
+  String get captchaStatusContent;
+
+  /// captchaStatusCookies
+  ///
+  /// In en, this message translates to:
+  /// **'Cookies'**
+  String get captchaStatusCookies;
+
+  /// captchaChallengeNone
+  ///
+  /// In en, this message translates to:
+  /// **'none seen'**
+  String get captchaChallengeNone;
+
+  /// captchaChallengeOnScreen
+  ///
+  /// In en, this message translates to:
+  /// **'ON SCREEN'**
+  String get captchaChallengeOnScreen;
+
+  /// captchaChallengeUnknown
+  ///
+  /// In en, this message translates to:
+  /// **'page not loaded yet'**
+  String get captchaChallengeUnknown;
+
+  /// captchaContentEmpty
+  ///
+  /// In en, this message translates to:
+  /// **'empty'**
+  String get captchaContentEmpty;
+
+  /// captchaContentLoaded
+  ///
+  /// In en, this message translates to:
+  /// **'loaded'**
+  String get captchaContentLoaded;
 }
 
 class _AppLocalizationsDelegate

@@ -1,6 +1,9 @@
 import 'package:dio/dio.dart';
 import 'package:flutter/foundation.dart';
 import 'package:shared_preferences/shared_preferences.dart';
+import '../models/manga_translation.dart';
+import 'captcha_gate.dart';
+import 'package:yomou/core/diagnostics/diag_log.dart';
 
 /// Per-source network configuration (the "Kotatsu-style" source settings).
 ///
@@ -95,7 +98,10 @@ class SourceNetworkConfig {
   }
 
   /// Stores the cookie header captured after a successful sign-in.
-  static Future<void> setCookies(String sourceId, {required String value}) async {
+  static Future<void> setCookies(
+    String sourceId, {
+    required String value,
+  }) async {
     final prefs = await SharedPreferences.getInstance();
     if (value.trim().isEmpty) {
       await prefs.remove(_cookiesKeyPrefix + sourceId);
@@ -160,10 +166,10 @@ class SourceNetworkConfig {
         final v = prefs.getString(_cookiesKeyPrefix + sourceId);
         return (v == null || v.isEmpty) ? null : v;
       }(),
-      captchaAutosolveDisabled:
-          prefs.getBool(_captchaOffKeyPrefix + sourceId),
-      captchaNotificationsDisabled:
-          prefs.getBool(_captchaNotifOffKeyPrefix + sourceId),
+      captchaAutosolveDisabled: prefs.getBool(_captchaOffKeyPrefix + sourceId),
+      captchaNotificationsDisabled: prefs.getBool(
+        _captchaNotifOffKeyPrefix + sourceId,
+      ),
       downloadSlowdown: prefs.getBool(_slowdownKeyPrefix + sourceId),
     );
   }
@@ -176,8 +182,102 @@ class SourceNetworkConfig {
 /// of the source's own [baseUrl] and [headers], plus a defensive [grabText]
 /// used by the HTML parsers.
 abstract class DioSource {
+  /// Cookie *names* only — values are credentials and never get logged.
+  static List<String> _cookieNames(String? raw) {
+    if (raw == null || raw.isEmpty) return const [];
+    return raw
+        .split(';')
+        .map((c) => c.split('=').first.trim())
+        .where((n) => n.isNotEmpty)
+        .toList();
+  }
+
+  /// Merges `Set-Cookie` values into this source's stored cookies.
+  ///
+  /// Already-stored values win, so a Cloudflare clearance earned earlier
+  /// survives a response that only sets the application's session cookies.
+  Future<void> _storeSetCookies(Map<String, List<String>> headers) async {
+    final setCookies = headers['set-cookie'];
+    if (setCookies == null || setCookies.isEmpty) return;
+    final cfg = await SourceNetworkConfig.forSource(networkSourceId);
+    final jar = <String, String>{};
+
+    void absorb(String raw) {
+      final pair = raw.split(';').first.trim();
+      final eq = pair.indexOf('=');
+      if (eq <= 0) return;
+      final name = pair.substring(0, eq).trim();
+      final value = pair.substring(eq + 1).trim();
+      if (name.isEmpty || value.isEmpty) return;
+      jar.putIfAbsent(name, () => value);
+    }
+
+    for (final part in (cfg.cookies ?? '').split(';')) {
+      absorb(part);
+    }
+    for (final raw in setCookies) {
+      absorb(raw);
+    }
+    if (jar.isEmpty) return;
+    await SourceNetworkConfig.setCookies(
+      networkSourceId,
+      value: jar.entries.map((e) => '${e.key}=${e.value}').join('; '),
+    );
+  }
+
+  /// Reports a challenge that is about to be raised, with just enough context
+  /// to tell "no cookie was sent" apart from "the cookie was sent and
+  /// rejected", which look identical from the outside otherwise.
+  static void _logChallenge(
+    String kind,
+    String sourceId,
+    String url,
+    int? status,
+    Map<String, List<String>> headers,
+    String body,
+    String? cookieHeader,
+  ) {
+    final names = _cookieNames(cookieHeader);
+    final line =
+        '$sourceId $kind $url -> $status '
+        'sentCookies=${names.isEmpty ? 'none' : names.join(',')} '
+        'sentClearance=${names.contains('cf_clearance')} '
+        'server=${headers['server']?.first ?? '?'} '
+        'mitigated=${headers['cf-mitigated']?.first ?? '-'} '
+        'challengeScript=${body.contains('challenges.cloudflare.com')} '
+        'bodyLen=${body.length}';
+    debugPrint(line);
+    diagSoon(line);
+  }
+
+  /// Browser user agent for sources that do not pin one of their own.
+  ///
+  /// The captcha solver presents the same string, because a Cloudflare
+  /// clearance cookie only counts for the user agent that earned it.
+  static const String defaultUserAgent =
+      'Mozilla/5.0 (Linux; Android 10; K) AppleWebKit/537.36 (KHTML, like Gecko) '
+      'Chrome/138.0.0.0 Mobile Safari/537.36';
+
   /// Identifier used to scope per-source network overrides.
   String get networkSourceId;
+
+  /// Default language of the source's catalogue, used by the detail screen's
+  /// "Translation" row. Sources that publish several languages override this
+  /// per manga via [MangaTranslation] lists.
+  String get languageCode => 'en';
+
+  /// Alternative translations of a manga published by this source. Single
+  /// language sources inherit this empty default.
+  Future<List<MangaTranslation>> getTranslations(String mangaId) async => [];
+
+  /// Sources based on [DioSource] offer web sign-in by default; a source that
+  /// has no website login (e.g. app-only accounts) overrides this to false.
+  bool get supportsSignIn => true;
+
+  /// The URL the in-app source test requests. Defaults to the site's front
+  /// page; sources served by a separate API (or a plain SPA) override it with
+  /// an endpoint that proves the API itself answers.
+  String get testUrl => baseUrl;
 
   /// Source has no alternative cover artwork by default (subclasses that do
   /// expose alternate covers override this, e.g. MangaDex volume art).
@@ -224,27 +324,175 @@ abstract class DioSource {
   /// Fetches [url] and returns the response body string. Returns an empty
   /// string on non-200 responses or network errors (sources treat '' as a
   /// miss and keep their defensive behaviour).
+  ///
+  /// Throws [CaptchaRequiredException] when the answer is a Cloudflare
+  /// challenge, because that is not a miss the source can retry away: the user
+  /// has to clear the challenge once in a browser first.
   Future<String> grabText(
     String url, {
     Map<String, String>? extraHeaders,
     bool useBaseUrl = true,
+
+    /// When set, cookies the response hands out are merged into this source's
+    /// stored cookies. Sites that pair a session cookie with a CSRF token need
+    /// this: the token is worthless without the session that issued it.
+    bool saveCookies = false,
   }) async {
     try {
       final client = await dio;
       final resolved = useBaseUrl && !url.startsWith('http')
           ? (await effectiveBaseUrl) + url
           : url;
+      diagSoon('$networkSourceId grabText -> $resolved');
       final res = await client.get<List<int>>(
         resolved,
         options: Options(
           headers: extraHeaders,
           responseType: ResponseType.bytes,
+          // Without this Dio throws on 4xx/5xx, and a Cloudflare challenge
+          // (a 403 with an HTML body) would never reach the check below.
+          validateStatus: (_) => true,
         ),
       );
-      if (res.statusCode != 200) return '';
-      return String.fromCharCodes(res.data ?? const []);
+      final body = String.fromCharCodes(res.data ?? const []);
+      if (saveCookies) await _storeSetCookies(res.headers.map);
+      if (res.statusCode != 200) {
+        if (isCloudflareChallenge(
+          status: res.statusCode ?? 0,
+          headers: res.headers.map,
+          body: body,
+        )) {
+          _logChallenge(
+            'grabText',
+            networkSourceId,
+            resolved,
+            res.statusCode,
+            res.headers.map,
+            body,
+            extraHeaders?['Cookie'] ??
+                (await SourceNetworkConfig.forSource(networkSourceId)).cookies,
+          );
+          throw CaptchaRequiredException(
+            sourceId: networkSourceId,
+            challengeUrl: resolved,
+          );
+        }
+        return '';
+      }
+      if (isCloudflareChallenge(
+        status: res.statusCode ?? 0,
+        headers: res.headers.map,
+        body: body,
+      )) {
+        _logChallenge(
+          'grabText',
+          networkSourceId,
+          resolved,
+          res.statusCode,
+          res.headers.map,
+          body,
+          extraHeaders?['Cookie'] ??
+              (await SourceNetworkConfig.forSource(networkSourceId)).cookies,
+        );
+        throw CaptchaRequiredException(
+          sourceId: networkSourceId,
+          challengeUrl: resolved,
+        );
+      }
+      return body;
+    } on CaptchaRequiredException {
+      rethrow;
     } catch (e) {
-      debugPrint('${networkSourceId} grabText error: $e');
+      final line = '$networkSourceId grabText error: $e';
+      debugPrint(line);
+      diagSoon(line);
+      return '';
+    }
+  }
+
+  /// Posts a form-encoded body and returns the response text, for the sources
+  /// whose listings and search live behind a POST endpoint.
+  ///
+  /// Pass [rawBody] when the form needs repeated keys (`filters[x][]`), which
+  /// a map cannot express.
+  ///
+  /// Challenge pages throw [CaptchaRequiredException] just like [grabText].
+  Future<String> postText(
+    String url, {
+    Map<String, String> form = const {},
+    String? rawBody,
+    Map<String, String>? extraHeaders,
+  }) async {
+    try {
+      final client = await dio;
+      diagSoon('$networkSourceId postText -> $url');
+      final res = await client.post<List<int>>(
+        url,
+        data: rawBody ?? form,
+        options: Options(
+          headers: rawBody == null
+              ? extraHeaders
+              : {
+                  'Content-Type': 'application/x-www-form-urlencoded',
+                  ...?extraHeaders,
+                },
+          responseType: ResponseType.bytes,
+          // See grabText: challenge pages arrive as 403 and must be inspectable.
+          validateStatus: (_) => true,
+        ),
+      );
+      final body = String.fromCharCodes(res.data ?? const []);
+      if (isCloudflareChallenge(
+        status: res.statusCode ?? 0,
+        headers: res.headers.map,
+        body: body,
+      )) {
+        _logChallenge(
+          'postText',
+          networkSourceId,
+          url,
+          res.statusCode,
+          res.headers.map,
+          body,
+          extraHeaders?['Cookie'] ??
+              (await SourceNetworkConfig.forSource(networkSourceId)).cookies,
+        );
+        throw CaptchaRequiredException(
+          sourceId: networkSourceId,
+          challengeUrl: url,
+        );
+      }
+      if (res.statusCode != 200) {
+        // A short body with a 403 is the site rejecting our session rather
+        // than a challenge, so record what we actually presented.
+        final sent = extraHeaders?['X-CSRF-TOKEN'];
+        final cfg = await SourceNetworkConfig.forSource(networkSourceId);
+        final names = _cookieNames(extraHeaders?['Cookie'] ?? cfg.cookies);
+        final line =
+            '$networkSourceId postText $url -> ${res.statusCode} '
+            '(${body.length}b) csrfHeader=${sent != null && sent.isNotEmpty} '
+            'cookies=${names.isEmpty ? 'none' : names.join(',')} '
+            'body=${body.replaceAll(RegExp(r'\s+'), ' ').substring(0, body.length.clamp(0, 120))}';
+        debugPrint(line);
+        diagSoon(line);
+        return '';
+      }
+      // A 200 is not automatically useful: the body can be empty, or the
+      // request can have been redirected somewhere else entirely.
+      if (body.isEmpty || res.realUri.toString() != url) {
+        final line =
+            '$networkSourceId postText $url -> 200 empty=${body.isEmpty} '
+            'finalUri=${res.realUri}';
+        debugPrint(line);
+        diagSoon(line);
+      }
+      return body;
+    } on CaptchaRequiredException {
+      rethrow;
+    } catch (e) {
+      final line = '$networkSourceId postText error: $e';
+      debugPrint(line);
+      diagSoon(line);
       return '';
     }
   }
@@ -261,11 +509,13 @@ abstract class DioSource {
         await Future<void>.delayed(const Duration(milliseconds: 400));
       }
       final client = await dio;
+      diagSoon('$networkSourceId grabBytes -> $url');
       final res = await client.get<List<int>>(
         url,
         options: Options(
           headers: extraHeaders,
           responseType: ResponseType.bytes,
+          validateStatus: (_) => true,
         ),
       );
       if (res.statusCode != 200) return null;

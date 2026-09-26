@@ -4,6 +4,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import '../models/manga_source.dart';
 import 'package:yomou/features/settings/providers/cache_settings_provider.dart';
+import '../sources/mangaball_source.dart';
 import '../sources/manganato_service.dart';
 import '../sources/mock_source.dart';
 import '../sources/manga_dex_source.dart';
@@ -35,10 +36,94 @@ final Map<String, MangaSource> _sourceInstances = {};
 MangaSource _shared(String id, MangaSource Function() create) =>
     _sourceInstances.putIfAbsent(id, create);
 
+/// MangaBall publishes one variant per site language, all served by the same
+/// API and filtered by `filters[translatedLanguage][]`, so the variants are
+/// generated from this table instead of 41 hand-written cases.
+const Map<String, String> kMangaBallLanguages = {
+  'ar': 'Arabic',
+  'bg': 'Bulgarian',
+  'bn': 'Bengali',
+  'ca': 'Catalan',
+  'cs': 'Czech',
+  'da': 'Danish',
+  'de': 'German',
+  'el': 'Greek',
+  'en': 'English',
+  'es': 'Spanish',
+  'fa': 'Persian',
+  'fi': 'Finnish',
+  'fr': 'French',
+  'he': 'Hebrew',
+  'hi': 'Hindi',
+  'hu': 'Hungarian',
+  'id': 'Indonesian',
+  'it': 'Italian',
+  'is': 'Icelandic',
+  'ja': 'Japanese',
+  'ko': 'Korean',
+  'kn': 'Kannada',
+  'ml': 'Malayalam',
+  'ms': 'Malay',
+  'ne': 'Nepali',
+  'nl': 'Dutch',
+  'no': 'Norwegian',
+  'pl': 'Polish',
+  'pt': 'Portuguese',
+  'ro': 'Romanian',
+  'ru': 'Russian',
+  'sk': 'Slovak',
+  'sl': 'Slovenian',
+  'sq': 'Albanian',
+  'sr': 'Serbian',
+  'sv': 'Swedish',
+  'ta': 'Tamil',
+  'th': 'Thai',
+  'tr': 'Turkish',
+  'uk': 'Ukrainian',
+  'vi': 'Vietnamese',
+  'zh': 'Chinese',
+};
+
+/// Reverse of [kMangaBallLanguages]: the source list stores display names, so
+/// a variant is resolved by the language name it shows.
+final Map<String, String> kMangaBallCodesByLanguage = {
+  for (final e in kMangaBallLanguages.entries) e.value: e.key,
+};
+
+MangaSource? _mangaBallByName(String name) {
+  if (!name.startsWith('MangaBall ')) return null;
+  final language = name.substring('MangaBall '.length);
+  final code = kMangaBallCodesByLanguage[language];
+  if (code == null) return null;
+  final id = 'mangaball-$code';
+  return _shared(
+    id,
+    () => MangaBallSource(sourceId: id, displayName: name, langCode: code),
+  );
+}
+
 MangaSource getSourceByName(String name) {
   switch (name) {
     case 'MangaDex': // <--- 2. ADD THIS CASE
       return _shared('mangadex', MangaDexSource.new);
+    case 'MangaDex Español':
+      return _shared(
+        'mangadex-es',
+        () => MangaDexSource(
+          sourceId: 'mangadex-es',
+          displayName: 'MangaDex Español',
+          langCode: 'es',
+        ),
+      );
+    case 'MangaDex Portuguese BR':
+      return _shared(
+        'mangadex-ptbr',
+        () => MangaDexSource(
+          sourceId: 'mangadex-ptbr',
+          displayName: 'MangaDex Portuguese BR',
+          langCode: 'pt-br',
+        ),
+      );
     case 'WeebCentral':
       return _shared('weebcentral', WeebCentralSource.new);
     case 'MangaKatana':
@@ -72,38 +157,70 @@ MangaSource getSourceByName(String name) {
     case 'MangaBat':
       return _shared('mangabat', MangaBatSource.new);
     case 'MangaFire English':
-      return _shared('mangafire-en',
-          () => MangaFireSource(sourceId: 'mangafire-en', langCode: 'en'));
+      return _shared(
+        'mangafire-en',
+        () => MangaFireSource(sourceId: 'mangafire-en', langCode: 'en'),
+      );
     case 'MangaFire Spanish':
-      return _shared('mangafire-es',
-          () => MangaFireSource(sourceId: 'mangafire-es', langCode: 'es'));
+      return _shared(
+        'mangafire-es',
+        () => MangaFireSource(sourceId: 'mangafire-es', langCode: 'es'),
+      );
     case 'MangaFire Spanish Latin':
-      return _shared('mangafire-esla',
-          () => MangaFireSource(sourceId: 'mangafire-esla', langCode: 'es-la'));
+      return _shared(
+        'mangafire-esla',
+        () => MangaFireSource(sourceId: 'mangafire-esla', langCode: 'es-la'),
+      );
     case 'MangaFire French':
-      return _shared('mangafire-fr',
-          () => MangaFireSource(sourceId: 'mangafire-fr', langCode: 'fr'));
+      return _shared(
+        'mangafire-fr',
+        () => MangaFireSource(sourceId: 'mangafire-fr', langCode: 'fr'),
+      );
     case 'MangaFire Japanese':
-      return _shared('mangafire-ja',
-          () => MangaFireSource(sourceId: 'mangafire-ja', langCode: 'ja'));
+      return _shared(
+        'mangafire-ja',
+        () => MangaFireSource(sourceId: 'mangafire-ja', langCode: 'ja'),
+      );
     case 'MangaFire Portuguese':
-      return _shared('mangafire-pt',
-          () => MangaFireSource(sourceId: 'mangafire-pt', langCode: 'pt'));
+      return _shared(
+        'mangafire-pt',
+        () => MangaFireSource(sourceId: 'mangafire-pt', langCode: 'pt'),
+      );
     case 'MangaFire Portuguese Brazil':
-      return _shared('mangafire-ptbr',
-          () => MangaFireSource(sourceId: 'mangafire-ptbr', langCode: 'pt-br'));
+      return _shared(
+        'mangafire-ptbr',
+        () => MangaFireSource(sourceId: 'mangafire-ptbr', langCode: 'pt-br'),
+      );
     case 'Mock Source':
       return _shared('mock', MockSource.new);
     default:
-      return _shared('mangadex', MangaDexSource.new); // Changed fallback to MangaDex
+      return _mangaBallByName(name) ??
+          _shared(
+            'mangadex',
+            MangaDexSource.new,
+          ); // Changed fallback to MangaDex
   }
 }
 
 // Lookup a source by its id (used to resolve which source a manga came from)
 MangaSource? getSourceBySourceId(String sourceId) {
+  if (sourceId.startsWith('mangaball-')) {
+    // The map is keyed by code and holds the language name, so the code is
+    // compared against the key. Matching the value instead never resolves,
+    // which silently left every variant without details and chapters.
+    final code = sourceId.substring('mangaball-'.length);
+    for (final entry in kMangaBallLanguages.entries) {
+      if (entry.key == code)
+        return _mangaBallByName('MangaBall ${entry.value}');
+    }
+  }
   switch (sourceId) {
     case 'mangadex':
       return getSourceByName('MangaDex');
+    case 'mangadex-es':
+      return getSourceByName('MangaDex Español');
+    case 'mangadex-ptbr':
+      return getSourceByName('MangaDex Portuguese BR');
     case 'weebcentral':
       return getSourceByName('WeebCentral');
     case 'mangakatana':
@@ -218,6 +335,342 @@ class SourcesNotifier extends StateNotifier<List<Map<String, dynamic>>> {
   /// (or when nothing was saved yet).
   static final List<Map<String, dynamic>> defaultSources = [
     {
+      'name': 'MangaBall Arabic',
+      'language': 'Manga, Arabic',
+      'bgColor': const Color(0xFF1E88E5),
+      'text': 'MB',
+      'iconUrl': 'https://mangaball.com/favicon.ico',
+      'isPinned': false,
+    },
+    {
+      'name': 'MangaBall Bulgarian',
+      'language': 'Manga, Bulgarian',
+      'bgColor': const Color(0xFF1E88E5),
+      'text': 'MB',
+      'iconUrl': 'https://mangaball.com/favicon.ico',
+      'isPinned': false,
+    },
+    {
+      'name': 'MangaBall Bengali',
+      'language': 'Manga, Bengali',
+      'bgColor': const Color(0xFF1E88E5),
+      'text': 'MB',
+      'iconUrl': 'https://mangaball.com/favicon.ico',
+      'isPinned': false,
+    },
+    {
+      'name': 'MangaBall Catalan',
+      'language': 'Manga, Catalan',
+      'bgColor': const Color(0xFF1E88E5),
+      'text': 'MB',
+      'iconUrl': 'https://mangaball.com/favicon.ico',
+      'isPinned': false,
+    },
+    {
+      'name': 'MangaBall Czech',
+      'language': 'Manga, Czech',
+      'bgColor': const Color(0xFF1E88E5),
+      'text': 'MB',
+      'iconUrl': 'https://mangaball.com/favicon.ico',
+      'isPinned': false,
+    },
+    {
+      'name': 'MangaBall Danish',
+      'language': 'Manga, Danish',
+      'bgColor': const Color(0xFF1E88E5),
+      'text': 'MB',
+      'iconUrl': 'https://mangaball.com/favicon.ico',
+      'isPinned': false,
+    },
+    {
+      'name': 'MangaBall German',
+      'language': 'Manga, German',
+      'bgColor': const Color(0xFF1E88E5),
+      'text': 'MB',
+      'iconUrl': 'https://mangaball.com/favicon.ico',
+      'isPinned': false,
+    },
+    {
+      'name': 'MangaBall Greek',
+      'language': 'Manga, Greek',
+      'bgColor': const Color(0xFF1E88E5),
+      'text': 'MB',
+      'iconUrl': 'https://mangaball.com/favicon.ico',
+      'isPinned': false,
+    },
+    {
+      'name': 'MangaBall English',
+      'language': 'Manga, English',
+      'bgColor': const Color(0xFF1E88E5),
+      'text': 'MB',
+      'iconUrl': 'https://mangaball.com/favicon.ico',
+      'isPinned': false,
+    },
+    {
+      'name': 'MangaBall Spanish',
+      'language': 'Manga, Spanish',
+      'bgColor': const Color(0xFF1E88E5),
+      'text': 'MB',
+      'iconUrl': 'https://mangaball.com/favicon.ico',
+      'isPinned': false,
+    },
+    {
+      'name': 'MangaBall Persian',
+      'language': 'Manga, Persian',
+      'bgColor': const Color(0xFF1E88E5),
+      'text': 'MB',
+      'iconUrl': 'https://mangaball.com/favicon.ico',
+      'isPinned': false,
+    },
+    {
+      'name': 'MangaBall Finnish',
+      'language': 'Manga, Finnish',
+      'bgColor': const Color(0xFF1E88E5),
+      'text': 'MB',
+      'iconUrl': 'https://mangaball.com/favicon.ico',
+      'isPinned': false,
+    },
+    {
+      'name': 'MangaBall French',
+      'language': 'Manga, French',
+      'bgColor': const Color(0xFF1E88E5),
+      'text': 'MB',
+      'iconUrl': 'https://mangaball.com/favicon.ico',
+      'isPinned': false,
+    },
+    {
+      'name': 'MangaBall Hebrew',
+      'language': 'Manga, Hebrew',
+      'bgColor': const Color(0xFF1E88E5),
+      'text': 'MB',
+      'iconUrl': 'https://mangaball.com/favicon.ico',
+      'isPinned': false,
+    },
+    {
+      'name': 'MangaBall Hindi',
+      'language': 'Manga, Hindi',
+      'bgColor': const Color(0xFF1E88E5),
+      'text': 'MB',
+      'iconUrl': 'https://mangaball.com/favicon.ico',
+      'isPinned': false,
+    },
+    {
+      'name': 'MangaBall Hungarian',
+      'language': 'Manga, Hungarian',
+      'bgColor': const Color(0xFF1E88E5),
+      'text': 'MB',
+      'iconUrl': 'https://mangaball.com/favicon.ico',
+      'isPinned': false,
+    },
+    {
+      'name': 'MangaBall Indonesian',
+      'language': 'Manga, Indonesian',
+      'bgColor': const Color(0xFF1E88E5),
+      'text': 'MB',
+      'iconUrl': 'https://mangaball.com/favicon.ico',
+      'isPinned': false,
+    },
+    {
+      'name': 'MangaBall Italian',
+      'language': 'Manga, Italian',
+      'bgColor': const Color(0xFF1E88E5),
+      'text': 'MB',
+      'iconUrl': 'https://mangaball.com/favicon.ico',
+      'isPinned': false,
+    },
+    {
+      'name': 'MangaBall Icelandic',
+      'language': 'Manga, Icelandic',
+      'bgColor': const Color(0xFF1E88E5),
+      'text': 'MB',
+      'iconUrl': 'https://mangaball.com/favicon.ico',
+      'isPinned': false,
+    },
+    {
+      'name': 'MangaBall Japanese',
+      'language': 'Manga, Japanese',
+      'bgColor': const Color(0xFF1E88E5),
+      'text': 'MB',
+      'iconUrl': 'https://mangaball.com/favicon.ico',
+      'isPinned': false,
+    },
+    {
+      'name': 'MangaBall Korean',
+      'language': 'Manga, Korean',
+      'bgColor': const Color(0xFF1E88E5),
+      'text': 'MB',
+      'iconUrl': 'https://mangaball.com/favicon.ico',
+      'isPinned': false,
+    },
+    {
+      'name': 'MangaBall Kannada',
+      'language': 'Manga, Kannada',
+      'bgColor': const Color(0xFF1E88E5),
+      'text': 'MB',
+      'iconUrl': 'https://mangaball.com/favicon.ico',
+      'isPinned': false,
+    },
+    {
+      'name': 'MangaBall Malayalam',
+      'language': 'Manga, Malayalam',
+      'bgColor': const Color(0xFF1E88E5),
+      'text': 'MB',
+      'iconUrl': 'https://mangaball.com/favicon.ico',
+      'isPinned': false,
+    },
+    {
+      'name': 'MangaBall Malay',
+      'language': 'Manga, Malay',
+      'bgColor': const Color(0xFF1E88E5),
+      'text': 'MB',
+      'iconUrl': 'https://mangaball.com/favicon.ico',
+      'isPinned': false,
+    },
+    {
+      'name': 'MangaBall Nepali',
+      'language': 'Manga, Nepali',
+      'bgColor': const Color(0xFF1E88E5),
+      'text': 'MB',
+      'iconUrl': 'https://mangaball.com/favicon.ico',
+      'isPinned': false,
+    },
+    {
+      'name': 'MangaBall Dutch',
+      'language': 'Manga, Dutch',
+      'bgColor': const Color(0xFF1E88E5),
+      'text': 'MB',
+      'iconUrl': 'https://mangaball.com/favicon.ico',
+      'isPinned': false,
+    },
+    {
+      'name': 'MangaBall Norwegian',
+      'language': 'Manga, Norwegian',
+      'bgColor': const Color(0xFF1E88E5),
+      'text': 'MB',
+      'iconUrl': 'https://mangaball.com/favicon.ico',
+      'isPinned': false,
+    },
+    {
+      'name': 'MangaBall Polish',
+      'language': 'Manga, Polish',
+      'bgColor': const Color(0xFF1E88E5),
+      'text': 'MB',
+      'iconUrl': 'https://mangaball.com/favicon.ico',
+      'isPinned': false,
+    },
+    {
+      'name': 'MangaBall Portuguese',
+      'language': 'Manga, Portuguese',
+      'bgColor': const Color(0xFF1E88E5),
+      'text': 'MB',
+      'iconUrl': 'https://mangaball.com/favicon.ico',
+      'isPinned': false,
+    },
+    {
+      'name': 'MangaBall Romanian',
+      'language': 'Manga, Romanian',
+      'bgColor': const Color(0xFF1E88E5),
+      'text': 'MB',
+      'iconUrl': 'https://mangaball.com/favicon.ico',
+      'isPinned': false,
+    },
+    {
+      'name': 'MangaBall Russian',
+      'language': 'Manga, Russian',
+      'bgColor': const Color(0xFF1E88E5),
+      'text': 'MB',
+      'iconUrl': 'https://mangaball.com/favicon.ico',
+      'isPinned': false,
+    },
+    {
+      'name': 'MangaBall Slovak',
+      'language': 'Manga, Slovak',
+      'bgColor': const Color(0xFF1E88E5),
+      'text': 'MB',
+      'iconUrl': 'https://mangaball.com/favicon.ico',
+      'isPinned': false,
+    },
+    {
+      'name': 'MangaBall Slovenian',
+      'language': 'Manga, Slovenian',
+      'bgColor': const Color(0xFF1E88E5),
+      'text': 'MB',
+      'iconUrl': 'https://mangaball.com/favicon.ico',
+      'isPinned': false,
+    },
+    {
+      'name': 'MangaBall Albanian',
+      'language': 'Manga, Albanian',
+      'bgColor': const Color(0xFF1E88E5),
+      'text': 'MB',
+      'iconUrl': 'https://mangaball.com/favicon.ico',
+      'isPinned': false,
+    },
+    {
+      'name': 'MangaBall Serbian',
+      'language': 'Manga, Serbian',
+      'bgColor': const Color(0xFF1E88E5),
+      'text': 'MB',
+      'iconUrl': 'https://mangaball.com/favicon.ico',
+      'isPinned': false,
+    },
+    {
+      'name': 'MangaBall Swedish',
+      'language': 'Manga, Swedish',
+      'bgColor': const Color(0xFF1E88E5),
+      'text': 'MB',
+      'iconUrl': 'https://mangaball.com/favicon.ico',
+      'isPinned': false,
+    },
+    {
+      'name': 'MangaBall Tamil',
+      'language': 'Manga, Tamil',
+      'bgColor': const Color(0xFF1E88E5),
+      'text': 'MB',
+      'iconUrl': 'https://mangaball.com/favicon.ico',
+      'isPinned': false,
+    },
+    {
+      'name': 'MangaBall Thai',
+      'language': 'Manga, Thai',
+      'bgColor': const Color(0xFF1E88E5),
+      'text': 'MB',
+      'iconUrl': 'https://mangaball.com/favicon.ico',
+      'isPinned': false,
+    },
+    {
+      'name': 'MangaBall Turkish',
+      'language': 'Manga, Turkish',
+      'bgColor': const Color(0xFF1E88E5),
+      'text': 'MB',
+      'iconUrl': 'https://mangaball.com/favicon.ico',
+      'isPinned': false,
+    },
+    {
+      'name': 'MangaBall Ukrainian',
+      'language': 'Manga, Ukrainian',
+      'bgColor': const Color(0xFF1E88E5),
+      'text': 'MB',
+      'iconUrl': 'https://mangaball.com/favicon.ico',
+      'isPinned': false,
+    },
+    {
+      'name': 'MangaBall Vietnamese',
+      'language': 'Manga, Vietnamese',
+      'bgColor': const Color(0xFF1E88E5),
+      'text': 'MB',
+      'iconUrl': 'https://mangaball.com/favicon.ico',
+      'isPinned': false,
+    },
+    {
+      'name': 'MangaBall Chinese',
+      'language': 'Manga, Chinese',
+      'bgColor': const Color(0xFF1E88E5),
+      'text': 'MB',
+      'iconUrl': 'https://mangaball.com/favicon.ico',
+      'isPinned': false,
+    },
+    {
       'name': 'MangaDex', // Moved to top for easier testing
       'language': 'Manga, Various languages',
       'bgColor': const Color(0xFF381F1D),
@@ -225,6 +678,26 @@ class SourcesNotifier extends StateNotifier<List<Map<String, dynamic>>> {
       'textColor': Colors.orangeAccent,
       'iconUrl': 'https://mangadex.org/favicon.ico',
       'isPinned': true,
+      'nsfw': true,
+    },
+    {
+      'name': 'MangaDex Español',
+      'language': 'Manga, Spanish',
+      'bgColor': const Color(0xFF381F1D),
+      'text': '🐱',
+      'textColor': Colors.orangeAccent,
+      'iconUrl': 'https://mangadex.org/favicon.ico',
+      'isPinned': false,
+      'nsfw': true,
+    },
+    {
+      'name': 'MangaDex Portuguese BR',
+      'language': 'Manga, Portuguese (BR)',
+      'bgColor': const Color(0xFF381F1D),
+      'text': '🐱',
+      'textColor': Colors.orangeAccent,
+      'iconUrl': 'https://mangadex.org/favicon.ico',
+      'isPinned': false,
       'nsfw': true,
     },
     {
@@ -304,7 +777,8 @@ class SourcesNotifier extends StateNotifier<List<Map<String, dynamic>>> {
       'language': 'Manhwa, Manhua, English',
       'bgColor': const Color(0xFF7A1F2B),
       'text': 'T',
-      'iconUrl': 'https://static.tnlycdn.com/2017/10/toonily_favicon2-300x300.png',
+      'iconUrl':
+          'https://static.tnlycdn.com/2017/10/toonily_favicon2-300x300.png',
       'isPinned': false,
       'nsfw': true,
     },
@@ -364,7 +838,7 @@ class SourcesNotifier extends StateNotifier<List<Map<String, dynamic>>> {
       'language': 'English',
       'bgColor': const Color(0xFFF97316),
       'text': 'F',
-      'iconUrl': 'https://mangafire.to/assets/mangafire/favicon.svg',
+      'iconUrl': 'https://mangafire.to/assets/mangafire/logo.png',
       'isPinned': false,
       'nsfw': true,
     },
@@ -373,7 +847,7 @@ class SourcesNotifier extends StateNotifier<List<Map<String, dynamic>>> {
       'language': 'Spanish',
       'bgColor': const Color(0xFFF97316),
       'text': 'F',
-      'iconUrl': 'https://mangafire.to/assets/mangafire/favicon.svg',
+      'iconUrl': 'https://mangafire.to/assets/mangafire/logo.png',
       'isPinned': false,
       'nsfw': true,
     },
@@ -382,7 +856,7 @@ class SourcesNotifier extends StateNotifier<List<Map<String, dynamic>>> {
       'language': 'Spanish (Latin)',
       'bgColor': const Color(0xFFF97316),
       'text': 'F',
-      'iconUrl': 'https://mangafire.to/assets/mangafire/favicon.svg',
+      'iconUrl': 'https://mangafire.to/assets/mangafire/logo.png',
       'isPinned': false,
       'nsfw': true,
     },
@@ -391,7 +865,7 @@ class SourcesNotifier extends StateNotifier<List<Map<String, dynamic>>> {
       'language': 'French',
       'bgColor': const Color(0xFFF97316),
       'text': 'F',
-      'iconUrl': 'https://mangafire.to/assets/mangafire/favicon.svg',
+      'iconUrl': 'https://mangafire.to/assets/mangafire/logo.png',
       'isPinned': false,
       'nsfw': true,
     },
@@ -400,7 +874,7 @@ class SourcesNotifier extends StateNotifier<List<Map<String, dynamic>>> {
       'language': 'Japanese',
       'bgColor': const Color(0xFFF97316),
       'text': 'F',
-      'iconUrl': 'https://mangafire.to/assets/mangafire/favicon.svg',
+      'iconUrl': 'https://mangafire.to/assets/mangafire/logo.png',
       'isPinned': false,
       'nsfw': true,
     },
@@ -409,7 +883,7 @@ class SourcesNotifier extends StateNotifier<List<Map<String, dynamic>>> {
       'language': 'Portuguese',
       'bgColor': const Color(0xFFF97316),
       'text': 'F',
-      'iconUrl': 'https://mangafire.to/assets/mangafire/favicon.svg',
+      'iconUrl': 'https://mangafire.to/assets/mangafire/logo.png',
       'isPinned': false,
       'nsfw': true,
     },
@@ -418,7 +892,7 @@ class SourcesNotifier extends StateNotifier<List<Map<String, dynamic>>> {
       'language': 'Portuguese (Brazil)',
       'bgColor': const Color(0xFFF97316),
       'text': 'F',
-      'iconUrl': 'https://mangafire.to/assets/mangafire/favicon.svg',
+      'iconUrl': 'https://mangafire.to/assets/mangafire/logo.png',
       'isPinned': false,
       'nsfw': true,
     },

@@ -22,6 +22,7 @@ import 'package:yomou/data/models/manga_source.dart';
 import 'package:yomou/core/widgets/empty_state.dart';
 import 'package:yomou/core/widgets/ios/ios_toast.dart';
 import 'package:yomou/data/models/manga_details.dart';
+import 'package:yomou/data/models/manga_translation.dart';
 import 'package:yomou/data/models/bookmark.dart';
 import 'package:yomou/data/providers/sources_provider.dart';
 import 'package:yomou/features/explore/screens/source_search_results_screen.dart';
@@ -30,6 +31,7 @@ import 'package:yomou/features/explore/screens/global_search_results_screen.dart
 import 'package:yomou/features/settings/providers/appearance_provider.dart';
 import 'package:yomou/l10n/generated/app_localizations.dart';
 import 'package:yomou/widgets/source_icon.dart';
+import 'package:yomou/core/diagnostics/diag_log.dart';
 
 class MangaDetailScreen extends ConsumerStatefulWidget {
   final String mangaId;
@@ -123,8 +125,8 @@ class _MangaDetailScreenState extends ConsumerState<MangaDetailScreen> {
   String get _coverUrl => (_customCover?.isNotEmpty ?? false)
       ? _customCover!
       : (_details?.coverUrl.isNotEmpty == true
-          ? _details!.coverUrl
-          : widget.imageUrl);
+            ? _details!.coverUrl
+            : widget.imageUrl);
 
   @override
   void initState() {
@@ -187,28 +189,38 @@ class _MangaDetailScreenState extends ConsumerState<MangaDetailScreen> {
         }
       }
       if (source == null) {
+        diagSoon(
+          'detail: no source for mangaId=${widget.mangaId} '
+          'sourceId=${widget.sourceId}',
+        );
         setState(() {
           _chapters = [];
           _isLoadingChapters = false;
         });
         return;
       }
+      diagSoon('detail: source ${source.id} for ${widget.mangaId}');
       // Non-null snapshot: `source` above is reassigned, so closures below
       // would not be able to see it as non-null.
       final src = source;
-      // Fetch chapters and real details concurrently: chapters populate the
-      // list, details fill in the header as soon as they arrive.
-      final chaptersFuture = SourceCache.chapters(
-        sourceId: src.id,
-        mangaId: widget.mangaId,
-        forceRefresh: forceRefresh,
-        fetch: () => src.getChapters(widget.mangaId),
-      );
+      // Sources backed by a single shared WebView cannot serve both requests at
+      // once, and the chapter listing is by far the larger of the two. Racing
+      // them made the header wait on a 640 KB response, which the UI gave up on
+      // and reported as a failure. Details are small and quick, so they go
+      // first and the chapter fetch starts once the header is already on screen.
       final detailsFuture = SourceCache.mangaDetails(
         sourceId: src.id,
         mangaId: widget.mangaId,
         forceRefresh: forceRefresh,
         fetch: () => src.getMangaDetails(widget.mangaId),
+      );
+      final chaptersFuture = detailsFuture.then(
+        (_) => SourceCache.chapters(
+          sourceId: src.id,
+          mangaId: widget.mangaId,
+          forceRefresh: forceRefresh,
+          fetch: () => src.getChapters(widget.mangaId),
+        ),
       );
       if (mounted) {
         setState(() {
@@ -797,18 +809,19 @@ class _MangaDetailScreenState extends ConsumerState<MangaDetailScreen> {
                             isExpanded: _isExpanded,
                             activeTab: _activeTab,
                             topPadding: MediaQuery.of(context).padding.top,
-                            bottomPadding: MediaQuery.of(context).padding.bottom,
+                            bottomPadding: MediaQuery.of(
+                              context,
+                            ).padding.bottom,
                             unreadCount: _unreadCount,
                             showContinueButton:
                                 _activeTab == 0 && _chapters.isNotEmpty,
                             hasRead: _lastReadChapter >= 0,
                             continueChapterNumber:
                                 _lastReadChapter >= 0 &&
-                                        _resumeChapterIndex >= 0 &&
-                                        _resumeChapterIndex < _chapters.length
-                                    ? _chapters[_resumeChapterIndex]
-                                        .chapterNumber
-                                    : null,
+                                    _resumeChapterIndex >= 0 &&
+                                    _resumeChapterIndex < _chapters.length
+                                ? _chapters[_resumeChapterIndex].chapterNumber
+                                : null,
                             isSelectionMode: _selectionMode,
                             selectedCount: _selectedIds.length,
                             isAllSelected:
@@ -1008,20 +1021,23 @@ class _MangaDetailScreenState extends ConsumerState<MangaDetailScreen> {
                 ),
               ],
             ),
-            subtitle: Text(() {
-              final metadata = _chapterMetadataSubtitle(ch);
-              if (metadata.isNotEmpty) return metadata;
-              final l = AppLocalizations.of(context);
-              if (isRead && downloaded) {
-                return l.chapterStatusReadDownloaded;
-              }
-              if (isRead) return l.chapterStatusRead;
-              if (downloaded) return l.chapterStatusDownloaded;
-              return '';
-            }(), style: TextStyle(
-              color: dark ? Colors.white38 : Colors.grey.shade400,
-              fontSize: 11,
-            )),
+            subtitle: Text(
+              () {
+                final metadata = _chapterMetadataSubtitle(ch);
+                if (metadata.isNotEmpty) return metadata;
+                final l = AppLocalizations.of(context);
+                if (isRead && downloaded) {
+                  return l.chapterStatusReadDownloaded;
+                }
+                if (isRead) return l.chapterStatusRead;
+                if (downloaded) return l.chapterStatusDownloaded;
+                return '';
+              }(),
+              style: TextStyle(
+                color: dark ? Colors.white38 : Colors.grey.shade400,
+                fontSize: 11,
+              ),
+            ),
             trailing: Row(
               mainAxisSize: MainAxisSize.min,
               children: [
@@ -1061,7 +1077,7 @@ class _MangaDetailScreenState extends ConsumerState<MangaDetailScreen> {
                         backgroundColor: dark ? Colors.white24 : Colors.black12,
                       ),
                     ),
-                  )
+                  ),
               ],
             ),
             onTap: () {
@@ -1794,7 +1810,9 @@ class _MangaDetailScreenState extends ConsumerState<MangaDetailScreen> {
           currentSourceId: widget.sourceId ?? _source?.id,
           currentSourceName: _source?.name,
           currentSourceLanguage: language,
-          originalTotal: _realTotalChapters > 0 ? _realTotalChapters : _chapters.length,
+          originalTotal: _realTotalChapters > 0
+              ? _realTotalChapters
+              : _chapters.length,
         ),
       ),
     );
@@ -2402,6 +2420,7 @@ class _MangaDetailScreenState extends ConsumerState<MangaDetailScreen> {
             l.detailAuthor,
             _details?.author.isEmpty ?? true ? l.unknown : _details!.author,
           ),
+          _buildTranslationRow(),
           _buildCardRow(
             l.detailYear,
             _details?.year.isEmpty ?? true ? '—' : _details!.year,
@@ -2451,6 +2470,115 @@ class _MangaDetailScreenState extends ConsumerState<MangaDetailScreen> {
     );
   }
 
+  // The language of the translation currently open: reported by the details
+  // lookup, else the source's own catalogue language.
+  String _currentLanguageCode() {
+    final fromDetails = _details?.language ?? '';
+    if (fromDetails.isNotEmpty) return fromDetails;
+    final source = getSourceBySourceId(widget.sourceId ?? '');
+    return source?.languageCode ?? 'en';
+  }
+
+  // Every translation of this work, with the current one guaranteed present so
+  // the picker can mark it.
+  List<MangaTranslation> _translationsFor(String current) {
+    final list = <MangaTranslation>[...?_details?.translations];
+    final currentId = _details?.id ?? '';
+    if (currentId.isNotEmpty && !list.any((t) => t.mangaId == currentId)) {
+      list.insert(
+        0,
+        MangaTranslation(
+          language: current,
+          mangaId: currentId,
+          title: _details?.title ?? widget.title,
+        ),
+      );
+    }
+    list.sort((a, b) => a.language.compareTo(b.language));
+    return list;
+  }
+
+  // The "Translation" row, directly under the author. Tappable when the source
+  // publishes the work in more than one language; each translation is a
+  // distinct manga, so reading progress is tracked separately per language.
+  Widget _buildTranslationRow() {
+    final l = AppLocalizations.of(context);
+    final current = _currentLanguageCode();
+    final all = _translationsFor(current);
+    final tappable = all.length > 1;
+    return _buildCardRow(
+      l.detailTranslation,
+      MangaLanguage.label(current),
+      onTap: tappable ? () => _showTranslationPicker(all, current) : null,
+    );
+  }
+
+  void _showTranslationPicker(List<MangaTranslation> all, String current) {
+    showModalBottomSheet<void>(
+      context: context,
+      showDragHandle: true,
+      builder: (sheetContext) {
+        final dark = Theme.of(sheetContext).brightness == Brightness.dark;
+        return SafeArea(
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            crossAxisAlignment: CrossAxisAlignment.stretch,
+            children: [
+              Padding(
+                padding: const EdgeInsets.fromLTRB(20, 0, 20, 8),
+                child: Text(
+                  AppLocalizations.of(sheetContext).detailTranslation,
+                  style: TextStyle(
+                    fontSize: 17,
+                    fontWeight: FontWeight.w600,
+                    color: dark ? Colors.white : null,
+                  ),
+                ),
+              ),
+              for (final t in all)
+                ListTile(
+                  dense: true,
+                  title: Text(MangaLanguage.label(t.language)),
+                  trailing: t.language == current
+                      ? Icon(
+                          Icons.check,
+                          size: 18,
+                          color: ref.watch(accentProvider),
+                        )
+                      : null,
+                  onTap: t.language == current
+                      ? null
+                      : () {
+                          Navigator.pop(sheetContext);
+                          _openTranslation(t);
+                        },
+                ),
+              const SizedBox(height: 8),
+            ],
+          ),
+        );
+      },
+    );
+  }
+
+  // Each translation is a separate manga entry (its own history, favourites and
+  // progress), so we open a fresh detail screen for it.
+  void _openTranslation(MangaTranslation translation) {
+    Navigator.push(
+      context,
+      MaterialPageRoute(
+        builder: (context) => MangaDetailScreen(
+          mangaId: translation.mangaId,
+          title: translation.title.isNotEmpty
+              ? translation.title
+              : (_details?.title ?? widget.title),
+          imageUrl: _details?.coverUrl ?? widget.imageUrl,
+          sourceId: widget.sourceId,
+        ),
+      ),
+    );
+  }
+
   static String _formatBytes(int bytes) {
     if (bytes < 1024) return '$bytes B';
     if (bytes < 1024 * 1024) return '${(bytes / 1024).toStringAsFixed(1)} KB';
@@ -2465,11 +2593,7 @@ class _MangaDetailScreenState extends ConsumerState<MangaDetailScreen> {
   Widget _buildSourceIcon() {
     final name = _sourceName ?? '';
     final source = getSourceBySourceId(widget.sourceId ?? '');
-    return SourceIcon(
-      name: name,
-      iconUrl: source?.iconUrl ?? '',
-      size: 20,
-    );
+    return SourceIcon(name: name, iconUrl: source?.iconUrl ?? '', size: 20);
   }
 
   Widget _buildCardRow(
@@ -2477,10 +2601,11 @@ class _MangaDetailScreenState extends ConsumerState<MangaDetailScreen> {
     String value, {
     IconData? icon,
     Widget? leading,
+    VoidCallback? onTap,
   }) {
     final dark = Theme.of(context).brightness == Brightness.dark;
     final onSurface = Theme.of(context).colorScheme.onSurface;
-    return Padding(
+    final content = Padding(
       padding: const EdgeInsets.symmetric(vertical: 4),
       child: Row(
         crossAxisAlignment: CrossAxisAlignment.start,
@@ -2514,11 +2639,21 @@ class _MangaDetailScreenState extends ConsumerState<MangaDetailScreen> {
                     ),
                   ),
                 ),
+                if (onTap != null) ...[
+                  const SizedBox(width: 4),
+                  Icon(Icons.chevron_right, size: 18, color: Colors.grey),
+                ],
               ],
             ),
           ),
         ],
       ),
+    );
+    if (onTap == null) return content;
+    return InkWell(
+      onTap: onTap,
+      borderRadius: BorderRadius.circular(8),
+      child: content,
     );
   }
 

@@ -22,11 +22,21 @@ class SourceIcon extends StatelessWidget {
     required this.name,
     this.iconUrl = '',
     this.size = 56,
+    this.assetPath = '',
   });
 
   final String name;
   final String iconUrl;
   final double size;
+
+  /// Bundled artwork, used when [iconUrl] cannot be decoded by Flutter (a
+  /// remote `.ico`/`.svg`, or an unreachable host). Empty when there is none.
+  final String assetPath;
+
+  /// Source name prefixes whose icon is bundled in `assets/source_icons/`
+  /// (their remote icons are `.ico`/`.svg`, which Flutter cannot decode).
+  static const Map<String, String> _bundledByPrefix = {
+  };
 
   @override
   Widget build(BuildContext context) {
@@ -45,6 +55,33 @@ class SourceIcon extends StatelessWidget {
     // into circles.
     final radius = size >= 40 ? 16.0 : size * (16 / 56);
 
+    final bundled = assetPath.isNotEmpty
+        ? assetPath
+        : (_bundledByPrefix.entries
+                .where((e) => name.trim().startsWith(e.key))
+                .map((e) => e.value)
+                .firstOrNull ??
+            '');
+
+    Widget logo() {
+      if (bundled.isNotEmpty) {
+        return Image.asset(
+          bundled,
+          fit: BoxFit.cover,
+          width: double.infinity,
+          height: double.infinity,
+          errorBuilder: (context, error, stack) => fallback(),
+        );
+      }
+      return SafeNetworkImage(
+        imageUrl: iconUrl,
+        fit: BoxFit.cover,
+        width: double.infinity,
+        height: double.infinity,
+        errorWidget: (context, url, error) => fallback(),
+      );
+    }
+
     return Container(
       width: size,
       height: size,
@@ -60,14 +97,8 @@ class SourceIcon extends StatelessWidget {
       ),
       child: ClipRRect(
         borderRadius: BorderRadius.circular(radius),
-        child: iconUrl.isNotEmpty
-            ? SafeNetworkImage(
-                imageUrl: iconUrl,
-                fit: BoxFit.cover,
-                width: double.infinity,
-                height: double.infinity,
-                errorWidget: (context, url, error) => fallback(),
-              )
+        child: (iconUrl.isNotEmpty || bundled.isNotEmpty)
+            ? logo()
             : fallback(),
       ),
     );

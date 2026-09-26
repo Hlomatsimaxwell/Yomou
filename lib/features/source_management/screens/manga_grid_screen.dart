@@ -9,7 +9,12 @@ import 'package:yomou/core/database/source_cache.dart';
 import 'package:yomou/features/library/screens/manga_detail_screen.dart';
 import 'package:yomou/features/library/widgets/downloaded_badge.dart';
 import 'package:yomou/features/library/widgets/favorite_badge.dart';
+import 'package:url_launcher/url_launcher.dart';
+
 import 'package:yomou/core/widgets/empty_state.dart';
+import 'package:yomou/data/sources/captcha_gate.dart';
+import 'package:yomou/data/sources/source_network.dart';
+import 'package:yomou/features/source_management/screens/captcha_solver_screen.dart';
 import 'package:yomou/core/widgets/ios/ios_menu.dart';
 import 'package:yomou/core/widgets/ios/ios_sheet.dart';
 import 'package:yomou/core/widgets/manga_grid_metrics.dart';
@@ -45,6 +50,9 @@ class _MangaGridScreenState extends ConsumerState<MangaGridScreen> {
   List<Manga> _mangaList = [];
   bool _isLoading = true;
   String? _error;
+
+  /// Set when the source answered with a captcha challenge instead of content.
+  CaptchaRequiredException? _captcha;
 
   // Grid layout preferences (mirrors history/suggestions list options).
   String _listMode = 'Grid';
@@ -104,7 +112,9 @@ class _MangaGridScreenState extends ConsumerState<MangaGridScreen> {
       final prefs = await SharedPreferences.getInstance();
       final raw = prefs.getString('source_filter_${source.id}');
       if (raw == null) return;
-      final filter = MangaFilter.fromJson(jsonDecode(raw) as Map<String, dynamic>);
+      final filter = MangaFilter.fromJson(
+        jsonDecode(raw) as Map<String, dynamic>,
+      );
       if (!mounted) return;
       if (filter.isDefault) return;
       setState(() => _filter = filter);
@@ -158,6 +168,7 @@ class _MangaGridScreenState extends ConsumerState<MangaGridScreen> {
     setState(() {
       _isLoading = true;
       _error = null;
+      _captcha = null;
       _page = 1;
       _hasMore = true;
       _isLoadingMore = false;
@@ -170,16 +181,14 @@ class _MangaGridScreenState extends ConsumerState<MangaGridScreen> {
       final manga = await SourceCache.mangaList(
         sourceId: source.id,
         kind: usingFilter ? 'filter' : (tag != null ? 'tag' : 'popular'),
-        arg: usingFilter
-            ? filter.cacheKey
-            : (tag ?? ''),
+        arg: usingFilter ? filter.cacheKey : (tag ?? ''),
         page: 1,
         forceRefresh: forceRefresh,
         fetch: tag != null
             ? () => source.searchMangaByTags([tag])
             : usingFilter
-                ? () => source.searchWithFilter(filter)
-                : source.getPopularManga,
+            ? () => source.searchWithFilter(filter)
+            : source.getPopularManga,
       );
       setState(() {
         _mangaList = manga;
@@ -188,11 +197,52 @@ class _MangaGridScreenState extends ConsumerState<MangaGridScreen> {
           ..clear()
           ..addAll(manga.map((m) => m.id));
       });
+    } on CaptchaRequiredException catch (e) {
+      setState(() {
+        _captcha = e;
+        _isLoading = false;
+      });
     } catch (e) {
       setState(() {
         _error = e.toString();
         _isLoading = false;
       });
+    }
+  }
+
+  /// Opens the solver, then retries the request with the earned cookie.
+  Future<void> _solveCaptcha() async {
+    final captcha = _captcha;
+    if (captcha == null) return;
+    final source = getSourceByName(widget.sourceName);
+
+    // Sources that share one site share one network profile, so the cookie has
+    // to be stored under the key the HTTP client actually reads - not the
+    // source's own id, or the solve is saved where nothing will look for it.
+    final networkId = source is DioSource
+        ? (source as DioSource).networkSourceId
+        : source.id;
+
+    // The clearance cookie is bound to the user agent, so the browser has to
+    // present the same one the HTTP client uses.
+    final config = await SourceNetworkConfig.forSource(networkId);
+    final userAgent =
+        config.userAgent ??
+        source.headers?['User-Agent'] ??
+        DioSource.defaultUserAgent;
+
+    if (!mounted) return;
+    final solved = await Navigator.of(context).push<bool>(
+      MaterialPageRoute(
+        builder: (_) => CaptchaSolverScreen(
+          sourceId: networkId,
+          url: captcha.challengeUrl,
+          userAgent: userAgent,
+        ),
+      ),
+    );
+    if (solved == true) {
+      await _loadManga(forceRefresh: true);
     }
   }
 
@@ -217,15 +267,13 @@ class _MangaGridScreenState extends ConsumerState<MangaGridScreen> {
       final manga = await SourceCache.mangaList(
         sourceId: source.id,
         kind: usingFilter ? 'filter' : (tag != null ? 'tag' : 'popular'),
-        arg: usingFilter
-            ? filter.cacheKey
-            : (tag ?? ''),
+        arg: usingFilter ? filter.cacheKey : (tag ?? ''),
         page: next,
         fetch: tag != null
             ? () => source.searchMangaByTags([tag], page: next)
             : usingFilter
-                ? () => source.searchWithFilter(filter, page: next)
-                : () => source.getPopularManga(page: next),
+            ? () => source.searchWithFilter(filter, page: next)
+            : () => source.getPopularManga(page: next),
       );
       // Sources occasionally repeat titles across pages; keep the grid clean.
       final fresh = <Manga>[];
@@ -396,8 +444,7 @@ class _MangaGridScreenState extends ConsumerState<MangaGridScreen> {
                       children: [
                         SourceIcon(
                           name: widget.sourceName,
-                          iconUrl:
-                              getSourceByName(widget.sourceName).iconUrl,
+                          iconUrl: getSourceByName(widget.sourceName).iconUrl,
                           size: 40,
                         ),
                         const SizedBox(width: 12),
@@ -455,6 +502,16 @@ class _MangaGridScreenState extends ConsumerState<MangaGridScreen> {
                       color: dark ? Colors.white70 : scheme.primary,
                     ),
                   ),
+                )
+              else if (_captcha != null)
+                _CaptchaRequiredView(
+                  onSolve: _solveCaptcha,
+                  onOpenInBrowser: () {
+                    final uri = Uri.tryParse(_captcha!.challengeUrl);
+                    if (uri != null) {
+                      launchUrl(uri, mode: LaunchMode.externalApplication);
+                    }
+                  },
                 )
               else if (_error != null)
                 Padding(
@@ -596,9 +653,17 @@ class _MangaGridScreenState extends ConsumerState<MangaGridScreen> {
                     ),
                     child: Row(
                       children: [
-                        _buildSegmentTab('List', RemixIcons.list_view, setSheetState),
+                        _buildSegmentTab(
+                          'List',
+                          RemixIcons.list_view,
+                          setSheetState,
+                        ),
                         const SizedBox(width: 8),
-                        _buildSegmentTab('Grid', RemixIcons.grid_line, setSheetState),
+                        _buildSegmentTab(
+                          'Grid',
+                          RemixIcons.grid_line,
+                          setSheetState,
+                        ),
                       ],
                     ),
                   ),
@@ -610,8 +675,9 @@ class _MangaGridScreenState extends ConsumerState<MangaGridScreen> {
                         Text(
                           _l.sourceGridSize,
                           style: TextStyle(
-                            color:
-                                dark ? Colors.white70 : const Color(0xFF49454F),
+                            color: dark
+                                ? Colors.white70
+                                : const Color(0xFF49454F),
                             fontSize: 14,
                             fontWeight: FontWeight.w500,
                           ),
@@ -927,7 +993,7 @@ class _MangaGridScreenState extends ConsumerState<MangaGridScreen> {
                         ),
                 ),
                 DownloadedMangaBadge(mangaId: item.id),
-                            FavoriteBadge(mangaId: item.id),
+                FavoriteBadge(mangaId: item.id),
               ],
             ),
           ),
@@ -946,6 +1012,59 @@ class _MangaGridScreenState extends ConsumerState<MangaGridScreen> {
             ),
           ),
         ],
+      ),
+    );
+  }
+}
+
+/// "This source requires solving a captcha" placeholder with a Solve button.
+class _CaptchaRequiredView extends StatelessWidget {
+  const _CaptchaRequiredView({
+    required this.onSolve,
+    required this.onOpenInBrowser,
+  });
+
+  final VoidCallback onSolve;
+  final VoidCallback onOpenInBrowser;
+
+  @override
+  Widget build(BuildContext context) {
+    final l10n = AppLocalizations.of(context);
+    return Padding(
+      padding: const EdgeInsets.symmetric(vertical: 60),
+      child: Center(
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            Icon(
+              Icons.smart_toy_outlined,
+              size: 72,
+              color: Theme.of(
+                context,
+              ).colorScheme.primary.withValues(alpha: 0.4),
+            ),
+            const SizedBox(height: 16),
+            Padding(
+              padding: const EdgeInsets.symmetric(horizontal: 32),
+              child: Text(
+                l10n.captchaRequiredTitle,
+                textAlign: TextAlign.center,
+                style: Theme.of(context).textTheme.titleMedium,
+              ),
+            ),
+            const SizedBox(height: 20),
+            FilledButton.icon(
+              onPressed: onSolve,
+              icon: const Icon(Icons.check_circle_outline),
+              label: Text(l10n.captchaSolve),
+            ),
+            const SizedBox(height: 4),
+            TextButton(
+              onPressed: onOpenInBrowser,
+              child: Text(l10n.openInBrowser),
+            ),
+          ],
+        ),
       ),
     );
   }

@@ -5,6 +5,7 @@ import 'package:url_launcher/url_launcher.dart';
 import 'package:yomou/data/providers/sources_provider.dart';
 import 'package:yomou/data/sources/source_network.dart';
 import 'package:yomou/features/source_management/screens/source_sign_in_screen.dart';
+import 'package:yomou/features/source_management/services/source_tester.dart';
 import 'package:yomou/l10n/generated/app_localizations.dart';
 
 /// Per-source settings (the "Kotatsu-style" source settings): domain override,
@@ -28,6 +29,7 @@ class SourceSettingsScreen extends ConsumerStatefulWidget {
 class _SourceSettingsScreenState extends ConsumerState<SourceSettingsScreen> {
   SourceNetworkConfig? _config;
   String? _defaultUa;
+  bool _testing = false;
 
   @override
   void initState() {
@@ -149,6 +151,151 @@ class _SourceSettingsScreenState extends ConsumerState<SourceSettingsScreen> {
     );
   }
 
+  // Runs the source's real request plus one browse call and shows what the
+  // server answered, so a dead source is distinguishable from a broken parser
+  // without any host machine.
+  Future<void> _runTest() async {
+    if (_testing) return;
+    setState(() => _testing = true);
+    final source = getSourceBySourceId(widget.sourceId);
+    SourceTestResult? result;
+    if (source == null) {
+      _toast(_l.sourceTestUnknown);
+    } else {
+      result = await testMangaSource(source);
+    }
+    if (!mounted) return;
+    setState(() => _testing = false);
+    if (result != null) _showTestResult(result);
+  }
+
+  void _showTestResult(SourceTestResult r) {
+    final dark = Theme.of(context).brightness == Brightness.dark;
+    final ok = r.reachable;
+    final color = ok
+        ? const Color(0xFF2E7D32)
+        : (r.blocked ? const Color(0xFFC62828) : const Color(0xFFE65100));
+    showModalBottomSheet<void>(
+      context: context,
+      showDragHandle: true,
+      isScrollControlled: true,
+      backgroundColor: dark ? const Color(0xFF1C1C1E) : Colors.white,
+      builder: (sheetContext) {
+        return SafeArea(
+          child: ConstrainedBox(
+            constraints: BoxConstraints(
+              maxHeight: MediaQuery.of(sheetContext).size.height * 0.7,
+            ),
+            child: SingleChildScrollView(
+              padding: const EdgeInsets.fromLTRB(20, 0, 20, 20),
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  Row(
+                    children: [
+                      Icon(
+                        ok
+                            ? RemixIcons.check_double_fill
+                            : RemixIcons.alert_fill,
+                        color: Color(color.toARGB32()),
+                        size: 22,
+                      ),
+                      const SizedBox(width: 8),
+                      Text(
+                        r.verdict,
+                        style: TextStyle(
+                          fontSize: 17,
+                          fontWeight: FontWeight.w700,
+                          color: Color(color.toARGB32()),
+                        ),
+                      ),
+                    ],
+                  ),
+                  const SizedBox(height: 12),
+                  _testLine('HTTP', r.status?.toString() ?? '—'),
+                  _testLine('Time', '${r.elapsedMs} ms'),
+                  if (r.contentType != null)
+                    _testLine('Type', r.contentType!),
+                  if (r.server != null) _testLine('Server', r.server!),
+                  if (r.listingCount != null)
+                    _testLine(
+                      AppLocalizations.of(sheetContext).sourceTestTitles,
+                      '${r.listingCount}',
+                    ),
+                  if (r.error != null)
+                    _testLine(
+                      AppLocalizations.of(sheetContext).sourceTestError,
+                      r.error!,
+                    ),
+                  const SizedBox(height: 10),
+                  Text(
+                    r.url,
+                    style: TextStyle(
+                      fontSize: 12,
+                      color: dark ? Colors.white54 : Colors.black54,
+                    ),
+                  ),
+                  if (r.bodyHead.isNotEmpty) ...[
+                    const SizedBox(height: 10),
+                    Container(
+                      width: double.infinity,
+                      padding: const EdgeInsets.all(10),
+                      decoration: BoxDecoration(
+                        color: dark ? Colors.black26 : Colors.black.withValues(alpha: 0.05),
+                        borderRadius: BorderRadius.circular(10),
+                      ),
+                      child: Text(
+                        r.bodyHead,
+                        style: TextStyle(
+                          fontSize: 11,
+                          fontFamily: 'monospace',
+                          height: 1.35,
+                          color: dark ? Colors.white70 : Colors.black87,
+                        ),
+                      ),
+                    ),
+                  ],
+                ],
+              ),
+            ),
+          ),
+        );
+      },
+    );
+  }
+
+  Widget _testLine(String label, String value) {
+    final dark = Theme.of(context).brightness == Brightness.dark;
+    return Padding(
+      padding: const EdgeInsets.symmetric(vertical: 2),
+      child: Row(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          SizedBox(
+            width: 80,
+            child: Text(
+              label,
+              style: TextStyle(
+                fontSize: 13,
+                color: dark ? Colors.white54 : Colors.black54,
+              ),
+            ),
+          ),
+          Expanded(
+            child: Text(
+              value,
+              style: TextStyle(
+                fontSize: 13,
+                color: dark ? Colors.white : Colors.black87,
+              ),
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+
   Widget _row({
     required IconData icon,
     required String title,
@@ -218,6 +365,10 @@ class _SourceSettingsScreenState extends ConsumerState<SourceSettingsScreen> {
     final defaultDomain = _domainForFallback();
     final cookiesPresent =
         config.cookies != null && config.cookies!.isNotEmpty;
+    final source = getSourceByName(widget.sourceName);
+    final supportsSignIn = source.supportsSignIn;
+    final signedInSubtitle =
+        cookiesPresent ? _l.signInLoggedInAs : _l.sourceNotSignedIn;
 
     Widget sectionDivider() => const SizedBox(height: 6);
 
@@ -283,14 +434,16 @@ class _SourceSettingsScreenState extends ConsumerState<SourceSettingsScreen> {
             ),
           ),
           sectionDivider(),
-          _row(
-            icon: RemixIcons.login_box_line,
-            title: _l.sourceSignIn,
-            subtitle: cookiesPresent ? _l.signInLoggedInAs : _l.sourceNotSignedIn,
-            trailing: _chevron(),
-            onTap: _startSignIn,
-          ),
-          sectionDivider(),
+          if (supportsSignIn) ...[
+            _row(
+              icon: RemixIcons.login_box_line,
+              title: _l.sourceSignIn,
+              subtitle: signedInSubtitle,
+              trailing: _chevron(),
+              onTap: _startSignIn,
+            ),
+            sectionDivider(),
+          ],
           _row(
             icon: RemixIcons.delete_bin_line,
             title: _l.sourceClearCookies,
@@ -349,6 +502,20 @@ class _SourceSettingsScreenState extends ConsumerState<SourceSettingsScreen> {
                 await _reload();
               },
             ),
+          ),
+          sectionDivider(),
+          _row(
+            icon: RemixIcons.pulse_line,
+            title: _l.sourceTest,
+            subtitle: _l.sourceTestSubtitle,
+            trailing: _testing
+                ? const SizedBox(
+                    width: 20,
+                    height: 20,
+                    child: CircularProgressIndicator(strokeWidth: 2),
+                  )
+                : _chevron(),
+            onTap: _runTest,
           ),
           sectionDivider(),
           _row(
