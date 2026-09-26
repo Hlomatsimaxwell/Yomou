@@ -960,5 +960,41 @@
         "type": "int"
       }
     }
-  }
+  },
+  "sourceFilter": "Filtro",
+  "sourceListOptions": "Opciones de lista",
+  "sourceListMode": "Modo de lista",
+  "sourceGridSize": "Tamaño de cuadrícula",
+  "sourceGridSizeColumns": "{columns} columnas",
+  "@sourceGridSizeColumns": {
+    "placeholders": {
+      "columns": {
+        "type": "int"
+      }
+    }
+  },
+  "sourceDomain": "Dominio",
+  "sourceDefault": "Predeterminado: {value}",
+  "@sourceDefault": {
+    "placeholders": {
+      "value": {
+        "type": "String"
+      }
+    }
+  },
+  "sourceUserAgent": "Encabezado UserAgent",
+  "sourceSignIn": "Iniciar sesión",
+  "sourceNotSignedIn": "No has iniciado sesión",
+  "sourceClearCookies": "Borrar cookies",
+  "sourceClearCookiesSubtitle": "Borrar cookies solo para el dominio especificado. En la mayoría de los casos esto invalidará la autorización.",
+  "sourceCookiesCleared": "Se eliminaron todas las cookies",
+  "sourceAuthorized": "Autorizado",
+  "sourceCaptchaSolver": "Desactivar la resolución automática de CAPTCHA",
+  "sourceCaptchaSolverSubtitle": "No intentes resolver CAPTCHA silenciosamente en segundo plano. Se te pedirá que lo resuelvas manualmente.",
+  "sourceCaptchaNotif": "Desactivar notificaciones de CAPTCHA",
+  "sourceCaptchaNotifSubtitle": "No recibirás notificaciones sobre la resolución de CAPTCHA en esta fuente, pero esto puede romper operaciones en segundo plano (comprobación de capítulos nuevos, obtener recomendaciones, etc.).",
+  "sourceDownloadSlowdown": "Ralentizar descargas",
+  "sourceDownloadSlowdownSubtitle": "Ayuda a evitar el bloqueo de tu dirección IP.",
+  "sourceOpenInBrowser": "Abrir en el navegador web",
+  "signInLoggedInAs": "Sesión iniciada como"
 }

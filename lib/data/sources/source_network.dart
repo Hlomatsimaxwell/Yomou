@@ -5,18 +5,53 @@ import 'package:shared_preferences/shared_preferences.dart';
 /// Per-source network configuration (the "Kotatsu-style" source settings).
 ///
 /// Stored per source id in SharedPreferences so users can override the
-/// user-agent, the domain (mirrors/CDNs) and the HTTP timeouts a source uses,
+/// user-agent, the domain (mirrors/CDNs), the HTTP timeouts a source uses,
+/// captured sign-in cookies, CAPTCHA handling and download throttling —
 /// without touching code. Sources built on [DioSource] pick these values up.
 class SourceNetworkConfig {
-  SourceNetworkConfig({this.userAgent, this.baseUrlOverride, this.timeout});
+  SourceNetworkConfig({
+    this.userAgent,
+    this.baseUrlOverride,
+    this.timeout,
+    this.cookies,
+    this.captchaAutosolveDisabled,
+    this.captchaNotificationsDisabled,
+    this.downloadSlowdown,
+  });
 
   static const String _uaKeyPrefix = 'source_network_ua_';
   static const String _domainKeyPrefix = 'source_network_domain_';
   static const String _timeoutKeyPrefix = 'source_network_timeout_';
+  static const String _cookiesKeyPrefix = 'source_network_cookies_';
+  static const String _captchaOffKeyPrefix = 'source_network_captcha_off_';
+  static const String _captchaNotifOffKeyPrefix =
+      'source_network_captcha_notif_off_';
+  static const String _slowdownKeyPrefix = 'source_network_slowdown_';
 
   final String? userAgent;
   final String? baseUrlOverride;
   final Duration? timeout;
+
+  /// Captured login cookies as a raw `name=value; name2=value2` header value.
+  final String? cookies;
+
+  /// When true the source never tries to solve CAPTCHAs in the background.
+  final bool? captchaAutosolveDisabled;
+
+  /// When true no notifications are posted about solving a CAPTCHA.
+  final bool? captchaNotificationsDisabled;
+
+  /// When true downloads are throttled to avoid blocking the IP address.
+  final bool? downloadSlowdown;
+
+  /// Strips the path/scheme from a user-typed domain (mirrors/link-paste
+  /// shortcuts) and returns a well-formed https:// base URL.
+  static String normalizeBaseUrl(String input) {
+    var value = input.trim();
+    if (value.isEmpty) return 'https://';
+    if (!value.contains('://')) value = 'https://$value';
+    return value.replaceAll(RegExp(r'/+$'), '');
+  }
 
   static Future<void> persist({
     required String sourceId,
@@ -36,11 +71,80 @@ class SourceNetworkConfig {
     }
   }
 
+  /// Sets (or, with a null [value], clears) the base URL override.
+  static Future<void> setBaseUrl(String sourceId, {String? value}) async {
+    final prefs = await SharedPreferences.getInstance();
+    if (value == null || value.trim().isEmpty) {
+      await prefs.remove(_domainKeyPrefix + sourceId);
+    } else {
+      await prefs.setString(
+        _domainKeyPrefix + sourceId,
+        normalizeBaseUrl(value),
+      );
+    }
+  }
+
+  /// Sets (or, with a null [value], clears) the User-Agent override.
+  static Future<void> setUserAgent(String sourceId, {String? value}) async {
+    final prefs = await SharedPreferences.getInstance();
+    if (value == null || value.trim().isEmpty) {
+      await prefs.remove(_uaKeyPrefix + sourceId);
+    } else {
+      await prefs.setString(_uaKeyPrefix + sourceId, value.trim());
+    }
+  }
+
+  /// Stores the cookie header captured after a successful sign-in.
+  static Future<void> setCookies(String sourceId, {required String value}) async {
+    final prefs = await SharedPreferences.getInstance();
+    if (value.trim().isEmpty) {
+      await prefs.remove(_cookiesKeyPrefix + sourceId);
+    } else {
+      await prefs.setString(_cookiesKeyPrefix + sourceId, value.trim());
+    }
+  }
+
+  static Future<String?> cookiesFor(String sourceId) async {
+    final prefs = await SharedPreferences.getInstance();
+    final value = prefs.getString(_cookiesKeyPrefix + sourceId);
+    return (value == null || value.isEmpty) ? null : value;
+  }
+
+  static Future<void> clearCookies(String sourceId) async {
+    final prefs = await SharedPreferences.getInstance();
+    await prefs.remove(_cookiesKeyPrefix + sourceId);
+  }
+
+  static Future<void> setCaptchaAutosolveDisabled(
+    String sourceId,
+    bool value,
+  ) async {
+    final prefs = await SharedPreferences.getInstance();
+    await prefs.setBool(_captchaOffKeyPrefix + sourceId, value);
+  }
+
+  static Future<void> setCaptchaNotificationsDisabled(
+    String sourceId,
+    bool value,
+  ) async {
+    final prefs = await SharedPreferences.getInstance();
+    await prefs.setBool(_captchaNotifOffKeyPrefix + sourceId, value);
+  }
+
+  static Future<void> setDownloadSlowdown(String sourceId, bool value) async {
+    final prefs = await SharedPreferences.getInstance();
+    await prefs.setBool(_slowdownKeyPrefix + sourceId, value);
+  }
+
   static Future<void> clear({required String sourceId}) async {
     final prefs = await SharedPreferences.getInstance();
     await prefs.remove(_uaKeyPrefix + sourceId);
     await prefs.remove(_domainKeyPrefix + sourceId);
     await prefs.remove(_timeoutKeyPrefix + sourceId);
+    await prefs.remove(_cookiesKeyPrefix + sourceId);
+    await prefs.remove(_captchaOffKeyPrefix + sourceId);
+    await prefs.remove(_captchaNotifOffKeyPrefix + sourceId);
+    await prefs.remove(_slowdownKeyPrefix + sourceId);
   }
 
   static Future<SourceNetworkConfig> forSource(String sourceId) async {
@@ -52,6 +156,15 @@ class SourceNetworkConfig {
         final ms = prefs.getInt(_timeoutKeyPrefix + sourceId);
         return ms != null ? Duration(milliseconds: ms) : null;
       }(),
+      cookies: () {
+        final v = prefs.getString(_cookiesKeyPrefix + sourceId);
+        return (v == null || v.isEmpty) ? null : v;
+      }(),
+      captchaAutosolveDisabled:
+          prefs.getBool(_captchaOffKeyPrefix + sourceId),
+      captchaNotificationsDisabled:
+          prefs.getBool(_captchaNotifOffKeyPrefix + sourceId),
+      downloadSlowdown: prefs.getBool(_slowdownKeyPrefix + sourceId),
     );
   }
 }
@@ -63,8 +176,6 @@ class SourceNetworkConfig {
 /// of the source's own [baseUrl] and [headers], plus a defensive [grabText]
 /// used by the HTML parsers.
 abstract class DioSource {
-  Dio? _dio;
-
   /// Identifier used to scope per-source network overrides.
   String get networkSourceId;
 
@@ -86,9 +197,6 @@ abstract class DioSource {
   Duration? get timeout => const Duration(seconds: 20);
 
   Future<Dio> get dio async {
-    final existing = _dio;
-    if (existing != null) return existing;
-
     final config = await SourceNetworkConfig.forSource(networkSourceId);
     final effectiveBaseUrl = (config.baseUrlOverride ?? baseUrl).replaceAll(
       RegExp(r'/$'),
@@ -98,10 +206,11 @@ abstract class DioSource {
     final mergedHeaders = <String, dynamic>{
       if (headers != null) ...headers!,
       if (config.userAgent != null) 'User-Agent': config.userAgent,
+      if (config.cookies != null) 'Cookie': config.cookies,
     };
 
     final connectedTimeout = config.timeout ?? timeout;
-    final client = Dio(
+    return Dio(
       BaseOptions(
         baseUrl: effectiveBaseUrl,
         headers: mergedHeaders,
@@ -110,7 +219,6 @@ abstract class DioSource {
         sendTimeout: connectedTimeout,
       ),
     );
-    return _dio = client;
   }
 
   /// Fetches [url] and returns the response body string. Returns an empty
@@ -147,6 +255,11 @@ abstract class DioSource {
     Map<String, String>? extraHeaders,
   }) async {
     try {
+      final config = await SourceNetworkConfig.forSource(networkSourceId);
+      if (config.downloadSlowdown ?? false) {
+        // Polite pacing so aggressive downloads don't get the IP blocked.
+        await Future<void>.delayed(const Duration(milliseconds: 400));
+      }
       final client = await dio;
       final res = await client.get<List<int>>(
         url,

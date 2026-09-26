@@ -3,6 +3,7 @@ import 'package:http/http.dart' as http;
 import 'package:path/path.dart' as p;
 import 'package:path_provider/path_provider.dart';
 import 'package:yomou/data/sources/mf_scramble.dart';
+import 'package:yomou/data/sources/source_network.dart';
 
 /// Downloads chapter image pages to local storage so they can be read
 /// offline ("cached chapters").
@@ -65,6 +66,7 @@ class ChapterDownloader {
     required String chapterId,
     required List<String> pages,
     Map<String, String>? headers,
+    String? networkSourceId,
     void Function(int done, int total)? onProgress,
     bool Function()? isCancelled,
   }) async {
@@ -74,11 +76,21 @@ class ChapterDownloader {
       await dir.create(recursive: true);
     }
 
+    final slowdown = networkSourceId == null
+        ? false
+        : (await SourceNetworkConfig.forSource(networkSourceId))
+                .downloadSlowdown ??
+            false;
+
     final saved = <String>[];
     for (var i = 0; i < pages.length; i++) {
       if (isCancelled?.call() ?? false) {
         await dir.delete(recursive: true);
         return null;
+      }
+      if (slowdown && i > 0) {
+        // Polite pacing between page downloads avoids IP blocking.
+        await Future<void>.delayed(const Duration(milliseconds: 500));
       }
       final url = pages[i];
       final file = File(p.join(dir.path, _pageFileName(i, url)));

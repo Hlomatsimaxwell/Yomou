@@ -1029,5 +1029,41 @@
         "type": "int"
       }
     }
-  }
+  },
+  "sourceFilter": "Filter",
+  "sourceListOptions": "List options",
+  "sourceListMode": "List mode",
+  "sourceGridSize": "Grid size",
+  "sourceGridSizeColumns": "{columns} Columns",
+  "@sourceGridSizeColumns": {
+    "placeholders": {
+      "columns": {
+        "type": "int"
+      }
+    }
+  },
+  "sourceDomain": "Domain",
+  "sourceDefault": "Default: {value}",
+  "@sourceDefault": {
+    "placeholders": {
+      "value": {
+        "type": "String"
+      }
+    }
+  },
+  "sourceUserAgent": "UserAgent header",
+  "sourceSignIn": "Sign in",
+  "sourceNotSignedIn": "Not signed in",
+  "sourceClearCookies": "Clear cookies",
+  "sourceClearCookiesSubtitle": "Clear cookies for specified domain only. In most cases this will invalidate authorization.",
+  "sourceCookiesCleared": "All cookies were removed",
+  "sourceAuthorized": "Authorized",
+  "sourceCaptchaSolver": "Disable automatic CAPTCHA solving",
+  "sourceCaptchaSolverSubtitle": "Don't try to solve CAPTCHA silently in the background. You will be asked to solve it manually instead.",
+  "sourceCaptchaNotif": "Disable CAPTCHA notifications",
+  "sourceCaptchaNotifSubtitle": "You will not receive notifications about solving CAPTCHA for this source, but this can lead to breaking background operations (checking for new chapters, obtaining recommendations, etc.).",
+  "sourceDownloadSlowdown": "Download slowdown",
+  "sourceDownloadSlowdownSubtitle": "Helps avoid blocking your IP address.",
+  "sourceOpenInBrowser": "Open in web browser",
+  "signInLoggedInAs": "Logged in as"
 }

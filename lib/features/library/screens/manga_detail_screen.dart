@@ -1336,6 +1336,7 @@ class _MangaDetailScreenState extends ConsumerState<MangaDetailScreen> {
           chapterId: ch.id,
           pages: pages,
           headers: source.headers,
+          networkSourceId: source.id,
           onProgress: (done, total) {
             if (mounted) {
               setState(() {

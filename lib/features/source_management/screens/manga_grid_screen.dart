@@ -10,12 +10,15 @@ import 'package:yomou/features/library/screens/manga_detail_screen.dart';
 import 'package:yomou/features/library/widgets/downloaded_badge.dart';
 import 'package:yomou/features/library/widgets/favorite_badge.dart';
 import 'package:yomou/core/widgets/empty_state.dart';
+import 'package:yomou/core/widgets/ios/ios_menu.dart';
+import 'package:yomou/core/widgets/ios/ios_sheet.dart';
 import 'package:yomou/core/widgets/manga_grid_metrics.dart';
 import 'package:yomou/data/models/manga.dart';
 import 'package:yomou/data/models/manga_filter.dart';
 import 'package:yomou/data/providers/sources_provider.dart';
 import 'package:yomou/features/settings/providers/appearance_provider.dart';
 import 'package:yomou/features/source_management/screens/manga_filter_sheet.dart';
+import 'package:yomou/features/source_management/screens/source_settings_screen.dart';
 import 'package:yomou/l10n/generated/app_localizations.dart';
 import 'package:yomou/widgets/source_icon.dart';
 
@@ -29,6 +32,8 @@ class MangaGridScreen extends ConsumerStatefulWidget {
 }
 
 class _MangaGridScreenState extends ConsumerState<MangaGridScreen> {
+  AppLocalizations get _l => AppLocalizations.of(context);
+
   int _selectedFilterIndex = -1;
   String? _activeTag;
   List<String> _tags = const <String>[];
@@ -40,6 +45,10 @@ class _MangaGridScreenState extends ConsumerState<MangaGridScreen> {
   List<Manga> _mangaList = [];
   bool _isLoading = true;
   String? _error;
+
+  // Grid layout preferences (mirrors history/suggestions list options).
+  String _listMode = 'Grid';
+  double _gridSize = 3;
 
   // Continuous ("endless") scrolling state: page 1 loads first, then scrolling
   // near the bottom fetches the next page and appends it, forever.
@@ -59,7 +68,28 @@ class _MangaGridScreenState extends ConsumerState<MangaGridScreen> {
     super.initState();
     _scrollController.addListener(_onScroll);
     _loadTags();
+    _loadLayoutPrefs();
     _initGrid();
+  }
+
+  Future<void> _loadLayoutPrefs() async {
+    final prefs = await SharedPreferences.getInstance();
+    final mode = prefs.getString('manga_grid_list_mode') ?? 'Grid';
+    final size = prefs.getDouble('manga_grid_grid_size') ?? 3.0;
+    if (!mounted) return;
+    setState(() {
+      _listMode = mode;
+      _gridSize = size;
+    });
+  }
+
+  Future<void> _saveLayoutPref(String key, Object value) async {
+    final prefs = await SharedPreferences.getInstance();
+    if (value is String) {
+      await prefs.setString(key, value);
+    } else if (value is double) {
+      await prefs.setDouble(key, value);
+    }
   }
 
   Future<void> _initGrid() async {
@@ -338,7 +368,7 @@ class _MangaGridScreenState extends ConsumerState<MangaGridScreen> {
                 RemixIcons.more_2_line,
                 color: dark ? Colors.white : const Color(0xFF1C1B1F),
               ),
-              onPressed: () {},
+              onPressed: _showGridMenu,
             ),
           ),
         ],
@@ -491,6 +521,182 @@ class _MangaGridScreenState extends ConsumerState<MangaGridScreen> {
     );
   }
 
+  Future<void> _showGridMenu() async {
+    final l = _l;
+    final source = getSourceByName(widget.sourceName);
+    await showIosMenuPanel<void>(
+      context,
+      children: [
+        IosMenuRow(
+          icon: RemixIcons.filter_line,
+          label: l.sourceFilter,
+          onTap: () {
+            Navigator.pop(context);
+            _openFilterSheet();
+          },
+        ),
+        IosMenuRow(
+          icon: RemixIcons.list_unordered,
+          label: l.sourceListOptions,
+          onTap: () {
+            Navigator.pop(context);
+            _showListOptionsSheet();
+          },
+        ),
+        IosMenuRow(
+          icon: RemixIcons.settings_3_line,
+          label: l.settings,
+          onTap: () {
+            Navigator.pop(context);
+            Navigator.push(
+              context,
+              MaterialPageRoute(
+                builder: (context) => SourceSettingsScreen(
+                  sourceId: source.id,
+                  sourceName: widget.sourceName,
+                ),
+              ),
+            );
+          },
+        ),
+      ],
+    );
+  }
+
+  void _showListOptionsSheet() {
+    showIosSheet(
+      context,
+      builder: (context) {
+        return StatefulBuilder(
+          builder: (context, setSheetState) {
+            final dark = Theme.of(context).brightness == Brightness.dark;
+            return Padding(
+              padding: const EdgeInsets.fromLTRB(20, 12, 20, 24),
+              child: Column(
+                mainAxisSize: MainAxisSize.min,
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Text(
+                    _l.sourceListMode,
+                    style: TextStyle(
+                      color: dark ? Colors.white70 : const Color(0xFF49454F),
+                      fontSize: 14,
+                      fontWeight: FontWeight.w500,
+                    ),
+                  ),
+                  const SizedBox(height: 12),
+                  Container(
+                    height: 52,
+                    decoration: BoxDecoration(
+                      borderRadius: BorderRadius.circular(26),
+                      border: Border.all(
+                        color: dark ? Colors.white24 : Colors.black12,
+                        width: 1,
+                      ),
+                    ),
+                    child: Row(
+                      children: [
+                        _buildSegmentTab('List', RemixIcons.list_view, setSheetState),
+                        const SizedBox(width: 8),
+                        _buildSegmentTab('Grid', RemixIcons.grid_line, setSheetState),
+                      ],
+                    ),
+                  ),
+                  if (_listMode == 'Grid') ...[
+                    const SizedBox(height: 24),
+                    Row(
+                      mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                      children: [
+                        Text(
+                          _l.sourceGridSize,
+                          style: TextStyle(
+                            color:
+                                dark ? Colors.white70 : const Color(0xFF49454F),
+                            fontSize: 14,
+                            fontWeight: FontWeight.w500,
+                          ),
+                        ),
+                        Text(
+                          _l.sourceGridSizeColumns(_gridSize.toInt()),
+                          style: TextStyle(
+                            color: dark ? Colors.white54 : Colors.black54,
+                            fontSize: 12,
+                          ),
+                        ),
+                      ],
+                    ),
+                    const SizedBox(height: 8),
+                    Slider(
+                      value: 7 - _gridSize,
+                      min: 1,
+                      max: 6,
+                      divisions: 5,
+                      activeColor: dark
+                          ? Colors.white
+                          : Theme.of(context).colorScheme.primary,
+                      inactiveColor: dark ? Colors.white12 : Colors.black12,
+                      onChanged: (value) {
+                        final actualColumns = 7 - value;
+                        setSheetState(() => _gridSize = actualColumns);
+                        setState(() {});
+                        _saveLayoutPref('manga_grid_grid_size', actualColumns);
+                      },
+                    ),
+                  ],
+                ],
+              ),
+            );
+          },
+        );
+      },
+    );
+  }
+
+  Widget _buildSegmentTab(
+    String mode,
+    IconData icon,
+    StateSetter setSheetState,
+  ) {
+    final isSelected = _listMode == mode;
+    final dark = Theme.of(context).brightness == Brightness.dark;
+    final selectedBg = dark
+        ? const Color(0xFF6B6F76)
+        : Theme.of(context).colorScheme.primary;
+    final fg = isSelected
+        ? Colors.white
+        : (dark ? Colors.white : const Color(0xFF1C1B1F));
+    return Expanded(
+      child: GestureDetector(
+        onTap: () {
+          setSheetState(() => _listMode = mode);
+          setState(() {});
+          _saveLayoutPref('manga_grid_list_mode', mode);
+        },
+        child: Container(
+          decoration: BoxDecoration(
+            color: isSelected ? selectedBg : Colors.transparent,
+            borderRadius: BorderRadius.circular(28),
+          ),
+          child: Column(
+            mainAxisAlignment: MainAxisAlignment.center,
+            children: [
+              Icon(icon, color: fg, size: 20),
+              const SizedBox(height: 2),
+              Text(
+                mode == 'Grid' ? _l.listModeGrid : _l.listModeList,
+                style: TextStyle(
+                  color: fg,
+                  fontSize: 13,
+                  fontWeight: FontWeight.w500,
+                ),
+              ),
+            ],
+          ),
+        ),
+      ),
+    );
+  }
+
   Widget _buildFilterChips() {
     final dark = Theme.of(context).brightness == Brightness.dark;
     return SizedBox(
@@ -558,14 +764,21 @@ class _MangaGridScreenState extends ConsumerState<MangaGridScreen> {
       );
     }
 
+    if (_listMode == 'List') {
+      return Column(
+        children: [for (final item in items) _buildMangaListRow(context, item)],
+      );
+    }
+
+    final columns = _gridSize.round().clamp(2, 5);
     return Padding(
       padding: const EdgeInsets.symmetric(horizontal: 16),
       child: GridView.builder(
         shrinkWrap: true,
         physics: const NeverScrollableScrollPhysics(),
         gridDelegate: SliverGridDelegateWithFixedCrossAxisCount(
-          crossAxisCount: 3,
-          childAspectRatio: mangaCellAspectRatio(context, columns: 3),
+          crossAxisCount: columns,
+          childAspectRatio: mangaCellAspectRatio(context, columns: columns),
           crossAxisSpacing: kMangaGridCrossSpacing,
           mainAxisSpacing: kMangaGridRowSpacing,
         ),
@@ -574,6 +787,80 @@ class _MangaGridScreenState extends ConsumerState<MangaGridScreen> {
           final item = items[index];
           return _buildMangaCard(context, item);
         },
+      ),
+    );
+  }
+
+  Widget _buildMangaListRow(BuildContext context, Manga item) {
+    final dark = Theme.of(context).brightness == Brightness.dark;
+    return InkWell(
+      onTap: () {
+        Navigator.push(
+          context,
+          MaterialPageRoute(
+            builder: (context) => MangaDetailScreen(
+              mangaId: item.id,
+              title: item.title,
+              imageUrl: item.coverUrl,
+              sourceId: item.sourceId,
+            ),
+          ),
+        );
+      },
+      child: Padding(
+        padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 6),
+        child: Row(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            ClipRRect(
+              borderRadius: BorderRadius.circular(12),
+              child: SizedBox(
+                width: 52,
+                height: 76,
+                child: CachedMangaImage(
+                  imageUrl: item.coverUrl,
+                  fit: BoxFit.cover,
+                  errorWidget: (context, url, error) => Container(
+                    color: dark ? const Color(0xFF2C2C2E) : Colors.black12,
+                    alignment: Alignment.center,
+                    child: const Icon(
+                      RemixIcons.book_open_line,
+                      color: Colors.white38,
+                      size: 20,
+                    ),
+                  ),
+                ),
+              ),
+            ),
+            const SizedBox(width: 12),
+            Expanded(
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  const SizedBox(height: 2),
+                  Text(
+                    item.title,
+                    maxLines: 2,
+                    overflow: TextOverflow.ellipsis,
+                    style: TextStyle(
+                      color: dark
+                          ? Colors.white
+                          : Theme.of(context).colorScheme.onSurface,
+                      fontSize: 14,
+                      fontWeight: FontWeight.bold,
+                      height: 1.25,
+                    ),
+                  ),
+                ],
+              ),
+            ),
+            Icon(
+              RemixIcons.arrow_right_s_line,
+              size: 20,
+              color: dark ? Colors.white24 : Colors.black26,
+            ),
+          ],
+        ),
       ),
     );
   }

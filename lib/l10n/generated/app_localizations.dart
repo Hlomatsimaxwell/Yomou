@@ -3636,6 +3636,138 @@ abstract class AppLocalizations {
   /// In en, this message translates to:
   /// **'Discover this pick from {source}'**
   String discoverPick(String source);
+
+  /// No description provided for @sourceFilter.
+  ///
+  /// In en, this message translates to:
+  /// **'Filter'**
+  String get sourceFilter;
+
+  /// No description provided for @sourceListOptions.
+  ///
+  /// In en, this message translates to:
+  /// **'List options'**
+  String get sourceListOptions;
+
+  /// No description provided for @sourceListMode.
+  ///
+  /// In en, this message translates to:
+  /// **'List mode'**
+  String get sourceListMode;
+
+  /// No description provided for @sourceGridSize.
+  ///
+  /// In en, this message translates to:
+  /// **'Grid size'**
+  String get sourceGridSize;
+
+  /// No description provided for @sourceGridSizeColumns.
+  ///
+  /// In en, this message translates to:
+  /// **'{columns} Columns'**
+  String sourceGridSizeColumns(int columns);
+
+  /// No description provided for @sourceDomain.
+  ///
+  /// In en, this message translates to:
+  /// **'Domain'**
+  String get sourceDomain;
+
+  /// No description provided for @sourceDefault.
+  ///
+  /// In en, this message translates to:
+  /// **'Default: {value}'**
+  String sourceDefault(String value);
+
+  /// No description provided for @sourceUserAgent.
+  ///
+  /// In en, this message translates to:
+  /// **'UserAgent header'**
+  String get sourceUserAgent;
+
+  /// No description provided for @sourceSignIn.
+  ///
+  /// In en, this message translates to:
+  /// **'Sign in'**
+  String get sourceSignIn;
+
+  /// No description provided for @sourceNotSignedIn.
+  ///
+  /// In en, this message translates to:
+  /// **'Not signed in'**
+  String get sourceNotSignedIn;
+
+  /// No description provided for @sourceClearCookies.
+  ///
+  /// In en, this message translates to:
+  /// **'Clear cookies'**
+  String get sourceClearCookies;
+
+  /// No description provided for @sourceClearCookiesSubtitle.
+  ///
+  /// In en, this message translates to:
+  /// **'Clear cookies for specified domain only. In most cases this will invalidate authorization.'**
+  String get sourceClearCookiesSubtitle;
+
+  /// No description provided for @sourceCookiesCleared.
+  ///
+  /// In en, this message translates to:
+  /// **'All cookies were removed'**
+  String get sourceCookiesCleared;
+
+  /// No description provided for @sourceAuthorized.
+  ///
+  /// In en, this message translates to:
+  /// **'Authorized'**
+  String get sourceAuthorized;
+
+  /// No description provided for @sourceCaptchaSolver.
+  ///
+  /// In en, this message translates to:
+  /// **'Disable automatic CAPTCHA solving'**
+  String get sourceCaptchaSolver;
+
+  /// No description provided for @sourceCaptchaSolverSubtitle.
+  ///
+  /// In en, this message translates to:
+  /// **'Don\'t try to solve CAPTCHA silently in the background. You will be asked to solve it manually instead.'**
+  String get sourceCaptchaSolverSubtitle;
+
+  /// No description provided for @sourceCaptchaNotif.
+  ///
+  /// In en, this message translates to:
+  /// **'Disable CAPTCHA notifications'**
+  String get sourceCaptchaNotif;
+
+  /// No description provided for @sourceCaptchaNotifSubtitle.
+  ///
+  /// In en, this message translates to:
+  /// **'You will not receive notifications about solving CAPTCHA for this source, but this can lead to breaking background operations (checking for new chapters, obtaining recommendations, etc.).'**
+  String get sourceCaptchaNotifSubtitle;
+
+  /// No description provided for @sourceDownloadSlowdown.
+  ///
+  /// In en, this message translates to:
+  /// **'Download slowdown'**
+  String get sourceDownloadSlowdown;
+
+  /// No description provided for @sourceDownloadSlowdownSubtitle.
+  ///
+  /// In en, this message translates to:
+  /// **'Helps avoid blocking your IP address.'**
+  String get sourceDownloadSlowdownSubtitle;
+
+  /// No description provided for @sourceOpenInBrowser.
+  ///
+  /// In en, this message translates to:
+  /// **'Open in web browser'**
+  String get sourceOpenInBrowser;
+
+  /// No description provided for @signInLoggedInAs.
+  ///
+  /// In en, this message translates to:
+  /// **'Logged in as'**
+  String get signInLoggedInAs;
 }
 
 class _AppLocalizationsDelegate

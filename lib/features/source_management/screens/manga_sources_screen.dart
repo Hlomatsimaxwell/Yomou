@@ -5,6 +5,7 @@ import 'package:yomou/data/providers/sources_provider.dart';
 import 'package:yomou/features/settings/providers/cache_settings_provider.dart';
 import 'package:yomou/core/widgets/ios/ios_menu.dart';
 import 'package:yomou/features/source_management/screens/manga_grid_screen.dart';
+import 'package:yomou/features/source_management/screens/source_settings_screen.dart';
 import 'package:yomou/l10n/generated/app_localizations.dart';
 import 'package:yomou/widgets/source_icon.dart';
 
@@ -264,6 +265,17 @@ class _ManageSourcesScreenState extends ConsumerState<ManageSourcesScreen> {
                         .read(sourcesProvider.notifier)
                         .toggleEnabled(sourceName);
                   }
+                } else if (value == 'settings') {
+                  final src = getSourceByName(sourceName);
+                  Navigator.push(
+                    context,
+                    MaterialPageRoute(
+                      builder: (context) => SourceSettingsScreen(
+                        sourceId: src.id,
+                        sourceName: sourceName,
+                      ),
+                    ),
+                  );
                 }
               },
             ),

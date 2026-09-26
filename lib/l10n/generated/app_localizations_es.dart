@@ -2021,4 +2021,79 @@ class AppLocalizationsEs extends AppLocalizations {
   String discoverPick(String source) {
     return 'Discover this pick from $source';
   }
+
+  @override
+  String get sourceFilter => 'Filtro';
+
+  @override
+  String get sourceListOptions => 'Opciones de lista';
+
+  @override
+  String get sourceListMode => 'Modo de lista';
+
+  @override
+  String get sourceGridSize => 'Tamaño de cuadrícula';
+
+  @override
+  String sourceGridSizeColumns(int columns) {
+    return '$columns columnas';
+  }
+
+  @override
+  String get sourceDomain => 'Dominio';
+
+  @override
+  String sourceDefault(String value) {
+    return 'Predeterminado: $value';
+  }
+
+  @override
+  String get sourceUserAgent => 'Encabezado UserAgent';
+
+  @override
+  String get sourceSignIn => 'Iniciar sesión';
+
+  @override
+  String get sourceNotSignedIn => 'No has iniciado sesión';
+
+  @override
+  String get sourceClearCookies => 'Borrar cookies';
+
+  @override
+  String get sourceClearCookiesSubtitle =>
+      'Borrar cookies solo para el dominio especificado. En la mayoría de los casos esto invalidará la autorización.';
+
+  @override
+  String get sourceCookiesCleared => 'Se eliminaron todas las cookies';
+
+  @override
+  String get sourceAuthorized => 'Autorizado';
+
+  @override
+  String get sourceCaptchaSolver =>
+      'Desactivar la resolución automática de CAPTCHA';
+
+  @override
+  String get sourceCaptchaSolverSubtitle =>
+      'No intentes resolver CAPTCHA silenciosamente en segundo plano. Se te pedirá que lo resuelvas manualmente.';
+
+  @override
+  String get sourceCaptchaNotif => 'Desactivar notificaciones de CAPTCHA';
+
+  @override
+  String get sourceCaptchaNotifSubtitle =>
+      'No recibirás notificaciones sobre la resolución de CAPTCHA en esta fuente, pero esto puede romper operaciones en segundo plano (comprobación de capítulos nuevos, obtener recomendaciones, etc.).';
+
+  @override
+  String get sourceDownloadSlowdown => 'Ralentizar descargas';
+
+  @override
+  String get sourceDownloadSlowdownSubtitle =>
+      'Ayuda a evitar el bloqueo de tu dirección IP.';
+
+  @override
+  String get sourceOpenInBrowser => 'Abrir en el navegador web';
+
+  @override
+  String get signInLoggedInAs => 'Sesión iniciada como';
 }

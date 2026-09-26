@@ -2375,6 +2375,7 @@ class _ReaderScreenState extends ConsumerState<ReaderScreen>
       chapterId: chapter.id,
       pages: pages,
       headers: source.headers,
+      networkSourceId: source.id,
       isCancelled: () => task.cancelled,
       onProgress: (done, total) {
         task

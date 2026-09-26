@@ -1999,4 +1999,78 @@ class AppLocalizationsEn extends AppLocalizations {
   String discoverPick(String source) {
     return 'Discover this pick from $source';
   }
+
+  @override
+  String get sourceFilter => 'Filter';
+
+  @override
+  String get sourceListOptions => 'List options';
+
+  @override
+  String get sourceListMode => 'List mode';
+
+  @override
+  String get sourceGridSize => 'Grid size';
+
+  @override
+  String sourceGridSizeColumns(int columns) {
+    return '$columns Columns';
+  }
+
+  @override
+  String get sourceDomain => 'Domain';
+
+  @override
+  String sourceDefault(String value) {
+    return 'Default: $value';
+  }
+
+  @override
+  String get sourceUserAgent => 'UserAgent header';
+
+  @override
+  String get sourceSignIn => 'Sign in';
+
+  @override
+  String get sourceNotSignedIn => 'Not signed in';
+
+  @override
+  String get sourceClearCookies => 'Clear cookies';
+
+  @override
+  String get sourceClearCookiesSubtitle =>
+      'Clear cookies for specified domain only. In most cases this will invalidate authorization.';
+
+  @override
+  String get sourceCookiesCleared => 'All cookies were removed';
+
+  @override
+  String get sourceAuthorized => 'Authorized';
+
+  @override
+  String get sourceCaptchaSolver => 'Disable automatic CAPTCHA solving';
+
+  @override
+  String get sourceCaptchaSolverSubtitle =>
+      'Don\'t try to solve CAPTCHA silently in the background. You will be asked to solve it manually instead.';
+
+  @override
+  String get sourceCaptchaNotif => 'Disable CAPTCHA notifications';
+
+  @override
+  String get sourceCaptchaNotifSubtitle =>
+      'You will not receive notifications about solving CAPTCHA for this source, but this can lead to breaking background operations (checking for new chapters, obtaining recommendations, etc.).';
+
+  @override
+  String get sourceDownloadSlowdown => 'Download slowdown';
+
+  @override
+  String get sourceDownloadSlowdownSubtitle =>
+      'Helps avoid blocking your IP address.';
+
+  @override
+  String get sourceOpenInBrowser => 'Open in web browser';
+
+  @override
+  String get signInLoggedInAs => 'Logged in as';
 }
