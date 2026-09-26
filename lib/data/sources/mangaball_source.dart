@@ -97,25 +97,73 @@ class MangaBallSource extends DioSource implements MangaSource {
 
   // --- API plumbing -------------------------------------------------------
 
-  /// POSTs a form to the API with the CSRF header attached.
+  /// The site's own id for a slug, which the chapter endpoint insists on.
+  ///
+  /// The chapter endpoint rejects a slug and answers "Missing title_id", and the
+  /// id is an opaque value that cannot be derived from the slug - it used to be
+  /// guessed from the slug's last segment, which is a chapter word rather than
+  /// an id. Listings and details both carry the real one, so both record it.
+  final Map<String, String> _titleIds = {};
+
+  /// The site id for [slug], looked up once before giving up on the details.
+  Future<String?> _titleIdFor(String slug) async {
+    final known = _titleIds[slug];
+    if (known != null && known.isNotEmpty) return known;
+    final json = await _getJson('/api/v1/title/detail/$slug');
+    final data = json is Map ? json['data'] : null;
+    if (data is! Map) return null;
+    final id = '${data['id'] ?? ''}';
+    if (id.isEmpty) return null;
+    _titleIds[slug] = id;
+    return id;
+  }
+
+  /// The detail record for [slug], preferring the site's own id.
+  ///
+  /// The endpoint answers to either key, so this is a preference rather than a
+  /// fallback: the id travels with the listing, while a slug that reached the
+  /// cache by some other route may not be the one the API knows by.
+  Future<dynamic> _detailJson(String slug) async {
+    final known = _titleIds[slug];
+    if (known != null && known.isNotEmpty) {
+      final byId = await _getJson('/api/v1/title/detail/$known');
+      if (_hasDetail(byId)) {
+        diagSoon('$id: detail for $slug by id ok');
+        return byId;
+      }
+      diagSoon('$id: detail for $slug by id failed, retrying by slug');
+    }
+    return _getJson('/api/v1/title/detail/$slug');
+  }
+
+  static bool _hasDetail(dynamic json) =>
+      json is Map && json['data'] is Map && (json['data'] as Map).isNotEmpty;
+
+  /// POSTs to the API with the CSRF header attached.
   ///
   /// A 403 usually means the token went stale, so it is refreshed once and the
-  /// call retried before giving up.
+  /// call retried before giving up. Some endpoints read the body as JSON and
+  /// report every field as missing when given a form encoding instead, so
+  /// [asJson] picks the encoding rather than the caller building it by hand.
   Future<dynamic> _postJson(
     String path,
     Map<String, String> form, {
     Duration cap = const Duration(seconds: 25),
+    bool asJson = false,
   }) async {
-    final raw = form.entries
-        .map(
-          (e) =>
-              '${Uri.encodeQueryComponent(e.key)}=${Uri.encodeQueryComponent(e.value)}',
-        )
-        .join('&');
-    var body = await _send(path, raw, cap: cap);
+    final raw = asJson
+        ? jsonEncode(form)
+        : form.entries
+              .map(
+                (e) =>
+                    '${Uri.encodeQueryComponent(e.key)}='
+                    '${Uri.encodeQueryComponent(e.value)}',
+              )
+              .join('&');
+    var body = await _send(path, raw, cap: cap, asJson: asJson);
     if (body.isEmpty) {
       // Either a stale token or a challenge; try once more.
-      body = await _send(path, raw, cap: cap);
+      body = await _send(path, raw, cap: cap, asJson: asJson);
     }
     if (body.isEmpty) {
       diagSoon('$id: empty answer from $path (lang=$langCode)');
@@ -141,9 +189,23 @@ class MangaBallSource extends DioSource implements MangaSource {
     String path,
     String rawBody, {
     Duration cap = const Duration(seconds: 25),
+    bool asJson = false,
   }) async {
     final url = '$baseUrl$path';
-    final js = _postScript(url, rawBody);
+    final js = _postScript(url, rawBody, asJson: asJson);
+    return _run(path, js, cap: cap, verb: 'POST');
+  }
+
+  /// Runs an in-page request script and hands back the response text.
+  ///
+  /// A challenge and a stale token mean the same thing here: this session can
+  /// no longer talk to the API until it is solved again.
+  Future<String> _run(
+    String path,
+    String js, {
+    required Duration cap,
+    required String verb,
+  }) async {
     try {
       final body = await WebViewFetcher.instance.callInPage(
         baseUrl,
@@ -151,11 +213,7 @@ class MangaBallSource extends DioSource implements MangaSource {
         sourceId: id,
         cap: cap,
       );
-      // The interstitial and a stale token both mean the same thing here: this
-      // session can no longer talk to the API until it is solved again.
-      if (body.contains('Just a moment') ||
-          body.contains('CSRF token validation failed') ||
-          body.contains('cf-mitigated')) {
+      if (_looksUnusable(body)) {
         throw CaptchaRequiredException(
           sourceId: networkSourceId,
           challengeUrl: baseUrl,
@@ -165,7 +223,7 @@ class MangaBallSource extends DioSource implements MangaSource {
     } on CaptchaRequiredException {
       rethrow;
     } catch (e) {
-      diagSoon('$id: in-page POST $path failed: $e');
+      diagSoon('$id: in-page $verb $path failed: $e');
       // A challenge inside the page means the session needs solving again.
       if (await _pageIsChallenged()) {
         throw CaptchaRequiredException(
@@ -175,6 +233,71 @@ class MangaBallSource extends DioSource implements MangaSource {
       }
       return '';
     }
+  }
+
+  /// Fetches JSON with a GET, issued from inside the page.
+  ///
+  /// The detail endpoint is a GET, and it is the only place the site's own id
+  /// for a title comes from - which the chapter endpoint then insists on - so
+  /// reading the API directly replaces scraping a rendered page for a container
+  /// the current markup no longer has.
+  ///
+  /// [path] is the whole path including the `/api/v1` prefix. Dropping it does
+  /// not produce an API error: the request reaches the site router instead and
+  /// comes back 404 with a rendered HTML page, which reads like a title that
+  /// does not exist rather than a mistyped URL.
+  Future<dynamic> _getJson(
+    String path, {
+    Duration cap = const Duration(seconds: 25),
+  }) async {
+    final body = await _run(
+      path,
+      _getScript('$baseUrl$path'),
+      cap: cap,
+      verb: 'GET',
+    );
+    if (body.isEmpty) {
+      diagSoon('$id: empty answer from $path (lang=$langCode)');
+      return null;
+    }
+    try {
+      return jsonDecode(body);
+    } catch (_) {
+      debugPrint('$id: bad json from $path');
+      return null;
+    }
+  }
+
+  /// Whether a response is unusable rather than content.
+  static bool _looksUnusable(String body) =>
+      body.contains('Just a moment') ||
+      body.contains('CSRF token validation failed') ||
+      body.contains('cf-mitigated');
+
+  /// In-page GET, for the endpoints that answer one.
+  static String _getScript(String url) {
+    final u = jsonEncode(url);
+    return '''
+(function () {
+  fetch($u, {
+    method: 'GET',
+    credentials: 'include',
+    headers: {
+      'Accept': 'application/json, text/plain, */*',
+      'X-Requested-With': 'XMLHttpRequest'}
+  }).then(function (r) {
+    return r.text().then(function (t) {
+      window.__mbStatus = r.status;
+      window.__mbData = t;
+      window.__mbDone = true;
+    });
+  }).catch(function (e) {
+    window.__mbErr = '' + e;
+    window.__mbDone = true;
+  });
+  return 'started';
+})()
+''';
   }
 
   /// In-page POST, sent from the document itself so the session cookie, origin
@@ -191,15 +314,18 @@ class MangaBallSource extends DioSource implements MangaSource {
   /// was left stranded after it, so the whole script was a syntax error: it
   /// never ran, `window.__mbDone` was never set, and every call sat out its
   /// full timeout before reporting a failure that had no cause on screen.
-  static String _postScript(String url, String rawBody) {
+  static String _postScript(String url, String rawBody, {bool asJson = false}) {
     final u = jsonEncode(url);
     final b = jsonEncode(rawBody);
+    final contentType = asJson
+        ? 'application/json'
+        : 'application/x-www-form-urlencoded; charset=UTF-8';
     return '''
 (function () {
   var meta = document.querySelector('meta[name=csrf-token]');
   var token = meta ? (meta.getAttribute('content') || '') : '';
   var headers = {
-      'Content-Type': 'application/x-www-form-urlencoded; charset=UTF-8',
+      'Content-Type': '$contentType',
       'X-Requested-With': 'XMLHttpRequest',
       'Accept': 'application/json, text/plain, */*'};
   if (token) headers['X-CSRF-TOKEN'] = token;
@@ -365,6 +491,8 @@ class MangaBallSource extends DioSource implements MangaSource {
       // an unparseable answer looked exactly like an empty listing.
       final slug = '${item['slug'] ?? ''}'.trim();
       if (slug.isEmpty) continue;
+      final titleId = '${item['id'] ?? ''}'.trim();
+      if (titleId.isNotEmpty) _titleIds[slug] = titleId;
       result.add(
         Manga(
           id: slug,
@@ -394,60 +522,90 @@ class MangaBallSource extends DioSource implements MangaSource {
   Future<MangaDetails?> getMangaDetails(String mangaId) async {
     diagSoon('$id: getMangaDetails($mangaId)');
     final slug = _baseSlug(mangaId);
-    final page = await WebViewFetcher.instance.render(
-      '$baseUrl/title-detail/$slug/',
-      sourceId: id,
-      expected: 'id="comicDetail"',
-    );
-    if (page.isEmpty) return null;
+    // Read from the API rather than by scraping the rendered page. The page is
+    // a client-rendered shell now: the container this used to wait for,
+    // `id="comicDetail"`, is not in the markup at all, so waiting for it made
+    // every lookup time out and report an empty page.
+    final json = await _detailJson(slug);
+    final data = json is Map ? json['data'] : null;
+    if (data is! Map) {
+      diagSoon('$id: no detail data for $slug');
+      return null;
+    }
 
-    // Any rendered page carries the token the API needs.
-    final doc = html_parser.parse(page);
-    final root = doc.querySelector('#comicDetail');
-    final title =
-        root?.querySelector('h6')?.text.trim() ??
-        doc.querySelector('h1')?.text.trim() ??
-        slug;
+    final titleId = '${data['id'] ?? ''}'.trim();
+    if (titleId.isNotEmpty) _titleIds[slug] = titleId;
+
+    final title = data['name']?.toString().trim() ?? '';
     if (title.isEmpty) return null;
 
-    final altTitles = <String>[];
-    for (final block in doc.querySelectorAll('div.alternate-name-container')) {
-      for (final part in block.text.split('/')) {
-        final t = part.trim();
-        if (t.isNotEmpty) altTitles.add(t);
+    // The synopsis arrives as a list of paragraphs rather than one string.
+    final paragraphs = <String>[];
+    final rawDescription = data['description'];
+    if (rawDescription is List) {
+      for (final part in rawDescription) {
+        final text = part.toString().trim();
+        if (text.isNotEmpty) paragraphs.add(text);
       }
+    } else if (rawDescription != null) {
+      final text = rawDescription.toString().trim();
+      if (text.isNotEmpty) paragraphs.add(text);
     }
 
     final tags = <String>[];
-    for (final span in doc.querySelectorAll('#comicDetail span[data-tag-id]')) {
-      final t = span.text.trim();
-      if (t.isNotEmpty && !tags.contains(t)) tags.add(t);
+    final rawTags = data['tags'];
+    if (rawTags is List) {
+      for (final tag in rawTags) {
+        final name = tag is Map ? (tag['name']?.toString().trim() ?? '') : '';
+        if (name.isNotEmpty && !tags.contains(name)) tags.add(name);
+      }
     }
 
+    // People are objects here, and the same name can appear as author and as
+    // publisher, so they are collected across the three lists and deduped.
     final authors = <String>[];
-    for (final span in doc.querySelectorAll(
-      '#comicDetail span[data-person-id]',
-    )) {
-      final t = span.text.trim();
-      if (t.isNotEmpty && !authors.contains(t)) authors.add(t);
+    for (final key in ['author', 'authors', 'publisher']) {
+      final people = data[key];
+      if (people is! List) continue;
+      for (final person in people) {
+        final name = person is Map
+            ? (person['name']?.toString().trim() ?? '')
+            : person.toString().trim();
+        if (name.isNotEmpty && !authors.contains(name)) authors.add(name);
+      }
     }
 
-    final cover =
-        doc.querySelector('img.featured-cover')?.attributes['src'] ?? '';
-    final description = doc.querySelector('#descriptionContent p')?.text.trim();
-    final status = doc.querySelector('span.badge-status')?.text.trim();
+    // The cover is an object with the file in it, not a bare URL string.
+    var cover = '';
+    final image = data['image'];
+    if (image is Map) {
+      cover = image['file']?.toString().trim() ?? '';
+    } else if (image is String) {
+      cover = image.trim();
+    }
 
-    // Alternate titles double as the translations the site itself groups by
-    // language, so they feed the picker.
+    final status = data['status']?.toString().trim() ?? '';
+
+    // The site names the languages it actually publishes this title in, which
+    // is a truer list than alternate titles: those are one work's names, not
+    // one work per language, so keying translations off them invented language
+    // codes like `en-alt1` that resolve to nothing.
+    final codes = <String>[];
+    final rawLanguages = data['availableTranslatedLanguages'];
+    if (rawLanguages is List) {
+      for (final code in rawLanguages) {
+        final text = code.toString().trim();
+        if (text.isNotEmpty && !codes.contains(text)) codes.add(text);
+      }
+    }
+    if (!codes.contains(langCode)) codes.insert(0, langCode);
+
     final translations = <MangaTranslation>[
-      for (var i = 0; i < altTitles.length && i < 12; i++)
+      for (final code in codes.take(24))
         MangaTranslation(
-          language: i == 0 ? langCode : '$langCode-alt$i',
-          mangaId: MangaLanguage.withSuffix(
-            slug,
-            i == 0 ? langCode : '$langCode-alt$i',
-          ),
-          title: altTitles[i],
+          language: code,
+          mangaId: MangaLanguage.withSuffix(slug, code),
+          title: title,
         ),
     ];
 
@@ -456,9 +614,9 @@ class MangaBallSource extends DioSource implements MangaSource {
       title: title,
       coverUrl: cover,
       sourceId: id,
-      description: description ?? '',
+      description: paragraphs.join('\n\n'),
       author: authors.join(', '),
-      status: status ?? '',
+      status: status,
       tags: tags,
       language: langCode,
       translations: translations,
@@ -478,62 +636,79 @@ class MangaBallSource extends DioSource implements MangaSource {
   Future<List<Chapter>> getChapters(String mangaId) async {
     diagSoon('$id: getChapters($mangaId)');
     final slug = _baseSlug(mangaId);
-    // The API keys chapters by the trailing id of the slug.
-    final titleId = slug.contains('-')
-        ? slug.substring(slug.lastIndexOf('-') + 1)
-        : slug;
-
-    // This endpoint answers with every chapter of a title at once (hundreds of
-    // KB for a long series), which routinely overruns the default per-request
-    // budget and used to surface as "failed to load" rather than a slow list.
-    final json = await _postJson(
-      '/api/v1/chapter/chapter-listing-by-title-id',
-      {'title_id': titleId},
-      cap: const Duration(seconds: 90),
-    );
-    final containers = json is Map ? json['ALL_CHAPTERS'] : null;
-    if (containers is! List) {
+    // The endpoint is keyed by the site's own opaque id, which is not derivable
+    // from the slug - it used to be guessed from the slug's last segment, which
+    // is a word from the title, and the endpoint answered "Missing title_id".
+    final titleId = await _titleIdFor(slug);
+    if (titleId == null) {
+      diagSoon('$id: no site id for $slug, cannot list chapters');
       return [];
     }
 
+    // This endpoint answers with every chapter of a title at once, which
+    // routinely overruns the default per-request budget and used to surface as
+    // "failed to load" rather than a slow list. It also insists on a JSON body:
+    // the form-encoded one it used to accept is now read as having no title_id.
+    final json = await _postJson(
+      '/api/v1/chapter/chapter-listing-by-title-id',
+      {'title_id': titleId},
+      asJson: true,
+      cap: const Duration(seconds: 90),
+    );
+    // The answer is a flat list of chapters, one per language, rather than the
+    // nested per-number containers with a `translations` array inside.
+    final chapters = json is Map ? json['data'] : null;
+    if (chapters is! List) {
+      diagSoon('$id: no chapter data for $slug');
+      return [];
+    }
 
     final result = <Chapter>[];
     final seen = <String>{};
-    for (final container in containers) {
-      if (container is! Map) continue;
-      final cMap = Map<String, dynamic>.from(container);
-      final translations = container['translations'];
-      if (translations is! List) continue;
-      final number = _numberText(cMap['number_float']);
-
-      for (final t in translations) {
-        if (t is! Map) continue;
-        final tMap = Map<String, dynamic>.from(t);
-        final language = tMap['language']?.toString() ?? '';
-        if (language.toLowerCase() != langCode.toLowerCase()) continue;
-        final chapterId = tMap['id']?.toString() ?? '';
-        if (chapterId.isEmpty || !seen.add(chapterId)) continue;
-
-        final group = tMap['group'];
-        final scanlator = group is Map
-            ? (group['name']?.toString().trim() ?? '')
-            : '';
-
-        result.add(
-          Chapter(
-            id: chapterId,
-            title: _chapterTitle(number, tMap),
-            chapterNumber: number,
-            releaseDate: _parseDate(tMap['date']?.toString()),
-            url: '$baseUrl/chapter-detail/$chapterId/',
-            scanlator: scanlator,
-          ),
-        );
+    for (final chapter in chapters) {
+      if (chapter is! Map) continue;
+      final cMap = Map<String, dynamic>.from(chapter);
+      final language =
+          (cMap['lang'] ?? cMap['language'])?.toString().trim() ?? '';
+      if (language.isNotEmpty &&
+          language.toLowerCase() != langCode.toLowerCase()) {
+        continue;
       }
+      final chapterId = cMap['id']?.toString() ?? '';
+      if (chapterId.isEmpty || !seen.add(chapterId)) continue;
+
+      final number = _numberText(
+        cMap['chapter_number'] ?? cMap['number'] ?? cMap['number_float'],
+      );
+      final group = cMap['group'];
+      final scanlator = group is Map
+          ? (group['name']?.toString().trim() ??
+                cMap['group_name']?.toString().trim() ??
+                '')
+          : (cMap['group_name']?.toString().trim() ?? '');
+
+      result.add(
+        Chapter(
+          id: chapterId,
+          title: _chapterTitle(number, cMap),
+          chapterNumber: number,
+          releaseDate: _parseDate(
+            (cMap['created_at'] ?? cMap['updated_at'])?.toString(),
+          ),
+          url: '$baseUrl/chapter-detail/$chapterId/',
+          scanlator: scanlator,
+        ),
+      );
     }
 
     // The API lists newest first; the app sorts ascending by chapter number.
     result.sort((a, b) => _compareNumbers(a.chapterNumber, b.chapterNumber));
+    // An empty list here is ambiguous: the title may publish nothing in this
+    // language, or the answer may not have parsed. Say which.
+    diagSoon(
+      '$id: ${result.length} chapters of ${chapters.length} returned '
+      'for $slug (lang=$langCode)',
+    );
     return result;
   }
 
