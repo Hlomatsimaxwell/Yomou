@@ -2,7 +2,7 @@ name: yomou
 description: "Yomou - a Kotatsu-style manga reader."
 publish_to: 'none'
 
-version: 1.0.0+1
+version: 1.0.0+2
 
 environment:
   sdk: ^3.11.5
@@ -46,6 +46,8 @@ dev_dependencies:
 flutter:
   uses-material-design: true
   generate: true
+  assets:
+    - assets/source_icons/
 
 flutter_launcher_icons:
   android: true
