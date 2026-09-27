@@ -14,6 +14,7 @@ import 'package:path_provider/path_provider.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import 'package:yomou/widgets/safe_image.dart';
 import 'package:yomou/core/cache/app_cache.dart';
+import 'package:yomou/core/diagnostics/diag_log.dart';
 import '../../../core/database/database_helper.dart';
 import '../../../core/database/source_cache.dart';
 import '../../../core/widgets/ios/ios_sheet.dart';
@@ -3331,7 +3332,8 @@ onPressed: _showSettingsSheet,
             ),
           ),
         ),
-        errorWidget: (context, url, error) => _buildPageError(index: index),
+        errorWidget: (context, url, error) =>
+            _buildPageError(index: index, error: error),
       );
     }
     return _applyColorFilter(image);
@@ -3507,7 +3509,20 @@ onPressed: _showSettingsSheet,
     });
   }
 
-  Widget _buildPageError({required int index, String? localPath}) {
+  Widget _buildPageError({
+    required int index,
+    String? localPath,
+    Object? error,
+  }) {
+    // A page that will not load says only "Failed to load page" on screen, and
+    // the reader's prefetch swallows the same failure silently, so a source
+    // whose images the app cannot fetch looks identical to a flaky network.
+    // The reason is what distinguishes them.
+    diagSoon(
+      'reader page ${index + 1}/${_pages.length} failed '
+      'local=${localPath != null} headers=${_activeRequestHeaders != null} '
+      'err=$error url=${index < _pages.length ? _pages[index] : "?"}',
+    );
     return Container(
       height: 200,
       color: const Color(0xFF1E1E20),

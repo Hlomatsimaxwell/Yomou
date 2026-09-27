@@ -4,6 +4,7 @@ import 'package:cached_network_image/cached_network_image.dart';
 import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:yomou/core/cache/app_cache.dart';
+import 'package:yomou/core/diagnostics/diag_log.dart';
 import 'package:yomou/data/sources/mf_scramble.dart';
 import 'package:image/image.dart' as img;
 
@@ -85,10 +86,38 @@ class _SafeNetworkImageState extends State<SafeNetworkImage> {
         headers: widget.httpHeaders,
       );
       final bytes = await file.readAsBytes();
-      return compute(_transcodeToPng, bytes);
-    } catch (_) {
+      final png = await compute(_transcodeToPng, bytes);
+      if (png == null) {
+        diagSoon('safeImage: ${bytes.length}b downloaded but undecodable '
+            '(${_formatOf(bytes)}) ${widget.imageUrl}');
+      }
+      return png;
+    } catch (e) {
+      // Distinguishes "the server would not give us the bytes" from "we got
+      // them and could not read them". Both land on the same error widget, and
+      // only one of them is fixable by transcoding.
+      diagSoon('safeImage: download failed: $e ${widget.imageUrl}');
       return null;
     }
+  }
+
+  /// Coarse format label from the container magic, for the log line above.
+  static String _formatOf(Uint8List b) {
+    if (b.length < 12) return 'short';
+    if (b[0] == 0xFF && b[1] == 0xD8) return 'jpeg';
+    if (b[0] == 0x89 && b[1] == 0x50) return 'png';
+    if (b[0] == 0x47 && b[1] == 0x49) return 'gif';
+    if (b[0] == 0x42 && b[1] == 0x4D) return 'bmp';
+    if (b[0] == 0x52 && b[1] == 0x49) {
+      final chunk = String.fromCharCodes(b.sublist(12, 16));
+      return 'webp/$chunk';
+    }
+    if (b[0] == 0x3C) {
+      final head = String.fromCharCodes(b.sublist(0, 60)).toLowerCase();
+      if (head.contains('html')) return 'html (not an image)';
+      return 'markup';
+    }
+    return 'unknown';
   }
 
   // --- MangaFire scrambled pages ---
@@ -157,6 +186,16 @@ class _SafeNetworkImageState extends State<SafeNetworkImage> {
 
   @override
   Widget build(BuildContext context) {
+    // No URL is not a failed download, it is nothing to download. Handing an
+    // empty string to the cache manager throws inside the fetch and comes back
+    // as a generic error, so the placeholder never gets its turn; say so here
+    // instead, and skip the round trip.
+    if (widget.imageUrl.trim().isEmpty) {
+      return _sized(
+        widget.placeholder?.call(context, widget.imageUrl) ??
+            const _CoverFallback(),
+      );
+    }
     final mfOffset = MfScramble.offsetFromUrl(widget.imageUrl);
     if (mfOffset != null) {
       return _buildScrambled(mfOffset);

@@ -350,6 +350,15 @@ class WebViewFetcher {
       _currentOrigin = Uri.parse(url).origin;
       final html = await _settledHtml(controller, expected: expected);
       await _dump(sourceId, html);
+      // A challenge page settles just as quickly as a real one and is small but
+      // over the size floor below, so without this it was handed back as
+      // content: the caller parsed an empty grid out of an interstitial and
+      // reported "no results", with no captcha banner anywhere to say why.
+      if (isCloudflareChallenge(status: 0, body: html)) {
+        _challengedAt = DateTime.now();
+        diagSoon('$sourceId render: $url is a challenge, not content');
+        throw CaptchaRequiredException(sourceId: sourceId, challengeUrl: url);
+      }
       if (expected != null && !html.contains(expected)) {
         diagSoon('$sourceId render: $url never showed "$expected"');
       }
@@ -368,6 +377,17 @@ class WebViewFetcher {
   ///
   /// [expected] is a selector whose presence means the page is done, e.g.
   /// `a[href^="/title/"]`; when given, the wait ends as soon as it matches.
+  ///
+  /// Without [expected] there is nothing to wait *for*, only something to stop
+  /// waiting for, and that decision needs a second signal. A still-changing
+  /// document is obvious, but a document that is holding perfectly still is
+  /// also what a page looks like while its script bundle is still downloading:
+  /// the markup is already in place and nothing mutates until the script runs.
+  /// MangaFire's grid is painted that way, over a mobile connection slow enough
+  /// that its module script had not arrived after a second and a half, so the
+  /// read gave up and handed back the empty `#app-root` shell - a finished
+  /// verdict about a page that had not started. `readyState` separates the two:
+  /// it only reads `complete` once every script and stylesheet has loaded.
   Future<String> _settledHtml(
     InAppWebViewController controller, {
     String? expected,
@@ -377,10 +397,17 @@ class WebViewFetcher {
     var last = '';
     var stable = 0;
     while (DateTime.now().isBefore(deadline)) {
+      // readyState and the markup are read together so a poll stays one round
+      // trip. The separator is a NUL, which an HTML parser replaces with U+FFFD
+      // and so cannot occur in the markup itself.
       final raw = await controller.evaluateJavascript(
-        source: 'document.documentElement.outerHTML',
+        source: 'document.readyState + String.fromCharCode(0)'
+            ' + document.documentElement.outerHTML',
       );
-      final html = _decodeJsString(raw);
+      final read = _decodeJsString(raw);
+      final split = read.indexOf('\u0000');
+      final complete = split > 0 && read.substring(0, split) == 'complete';
+      final html = split > 0 ? read.substring(split + 1) : read;
       if (expected != null && html.contains(expected)) {
         if (html != last) {
           last = html;
@@ -392,11 +419,11 @@ class WebViewFetcher {
       }
       if (html == last) {
         stable++;
-        // Two identical reads in a row: the page has stopped rendering. A page
-        // that is still empty is not finished, though: these sites paint their
-        // body from a script, so an early pair of identical reads would hand
-        // back a blank document.
-        if (stable >= 2 && html.length > 1500) return html;
+        // Two identical reads in a row on a fully loaded page: it has stopped
+        // rendering. A page that is still empty is not finished, though: these
+        // sites paint their body from a script, so an early pair of identical
+        // reads would hand back a blank document.
+        if (stable >= 2 && complete && html.length > 1500) return html;
       } else {
         stable = 0;
         last = html;

@@ -9,6 +9,7 @@ import '../models/manga_translation.dart';
 import 'mangafire_vrf.dart';
 import 'source_network.dart';
 import 'webview_fetcher.dart';
+import 'captcha_gate.dart';
 
 /// MangaFire (mangafire.to) — one entry per language branch, mirroring
 /// Kotatsu's MangaFire English / Spanish / Spanish (Latin) / French / Japanese
@@ -103,6 +104,12 @@ class MangaFireSource extends DioSource implements MangaSource {
       if (_hasContent(rendered, expect)) return rendered;
       // A partially rendered page is still better than the shell.
       if (!_isShell(rendered)) return rendered;
+    } on CaptchaRequiredException {
+      // The rendered page was a Cloudflare interstitial, not a page that
+      // happened to be empty. Swallowing this as a generic failure gave the
+      // caller an empty grid and no captcha banner, which reads as "this source
+      // has no results" rather than "this source needs solving once".
+      rethrow;
     } catch (e) {
       debugPrint('[mangafire] render failed for $url: $e');
     }
@@ -266,6 +273,9 @@ class MangaFireSource extends DioSource implements MangaSource {
       final list = _parseFilter(rendered);
       debugPrint('[mangafire] $id listing rendered -> ${list.length} $url');
       return list;
+    } on CaptchaRequiredException {
+      // As in [_page]: a challenge has to reach the screen that can solve it.
+      rethrow;
     } catch (e) {
       debugPrint('[mangafire] $id render failed for $url: $e');
       return const [];

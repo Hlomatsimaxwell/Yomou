@@ -53,16 +53,35 @@ class CachedMangaImage extends StatelessWidget {
     'mgeko.cc': 'https://www.mgeko.cc/',
     'imgsrv4.com': 'https://www.mgeko.cc/',
     'imgsrv5.com': 'https://www.mgeko.cc/',
-    // MangaBall rotates the subdomain per cover (bulbasaur./jigglypuff./...),
-    // all under one hotlink-protected domain.
-    'poke-black-and-white.net': 'https://mangaball.com/',
+  };
+
+  /// Path prefix -> the referer that host expects, for sources whose image host
+  /// rotates and so cannot be listed by name.
+  ///
+  /// MangaBall serves its page images from a different subdomain per crawl -
+  /// `bulbasaur.poke-black-and-white.net`, `chikorita.red-and-blue.net` and
+  /// others - and they are all hotlink-protected: the same URL answers 403 with
+  /// no referer or a foreign one, and 200 only for `https://mangaball.com/`.
+  /// Every one of them serves the same `/storage/<id>/0/<n>/<site>/<lang>/`
+  /// path, so the path is what identifies them. Matching on the host instead
+  /// meant listing hosts that stop working the next time the site is crawled.
+  ///
+  /// The leading slash is what keeps `2xstorage.com` out of this: that host
+  /// matches a name, never a `/storage/` path.
+  static const Map<String, String> _referersByPath = {
+    '/storage/': 'https://mangaball.com/',
   };
 
   Map<String, String>? get _headers {
-    final host = Uri.tryParse(imageUrl)?.host ?? '';
-    if (host.isEmpty) return null;
+    final uri = Uri.tryParse(imageUrl);
+    if (uri == null || uri.host.isEmpty) return null;
     for (final entry in _referers.entries) {
-      if (host == entry.key || host.endsWith('.${entry.key}')) {
+      if (uri.host == entry.key || uri.host.endsWith('.${entry.key}')) {
+        return {'Referer': entry.value};
+      }
+    }
+    for (final entry in _referersByPath.entries) {
+      if (uri.path.startsWith(entry.key)) {
         return {'Referer': entry.value};
       }
     }

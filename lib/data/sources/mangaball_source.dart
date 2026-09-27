@@ -70,14 +70,22 @@ class MangaBallSource extends DioSource implements MangaSource {
 
   /// Read from a page once per session; the API rejects requests without it.
 
+  /// Only image requests use these. Every piece of data comes from the in-page
+  /// fetcher, which borrows the hidden WebView's identity, so a header here
+  /// cannot help the API - it can only contradict it.
+  ///
+  /// The user agent is deliberately the platform's own. MangaBall's image CDN
+  /// runs Cloudflare bot management, and Cloudflare weighs the claimed browser
+  /// against the TLS/HTTP2 fingerprint underneath it: a desktop Chrome string
+  /// arriving over an Android WebView's stack is exactly the mismatch it scores
+  /// as automation. Claiming the same identity the WebView that solved the
+  /// challenge already presented is both truthful and consistent, for the same
+  /// reason [WebViewFetcher] leaves its own user agent unspoofed.
+  ///
+  /// `X-Requested-With` is gone for the same reason it never belonged here: it
+  /// marks a request as XHR, and a page image is not one.
   @override
-  Map<String, String>? get headers => {
-    'User-Agent':
-        'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 '
-        '(KHTML, like Gecko) Chrome/138.0.0.0 Safari/537.36',
-    'Referer': '$baseUrl/',
-    'X-Requested-With': 'XMLHttpRequest',
-  };
+  Map<String, String>? get headers => {'Referer': '$baseUrl/'};
 
   /// The adult-content flag has to ride along with the clearance cookie, so it
   /// is merged into whatever cookie header the captcha solver stored instead of
@@ -794,31 +802,32 @@ class MangaBallSource extends DioSource implements MangaSource {
     return images;
   }
 
-  /// Page images live in an inline script as
-  /// `const chapterImages = JSON.parse(` + backtick-delimited JSON.
+  /// Page images are ordinary `<img>` tags, not an inline script.
+  ///
+  /// The chapter body used to hand its pages over as
+  /// `const chapterImages = JSON.parse(` + backtick-delimited JSON + `)`, and
+  /// that assignment is gone from the page, so the old read found nothing and
+  /// reported a chapter as having no pages while the images sat right there in
+  /// the markup. The page images are the ones whose alt text numbers them
+  /// ("<title> Chapter 1 Page 3 - English"); the few other images on the page
+  /// are the logo, a language flag and a scanlator badge, and are told apart
+  /// exactly by that absence.
   static List<String> _parseChapterImages(String html) {
     final doc = html_parser.parse(html);
-    for (final script in doc.querySelectorAll('script')) {
-      final text = script.text;
-      if (!text.contains('chapterImages')) continue;
-      final match = RegExp(
-        r'''chapterImages\s*=\s*JSON\.parse\(`([\s\S]*?)`\)''',
-      ).firstMatch(text);
-      if (match == null) continue;
-      try {
-        final decoded = jsonDecode(match.group(1)!);
-        if (decoded is List) {
-          return decoded
-              .map((e) => e?.toString() ?? '')
-              .where((u) => u.isNotEmpty)
-              .toList();
-        }
-      } catch (_) {
-        continue;
-      }
+    final result = <String>[];
+    final seen = <String>{};
+    for (final img in doc.querySelectorAll('img')) {
+      final alt = img.attributes['alt'] ?? '';
+      if (!_pageAlt.hasMatch(alt)) continue;
+      final src = (img.attributes['src'] ?? '').trim();
+      if (src.isEmpty || !seen.add(src)) continue;
+      result.add(src);
     }
-    return [];
+    return result;
   }
+
+  /// Alt text of a page image: the title and chapter vary, `Page <n>` does not.
+  static final RegExp _pageAlt = RegExp(r'\bPage\s+\d+\b');
 
   // --- Tags ---------------------------------------------------------------
 
