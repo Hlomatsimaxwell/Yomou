@@ -261,7 +261,7 @@ class _GlobalSearchScreenState extends ConsumerState<GlobalSearchScreen> {
             ),
           ),
           loading: () => const SizedBox.shrink(),
-          error: (_, __) => const SizedBox.shrink(),
+          error: (_, _) => const SizedBox.shrink(),
         ),
         const SizedBox(height: 16),
         // Trending (real popular manga).
@@ -293,7 +293,7 @@ class _GlobalSearchScreenState extends ConsumerState<GlobalSearchScreen> {
                   ],
                 ),
           loading: () => const SizedBox.shrink(),
-          error: (_, __) => const SizedBox.shrink(),
+          error: (_, _) => const SizedBox.shrink(),
         ),
         // Search history.
         if (showHistory)

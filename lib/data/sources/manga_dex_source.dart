@@ -195,7 +195,7 @@ class MangaDexSource implements MangaSource {
 
       return MangaDetails(
         id: mangaId,
-        sourceId: this.id,
+        sourceId: id,
         title: _extractTitle(attrs['title'] ?? {}, preferred: language),
         coverUrl: _coverUrlFor(item),
         description: description,
@@ -505,11 +505,11 @@ class MangaDexSource implements MangaSource {
           'offset': offset,
           'order': orders[filter.sort] ?? orders['updated'],
           'includes[]': 'cover_art',
-          if (filter.language != null) 'originalLanguage[]': filter.language,
+          'originalLanguage[]': ?filter.language,
           ...{for (final id in includedIds) 'includedTags[]': id},
           ...{for (final id in excludedIds) 'excludedTags[]': id},
           ...{for (final s in statusParams) 'status[]': s},
-          if (year != null) 'year': year,
+          'year': ?year,
         },
       );
 
@@ -556,7 +556,7 @@ class MangaDexSource implements MangaSource {
       }
       return Manga(
         id: mangaId,
-        sourceId: this.id,
+        sourceId: id,
         title: _extractTitle(item['attributes']['title'] ?? {}),
         coverUrl: coverFileName.isNotEmpty
             ? 'https://uploads.mangadex.org/covers/$mangaId/$coverFileName.256.jpg'

@@ -464,7 +464,7 @@ class _SourceSearchResultsScreenState extends State<SourceSearchResultsScreen> {
             scrollDirection: Axis.horizontal,
             padding: const EdgeInsets.symmetric(horizontal: 16),
             itemCount: _searchHistory.length,
-            separatorBuilder: (_, __) => const SizedBox(width: 8),
+            separatorBuilder: (_, _) => const SizedBox(width: 8),
             itemBuilder: (context, index) {
               final query = _searchHistory[index];
               return Dismissible(

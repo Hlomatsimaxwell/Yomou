@@ -289,7 +289,7 @@ class _SafeFileImageState extends State<SafeFileImage> {
   Future<Uint8List?> _loadTranscoded() async {
     try {
       final bytes = await widget.file.readAsBytes();
-      return compute(_transcodeToPng, bytes);
+      return await compute(_transcodeToPng, bytes);
     } catch (_) {
       return null;
     }

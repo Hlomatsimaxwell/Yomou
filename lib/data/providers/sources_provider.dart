@@ -210,8 +210,9 @@ MangaSource? getSourceBySourceId(String sourceId) {
     // which silently left every variant without details and chapters.
     final code = sourceId.substring('mangaball-'.length);
     for (final entry in kMangaBallLanguages.entries) {
-      if (entry.key == code)
+      if (entry.key == code) {
         return _mangaBallByName('MangaBall ${entry.value}');
+      }
     }
   }
   switch (sourceId) {

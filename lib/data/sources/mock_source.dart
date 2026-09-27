@@ -14,6 +14,7 @@ class MockSource implements MangaSource {
 
   @override
   String get baseUrl => 'https://mock.com';
+  @override
   String get iconUrl => '';
 
   @override

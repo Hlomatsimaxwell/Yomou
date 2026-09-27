@@ -150,6 +150,9 @@ class _ExploreScreenState extends ConsumerState<ExploreScreen> {
               ),
             ],
           );
+          // The sheet had to await a tap, and this screen is free to be
+          // gone by the time it returns. Pushing on a dead context throws.
+          if (!mounted) return;
           if (action == 'manage') {
             Navigator.push(
               context,

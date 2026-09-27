@@ -324,6 +324,10 @@ class _HistoryScreenState extends ConsumerState<HistoryScreen> {
           builder: (context, setDialogState) {
             final dark = Theme.of(context).brightness == Brightness.dark;
             final fg = dark ? Colors.white : const Color(0xFF1C1B1F);
+            // One handler for both the radio dot and the row around it, so a
+            // tap on the label lands in the same place as a tap on the dot.
+            void select(int? val) =>
+                setDialogState(() => selectedOption = val ?? 0);
             return AlertDialog(
               backgroundColor: dark ? const Color(0xFF2C2C2E) : Colors.white,
               shape: RoundedRectangleBorder(
@@ -347,35 +351,44 @@ class _HistoryScreenState extends ConsumerState<HistoryScreen> {
                     ),
                   ),
                   const SizedBox(height: 16),
-                  _buildRadioOption(
-                    title: AppLocalizations.of(context).historyClearLastHours,
-                    value: 0,
+                  // The group owns the selection now, so each option below
+                  // only declares its own value. `selectedOption` lives in
+                  // the dialog's StatefulBuilder, which is what the group
+                  // reads; the rows call the same `select` handler it does.
+                  RadioGroup<int>(
                     groupValue: selectedOption,
-                    onChanged: (val) =>
-                        setDialogState(() => selectedOption = val!),
-                  ),
-                  _buildRadioOption(
-                    title: AppLocalizations.of(context).historyClearToday,
-                    value: 1,
-                    groupValue: selectedOption,
-                    onChanged: (val) =>
-                        setDialogState(() => selectedOption = val!),
-                  ),
-                  _buildRadioOption(
-                    title: AppLocalizations.of(
-                      context,
-                    ).historyClearNotFavorites,
-                    value: 2,
-                    groupValue: selectedOption,
-                    onChanged: (val) =>
-                        setDialogState(() => selectedOption = val!),
-                  ),
-                  _buildRadioOption(
-                    title: AppLocalizations.of(context).historyClearAll,
-                    value: 3,
-                    groupValue: selectedOption,
-                    onChanged: (val) =>
-                        setDialogState(() => selectedOption = val!),
+                    onChanged: select,
+                    child: Column(
+                      mainAxisSize: MainAxisSize.min,
+                      children: [
+                        _buildRadioOption(
+                          title: AppLocalizations.of(
+                            context,
+                          ).historyClearLastHours,
+                          value: 0,
+                          onSelect: select,
+                        ),
+                        _buildRadioOption(
+                          title: AppLocalizations.of(
+                            context,
+                          ).historyClearToday,
+                          value: 1,
+                          onSelect: select,
+                        ),
+                        _buildRadioOption(
+                          title: AppLocalizations.of(
+                            context,
+                          ).historyClearNotFavorites,
+                          value: 2,
+                          onSelect: select,
+                        ),
+                        _buildRadioOption(
+                          title: AppLocalizations.of(context).historyClearAll,
+                          value: 3,
+                          onSelect: select,
+                        ),
+                      ],
+                    ),
                   ),
                 ],
               ),
@@ -422,25 +435,26 @@ class _HistoryScreenState extends ConsumerState<HistoryScreen> {
     );
   }
 
+  /// One choice row. The selected value comes from the enclosing
+  /// [RadioGroup], so the row only declares its own [value] and hands the rest
+  /// of its tap target to [onSelect], the very handler the group calls.
   Widget _buildRadioOption({
     required String title,
     required int value,
-    required int groupValue,
-    required ValueChanged<int?> onChanged,
+    required ValueChanged<int?> onSelect,
   }) {
     final dark = Theme.of(context).brightness == Brightness.dark;
     final activeColor = dark
         ? Colors.white
         : Theme.of(context).colorScheme.primary;
     return AppPress(
-      onTap: () => onChanged(value),
+      onTap: () => onSelect(value),
       child: Padding(
         padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 4),
         child: Row(
           children: [
             Radio<int>(
               value: value,
-              groupValue: groupValue,
               activeColor: activeColor,
               fillColor: WidgetStateProperty.resolveWith<Color>((
                 Set<WidgetState> states,
@@ -450,7 +464,6 @@ class _HistoryScreenState extends ConsumerState<HistoryScreen> {
                 }
                 return dark ? Colors.white70 : Colors.black38;
               }),
-              onChanged: onChanged,
             ),
             const SizedBox(width: 12),
             Text(

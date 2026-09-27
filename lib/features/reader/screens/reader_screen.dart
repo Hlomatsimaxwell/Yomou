@@ -2241,9 +2241,6 @@ class _ReaderScreenState extends ConsumerState<ReaderScreen>
     await _saveCascadingReadProgress();
   }
 
-  // Persist progress when the app is backgrounded or about to be killed, so a
-  // force-stop / OOM right after leaving the reader doesn't lose the position.
-  @override
   // Tracks reading time while the reader is open so the statistics charts get
   // honest per-manga minutes. Flushed to the `reading_time` table on lifecycle
   // pauses and on dispose; a process kill loses at most one session.
@@ -2261,6 +2258,9 @@ class _ReaderScreenState extends ConsumerState<ReaderScreen>
     await DatabaseHelper.instance.addReadingTime(widget.mangaId, minutes);
   }
 
+  // Persist progress when the app is backgrounded or about to be killed, so a
+  // force-stop / OOM right after leaving the reader doesn't lose the position.
+  @override
   void didChangeAppLifecycleState(AppLifecycleState state) {
     if (state == AppLifecycleState.paused ||
         state == AppLifecycleState.inactive ||

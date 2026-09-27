@@ -205,7 +205,7 @@ class MenuToggleRow extends StatelessWidget {
             Switch(
               value: value,
               onChanged: (v) => onChanged(v),
-              activeColor: Colors.white,
+              activeThumbColor: Colors.white,
               activeTrackColor: Theme.of(context).colorScheme.primary,
               inactiveThumbColor: Colors.white,
               inactiveTrackColor: dark ? const Color(0xFF3A3A3C) : Colors.black26,

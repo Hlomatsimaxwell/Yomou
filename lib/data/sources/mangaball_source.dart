@@ -449,8 +449,7 @@ class MangaBallSource extends DioSource implements MangaSource {
     // name comes back as "Error parsing ObjectId string".
     final ids = await _genreIds();
     final wanted = <String>[
-      for (final t in tags)
-        if (ids[t.toLowerCase()] case final id?) id,
+      for (final t in tags) ?ids[t.toLowerCase()],
     ];
     if (wanted.isEmpty) return getPopularManga(page: page);
 
@@ -775,6 +774,7 @@ class MangaBallSource extends DioSource implements MangaSource {
     }
   }
 
+  @override
   Future<List<String>> getPageUrls(String chapterId) async {
     diagSoon('$id: getPageUrls($chapterId)');
     await _ensureWebViewCookie();

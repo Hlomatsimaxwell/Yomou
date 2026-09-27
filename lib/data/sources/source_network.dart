@@ -304,7 +304,7 @@ abstract class DioSource {
     );
 
     final mergedHeaders = <String, dynamic>{
-      if (headers != null) ...headers!,
+      ...?headers,
       if (config.userAgent != null) 'User-Agent': config.userAgent,
       if (config.cookies != null) 'Cookie': config.cookies,
     };
@@ -521,7 +521,7 @@ abstract class DioSource {
       if (res.statusCode != 200) return null;
       return res.data;
     } catch (e) {
-      debugPrint('${networkSourceId} grabBytes error: $e');
+      debugPrint('$networkSourceId grabBytes error: $e');
       return null;
     }
   }

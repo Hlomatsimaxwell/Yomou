@@ -751,7 +751,7 @@ class _MangaDetailScreenState extends ConsumerState<MangaDetailScreen> {
                   child: Column(
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
-                      _buildTopAppBar(context),
+                      _buildTopAppBar(),
                       _buildHeaderSection(),
                       const SizedBox(height: 16),
                       _buildSourceCard(),
@@ -1605,7 +1605,11 @@ class _MangaDetailScreenState extends ConsumerState<MangaDetailScreen> {
     );
   }
 
-  Widget _buildTopAppBar(BuildContext context) {
+  /// Takes no context on purpose: the build method already has the State's
+  /// own [context] to hand, and using it here is what makes the `mounted`
+  /// guard in the refresh handler below the correct one rather than a
+  /// lookalike for some other element's context.
+  Widget _buildTopAppBar() {
     final dark = Theme.of(context).brightness == Brightness.dark;
     final iconColor = dark ? Colors.white : const Color(0xFF1C1B1F);
     return Padding(
