@@ -340,7 +340,7 @@ class SourcesNotifier extends StateNotifier<List<Map<String, dynamic>>> {
       'language': 'Manga, Arabic',
       'bgColor': const Color(0xFF1E88E5),
       'text': 'MB',
-      'iconUrl': 'https://mangaball.com/favicon.ico',
+      'iconUrl': 'https://mangaball.com/images/favicon.png',
       'isPinned': false,
     },
     {
@@ -348,7 +348,7 @@ class SourcesNotifier extends StateNotifier<List<Map<String, dynamic>>> {
       'language': 'Manga, Bulgarian',
       'bgColor': const Color(0xFF1E88E5),
       'text': 'MB',
-      'iconUrl': 'https://mangaball.com/favicon.ico',
+      'iconUrl': 'https://mangaball.com/images/favicon.png',
       'isPinned': false,
     },
     {
@@ -356,7 +356,7 @@ class SourcesNotifier extends StateNotifier<List<Map<String, dynamic>>> {
       'language': 'Manga, Bengali',
       'bgColor': const Color(0xFF1E88E5),
       'text': 'MB',
-      'iconUrl': 'https://mangaball.com/favicon.ico',
+      'iconUrl': 'https://mangaball.com/images/favicon.png',
       'isPinned': false,
     },
     {
@@ -364,7 +364,7 @@ class SourcesNotifier extends StateNotifier<List<Map<String, dynamic>>> {
       'language': 'Manga, Catalan',
       'bgColor': const Color(0xFF1E88E5),
       'text': 'MB',
-      'iconUrl': 'https://mangaball.com/favicon.ico',
+      'iconUrl': 'https://mangaball.com/images/favicon.png',
       'isPinned': false,
     },
     {
@@ -372,7 +372,7 @@ class SourcesNotifier extends StateNotifier<List<Map<String, dynamic>>> {
       'language': 'Manga, Czech',
       'bgColor': const Color(0xFF1E88E5),
       'text': 'MB',
-      'iconUrl': 'https://mangaball.com/favicon.ico',
+      'iconUrl': 'https://mangaball.com/images/favicon.png',
       'isPinned': false,
     },
     {
@@ -380,7 +380,7 @@ class SourcesNotifier extends StateNotifier<List<Map<String, dynamic>>> {
       'language': 'Manga, Danish',
       'bgColor': const Color(0xFF1E88E5),
       'text': 'MB',
-      'iconUrl': 'https://mangaball.com/favicon.ico',
+      'iconUrl': 'https://mangaball.com/images/favicon.png',
       'isPinned': false,
     },
     {
@@ -388,7 +388,7 @@ class SourcesNotifier extends StateNotifier<List<Map<String, dynamic>>> {
       'language': 'Manga, German',
       'bgColor': const Color(0xFF1E88E5),
       'text': 'MB',
-      'iconUrl': 'https://mangaball.com/favicon.ico',
+      'iconUrl': 'https://mangaball.com/images/favicon.png',
       'isPinned': false,
     },
     {
@@ -396,7 +396,7 @@ class SourcesNotifier extends StateNotifier<List<Map<String, dynamic>>> {
       'language': 'Manga, Greek',
       'bgColor': const Color(0xFF1E88E5),
       'text': 'MB',
-      'iconUrl': 'https://mangaball.com/favicon.ico',
+      'iconUrl': 'https://mangaball.com/images/favicon.png',
       'isPinned': false,
     },
     {
@@ -404,7 +404,7 @@ class SourcesNotifier extends StateNotifier<List<Map<String, dynamic>>> {
       'language': 'Manga, English',
       'bgColor': const Color(0xFF1E88E5),
       'text': 'MB',
-      'iconUrl': 'https://mangaball.com/favicon.ico',
+      'iconUrl': 'https://mangaball.com/images/favicon.png',
       'isPinned': false,
     },
     {
@@ -412,7 +412,7 @@ class SourcesNotifier extends StateNotifier<List<Map<String, dynamic>>> {
       'language': 'Manga, Spanish',
       'bgColor': const Color(0xFF1E88E5),
       'text': 'MB',
-      'iconUrl': 'https://mangaball.com/favicon.ico',
+      'iconUrl': 'https://mangaball.com/images/favicon.png',
       'isPinned': false,
     },
     {
@@ -420,7 +420,7 @@ class SourcesNotifier extends StateNotifier<List<Map<String, dynamic>>> {
       'language': 'Manga, Persian',
       'bgColor': const Color(0xFF1E88E5),
       'text': 'MB',
-      'iconUrl': 'https://mangaball.com/favicon.ico',
+      'iconUrl': 'https://mangaball.com/images/favicon.png',
       'isPinned': false,
     },
     {
@@ -428,7 +428,7 @@ class SourcesNotifier extends StateNotifier<List<Map<String, dynamic>>> {
       'language': 'Manga, Finnish',
       'bgColor': const Color(0xFF1E88E5),
       'text': 'MB',
-      'iconUrl': 'https://mangaball.com/favicon.ico',
+      'iconUrl': 'https://mangaball.com/images/favicon.png',
       'isPinned': false,
     },
     {
@@ -436,7 +436,7 @@ class SourcesNotifier extends StateNotifier<List<Map<String, dynamic>>> {
       'language': 'Manga, French',
       'bgColor': const Color(0xFF1E88E5),
       'text': 'MB',
-      'iconUrl': 'https://mangaball.com/favicon.ico',
+      'iconUrl': 'https://mangaball.com/images/favicon.png',
       'isPinned': false,
     },
     {
@@ -444,7 +444,7 @@ class SourcesNotifier extends StateNotifier<List<Map<String, dynamic>>> {
       'language': 'Manga, Hebrew',
       'bgColor': const Color(0xFF1E88E5),
       'text': 'MB',
-      'iconUrl': 'https://mangaball.com/favicon.ico',
+      'iconUrl': 'https://mangaball.com/images/favicon.png',
       'isPinned': false,
     },
     {
@@ -452,7 +452,7 @@ class SourcesNotifier extends StateNotifier<List<Map<String, dynamic>>> {
       'language': 'Manga, Hindi',
       'bgColor': const Color(0xFF1E88E5),
       'text': 'MB',
-      'iconUrl': 'https://mangaball.com/favicon.ico',
+      'iconUrl': 'https://mangaball.com/images/favicon.png',
       'isPinned': false,
     },
     {
@@ -460,7 +460,7 @@ class SourcesNotifier extends StateNotifier<List<Map<String, dynamic>>> {
       'language': 'Manga, Hungarian',
       'bgColor': const Color(0xFF1E88E5),
       'text': 'MB',
-      'iconUrl': 'https://mangaball.com/favicon.ico',
+      'iconUrl': 'https://mangaball.com/images/favicon.png',
       'isPinned': false,
     },
     {
@@ -468,7 +468,7 @@ class SourcesNotifier extends StateNotifier<List<Map<String, dynamic>>> {
       'language': 'Manga, Indonesian',
       'bgColor': const Color(0xFF1E88E5),
       'text': 'MB',
-      'iconUrl': 'https://mangaball.com/favicon.ico',
+      'iconUrl': 'https://mangaball.com/images/favicon.png',
       'isPinned': false,
     },
     {
@@ -476,7 +476,7 @@ class SourcesNotifier extends StateNotifier<List<Map<String, dynamic>>> {
       'language': 'Manga, Italian',
       'bgColor': const Color(0xFF1E88E5),
       'text': 'MB',
-      'iconUrl': 'https://mangaball.com/favicon.ico',
+      'iconUrl': 'https://mangaball.com/images/favicon.png',
       'isPinned': false,
     },
     {
@@ -484,7 +484,7 @@ class SourcesNotifier extends StateNotifier<List<Map<String, dynamic>>> {
       'language': 'Manga, Icelandic',
       'bgColor': const Color(0xFF1E88E5),
       'text': 'MB',
-      'iconUrl': 'https://mangaball.com/favicon.ico',
+      'iconUrl': 'https://mangaball.com/images/favicon.png',
       'isPinned': false,
     },
     {
@@ -492,7 +492,7 @@ class SourcesNotifier extends StateNotifier<List<Map<String, dynamic>>> {
       'language': 'Manga, Japanese',
       'bgColor': const Color(0xFF1E88E5),
       'text': 'MB',
-      'iconUrl': 'https://mangaball.com/favicon.ico',
+      'iconUrl': 'https://mangaball.com/images/favicon.png',
       'isPinned': false,
     },
     {
@@ -500,7 +500,7 @@ class SourcesNotifier extends StateNotifier<List<Map<String, dynamic>>> {
       'language': 'Manga, Korean',
       'bgColor': const Color(0xFF1E88E5),
       'text': 'MB',
-      'iconUrl': 'https://mangaball.com/favicon.ico',
+      'iconUrl': 'https://mangaball.com/images/favicon.png',
       'isPinned': false,
     },
     {
@@ -508,7 +508,7 @@ class SourcesNotifier extends StateNotifier<List<Map<String, dynamic>>> {
       'language': 'Manga, Kannada',
       'bgColor': const Color(0xFF1E88E5),
       'text': 'MB',
-      'iconUrl': 'https://mangaball.com/favicon.ico',
+      'iconUrl': 'https://mangaball.com/images/favicon.png',
       'isPinned': false,
     },
     {
@@ -516,7 +516,7 @@ class SourcesNotifier extends StateNotifier<List<Map<String, dynamic>>> {
       'language': 'Manga, Malayalam',
       'bgColor': const Color(0xFF1E88E5),
       'text': 'MB',
-      'iconUrl': 'https://mangaball.com/favicon.ico',
+      'iconUrl': 'https://mangaball.com/images/favicon.png',
       'isPinned': false,
     },
     {
@@ -524,7 +524,7 @@ class SourcesNotifier extends StateNotifier<List<Map<String, dynamic>>> {
       'language': 'Manga, Malay',
       'bgColor': const Color(0xFF1E88E5),
       'text': 'MB',
-      'iconUrl': 'https://mangaball.com/favicon.ico',
+      'iconUrl': 'https://mangaball.com/images/favicon.png',
       'isPinned': false,
     },
     {
@@ -532,7 +532,7 @@ class SourcesNotifier extends StateNotifier<List<Map<String, dynamic>>> {
       'language': 'Manga, Nepali',
       'bgColor': const Color(0xFF1E88E5),
       'text': 'MB',
-      'iconUrl': 'https://mangaball.com/favicon.ico',
+      'iconUrl': 'https://mangaball.com/images/favicon.png',
       'isPinned': false,
     },
     {
@@ -540,7 +540,7 @@ class SourcesNotifier extends StateNotifier<List<Map<String, dynamic>>> {
       'language': 'Manga, Dutch',
       'bgColor': const Color(0xFF1E88E5),
       'text': 'MB',
-      'iconUrl': 'https://mangaball.com/favicon.ico',
+      'iconUrl': 'https://mangaball.com/images/favicon.png',
       'isPinned': false,
     },
     {
@@ -548,7 +548,7 @@ class SourcesNotifier extends StateNotifier<List<Map<String, dynamic>>> {
       'language': 'Manga, Norwegian',
       'bgColor': const Color(0xFF1E88E5),
       'text': 'MB',
-      'iconUrl': 'https://mangaball.com/favicon.ico',
+      'iconUrl': 'https://mangaball.com/images/favicon.png',
       'isPinned': false,
     },
     {
@@ -556,7 +556,7 @@ class SourcesNotifier extends StateNotifier<List<Map<String, dynamic>>> {
       'language': 'Manga, Polish',
       'bgColor': const Color(0xFF1E88E5),
       'text': 'MB',
-      'iconUrl': 'https://mangaball.com/favicon.ico',
+      'iconUrl': 'https://mangaball.com/images/favicon.png',
       'isPinned': false,
     },
     {
@@ -564,7 +564,7 @@ class SourcesNotifier extends StateNotifier<List<Map<String, dynamic>>> {
       'language': 'Manga, Portuguese',
       'bgColor': const Color(0xFF1E88E5),
       'text': 'MB',
-      'iconUrl': 'https://mangaball.com/favicon.ico',
+      'iconUrl': 'https://mangaball.com/images/favicon.png',
       'isPinned': false,
     },
     {
@@ -572,7 +572,7 @@ class SourcesNotifier extends StateNotifier<List<Map<String, dynamic>>> {
       'language': 'Manga, Romanian',
       'bgColor': const Color(0xFF1E88E5),
       'text': 'MB',
-      'iconUrl': 'https://mangaball.com/favicon.ico',
+      'iconUrl': 'https://mangaball.com/images/favicon.png',
       'isPinned': false,
     },
     {
@@ -580,7 +580,7 @@ class SourcesNotifier extends StateNotifier<List<Map<String, dynamic>>> {
       'language': 'Manga, Russian',
       'bgColor': const Color(0xFF1E88E5),
       'text': 'MB',
-      'iconUrl': 'https://mangaball.com/favicon.ico',
+      'iconUrl': 'https://mangaball.com/images/favicon.png',
       'isPinned': false,
     },
     {
@@ -588,7 +588,7 @@ class SourcesNotifier extends StateNotifier<List<Map<String, dynamic>>> {
       'language': 'Manga, Slovak',
       'bgColor': const Color(0xFF1E88E5),
       'text': 'MB',
-      'iconUrl': 'https://mangaball.com/favicon.ico',
+      'iconUrl': 'https://mangaball.com/images/favicon.png',
       'isPinned': false,
     },
     {
@@ -596,7 +596,7 @@ class SourcesNotifier extends StateNotifier<List<Map<String, dynamic>>> {
       'language': 'Manga, Slovenian',
       'bgColor': const Color(0xFF1E88E5),
       'text': 'MB',
-      'iconUrl': 'https://mangaball.com/favicon.ico',
+      'iconUrl': 'https://mangaball.com/images/favicon.png',
       'isPinned': false,
     },
     {
@@ -604,7 +604,7 @@ class SourcesNotifier extends StateNotifier<List<Map<String, dynamic>>> {
       'language': 'Manga, Albanian',
       'bgColor': const Color(0xFF1E88E5),
       'text': 'MB',
-      'iconUrl': 'https://mangaball.com/favicon.ico',
+      'iconUrl': 'https://mangaball.com/images/favicon.png',
       'isPinned': false,
     },
     {
@@ -612,7 +612,7 @@ class SourcesNotifier extends StateNotifier<List<Map<String, dynamic>>> {
       'language': 'Manga, Serbian',
       'bgColor': const Color(0xFF1E88E5),
       'text': 'MB',
-      'iconUrl': 'https://mangaball.com/favicon.ico',
+      'iconUrl': 'https://mangaball.com/images/favicon.png',
       'isPinned': false,
     },
     {
@@ -620,7 +620,7 @@ class SourcesNotifier extends StateNotifier<List<Map<String, dynamic>>> {
       'language': 'Manga, Swedish',
       'bgColor': const Color(0xFF1E88E5),
       'text': 'MB',
-      'iconUrl': 'https://mangaball.com/favicon.ico',
+      'iconUrl': 'https://mangaball.com/images/favicon.png',
       'isPinned': false,
     },
     {
@@ -628,7 +628,7 @@ class SourcesNotifier extends StateNotifier<List<Map<String, dynamic>>> {
       'language': 'Manga, Tamil',
       'bgColor': const Color(0xFF1E88E5),
       'text': 'MB',
-      'iconUrl': 'https://mangaball.com/favicon.ico',
+      'iconUrl': 'https://mangaball.com/images/favicon.png',
       'isPinned': false,
     },
     {
@@ -636,7 +636,7 @@ class SourcesNotifier extends StateNotifier<List<Map<String, dynamic>>> {
       'language': 'Manga, Thai',
       'bgColor': const Color(0xFF1E88E5),
       'text': 'MB',
-      'iconUrl': 'https://mangaball.com/favicon.ico',
+      'iconUrl': 'https://mangaball.com/images/favicon.png',
       'isPinned': false,
     },
     {
@@ -644,7 +644,7 @@ class SourcesNotifier extends StateNotifier<List<Map<String, dynamic>>> {
       'language': 'Manga, Turkish',
       'bgColor': const Color(0xFF1E88E5),
       'text': 'MB',
-      'iconUrl': 'https://mangaball.com/favicon.ico',
+      'iconUrl': 'https://mangaball.com/images/favicon.png',
       'isPinned': false,
     },
     {
@@ -652,7 +652,7 @@ class SourcesNotifier extends StateNotifier<List<Map<String, dynamic>>> {
       'language': 'Manga, Ukrainian',
       'bgColor': const Color(0xFF1E88E5),
       'text': 'MB',
-      'iconUrl': 'https://mangaball.com/favicon.ico',
+      'iconUrl': 'https://mangaball.com/images/favicon.png',
       'isPinned': false,
     },
     {
@@ -660,7 +660,7 @@ class SourcesNotifier extends StateNotifier<List<Map<String, dynamic>>> {
       'language': 'Manga, Vietnamese',
       'bgColor': const Color(0xFF1E88E5),
       'text': 'MB',
-      'iconUrl': 'https://mangaball.com/favicon.ico',
+      'iconUrl': 'https://mangaball.com/images/favicon.png',
       'isPinned': false,
     },
     {
@@ -668,7 +668,7 @@ class SourcesNotifier extends StateNotifier<List<Map<String, dynamic>>> {
       'language': 'Manga, Chinese',
       'bgColor': const Color(0xFF1E88E5),
       'text': 'MB',
-      'iconUrl': 'https://mangaball.com/favicon.ico',
+      'iconUrl': 'https://mangaball.com/images/favicon.png',
       'isPinned': false,
     },
     {

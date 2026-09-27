@@ -66,7 +66,7 @@ class MangaBallSource extends DioSource implements MangaSource {
   String get readerBaseUrl => 'https://mangaball.com';
 
   @override
-  String get iconUrl => 'https://mangaball.com/favicon.ico';
+  String get iconUrl => 'https://mangaball.com/images/favicon.png';
 
   /// Read from a page once per session; the API rejects requests without it.
 
@@ -504,10 +504,11 @@ class MangaBallSource extends DioSource implements MangaSource {
         Manga(
           id: slug,
           title: item['name']?.toString() ?? slug,
-          // This payload carries no artwork of any kind - no cover, no image
-          // URL - so a grid built from it shows the placeholder until the
-          // detail page supplies one.
-          coverUrl: '',
+          // Artwork is here on every item, just not under one key - see
+          // [_coverFrom]. An earlier note claimed this payload carried no
+          // artwork at all and hardcoded '', which is why every MangaBall
+          // title in a grid showed the placeholder.
+          coverUrl: _coverFrom(item['image']),
           sourceId: id,
         ),
       );
@@ -582,14 +583,9 @@ class MangaBallSource extends DioSource implements MangaSource {
       }
     }
 
-    // The cover is an object with the file in it, not a bare URL string.
-    var cover = '';
-    final image = data['image'];
-    if (image is Map) {
-      cover = image['file']?.toString().trim() ?? '';
-    } else if (image is String) {
-      cover = image.trim();
-    }
+    // The cover is an object with the file in it, not a bare URL string, and
+    // this endpoint leans on `file` where the listing leans on `cdn_mangadex`.
+    final cover = _coverFrom(data['image']);
 
     final status = data['status']?.toString().trim() ?? '';
 
@@ -828,6 +824,44 @@ class MangaBallSource extends DioSource implements MangaSource {
 
   /// Alt text of a page image: the title and chapter vary, `Page <n>` does not.
   static final RegExp _pageAlt = RegExp(r'\bPage\s+\d+\b');
+
+  /// Picks a cover out of the API's `image` object.
+  ///
+  /// The listing carries artwork on every item, but never in one place. Across
+  /// a 20-item page: 20/20 have `image.cover`, 15/20 have `cdn_mangadex`, and
+  /// only 5/20 have `file` - yet of those, the ones that load are mostly
+  /// `cdn_mangadex`, so `file` alone would find art for a quarter of the grid.
+  /// Trying both in that order found a loadable cover for 18 of 20.
+  ///
+  /// `image.cover` is a trap and is deliberately not read. It is on all 20 and
+  /// its `path` looks like a URL segment, but it is a storage key: seven
+  /// candidate origins were tried and every one of them 404s. Its `name` is no
+  /// help either - it is `cover_….jpg` while `contentType` says `image/webp`,
+  /// so the extension is a lie and guessing one only manufactures a 404.
+  ///
+  /// These are absolute third-party CDN URLs (comick, mangadex, iphotomg), not
+  /// the site's own `/storage/` path, so they need no Referer and are not
+  /// covered by [CachedMangaImage]'s `/storage/` rule.
+  static String _coverFrom(dynamic image) {
+    // A bare string is the one shape that needs no field name, so it goes
+    // through the same absolute-URL check rather than being trusted as-is.
+    if (image is String) {
+      final url = image.trim();
+      return _isAbsolute(url) ? url : '';
+    }
+    if (image is! Map) return '';
+    for (final key in ['file', 'cdn_mangadex']) {
+      final url = '${image[key] ?? ''}'.trim();
+      if (_isAbsolute(url)) return url;
+    }
+    return '';
+  }
+
+  /// A relative value would silently become a request against the API host
+  /// instead of the image CDN, which fails in a way that looks like a dead
+  /// cover rather than a missing one.
+  static bool _isAbsolute(String url) =>
+      url.startsWith('http://') || url.startsWith('https://');
 
   // --- Tags ---------------------------------------------------------------
 
