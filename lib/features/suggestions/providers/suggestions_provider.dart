@@ -15,9 +15,24 @@ const _suggestionLimit = 40;
 const _sourceTimeout = Duration(seconds: 12);
 
 /// Fan-out window for a single feed build. Kept in sync with [_sourceTimeout]
-/// so slow cold-start sources aren't dropped mid-flight, which would make the
-/// feed "complete" emptily and flash a no-results state.
+/// so a slow cold-start source is still given its full per-source budget.
+///
+/// A short window alone doesn't stop the feed resolving emptily - it just
+/// makes it likely, because it also gives up on everything still in flight.
+/// [_fanout] is what actually prevents that; see the note there.
 const _fanoutDeadline = Duration(seconds: 12);
+
+/// Extra window granted when a fan-out pass comes back with nothing useful.
+/// The pass has already started every source by then, so this only waits
+/// longer on work that is genuinely in flight; it never issues a second
+/// request. See [_fanout] for why the first pass can resolve emptily.
+const _fanoutRetryWindow = Duration(seconds: 20);
+
+/// Genre chips are cosmetic - the strip renders empty while they load - and
+/// this fan-out shares the same single-slot WebView queue as the feed. Firing
+/// it at every source is what pushed the feed past [_fanoutDeadline] on a cold
+/// cache, so it runs against a bounded subset instead.
+const _maxGenreTagSources = 8;
 
 /// Resolves the app's enabled sources from the registry rows, skipping the
 /// mock source and collapsing duplicates that map to the same source id.
@@ -73,6 +88,40 @@ List<Manga> _mixSources(
   return out;
 }
 
+/// Runs a source fan-out that gives up on nothing.
+///
+/// A pass that comes back empty is provisional, not final: every source is
+/// started before [_fanoutDeadline] expires, so on a cold cache the first
+/// responses can land seconds after the window closes — the stragglers are
+/// still running and are about to write to [SourceCache]. Resolving on the
+/// first pass meant the feed settled on an empty list and the user had to pull
+/// to refresh to see anything, even though the data was milliseconds away.
+/// [_fanoutRetryWindow] buys those stragglers a second chance; see
+/// [waitFastest] for why re-waiting the same futures is free.
+///
+/// A source that throws resolves to an empty result rather than hanging, so
+/// "some future finished" is not the same as "we got something" — hence the
+/// explicit [hasResult] rather than the default non-empty check.
+Future<List<T>> _fanout<T>(
+  List<Future<T>> futures, {
+  required bool Function(List<T> results) hasResult,
+}) {
+  return waitFastest(
+    futures,
+    deadline: _fanoutDeadline,
+    grace: _fanoutRetryWindow,
+    hasResult: hasResult,
+  );
+}
+
+/// Evenly spreads at most [limit] picks across [items] instead of truncating
+/// the head, so a bounded subset isn't decided by registry order.
+List<T> _spread<T>(List<T> items, int limit) {
+  if (items.length <= limit) return items;
+  final step = items.length / limit;
+  return [for (var i = 0; i < limit; i++) items[(i * step).floor()]];
+}
+
 Future<List<Manga>> _tags(MangaSource source, List<String> tags) {
   return SourceCache.mangaList(
     sourceId: source.id,
@@ -112,7 +161,7 @@ final suggestionsProvider = FutureProvider.family<List<Manga>, String?>((
   if (sources.isEmpty) return [];
 
   if (genre != null) {
-    final perSource = await waitFastest(
+    final perSource = await _fanout(
       sources.map((source) async {
         try {
           return await _tags(source, [genre]);
@@ -120,14 +169,14 @@ final suggestionsProvider = FutureProvider.family<List<Manga>, String?>((
           return <Manga>[];
         }
       }).toList(),
-      deadline: _fanoutDeadline,
+      hasResult: (per) => per.any((lists) => lists.isNotEmpty),
     );
     return _mixSources(perSource);
   }
 
   final topTags = await DatabaseHelper.instance.getUserTopTags(limit: 5);
 
-  final perSource = await waitFastest(
+  final perSource = await _fanout(
     sources.map((source) async {
       try {
         if (topTags.isNotEmpty) {
@@ -141,27 +190,38 @@ final suggestionsProvider = FutureProvider.family<List<Manga>, String?>((
         return const <List<Manga>>[];
       }
     }).toList(),
-    deadline: _fanoutDeadline,
+    hasResult: (per) => per.any((lists) => lists.isNotEmpty),
   );
 
   return _mixSources(perSource.expand((lists) => lists).toList());
 });
 
-/// Genre/theme chips unioned across all active sources, so the filter strip
+/// Genre/theme chips unioned across the active sources, so the filter strip
 /// isn't limited to whichever source happens to be selected.
+///
+/// Bounded to [_maxGenreTagSources] sources and no per-source timeout: this
+/// fan-out runs alongside the feed and competes with it for the WebView queue,
+/// and it is the one that isn't worth starving anything for. The subset is
+/// spread rather than truncated (see [_spread]) so which sources get asked is
+/// not decided by registry order. Chips read from disk once warm, so the
+/// steady-state cost is a cache lookup per source.
 final genreTagsProvider = FutureProvider<List<String>>((ref) async {
-  final sources = sourcesFromRows(ref.watch(visibleSourceRowsProvider));
-  final perSource = await Future.wait(
+  final sources = _spread(
+    sourcesFromRows(ref.watch(visibleSourceRowsProvider)),
+    _maxGenreTagSources,
+  );
+  final perSource = await _fanout(
     sources.map((source) async {
       try {
         return await SourceCache.tags(
           sourceId: source.id,
           fetch: source.getAvailableTags,
-        ).timeout(_sourceTimeout, onTimeout: () => const []);
+        );
       } catch (_) {
-        return <String>[];
+        return const <String>[];
       }
-    }),
+    }).toList(),
+    hasResult: (per) => per.any((tags) => tags.isNotEmpty),
   );
 
   final seen = <String>{};
