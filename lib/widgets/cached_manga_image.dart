@@ -88,6 +88,21 @@ class CachedMangaImage extends StatelessWidget {
     return null;
   }
 
+  /// The physical-pixel width to decode a cover at, or null to decode as-is.
+  ///
+  /// Only a finite, positive [width] yields a bound. `double.infinity` means
+  /// "fill the parent", so the real size is not knowable here - four screens
+  /// ask for that - and guessing would decode every cover at an arbitrary size.
+  /// Those stay uncapped, which is correct if not optimal.
+  int? _decodeWidth(BuildContext context) {
+    final w = width;
+    if (w == null || !w.isFinite || w <= 0) return null;
+    final dpr = MediaQuery.maybeDevicePixelRatioOf(context) ?? 1.0;
+    final px = (w * dpr).round();
+    // Anything under 8px is a layout artefact, not a size worth honouring.
+    return px < 8 ? null : px;
+  }
+
   @override
   Widget build(BuildContext context) {
     if (imageUrl.startsWith(localScheme)) {
@@ -106,6 +121,7 @@ class CachedMangaImage extends StatelessWidget {
       width: width,
       height: height,
       fit: fit,
+      decodeWidth: _decodeWidth(context),
       httpHeaders: _headers,
       placeholder: placeholder,
       errorWidget:

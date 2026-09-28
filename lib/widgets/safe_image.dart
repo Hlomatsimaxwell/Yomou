@@ -48,6 +48,7 @@ class SafeNetworkImage extends StatefulWidget {
     this.placeholderFadeInDuration,
     this.gaplessPlayback = false,
     this.alignment = Alignment.center,
+    this.decodeWidth,
   });
 
   final String imageUrl;
@@ -61,6 +62,21 @@ class SafeNetworkImage extends StatefulWidget {
   final Duration? placeholderFadeInDuration;
   final bool gaplessPlayback;
   final Alignment alignment;
+
+  /// Physical-pixel width to decode at, or null to decode the image as-is.
+  ///
+  /// Covers are laid out at 40-101 logical pixels but are served at up to
+  /// 1798x2560. Decoding one of those to show a ~250px tile costs ~18MB
+  /// resident, so five or six visible covers overflow Flutter's default 100MB
+  /// image cache and the grid starts evicting what it is about to redraw.
+  ///
+  /// This only bounds the decoded bitmap - the bytes are still downloaded and
+  /// stored at full size, so it costs nothing on the wire. It must be a
+  /// physical-pixel count, hence the device pixel ratio at the call site.
+  ///
+  /// Deliberately not applied to reader pages, which are zoomed and want every
+  /// pixel they can get.
+  final int? decodeWidth;
 
   @override
   State<SafeNetworkImage> createState() => _SafeNetworkImageState();
@@ -207,6 +223,7 @@ class _SafeNetworkImageState extends State<SafeNetworkImage> {
         width: widget.width,
         height: widget.height,
         fit: widget.fit,
+        memCacheWidth: widget.decodeWidth,
         httpHeaders: widget.httpHeaders,
         placeholder: widget.placeholder,
         placeholderFadeInDuration: widget.placeholderFadeInDuration,
@@ -237,6 +254,11 @@ class _SafeNetworkImageState extends State<SafeNetworkImage> {
             width: widget.width,
             height: widget.height,
             fit: widget.fit,
+            // The fallback is where the cap matters most: this path is taken
+            // exactly when the engine codec fails, which on Android 9 is the
+            // WebP case, so the images most likely to need it are the ones
+            // that would otherwise arrive here decoded at full size.
+            cacheWidth: widget.decodeWidth,
             alignment: widget.alignment,
             gaplessPlayback: widget.gaplessPlayback,
             errorBuilder: (context, error, stack) => _showError(error),
