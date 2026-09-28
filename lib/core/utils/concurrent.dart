@@ -23,19 +23,37 @@ import 'dart:async';
 /// a pass where every source errored straight away otherwise looks like
 /// progress and would stop after one window. Defaults to "the pass produced at
 /// least one result".
+///
+/// [earlyResolve] is judged as results arrive rather than once the whole pass
+/// settles: a single fast source (e.g. a plain-HTTP one) should not wait out
+/// [deadline] because everything else is queued behind a slow shared resource
+/// such as the WebView. It defaults to [hasResult] so callers that already
+/// told the fan-out what "a result" looks like get early resolution for free;
+/// leaving both unset keeps the old "all settled or [deadline]" behaviour
+/// (search wants every source, so it opts out by design).
 Future<List<T>> waitFastest<T>(
   List<Future<T>> futures, {
   Duration deadline = const Duration(seconds: 6),
   Duration grace = Duration.zero,
   bool Function(List<T> results)? hasResult,
+  bool Function(List<T> results)? earlyResolve,
 }) async {
-  final first = await _collect(futures, deadline);
+  final qualifies = earlyResolve ?? hasResult;
+  final first = await _collect(futures, deadline, hasResult: qualifies);
   if (grace <= Duration.zero) return first;
   if ((hasResult ?? (results) => results.isNotEmpty).call(first)) return first;
-  return _collect(futures, grace);
+  return _collect(futures, grace, hasResult: qualifies);
 }
 
-Future<List<T>> _collect<T>(List<Future<T>> futures, Duration window) async {
+/// Gathers up to [window] worth of results, completing early when the settled
+/// subset already satisfies [hasResult] (before the window would lapse). A
+/// caller that never passed a predicate resolves only once every future has
+/// settled or [window] elapses, exactly as before.
+Future<List<T>> _collect<T>(
+  List<Future<T>> futures,
+  Duration window, {
+  bool Function(List<T> results)? hasResult,
+}) async {
   if (futures.isEmpty) return const [];
   final results = List<T?>.filled(futures.length, null);
   // "settled" and "produced a value" are separate: a future that throws
@@ -47,6 +65,24 @@ Future<List<T>> _collect<T>(List<Future<T>> futures, Duration window) async {
   final settled = List<bool>.filled(futures.length, false);
   var done = 0;
   final allDone = Completer<void>();
+
+  List<T> sample() => [
+        for (var i = 0; i < futures.length; i++)
+          if (hasValue[i]) results[i] as T,
+      ];
+
+  void maybeResolve() {
+    if (allDone.isCompleted) return;
+    if (done == futures.length) {
+      allDone.complete();
+      return;
+    }
+    if (hasResult != null) {
+      final current = sample();
+      if (current.isNotEmpty && hasResult(current)) allDone.complete();
+    }
+  }
+
   for (var i = 0; i < futures.length; i++) {
     futures[i]
         .then((value) {
@@ -56,18 +92,14 @@ Future<List<T>> _collect<T>(List<Future<T>> futures, Duration window) async {
             settled[i] = true;
             done++;
           }
-          if (done == futures.length && !allDone.isCompleted) {
-            allDone.complete();
-          }
+          maybeResolve();
         })
         .catchError((_) {
           if (!settled[i]) {
             settled[i] = true;
             done++;
           }
-          if (done == futures.length && !allDone.isCompleted) {
-            allDone.complete();
-          }
+          maybeResolve();
         });
   }
   await allDone.future.timeout(window, onTimeout: () {});

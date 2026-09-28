@@ -105,12 +105,14 @@ List<Manga> _mixSources(
 Future<List<T>> _fanout<T>(
   List<Future<T>> futures, {
   required bool Function(List<T> results) hasResult,
+  bool Function(List<T> results)? earlyResolve,
 }) {
   return waitFastest(
     futures,
     deadline: _fanoutDeadline,
     grace: _fanoutRetryWindow,
     hasResult: hasResult,
+    earlyResolve: earlyResolve,
   );
 }
 
@@ -157,7 +159,9 @@ final suggestionsProvider = FutureProvider.family<List<Manga>, String?>((
   // Re-roll the feed on a timer (recommendations + the Explore featured
   // carousel) without any interaction.
   ref.watch(periodicSuggestionsRefreshProvider);
-  final sources = sourcesFromRows(ref.watch(visibleSourceRowsProvider));
+  final sources = boundVariantFamilies(
+    sourcesFromRows(ref.watch(visibleSourceRowsProvider)),
+  );
   if (sources.isEmpty) return [];
 
   if (genre != null) {
@@ -170,6 +174,11 @@ final suggestionsProvider = FutureProvider.family<List<Manga>, String?>((
         }
       }).toList(),
       hasResult: (per) => per.any((lists) => lists.isNotEmpty),
+      // Several sources should be in before the feed shows: the first one in
+      // alone gave a single-source-correct-looking feed once the WebView
+      // variants started landing.
+      earlyResolve: (per) =>
+          per.where((lists) => lists.isNotEmpty).length >= 2,
     );
     return _mixSources(perSource);
   }
@@ -191,6 +200,13 @@ final suggestionsProvider = FutureProvider.family<List<Manga>, String?>((
       }
     }).toList(),
     hasResult: (per) => per.any((lists) => lists.isNotEmpty),
+    // Each future wraps its manga lists, so "a source with content" is a
+    // wrapper containing at least one non-empty list. Requiring two such
+    // sources keeps the first paint a mix rather than a single source, while
+    // still beating the full fan-out window on a cold cache.
+    earlyResolve: (per) =>
+        per.where((lists) => lists.any((manga) => manga.isNotEmpty)).length >=
+        2,
   );
 
   return _mixSources(perSource.expand((lists) => lists).toList());
@@ -206,8 +222,10 @@ final suggestionsProvider = FutureProvider.family<List<Manga>, String?>((
 /// not decided by registry order. Chips read from disk once warm, so the
 /// steady-state cost is a cache lookup per source.
 final genreTagsProvider = FutureProvider<List<String>>((ref) async {
+  // Bound each variant family first (42 MangaBall languages) so the spread
+  // below actually samples across *sites* rather than mostly MangaBall.
   final sources = _spread(
-    sourcesFromRows(ref.watch(visibleSourceRowsProvider)),
+    boundVariantFamilies(sourcesFromRows(ref.watch(visibleSourceRowsProvider))),
     _maxGenreTagSources,
   );
   final perSource = await _fanout(
@@ -222,6 +240,7 @@ final genreTagsProvider = FutureProvider<List<String>>((ref) async {
       }
     }).toList(),
     hasResult: (per) => per.any((tags) => tags.isNotEmpty),
+    earlyResolve: (per) => per.where((tags) => tags.isNotEmpty).length >= 2,
   );
 
   final seen = <String>{};

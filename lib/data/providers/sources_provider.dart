@@ -301,6 +301,55 @@ List<MangaSource> resolveActiveSources(List<Map<String, dynamic>> rows) {
   return list;
 }
 
+/// The family a source id belongs to: `mangaball-pt` -> `mangaball`. Sources
+/// without a language suffix (single-variant sites) are their own family and
+/// are never bounded.
+String sourceFamilyOf(String sourceId) {
+  final dash = sourceId.indexOf('-');
+  return dash <= 0 ? sourceId : sourceId.substring(0, dash);
+}
+
+/// Bounds a multi-variant family so fan-outs (suggestions feed, search) do not
+/// queue every language version of the same site.
+///
+/// MangaBall registers one source per language (currently 42), and every
+/// variant talks to the same site — through the app's *single* WebView for the
+/// JS-gated calls. Firing the whole family at once queues ~1.7s of in-page
+/// work per variant, a ~70s backlog that the reader's chapter loads also queue
+/// behind, and most of the queued calls never finish inside a fan-out window
+/// anyway (each variant's per-source timeout starts before its turn in the
+/// queue). Keeping an even spread of [maxPerFamily] variants preserves
+/// language variety while cutting that backlog to seconds.
+///
+/// Every family is spread independently (see [_spreadSourcesFamily]) so one
+/// oversized site doesn't crowd out the languages of another.
+List<MangaSource> boundVariantFamilies(
+  List<MangaSource> sources, {
+  int maxPerFamily = 8,
+}) {
+  final byFamily = <String, List<MangaSource>>{};
+  for (final s in sources) {
+    byFamily.putIfAbsent(sourceFamilyOf(s.id), () => []).add(s);
+  }
+  final out = <MangaSource>[];
+  for (final family in byFamily.values) {
+    if (family.length <= maxPerFamily) {
+      out.addAll(family);
+    } else {
+      out.addAll(_spreadSourcesFamily(family, maxPerFamily));
+    }
+  }
+  return out;
+}
+
+/// Evenly spreads at most [limit] picks across [items] instead of truncating
+/// the head, so a bounded subset isn't decided by registry order.
+List<T> _spreadSourcesFamily<T>(List<T> items, int limit) {
+  if (items.length <= limit) return items;
+  final step = items.length / limit;
+  return [for (var i = 0; i < limit; i++) items[(i * step).floor()]];
+}
+
 /// Source ids that the user has explicitly disabled in the registry rows.
 Set<String> disabledSourceIds(List<Map<String, dynamic>> rows) {
   final ids = <String>{};

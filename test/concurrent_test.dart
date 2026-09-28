@@ -167,4 +167,76 @@ void main() {
       expect(result, isEmpty);
     });
   });
+
+  group('waitFastest early resolve', () {
+    test('resolves before the deadline once earlyResolve is satisfied',
+        () async {
+      // The straggler would make this wait out the whole window if the
+      // settled-alone results did not count. The feed's core problem: fast
+      // plain-HTTP sources answer in ~2s while everything else queues behind
+      // the single WebView, and the old code held the feed hostage to the
+      // window even though it already had plenty to show.
+      final straggler = Completer<String>();
+      final sw = Stopwatch()..start();
+      final result = await waitFastest<String>(
+        [Future.value('a'), Future.value('b'), straggler.future],
+        deadline: const Duration(seconds: 5),
+        earlyResolve: (results) => results.length >= 2,
+      );
+      sw.stop();
+
+      expect(result, ['a', 'b']);
+      expect(sw.elapsed, lessThan(const Duration(seconds: 1)));
+    });
+
+    test('without earlyResolve the window is still honoured', () async {
+      final straggler = Completer<String>();
+      final sw = Stopwatch()..start();
+      final result = await waitFastest<String>(
+        [Future.value('a'), Future.value('b'), straggler.future],
+        deadline: const Duration(milliseconds: 250),
+      );
+      sw.stop();
+
+      // Search relies on this: it wants every source, so a fast pair must not
+      // short-circuit the rest.
+      expect(result, ['a', 'b']);
+      expect(sw.elapsed, greaterThanOrEqualTo(const Duration(milliseconds: 200)));
+    });
+
+    test('earlyResolve defaults to hasResult for callers that pass it',
+        () async {
+      // _fanout passes hasResult everywhere; earlyResolve should not need to
+      // be threaded through separately when the caller already told the
+      // fan-out what "a result" means.
+      final straggler = Completer<String>();
+      final sw = Stopwatch()..start();
+      final result = await waitFastest<String>(
+        [Future.value('hit'), straggler.future],
+        deadline: const Duration(seconds: 5),
+        hasResult: (r) => r.any((v) => v == 'hit'),
+      );
+      sw.stop();
+
+      expect(result, ['hit']);
+      expect(sw.elapsed, lessThan(const Duration(seconds: 1)));
+    });
+
+    test('an early empty pass still escalates into grace', () async {
+      // Two empty-looking results landing quickly are not "a result" for a
+      // fan-out that asked for non-empty content: early resolution must not
+      // turn a fast-but-empty first pass into a *final* feed.
+      final straggler = Completer<String>();
+      final pending = waitFastest(
+        [Future<String>.value(''), Future<String>.value(''), straggler.future],
+        deadline: const Duration(milliseconds: 60),
+        grace: const Duration(milliseconds: 400),
+        hasResult: (results) => results.any((r) => r.isNotEmpty),
+      );
+      await Future<void>.delayed(const Duration(milliseconds: 150));
+      straggler.complete('late');
+
+      expect(await pending, ['', '', 'late']);
+    });
+  });
 }

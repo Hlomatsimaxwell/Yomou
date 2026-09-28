@@ -102,8 +102,13 @@ final globalSearchProvider =
       final trimmed = query.trim();
       if (trimmed.isEmpty) return [];
 
-      // Resolve enabled sources (dedupe by id).
-      final sources = resolveActiveSources(ref.watch(visibleSourceRowsProvider));
+      // Resolve enabled sources (dedupe by id), bounded per variant family so
+      // 42 MangaBall languages don't queue the single WebView behind a search
+      // (each variant's per-source timeout starts before its queue turn, so
+      // most would time out empty anyway - see [boundVariantFamilies]).
+      final sources = boundVariantFamilies(
+        resolveActiveSources(ref.watch(visibleSourceRowsProvider)),
+      );
 
       // Title search: the common path, started immediately.
       final titleFuture = _searchAllSources(
