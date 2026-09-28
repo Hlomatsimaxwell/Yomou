@@ -1,3 +1,4 @@
+import 'dart:async';
 import 'dart:convert';
 import 'package:yomou/core/database/database_helper.dart';
 import 'package:yomou/data/models/chapter.dart';
@@ -33,6 +34,25 @@ class SourceCache {
   /// Keys (prefixes) that must skip the fresh-cache shortcut on their next run
   /// (used by pull-to-refresh). A prefix applies to every key starting with it.
   static final Set<String> _forceFetchPrefixes = {};
+
+  /// Network fetches currently running, keyed like the cache rows.
+  ///
+  /// Two callers asking for the same key at the same time both read the table
+  /// before either has written to it, so both miss and both go to the network.
+  /// That is not just wasted work: on a WebView-backed source the fetches are
+  /// serialized, so the duplicate does not overlap the original - it queues
+  /// behind it and then repeats it.
+  static final Map<String, Future<dynamic>> _inFlight = {};
+
+  /// Marks [future]'s errors as deliberately unobserved.
+  ///
+  /// A completer completed with an error that nobody is listening to is
+  /// reported as an unhandled async error, which in Flutter is an uncaught
+  /// exception. Most keys here have no second caller, so their fetches fail
+  /// with no waiter attached, and every failing source would have thrown one.
+  /// This only suppresses the *unobserved* report - callers that await the
+  /// future still receive the error.
+  static void _ignoreIfUnobserved(Future<Object?> future) => future.ignore();
 
   // --- Public cache entry points -------------------------------------------
 
@@ -193,6 +213,23 @@ class SourceCache {
 
     if (fresh) return cached as T;
     final fallback = cached;
+
+    // Someone else is already fetching this key: wait for their result rather
+    // than starting a second identical request. `forceRefresh` is deliberately
+    // not honoured here - a refresh that is already in flight is a refresh.
+    final running = _inFlight[key];
+    if (running != null) {
+      try {
+        return await running as T;
+      } catch (_) {
+        if (fallback != null) return fallback;
+        rethrow;
+      }
+    }
+
+    final completer = Completer<T>();
+    _inFlight[key] = completer.future;
+    _ignoreIfUnobserved(completer.future);
     try {
       final value = await fetch();
       // When the source swallows network errors and returns an empty
@@ -201,6 +238,7 @@ class SourceCache {
       final isEmptyResult =
           (value is List && value.isEmpty) || (value is Map && value.isEmpty);
       if (isEmptyResult && fallback != null) {
+        completer.complete(fallback);
         return fallback;
       }
       await db.insert('source_cache', {
@@ -209,10 +247,17 @@ class SourceCache {
         'fetchedAt': DateTime.now().toIso8601String(),
       }, conflictAlgorithm: ConflictAlgorithm.replace);
       onFresh?.call(value);
+      completer.complete(value);
       return value;
     } catch (e) {
-      if (fallback != null) return fallback;
+      if (fallback != null) {
+        completer.complete(fallback);
+        return fallback;
+      }
+      completer.completeError(e);
       rethrow;
+    } finally {
+      _inFlight.remove(key);
     }
   }
 
