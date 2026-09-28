@@ -49,3 +49,4 @@ app.*.map.json
 
 # opencode workspace state (DB backups, run history, temp notes)
 .opencode/
+android/build/
