@@ -510,6 +510,7 @@ class MangaBallSource extends DioSource implements MangaSource {
           // title in a grid showed the placeholder.
           coverUrl: _coverFrom(item['image']),
           sourceId: id,
+          tags: _tagsFrom(item['tags']),
         ),
       );
     }
@@ -862,6 +863,27 @@ class MangaBallSource extends DioSource implements MangaSource {
   /// cover rather than a missing one.
   static bool _isAbsolute(String url) =>
       url.startsWith('http://') || url.startsWith('https://');
+
+  /// Flattens the API's `tags` array into plain labels.
+  ///
+  /// Each entry is a full tag document - `name`, `slug`, `group`, per-tag
+  /// `stats`, timestamps - of which only the label is wanted here.
+  ///
+  /// Every listing row carries these, on 20 of 20 in a sampled page, and the
+  /// list is identical to what the detail endpoint returns for the same title.
+  /// That is what lets the detail screen rank its related titles straight off
+  /// the listing instead of opening eight detail requests to ask.
+  static List<String> _tagsFrom(dynamic tags) {
+    if (tags is! List) return const [];
+    final out = <String>[];
+    for (final t in tags) {
+      // Objects on this endpoint, plain strings on a few older rows.
+      final name = t is Map ? t['name'] : t;
+      final label = '${name ?? ''}'.trim();
+      if (label.isNotEmpty) out.add(label);
+    }
+    return out;
+  }
 
   // --- Tags ---------------------------------------------------------------
 

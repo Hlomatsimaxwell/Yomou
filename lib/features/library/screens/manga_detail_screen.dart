@@ -354,32 +354,52 @@ class _MangaDetailScreenState extends ConsumerState<MangaDetailScreen> {
           .take(8)
           .toList();
 
-      // Fetch each candidate's tags in parallel and rank by overlap.
       final scored = <(int, Manga)>[];
-      final results = await Future.wait(
-        candidates.map((m) async {
-          try {
-            final details = await SourceCache.mangaDetails(
-              sourceId: source.id,
-              mangaId: m.id,
-              fetch: () => source.getMangaDetails(m.id),
-            );
-            return (m, details);
-          } catch (_) {
-            return (m, null);
-          }
-        }),
-      );
-      for (final (m, d) in results) {
-        if (d == null) continue;
-        final matches = (d.tags)
+
+      // Rows that already carry their tags get ranked straight off the listing.
+      // This used to open one detail request per candidate, which is eight
+      // requests through a WebView queue that runs them one at a time - and the
+      // detail the user actually navigated to competes for the same queue, so
+      // it could sit behind all eight. On MangaBall this path costs nothing.
+      final tagged = <Manga>[];
+      final untagged = <Manga>[];
+      for (final m in candidates) {
+        (m.tags.isEmpty ? untagged : tagged).add(m);
+      }
+
+      void score(Manga m, List<String> tags) {
+        final matches = tags
             .map((t) => t.toLowerCase())
             .where(myTags.contains)
             .length;
         if (matches > 0) scored.add((matches, m));
         // Cache tags for suggestions engine.
-        if (d.tags.isNotEmpty) {
-          DatabaseHelper.instance.saveMangaTags(m.id, d.tags);
+        if (tags.isNotEmpty) {
+          DatabaseHelper.instance.saveMangaTags(m.id, tags);
+        }
+      }
+
+      for (final m in tagged) {
+        score(m, m.tags);
+      }
+
+      // Sources that don't tag their listing rows still need the details, one at
+      // a time. The queue is serial anyway, so asking for all of them at once
+      // bought no concurrency - it only meant a navigate-away could not stop the
+      // rest, and they kept the queue busy for as many seconds as there were
+      // candidates.
+      for (final m in untagged) {
+        if (!mounted) return;
+        try {
+          final details = await SourceCache.mangaDetails(
+            sourceId: source.id,
+            mangaId: m.id,
+            fetch: () => source.getMangaDetails(m.id),
+          );
+          if (details == null || details.tags.isEmpty) continue;
+          score(m, details.tags);
+        } catch (_) {
+          // A candidate that fails to load simply does not rank.
         }
       }
 
