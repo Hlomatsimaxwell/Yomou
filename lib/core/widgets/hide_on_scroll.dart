@@ -33,18 +33,32 @@ class _HideOnScrollState extends ConsumerState<HideOnScroll> {
   static const _duration = Duration(milliseconds: 220);
   static const _curve = Curves.easeOut;
 
+  final GlobalKey _headerKey = GlobalKey();
   double _lastPixels = 0;
   bool _hidden = false;
 
   bool _onScroll(ScrollNotification notification) {
     if (notification.metrics.axis != Axis.vertical) return false;
-    final pixels = notification.metrics.pixels;
+    final metrics = notification.metrics;
+    final pixels = metrics.pixels;
     final delta = pixels - _lastPixels;
     _lastPixels = pixels;
 
     if (notification is ScrollUpdateNotification ||
         notification is OverscrollNotification) {
-      if (delta > 1 && pixels > 0 && !_hidden) {
+      // Collapsing grows the viewport by the header height, which shrinks
+      // maxScrollExtent by exactly that much. If `pixels` then exceeds the new
+      // extent the scroll offset gets re-clamped, and the content is displaced
+      // by however much could not be scrolled - a jump the user never asked
+      // for. That clamp cannot fire while at least a header-height of content
+      // remains below the current offset, which is exactly this condition, so
+      // the collapse is provably free here rather than merely usually safe.
+      //
+      // A list shorter than the header therefore never collapses, instead of
+      // teleporting its content on every overscroll at the far end.
+      final headerHeight = _headerKey.currentContext?.size?.height ?? 0;
+      final roomBelow = metrics.maxScrollExtent - pixels;
+      if (delta > 1 && pixels > 0 && !_hidden && roomBelow >= headerHeight) {
         setState(() => _hidden = true);
       } else if (delta < -1 || pixels <= 0) {
         if (_hidden) setState(() => _hidden = false);
@@ -71,6 +85,7 @@ class _HideOnScrollState extends ConsumerState<HideOnScroll> {
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
             AnimatedSize(
+              key: _headerKey,
               duration: _duration,
               curve: _curve,
               alignment: Alignment.topCenter,

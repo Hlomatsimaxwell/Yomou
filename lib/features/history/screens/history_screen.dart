@@ -1008,48 +1008,54 @@ class _HistoryScreenState extends ConsumerState<HistoryScreen> {
       },
       child: Scaffold(
         backgroundColor: Theme.of(context).scaffoldBackgroundColor,
+        // Same shape as the Suggestions screen: RefreshIndicator wraps
+        // HideOnScroll, the search bar is the collapsible header, and the
+        // filter chips scroll away with the list. HideOnScroll only collapses
+        // while a header-height of content remains below, so a history shorter
+        // than the header stays put instead of displacing its content.
         body: SafeArea(
-          child: HideOnScroll(
-            header: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                const SizedBox(height: 8),
-                if (_isSelecting) _buildSelectionBar(context) else _buildSearchBar(),
-              ],
-            ),
-            body: RefreshIndicator(
-              onRefresh: _refreshHistory,
-              color: Theme.of(context).colorScheme.primary,
-              backgroundColor: Theme.of(context).scaffoldBackgroundColor,
-              child: SingleChildScrollView(
-                physics: const AlwaysScrollableScrollPhysics(),
-                padding: EdgeInsets.only(bottom: bottomBarClearance(context)),
-                child: Column(
+          child: RefreshIndicator(
+            onRefresh: _refreshHistory,
+            color: Theme.of(context).colorScheme.primary,
+            backgroundColor: Theme.of(context).scaffoldBackgroundColor,
+            child: HideOnScroll(
+              header: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
+                  const SizedBox(height: 8),
+                  if (_isSelecting)
+                    _buildSelectionBar(context)
+                  else
+                    _buildSearchBar(),
+                ],
+              ),
+              body: CustomScrollView(
+                physics: const AlwaysScrollableScrollPhysics(),
+                slivers: [
                   if (!_isSelecting && appearance.showQuickFilters) ...[
-                    const SizedBox(height: 12),
-                    _buildFilterChips(),
+                    const SliverToBoxAdapter(child: SizedBox(height: 12)),
+                    SliverToBoxAdapter(child: _buildFilterChips()),
                   ],
-                  const SizedBox(height: 16),
+                  const SliverToBoxAdapter(child: SizedBox(height: 16)),
                   if (filteredList.isEmpty)
-                    EmptyState(
-                      icon: _searchQuery.isNotEmpty
-                          ? RemixIcons.search_line
-                          : RemixIcons.history_line,
-                      title: _searchQuery.isNotEmpty
-                          ? AppLocalizations.of(context).noResultsFound
-                          : AppLocalizations.of(context).historyEmptyTitle,
-                      subtitle: _searchQuery.isNotEmpty
-                          ? null
-                          : AppLocalizations.of(context).historyEmptySubtitle,
+                    SliverToBoxAdapter(
+                      child: EmptyState(
+                        icon: _searchQuery.isNotEmpty
+                            ? RemixIcons.search_line
+                            : RemixIcons.history_line,
+                        title: _searchQuery.isNotEmpty
+                            ? AppLocalizations.of(context).noResultsFound
+                            : AppLocalizations.of(context).historyEmptyTitle,
+                        subtitle: _searchQuery.isNotEmpty
+                            ? null
+                            : AppLocalizations.of(context).historyEmptySubtitle,
+                      ),
                     )
                   else if (_isGrouped)
-                    ...groupedHistory.entries.map((entry) {
-                      return Column(
-                        crossAxisAlignment: CrossAxisAlignment.start,
-                        children: [
-                          Padding(
+                    ...groupedHistory.entries.expand(
+                      (entry) => [
+                        SliverToBoxAdapter(
+                          child: Padding(
                             padding: const EdgeInsets.symmetric(
                               horizontal: 16,
                               vertical: 8,
@@ -1067,21 +1073,23 @@ class _HistoryScreenState extends ConsumerState<HistoryScreen> {
                               ),
                             ),
                           ),
-                          _buildHistoryLayout(context, entry.value),
-                          const SizedBox(height: 12),
-                        ],
-                      );
-                    })
+                        ),
+                        _buildHistorySliver(context, entry.value),
+                        const SliverToBoxAdapter(child: SizedBox(height: 12)),
+                      ],
+                    )
                   else
-                    _buildHistoryLayout(context, filteredList),
+                    _buildHistorySliver(context, filteredList),
+                  SliverToBoxAdapter(
+                    child: SizedBox(height: bottomBarClearance(context)),
+                  ),
                 ],
               ),
             ),
           ),
         ),
-        ),
       ),
-    );
+  );
   }
 
   Widget _buildSearchBar() {
@@ -1458,67 +1466,55 @@ class _HistoryScreenState extends ConsumerState<HistoryScreen> {
     );
   }
 
-  Widget _buildHistoryLayout(
+  /// Sliver counterpart of the three list modes, so the scroll view builds only
+  /// the rows on screen instead of the entire history up front.
+  ///
+  /// The horizontal padding and grid delegate match the old nested
+  /// `Padding` + `GridView`, so cell sizes are unchanged; `CustomScrollView`
+  /// takes no `padding`, hence the trailing sliver for the bottom clearance.
+  Widget _buildHistorySliver(
     BuildContext context,
     List<Map<String, dynamic>> items,
   ) {
     if (_listMode == 'Compact') {
-      return _buildCompactList(context, items);
+      // Odd indices are the 1px separators between cards, matching the
+      // `ListView.separated` this replaces.
+      return SliverPadding(
+        padding: const EdgeInsets.symmetric(horizontal: 16),
+        sliver: SliverList(
+          delegate: SliverChildBuilderDelegate(
+            (context, index) {
+              if (index.isOdd) return const SizedBox(height: 1);
+              final item = items[index ~/ 2];
+              return CompactHistoryCard(
+                item: item,
+                onTap: () => _navigateToDetail(context, item),
+              );
+            },
+            childCount: items.isEmpty ? 0 : items.length * 2 - 1,
+          ),
+        ),
+      );
     } else if (_listMode == 'Details') {
-      return _buildDetailsList(context, items);
-    } else {
-      return _buildGridSection(context, items);
+      return SliverPadding(
+        padding: const EdgeInsets.symmetric(horizontal: 16),
+        sliver: SliverList(
+          delegate: SliverChildBuilderDelegate(
+            (context, index) {
+              final item = items[index];
+              return DetailedHistoryCard(
+                item: item,
+                onTap: () => _navigateToDetail(context, item),
+              );
+            },
+            childCount: items.length,
+          ),
+        ),
+      );
     }
-  }
-
-  Widget _buildCompactList(
-    BuildContext context,
-    List<Map<String, dynamic>> items,
-  ) {
-    return ListView.separated(
-      shrinkWrap: true,
-      physics: const NeverScrollableScrollPhysics(),
+    return SliverPadding(
       padding: const EdgeInsets.symmetric(horizontal: 16),
-      itemCount: items.length,
-      separatorBuilder: (context, index) => const SizedBox(height: 1),
-      itemBuilder: (context, index) {
-        final item = items[index];
-        return CompactHistoryCard(
-          item: item,
-          onTap: () => _navigateToDetail(context, item),
-        );
-      },
-    );
-  }
-
-  Widget _buildDetailsList(
-    BuildContext context,
-    List<Map<String, dynamic>> items,
-  ) {
-    return ListView.builder(
-      shrinkWrap: true,
-      physics: const NeverScrollableScrollPhysics(),
-      padding: const EdgeInsets.symmetric(horizontal: 16),
-      itemCount: items.length,
-      itemBuilder: (context, index) {
-        final item = items[index];
-        return DetailedHistoryCard(
-          item: item,
-          onTap: () => _navigateToDetail(context, item),
-        );
-      },
-    );
-  }
-
-  Widget _buildGridSection(
-    BuildContext context,
-    List<Map<String, dynamic>> items,
-  ) {
-    return Padding(
-      padding: const EdgeInsets.symmetric(horizontal: 16),
-      child: GridView.builder(
-        shrinkWrap: true,
-        physics: const NeverScrollableScrollPhysics(),
+      sliver: SliverGrid(
         gridDelegate: SliverGridDelegateWithFixedCrossAxisCount(
           crossAxisCount: _gridSize.toInt(),
           childAspectRatio: mangaCellAspectRatio(
@@ -1529,17 +1525,19 @@ class _HistoryScreenState extends ConsumerState<HistoryScreen> {
           crossAxisSpacing: kMangaGridCrossSpacing,
           mainAxisSpacing: kMangaGridRowSpacing,
         ),
-        itemCount: items.length,
-        itemBuilder: (context, index) {
-          final item = items[index];
-          return GridHistoryCard(
-            item: item,
-            gridSize: _gridSize,
-            isSelected: _selectedMangaIds.contains(item['mangaId']),
-            onTap: () => _handleGridCardTap(context, item),
-            onLongPress: () => _enterSelection(item['mangaId'] as String),
-          );
-        },
+        delegate: SliverChildBuilderDelegate(
+          (context, index) {
+            final item = items[index];
+            return GridHistoryCard(
+              item: item,
+              gridSize: _gridSize,
+              isSelected: _selectedMangaIds.contains(item['mangaId']),
+              onTap: () => _handleGridCardTap(context, item),
+              onLongPress: () => _enterSelection(item['mangaId'] as String),
+            );
+          },
+          childCount: items.length,
+        ),
       ),
     );
   }
@@ -1588,23 +1586,33 @@ class _GridHistoryCardState extends State<GridHistoryCard> {
               children: [
                 ClipRRect(
                   borderRadius: BorderRadius.circular(14),
-                  child: Container(
-                    decoration: BoxDecoration(
-                      borderRadius: BorderRadius.circular(14),
-                      border: dark ? null : Border.all(color: Colors.black12),
-                    ),
-                    child: CachedMangaImage(
-                      imageUrl: widget.item['coverUrl'],
-                      width: double.infinity,
-                      height: double.infinity,
-                      fit: BoxFit.cover,
-                      errorWidget: (context, url, error) => Container(
-                        color: const Color(0xFF2C2C2E),
-                        alignment: Alignment.center,
-                        child: const Icon(
-                          RemixIcons.book_open_line,
-                          color: Colors.white38,
-                          size: 20,
+                  child: LayoutBuilder(
+                    builder: (context, constraints) => Container(
+                      decoration: BoxDecoration(
+                        borderRadius: BorderRadius.circular(14),
+                        border: dark ? null : Border.all(color: Colors.black12),
+                      ),
+                      child: CachedMangaImage(
+                        imageUrl: widget.item['coverUrl'],
+                        // Read the tile's real size instead of asking for
+                        // infinity. Infinity is the one width the decode cap
+                        // refuses, which left this the only history mode
+                        // decoding covers at full source resolution - around
+                        // 18MB each, and every tile at once because the grid is
+                        // shrink-wrapped rather than lazy. The delegate already
+                        // hands this tile a tight width, so there is nothing to
+                        // guess.
+                        width: constraints.maxWidth,
+                        height: constraints.maxHeight,
+                        fit: BoxFit.cover,
+                        errorWidget: (context, url, error) => Container(
+                          color: const Color(0xFF2C2C2E),
+                          alignment: Alignment.center,
+                          child: const Icon(
+                            RemixIcons.book_open_line,
+                            color: Colors.white38,
+                            size: 20,
+                          ),
                         ),
                       ),
                     ),
