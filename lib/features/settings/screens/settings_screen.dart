@@ -8,6 +8,7 @@ import 'package:yomou/features/settings/screens/manga_sources_settings_screen.da
 import 'package:yomou/features/settings/screens/backup_restore_screen.dart';
 import 'package:yomou/features/settings/screens/notification_settings_screen.dart';
 import 'package:yomou/features/settings/screens/storage_settings_screen.dart';
+import 'package:yomou/features/settings/screens/downloads_settings_screen.dart';
 import 'package:yomou/data/providers/sources_provider.dart';
 import 'package:yomou/widgets/m3_components.dart';
 
@@ -81,7 +82,14 @@ class SettingsScreen extends ConsumerWidget {
             icon: RemixIcons.download_line,
             title: l.settingsDownloads,
             subtitle: l.settingsDownloadsSubtitle,
-            onTap: () {},
+            onTap: () {
+              Navigator.push(
+                context,
+                MaterialPageRoute(
+                  builder: (context) => const DownloadsSettingsScreen(),
+                ),
+              );
+            },
           ),
           _buildSettingTile(
             context: context,

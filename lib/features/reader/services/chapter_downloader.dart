@@ -1,25 +1,23 @@
 import 'dart:io';
 import 'package:http/http.dart' as http;
 import 'package:path/path.dart' as p;
-import 'package:path_provider/path_provider.dart';
 import 'package:yomou/data/sources/mf_scramble.dart';
 import 'package:yomou/data/sources/source_network.dart';
+import 'package:yomou/features/settings/providers/download_settings_provider.dart';
 
 /// Downloads chapter image pages to local storage so they can be read
 /// offline ("cached chapters").
 ///
-/// Layout: `<appSupport>/chapters/<mangaId>/<chapterId>/page_<N>.<ext>`
+/// Layout: `<downloadsFolder>/<mangaId>/<chapterId>/page_<N>.<ext>`, where
+/// `downloadsFolder` is the one picked in Settings > Downloads (by default the
+/// app's private support directory).
 class ChapterDownloader {
-  static Directory? _root;
-
   static Future<Directory> _chaptersRoot() async {
-    if (_root != null) return _root!;
-    final base = await getApplicationSupportDirectory();
-    final dir = Directory(p.join(base.path, 'chapters'));
+    final dir = await DownloadSettings.chaptersRoot();
     if (!await dir.exists()) {
       await dir.create(recursive: true);
     }
-    return _root = dir;
+    return dir;
   }
 
   static Future<Directory> chapterDir(String mangaId, String chapterId) async {

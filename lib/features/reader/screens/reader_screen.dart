@@ -15,6 +15,7 @@ import 'package:shared_preferences/shared_preferences.dart';
 import 'package:yomou/widgets/safe_image.dart';
 import 'package:yomou/core/cache/app_cache.dart';
 import 'package:yomou/core/diagnostics/diag_log.dart';
+import 'package:yomou/core/storage/storage_stats.dart';
 import '../../../core/database/database_helper.dart';
 import '../../../core/database/source_cache.dart';
 import '../../../core/widgets/ios/ios_sheet.dart';
@@ -24,6 +25,7 @@ import 'package:yomou/data/models/manga_source.dart';
 import 'package:yomou/features/history/providers/history_provider.dart';
 import 'package:yomou/features/library/providers/downloads_provider.dart';
 import 'package:yomou/features/settings/providers/cache_settings_provider.dart';
+import 'package:yomou/features/settings/providers/download_settings_provider.dart';
 import 'package:yomou/features/settings/providers/appearance_provider.dart';
 import 'package:yomou/core/widgets/empty_state.dart';
 import 'package:yomou/features/settings/screens/settings_screen.dart';
@@ -641,9 +643,31 @@ class _ReaderScreenState extends ConsumerState<ReaderScreen>
 
       Directory directory;
       try {
-        directory =
-            await getDownloadsDirectory() ??
-            await getApplicationDocumentsDirectory();
+        // Honors the folder picked in Settings > Downloads; while nothing is
+        // chosen (or the location can't be resolved) keep saving to the
+        // shared downloads folder.
+        final picked = await resolveDownloadLocationPath(
+          ref.read(downloadSettingsProvider).defaultPageSaveDir,
+        );
+        if (picked != null && picked.isNotEmpty) {
+          final dir = Directory(picked);
+          if (!await dir.exists()) {
+            await dir.create(recursive: true);
+          }
+          directory = dir;
+        } else {
+          // Nothing chosen yet: prefer the shared Download folder, but only
+          // when we can actually write there (scoped storage rejects it on
+          // API 29+ without a legacy-storage grant).
+          final shared = await getPublicDownloadsPath();
+          if (shared != null && await isDirWritable(shared)) {
+            directory = Directory(shared);
+          } else {
+            directory =
+                await getDownloadsDirectory() ??
+                await getApplicationDocumentsDirectory();
+          }
+        }
       } catch (_) {
         directory = await getApplicationDocumentsDirectory();
       }

@@ -12,3 +12,16 @@ Future<String?> pickBackupDirectory() async {
     return null;
   }
 }
+
+/// Resolves a tree URI returned by [pickBackupDirectory] into a real
+/// file-system path (e.g. `/storage/emulated/0/Download`) so settings can
+/// display the folder the user picked instead of a raw `content://…` URI.
+/// Returns null when the volume can't be matched (e.g. an unmounted SD card).
+Future<String?> resolveTreeUri(String uri) async {
+  if (uri.isEmpty) return null;
+  try {
+    return await _channel.invokeMethod<String>('resolveTreeUri', uri);
+  } catch (_) {
+    return null;
+  }
+}

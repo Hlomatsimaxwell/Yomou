@@ -464,6 +464,222 @@ abstract class AppLocalizations {
   /// **'Downloads folder, Download only via Wi-Fi'**
   String get settingsDownloadsSubtitle;
 
+  /// No description provided for @dlsDirsTitle.
+  ///
+  /// In en, this message translates to:
+  /// **'Local manga directories'**
+  String get dlsDirsTitle;
+
+  /// No description provided for @dlsDirsCount.
+  ///
+  /// In en, this message translates to:
+  /// **'{count} items'**
+  String dlsDirsCount(int count);
+
+  /// No description provided for @dlsFolderTitle.
+  ///
+  /// In en, this message translates to:
+  /// **'Downloads folder'**
+  String get dlsFolderTitle;
+
+  /// No description provided for @dlsFolderChapters.
+  ///
+  /// In en, this message translates to:
+  /// **'Chapter downloads'**
+  String get dlsFolderChapters;
+
+  /// No description provided for @dlsFolderPublic.
+  ///
+  /// In en, this message translates to:
+  /// **'Public downloads'**
+  String get dlsFolderPublic;
+
+  /// No description provided for @dlsFolderDocuments.
+  ///
+  /// In en, this message translates to:
+  /// **'App documents'**
+  String get dlsFolderDocuments;
+
+  /// No description provided for @dlsFolderCustom.
+  ///
+  /// In en, this message translates to:
+  /// **'Custom: {name}'**
+  String dlsFolderCustom(String name);
+
+  /// No description provided for @dlsNotSet.
+  ///
+  /// In en, this message translates to:
+  /// **'Not set'**
+  String get dlsNotSet;
+
+  /// No description provided for @dlsFormatTitle.
+  ///
+  /// In en, this message translates to:
+  /// **'Preferred download format'**
+  String get dlsFormatTitle;
+
+  /// No description provided for @dlsFormatAuto.
+  ///
+  /// In en, this message translates to:
+  /// **'Automatic'**
+  String get dlsFormatAuto;
+
+  /// No description provided for @dlsFormatCbz.
+  ///
+  /// In en, this message translates to:
+  /// **'Single CBZ file'**
+  String get dlsFormatCbz;
+
+  /// No description provided for @dlsFormatCbzs.
+  ///
+  /// In en, this message translates to:
+  /// **'Multiple CBZ files'**
+  String get dlsFormatCbzs;
+
+  /// No description provided for @dlsNetworkTitle.
+  ///
+  /// In en, this message translates to:
+  /// **'Downloading over cellular network'**
+  String get dlsNetworkTitle;
+
+  /// No description provided for @dlsNetworkAllow.
+  ///
+  /// In en, this message translates to:
+  /// **'Allow always'**
+  String get dlsNetworkAllow;
+
+  /// No description provided for @dlsNetworkAsk.
+  ///
+  /// In en, this message translates to:
+  /// **'Ask every time'**
+  String get dlsNetworkAsk;
+
+  /// No description provided for @dlsNetworkDeny.
+  ///
+  /// In en, this message translates to:
+  /// **'Don\'t allow'**
+  String get dlsNetworkDeny;
+
+  /// No description provided for @dlsInfoBody.
+  ///
+  /// In en, this message translates to:
+  /// **'Downloaded chapters and saved pages stay on this device so you can read them offline. Everything stored here is removed when you uninstall Yomou.'**
+  String get dlsInfoBody;
+
+  /// No description provided for @dlsSectionSaving.
+  ///
+  /// In en, this message translates to:
+  /// **'Saving pages'**
+  String get dlsSectionSaving;
+
+  /// No description provided for @dlsSaveDirTitle.
+  ///
+  /// In en, this message translates to:
+  /// **'Default page save directory'**
+  String get dlsSaveDirTitle;
+
+  /// No description provided for @dlsAskDirTitle.
+  ///
+  /// In en, this message translates to:
+  /// **'Ask for the destination dir every time'**
+  String get dlsAskDirTitle;
+
+  /// No description provided for @dlsAskDirSubtitle.
+  ///
+  /// In en, this message translates to:
+  /// **'Choose where each download is saved before it starts'**
+  String get dlsAskDirSubtitle;
+
+  /// No description provided for @dlsChaptersName.
+  ///
+  /// In en, this message translates to:
+  /// **'Chapter downloads'**
+  String get dlsChaptersName;
+
+  /// No description provided for @dlsPublicName.
+  ///
+  /// In en, this message translates to:
+  /// **'Public downloads'**
+  String get dlsPublicName;
+
+  /// No description provided for @dlsDocumentsName.
+  ///
+  /// In en, this message translates to:
+  /// **'App documents'**
+  String get dlsDocumentsName;
+
+  /// No description provided for @dlsCustomName.
+  ///
+  /// In en, this message translates to:
+  /// **'Custom folder {n}'**
+  String dlsCustomName(int n);
+
+  /// No description provided for @dlsAddSheetTitle.
+  ///
+  /// In en, this message translates to:
+  /// **'Add download directory'**
+  String get dlsAddSheetTitle;
+
+  /// No description provided for @dlsAddCustom.
+  ///
+  /// In en, this message translates to:
+  /// **'Pick custom folder'**
+  String get dlsAddCustom;
+
+  /// No description provided for @dlsAddCustomSubtitle.
+  ///
+  /// In en, this message translates to:
+  /// **'Choose an existing folder on this device'**
+  String get dlsAddCustomSubtitle;
+
+  /// No description provided for @dlsAdd.
+  ///
+  /// In en, this message translates to:
+  /// **'Add'**
+  String get dlsAdd;
+
+  /// No description provided for @dlsDefaultMarker.
+  ///
+  /// In en, this message translates to:
+  /// **'Default directory'**
+  String get dlsDefaultMarker;
+
+  /// No description provided for @dlsDefaultSet.
+  ///
+  /// In en, this message translates to:
+  /// **'Default directory updated'**
+  String get dlsDefaultSet;
+
+  /// No description provided for @dlsDirAdded.
+  ///
+  /// In en, this message translates to:
+  /// **'{name} added'**
+  String dlsDirAdded(String name);
+
+  /// No description provided for @dlsWarning.
+  ///
+  /// In en, this message translates to:
+  /// **'Uninstalling Yomou deletes all downloaded chapters and saved pages. Back up anything you want to keep.'**
+  String get dlsWarning;
+
+  /// No description provided for @dlsAvailable.
+  ///
+  /// In en, this message translates to:
+  /// **'{size} available'**
+  String dlsAvailable(String size);
+
+  /// No description provided for @dlsNoStats.
+  ///
+  /// In en, this message translates to:
+  /// **'Not available for this location'**
+  String get dlsNoStats;
+
+  /// No description provided for @dlsNoWritePermission.
+  ///
+  /// In en, this message translates to:
+  /// **'Yomou can\'t write to this folder'**
+  String get dlsNoWritePermission;
+
   /// No description provided for @settingsNewChapters.
   ///
   /// In en, this message translates to:

@@ -200,6 +200,127 @@ class AppLocalizationsEn extends AppLocalizations {
       'Downloads folder, Download only via Wi-Fi';
 
   @override
+  String get dlsDirsTitle => 'Local manga directories';
+
+  @override
+  String dlsDirsCount(int count) {
+    return '$count items';
+  }
+
+  @override
+  String get dlsFolderTitle => 'Downloads folder';
+
+  @override
+  String get dlsFolderChapters => 'Chapter downloads';
+
+  @override
+  String get dlsFolderPublic => 'Public downloads';
+
+  @override
+  String get dlsFolderDocuments => 'App documents';
+
+  @override
+  String dlsFolderCustom(String name) {
+    return 'Custom: $name';
+  }
+
+  @override
+  String get dlsNotSet => 'Not set';
+
+  @override
+  String get dlsFormatTitle => 'Preferred download format';
+
+  @override
+  String get dlsFormatAuto => 'Automatic';
+
+  @override
+  String get dlsFormatCbz => 'Single CBZ file';
+
+  @override
+  String get dlsFormatCbzs => 'Multiple CBZ files';
+
+  @override
+  String get dlsNetworkTitle => 'Downloading over cellular network';
+
+  @override
+  String get dlsNetworkAllow => 'Allow always';
+
+  @override
+  String get dlsNetworkAsk => 'Ask every time';
+
+  @override
+  String get dlsNetworkDeny => 'Don\'t allow';
+
+  @override
+  String get dlsInfoBody =>
+      'Downloaded chapters and saved pages stay on this device so you can read them offline. Everything stored here is removed when you uninstall Yomou.';
+
+  @override
+  String get dlsSectionSaving => 'Saving pages';
+
+  @override
+  String get dlsSaveDirTitle => 'Default page save directory';
+
+  @override
+  String get dlsAskDirTitle => 'Ask for the destination dir every time';
+
+  @override
+  String get dlsAskDirSubtitle =>
+      'Choose where each download is saved before it starts';
+
+  @override
+  String get dlsChaptersName => 'Chapter downloads';
+
+  @override
+  String get dlsPublicName => 'Public downloads';
+
+  @override
+  String get dlsDocumentsName => 'App documents';
+
+  @override
+  String dlsCustomName(int n) {
+    return 'Custom folder $n';
+  }
+
+  @override
+  String get dlsAddSheetTitle => 'Add download directory';
+
+  @override
+  String get dlsAddCustom => 'Pick custom folder';
+
+  @override
+  String get dlsAddCustomSubtitle => 'Choose an existing folder on this device';
+
+  @override
+  String get dlsAdd => 'Add';
+
+  @override
+  String get dlsDefaultMarker => 'Default directory';
+
+  @override
+  String get dlsDefaultSet => 'Default directory updated';
+
+  @override
+  String dlsDirAdded(String name) {
+    return '$name added';
+  }
+
+  @override
+  String get dlsWarning =>
+      'Uninstalling Yomou deletes all downloaded chapters and saved pages. Back up anything you want to keep.';
+
+  @override
+  String dlsAvailable(String size) {
+    return '$size available';
+  }
+
+  @override
+  String get dlsNoStats => 'Not available for this location';
+
+  @override
+  String get dlsNoWritePermission => 'Yomou can\'t write to this folder';
+
+  @override
   String get settingsNewChapters => 'Check for new chapters';
 
   @override

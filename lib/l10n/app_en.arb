@@ -73,6 +73,77 @@
   "settingsStorageSubtitle": "Storage usage, Proxy, Content preloading",
   "settingsDownloads": "Downloads",
   "settingsDownloadsSubtitle": "Downloads folder, Download only via Wi-Fi",
+  "dlsDirsTitle": "Local manga directories",
+  "dlsDirsCount": "{count} items",
+  "@dlsDirsCount": {
+    "placeholders": {
+      "count": {
+        "type": "int"
+      }
+    }
+  },
+  "dlsFolderTitle": "Downloads folder",
+  "dlsFolderChapters": "Chapter downloads",
+  "dlsFolderPublic": "Public downloads",
+  "dlsFolderDocuments": "App documents",
+  "dlsFolderCustom": "Custom: {name}",
+  "@dlsFolderCustom": {
+    "placeholders": {
+      "name": {
+        "type": "String"
+      }
+    }
+  },
+  "dlsNotSet": "Not set",
+  "dlsFormatTitle": "Preferred download format",
+  "dlsFormatAuto": "Automatic",
+  "dlsFormatCbz": "Single CBZ file",
+  "dlsFormatCbzs": "Multiple CBZ files",
+  "dlsNetworkTitle": "Downloading over cellular network",
+  "dlsNetworkAllow": "Allow always",
+  "dlsNetworkAsk": "Ask every time",
+  "dlsNetworkDeny": "Don't allow",
+  "dlsInfoBody": "Downloaded chapters and saved pages stay on this device so you can read them offline. Everything stored here is removed when you uninstall Yomou.",
+  "dlsSectionSaving": "Saving pages",
+  "dlsSaveDirTitle": "Default page save directory",
+  "dlsAskDirTitle": "Ask for the destination dir every time",
+  "dlsAskDirSubtitle": "Choose where each download is saved before it starts",
+  "dlsChaptersName": "Chapter downloads",
+  "dlsPublicName": "Public downloads",
+  "dlsDocumentsName": "App documents",
+  "dlsCustomName": "Custom folder {n}",
+  "@dlsCustomName": {
+    "placeholders": {
+      "n": {
+        "type": "int"
+      }
+    }
+  },
+  "dlsAddSheetTitle": "Add download directory",
+  "dlsAddCustom": "Pick custom folder",
+  "dlsAddCustomSubtitle": "Choose an existing folder on this device",
+  "dlsAdd": "Add",
+  "dlsDefaultMarker": "Default directory",
+  "dlsDefaultSet": "Default directory updated",
+  "dlsDirAdded": "{name} added",
+  "@dlsDirAdded": {
+    "placeholders": {
+      "name": {
+        "type": "String"
+      }
+    }
+  },
+  "dlsWarning": "Uninstalling Yomou deletes all downloaded chapters and saved pages. Back up anything you want to keep.",
+  "dlsAvailable": "{size} available",
+  "@dlsAvailable": {
+    "placeholders": {
+      "size": {
+        "type": "String"
+      }
+    }
+  },
+  "dlsNoStats": "Not available for this location",
+  "dlsNoWritePermission": "Yomou can't write to this folder",
   "settingsNewChapters": "Check for new chapters",
   "settingsNewChaptersSubtitle": "Look for updates, Notifications settings",
   "settingsServices": "Services",

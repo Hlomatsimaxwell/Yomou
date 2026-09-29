@@ -58,9 +58,11 @@ class _PeriodicBackupsScreenState extends ConsumerState<PeriodicBackupsScreen> {
           const SizedBox(height: 8),
           _OutputDirectorySection(
             title: l.backupsOutputDirectory,
+            // Resolve the tree URI to a real path for display; fall back to
+            // "not set" rather than showing a raw `content://…` string.
             path: settings.backupsOutputDirectory.isEmpty
                 ? l.backupsOutputDirectoryNone
-                : settings.backupsOutputDirectory,
+                : _ResolvedBackupPath(uri: settings.backupsOutputDirectory),
             onTap: () async {
               final uri = await pickBackupDirectory();
               if (uri == null || !mounted) return;
@@ -195,7 +197,10 @@ class _ToggleCard extends ConsumerWidget {
 
 class _OutputDirectorySection extends StatelessWidget {
   final String title;
-  final String path;
+
+  /// Subtitle content — a plain string, or a widget that resolves a SAF tree
+  /// URI into a real path once mounted.
+  final Object path;
   final VoidCallback onTap;
 
   const _OutputDirectorySection({
@@ -224,16 +229,48 @@ class _OutputDirectorySection extends StatelessWidget {
               ),
             ),
             const SizedBox(height: 2),
-            Text(
-              path,
-              style: TextStyle(
-                fontSize: 12,
-                color: color.onSurfaceVariant,
-              ),
-            ),
+            if (path is String)
+              Text(
+                path as String,
+                style: TextStyle(
+                  fontSize: 12,
+                  color: color.onSurfaceVariant,
+                ),
+              )
+            else
+              path as Widget,
           ],
         ),
       ),
+    );
+  }
+}
+
+/// Resolves a SAF tree URI into a real path for display, so the row shows the
+/// folder the user picked instead of a raw `content://…` string. Falls back to
+/// "Not set" when the volume can't be matched.
+class _ResolvedBackupPath extends StatelessWidget {
+  const _ResolvedBackupPath({required this.uri});
+
+  final String uri;
+
+  @override
+  Widget build(BuildContext context) {
+    final color = Theme.of(context).colorScheme;
+    return FutureBuilder<String?>(
+      future: resolveTreeUri(uri),
+      builder: (context, snapshot) {
+        final resolved = snapshot.data;
+        final text = snapshot.connectionState == ConnectionState.done
+            ? (resolved == null || resolved.isEmpty
+                  ? AppLocalizations.of(context).dlsNotSet
+                  : resolved)
+            : '';
+        return Text(
+          text,
+          style: TextStyle(fontSize: 12, color: color.onSurfaceVariant),
+        );
+      },
     );
   }
 }
