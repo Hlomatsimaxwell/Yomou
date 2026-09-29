@@ -36,6 +36,12 @@
     "dlsAvailable",
     "dlsNoStats",
     "dlsNoWritePermission",
+    "dlsCellularConfirmTitle",
+    "dlsCellularConfirmBody",
+    "dlsCellularAllowOnce",
+    "dlsCellularAllowAlways",
+    "dlsCellularDontAllow",
+    "dlsCellularBlocked",
     "discoverPick"
   ]
 }

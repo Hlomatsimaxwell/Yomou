@@ -32,6 +32,20 @@ Future<StorageStats?> getStorageStats(String path) async {
   }
 }
 
+/// Whether the active network is metered (mobile data).
+///
+/// Used by the "Downloading over cellular network" setting so its
+/// "Ask every time" mode only ever interrupts the user on mobile data.
+/// Returns false when the state can't be determined, which keeps the
+/// conservative "don't prompt" behaviour.
+Future<bool> isActiveNetworkMetered() async {
+  try {
+    return await _channel.invokeMethod<bool>('isMetered') ?? false;
+  } catch (_) {
+    return false;
+  }
+}
+
 /// The real shared Downloads folder (e.g. `/storage/emulated/0/Download`).
 ///
 /// Deliberately not `path_provider`'s `getDownloadsDirectory()`: without legacy

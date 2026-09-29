@@ -1,7 +1,10 @@
 package com.stunna.manga_reader
 
 import android.app.Activity
+import android.content.Context
 import android.content.Intent
+import android.net.ConnectivityManager
+import android.net.NetworkCapabilities
 import android.net.Uri
 import android.os.Environment
 import android.os.StatFs
@@ -116,6 +119,21 @@ class MainActivity : FlutterActivity() {
                         Environment.getExternalStoragePublicDirectory(
                             Environment.DIRECTORY_DOWNLOADS
                         )?.absolutePath
+                    )
+                }
+                // Whether the active network is metered (mobile data), so the
+                // "ask about cellular downloads" setting only interrupts the
+                // user on mobile data and never on Wi-Fi.
+                "isMetered" -> {
+                    val cm = getSystemService(Context.CONNECTIVITY_SERVICE)
+                        as? ConnectivityManager
+                    result.success(
+                        cm?.activeNetwork?.let {
+                            cm.getNetworkCapabilities(it)
+                                ?.hasCapability(
+                                    NetworkCapabilities.NET_CAPABILITY_NOT_METERED
+                                ) == false
+                        } ?: false
                     )
                 }
                 else -> result.notImplemented()

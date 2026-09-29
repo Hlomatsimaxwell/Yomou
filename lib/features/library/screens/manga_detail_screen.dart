@@ -15,6 +15,7 @@ import 'package:yomou/features/library/screens/related_manga_screen.dart';
 import 'package:yomou/features/library/screens/edit_manga_screen.dart';
 import 'package:yomou/features/library/screens/alternatives_screen.dart';
 import 'package:yomou/features/reader/screens/reader_screen.dart';
+import 'package:yomou/features/downloads/services/metered_network_gate.dart';
 import 'package:yomou/features/reader/services/chapter_downloader.dart';
 import 'package:yomou/data/models/chapter.dart';
 import 'package:yomou/data/models/manga.dart';
@@ -1353,6 +1354,20 @@ class _MangaDetailScreenState extends ConsumerState<MangaDetailScreen> {
   Future<void> _downloadChapters(List<Chapter> chapters) async {
     final source = _source;
     if (source == null) return;
+
+    // Honours the "Downloading over cellular network" setting, prompting on
+    // mobile data when it's set to "Ask every time".
+    final metered = await askAboutMeteredDownload(context, ref);
+    if (!mounted) return;
+    if (metered == null || !metered.allowed) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Text(AppLocalizations.of(context).dlsCellularBlocked),
+        ),
+      );
+      return;
+    }
+
     var success = 0;
     for (final ch in chapters) {
       try {

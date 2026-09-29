@@ -6,9 +6,11 @@ import 'package:yomou/core/database/database_helper.dart';
 import 'package:yomou/core/notifications/notification_service.dart';
 import 'package:yomou/core/notifications/notification_settings.dart';
 import 'package:yomou/core/notifications/update_checker.dart';
+import 'package:yomou/core/storage/storage_stats.dart';
 import 'package:yomou/data/models/manga.dart';
 import 'package:yomou/data/providers/sources_provider.dart';
 import 'package:yomou/features/reader/services/chapter_downloader.dart';
+import 'package:yomou/features/settings/providers/download_settings_provider.dart';
 
 /// Reverse-DNS identifier submitted to iOS BGTaskScheduler. Must match the
 /// `BGTaskSchedulerPermittedIdentifiers` entry in Info.plist and the AppDelegate
@@ -248,6 +250,17 @@ Future<void> _autoDownloadNewChapters(List<LibraryStatus> statuses) async {
     return;
   }
   if (targetIds.isEmpty) return;
+
+  // Background work can't show the cellular prompt, so "Ask every time" is
+  // treated as "don't" on mobile data — spending data without consent is the
+  // one outcome that must never happen silently.
+  try {
+    final policy = (await loadDownloadSettings()).cellularNetwork;
+    if (policy == kNetworkDeny) return;
+    if (policy == kNetworkAsk && await isActiveNetworkMetered()) return;
+  } catch (_) {
+    // Can't determine the network state — fall through to the preference.
+  }
 
   const seriesBudget = 2;
   const chaptersPerSeries = 3;

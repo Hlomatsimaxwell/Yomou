@@ -16,6 +16,7 @@ import 'package:yomou/widgets/safe_image.dart';
 import 'package:yomou/core/cache/app_cache.dart';
 import 'package:yomou/core/diagnostics/diag_log.dart';
 import 'package:yomou/core/storage/storage_stats.dart';
+import 'package:yomou/features/downloads/services/metered_network_gate.dart';
 import '../../../core/database/database_helper.dart';
 import '../../../core/database/source_cache.dart';
 import '../../../core/widgets/ios/ios_sheet.dart';
@@ -2369,6 +2370,21 @@ class _ReaderScreenState extends ConsumerState<ReaderScreen>
     source ??= ref.read(currentSourceProvider);
     if (source == null) return false;
     final src = source;
+
+    // Honours the "Downloading over cellular network" setting, prompting on
+    // mobile data when it's set to "Ask every time".
+    final metered = await askAboutMeteredDownload(context, ref);
+    if (!mounted) return false;
+    if (metered == null || !metered.allowed) {
+      if (notify) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text(AppLocalizations.of(context).dlsCellularBlocked),
+          ),
+        );
+      }
+      return false;
+    }
 
     final List<String> pages;
     try {

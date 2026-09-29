@@ -680,6 +680,42 @@ abstract class AppLocalizations {
   /// **'Yomou can\'t write to this folder'**
   String get dlsNoWritePermission;
 
+  /// No description provided for @dlsCellularConfirmTitle.
+  ///
+  /// In en, this message translates to:
+  /// **'Allow downloads over cellular network?'**
+  String get dlsCellularConfirmTitle;
+
+  /// No description provided for @dlsCellularConfirmBody.
+  ///
+  /// In en, this message translates to:
+  /// **'You\'re on mobile data. Downloading chapters can use a lot of data.'**
+  String get dlsCellularConfirmBody;
+
+  /// No description provided for @dlsCellularAllowOnce.
+  ///
+  /// In en, this message translates to:
+  /// **'Allow once'**
+  String get dlsCellularAllowOnce;
+
+  /// No description provided for @dlsCellularAllowAlways.
+  ///
+  /// In en, this message translates to:
+  /// **'Allow always'**
+  String get dlsCellularAllowAlways;
+
+  /// No description provided for @dlsCellularDontAllow.
+  ///
+  /// In en, this message translates to:
+  /// **'Don\'t allow'**
+  String get dlsCellularDontAllow;
+
+  /// No description provided for @dlsCellularBlocked.
+  ///
+  /// In en, this message translates to:
+  /// **'Download skipped — mobile data downloads are off'**
+  String get dlsCellularBlocked;
+
   /// No description provided for @settingsNewChapters.
   ///
   /// In en, this message translates to:

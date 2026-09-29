@@ -321,6 +321,27 @@ class AppLocalizationsEn extends AppLocalizations {
   String get dlsNoWritePermission => 'Yomou can\'t write to this folder';
 
   @override
+  String get dlsCellularConfirmTitle =>
+      'Allow downloads over cellular network?';
+
+  @override
+  String get dlsCellularConfirmBody =>
+      'You\'re on mobile data. Downloading chapters can use a lot of data.';
+
+  @override
+  String get dlsCellularAllowOnce => 'Allow once';
+
+  @override
+  String get dlsCellularAllowAlways => 'Allow always';
+
+  @override
+  String get dlsCellularDontAllow => 'Don\'t allow';
+
+  @override
+  String get dlsCellularBlocked =>
+      'Download skipped — mobile data downloads are off';
+
+  @override
   String get settingsNewChapters => 'Check for new chapters';
 
   @override
