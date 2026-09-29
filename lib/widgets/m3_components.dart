@@ -92,9 +92,12 @@ Future<T?> showM3ModalSheet<T>(
 /// Standard settings-screen app bar: themed foreground, transparent
 /// background, large light-weight title and back arrow.
 class SettingsAppBar extends StatelessWidget implements PreferredSizeWidget {
-  const SettingsAppBar({super.key, required this.title});
+  const SettingsAppBar({super.key, required this.title, this.actions});
 
   final String title;
+
+  /// Optional trailing widgets, e.g. an overflow menu button.
+  final List<Widget>? actions;
 
   @override
   Size get preferredSize => const Size.fromHeight(kToolbarHeight);
@@ -110,6 +113,7 @@ class SettingsAppBar extends StatelessWidget implements PreferredSizeWidget {
         title,
         style: const TextStyle(fontSize: 22, fontWeight: FontWeight.w400),
       ),
+      actions: actions,
     );
   }
 }

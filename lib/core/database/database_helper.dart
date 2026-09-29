@@ -24,7 +24,7 @@ class DatabaseHelper {
 
     return await openDatabase(
       path,
-      version: 13,
+      version: 14,
       onCreate: _createDB,
       onUpgrade: _onUpgrade,
     );
@@ -92,6 +92,9 @@ class DatabaseHelper {
     if (oldVersion < 13) {
       await _createReadingTimeTable(db);
     }
+    if (oldVersion < 14) {
+      await _createDownloadJobsTable(db);
+    }
   }
 
   Future _createDB(Database db, int version) async {
@@ -133,6 +136,7 @@ class DatabaseHelper {
     await _createSourceCacheTable(db);
     await _createNotificationLogTable(db);
     await _createReadingTimeTable(db);
+    await _createDownloadJobsTable(db);
   }
 
   // Accumulates measured reading time per manga per calendar day. Feeds the
@@ -146,6 +150,42 @@ class DatabaseHelper {
         PRIMARY KEY (mangaId, day)
       )
     ''');
+  }
+
+  // One row per enqueued download batch, keyed by the WorkManager unique work
+  // name so job state can be reconciled with `getWorkInfo`.
+  //
+  // The chapter page lists live here rather than in the work's `inputData`:
+  // WorkManager caps `Data` at 10KB, which a batch of chapter URLs blows
+  // through. `inputData` only carries the jobId.
+  Future _createDownloadJobsTable(Database db) async {
+    await db.execute('''
+      CREATE TABLE IF NOT EXISTS download_jobs (
+        jobId TEXT PRIMARY KEY,
+        mangaId TEXT NOT NULL,
+        mangaTitle TEXT,
+        coverUrl TEXT,
+        sourceId TEXT,
+        headers TEXT,
+        chapters TEXT NOT NULL,
+        totalChapters INTEGER NOT NULL DEFAULT 0,
+        totalPages INTEGER NOT NULL DEFAULT 0,
+        doneChapters INTEGER NOT NULL DEFAULT 0,
+        donePages INTEGER NOT NULL DEFAULT 0,
+        status TEXT NOT NULL,
+        error TEXT,
+        createdAt TEXT NOT NULL,
+        updatedAt TEXT NOT NULL
+      )
+    ''');
+    await db.execute(
+      'CREATE INDEX IF NOT EXISTS idx_download_jobs_manga '
+      'ON download_jobs (mangaId)',
+    );
+    await db.execute(
+      'CREATE INDEX IF NOT EXISTS idx_download_jobs_status '
+      'ON download_jobs (status)',
+    );
   }
 
   Future _createNotificationLogTable(Database db) async {
@@ -1016,13 +1056,132 @@ class DatabaseHelper {
     );
   }
 
+  // --- Download jobs -------------------------------------------------------
+
+  /// Creates or replaces a job row. The page lists are serialised into
+  /// [DownloadJob.chapters] because WorkManager's `inputData` caps at 10KB.
+  Future<void> upsertDownloadJob({
+    required String jobId,
+    required String mangaId,
+    required List<Map<String, dynamic>> chapters,
+    required String status,
+    String? mangaTitle,
+    String? coverUrl,
+    String? sourceId,
+    Map<String, String>? headers,
+    int totalPages = 0,
+    int doneChapters = 0,
+    int donePages = 0,
+    String? error,
+  }) async {
+    final db = await instance.database;
+    final now = DateTime.now().toIso8601String();
+    await db.insert('download_jobs', {
+      'jobId': jobId,
+      'mangaId': mangaId,
+      'mangaTitle': mangaTitle,
+      'coverUrl': coverUrl,
+      'sourceId': sourceId,
+      'headers': jsonEncode(headers ?? const <String, String>{}),
+      'chapters': jsonEncode(chapters),
+      'totalChapters': chapters.length,
+      'totalPages': totalPages,
+      'doneChapters': doneChapters,
+      'donePages': donePages,
+      'status': status,
+      'error': error,
+      'createdAt': now,
+      'updatedAt': now,
+    }, conflictAlgorithm: ConflictAlgorithm.replace);
+  }
+
+  Future<Map<String, dynamic>?> getDownloadJobRow(String jobId) async {
+    final db = await instance.database;
+    final rows = await db.query(
+      'download_jobs',
+      where: 'jobId = ?',
+      whereArgs: [jobId],
+      limit: 1,
+    );
+    return rows.isEmpty ? null : rows.first;
+  }
+
+  /// Jobs in the given [statuses], newest first. Pass none to get everything.
+  Future<List<Map<String, dynamic>>> getDownloadJobRows({
+    List<String> statuses = const [],
+  }) async {
+    final db = await instance.database;
+    if (statuses.isEmpty) {
+      return db.query('download_jobs', orderBy: 'createdAt DESC');
+    }
+    final placeholders = List.filled(statuses.length, '?').join(',');
+    return db.query(
+      'download_jobs',
+      where: 'status IN ($placeholders)',
+      whereArgs: statuses,
+      orderBy: 'createdAt DESC',
+    );
+  }
+
+  /// Records worker progress. Only touches the counters when [doneChapters] /
+  /// [donePages] are supplied, so a status-only update can't zero them.
+  Future<void> setDownloadJobProgress(
+    String jobId, {
+    required String status,
+    int? doneChapters,
+    int? donePages,
+    String? error,
+  }) async {
+    final db = await instance.database;
+    final values = <String, Object?>{
+      'status': status,
+      'error': error,
+      'updatedAt': DateTime.now().toIso8601String(),
+    };
+    if (doneChapters != null) values['doneChapters'] = doneChapters;
+    if (donePages != null) values['donePages'] = donePages;
+    await db.update(
+      'download_jobs',
+      values,
+      where: 'jobId = ?',
+      whereArgs: [jobId],
+    );
+  }
+
+  Future<void> deleteDownloadJob(String jobId) async {
+    final db = await instance.database;
+    await db.delete(
+      'download_jobs',
+      where: 'jobId = ?',
+      whereArgs: [jobId],
+    );
+  }
+
+  /// Drops rows for jobs the platform no longer knows about, so a crash or a
+  /// force-stop can't leave the Downloads screen showing phantom work.
+  Future<void> pruneDownloadJobs(Set<String> liveJobIds) async {
+    final db = await instance.database;
+    final rows = await db.query('download_jobs', columns: ['jobId']);
+    final stale = rows
+        .map((r) => r['jobId'].toString())
+        .where((id) => !liveJobIds.contains(id))
+        .toList();
+    for (final id in stale) {
+      await db.delete(
+        'download_jobs',
+        where: 'jobId = ?',
+        whereArgs: [id],
+      );
+    }
+  }
+
   /// All downloaded chapters across every manga, most recently downloaded
   /// first, with the owning manga's title/cover/source joined in.
   Future<List<Map<String, dynamic>>> getAllDownloads() async {
     final db = await instance.database;
     return db.rawQuery('''
       SELECT d.*, m.title AS mangaTitle, m.coverUrl AS mangaCover,
-             m.sourceId AS mangaSource
+             m.sourceId AS mangaSource, m.lastReadChapter AS mangaLastReadChapter
       FROM downloads d
       LEFT JOIN manga m ON m.mangaId = d.mangaId
       ORDER BY d.downloadedAt DESC

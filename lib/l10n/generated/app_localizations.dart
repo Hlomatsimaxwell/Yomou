@@ -716,6 +716,222 @@ abstract class AppLocalizations {
   /// **'Download skipped — mobile data downloads are off'**
   String get dlsCellularBlocked;
 
+  /// No description provided for @dlgChapterCount.
+  ///
+  /// In en, this message translates to:
+  /// **'{count, plural, =1{1 chapter} other{{count} chapters}}'**
+  String dlgChapterCount(int count);
+
+  /// No description provided for @dlgReadProgress.
+  ///
+  /// In en, this message translates to:
+  /// **'{read} of {total} read'**
+  String dlgReadProgress(int read, int total);
+
+  /// No description provided for @dlgSelectedCount.
+  ///
+  /// In en, this message translates to:
+  /// **'{count} selected'**
+  String dlgSelectedCount(int count);
+
+  /// No description provided for @dlgRemoveAll.
+  ///
+  /// In en, this message translates to:
+  /// **'Remove all downloads'**
+  String get dlgRemoveAll;
+
+  /// No description provided for @dlgRemoveAllTitle.
+  ///
+  /// In en, this message translates to:
+  /// **'Remove all downloads?'**
+  String get dlgRemoveAllTitle;
+
+  /// No description provided for @dlgRemoveAllBody.
+  ///
+  /// In en, this message translates to:
+  /// **'This deletes every downloaded chapter from this device. It can\'t be undone.'**
+  String get dlgRemoveAllBody;
+
+  /// No description provided for @dlgRemoveSelectedTitle.
+  ///
+  /// In en, this message translates to:
+  /// **'Remove selected downloads?'**
+  String get dlgRemoveSelectedTitle;
+
+  /// No description provided for @dlgRemoveSelectedBody.
+  ///
+  /// In en, this message translates to:
+  /// **'{count, plural, =1{This deletes 1 downloaded chapter from this device.} other{This deletes {count} downloaded chapters from this device.}} It can\'t be undone.'**
+  String dlgRemoveSelectedBody(int count);
+
+  /// No description provided for @dlgSettingsItem.
+  ///
+  /// In en, this message translates to:
+  /// **'Downloads settings'**
+  String get dlgSettingsItem;
+
+  /// No description provided for @dlgSettingsItemSubtitle.
+  ///
+  /// In en, this message translates to:
+  /// **'Where chapters and saved pages are stored'**
+  String get dlgSettingsItemSubtitle;
+
+  /// No description provided for @dlgRead.
+  ///
+  /// In en, this message translates to:
+  /// **'read'**
+  String get dlgRead;
+
+  /// No description provided for @dlgDownloadChannelName.
+  ///
+  /// In en, this message translates to:
+  /// **'Downloads'**
+  String get dlgDownloadChannelName;
+
+  /// No description provided for @dlgDownloadChannelDescription.
+  ///
+  /// In en, this message translates to:
+  /// **'Progress and results for chapters being saved to this device'**
+  String get dlgDownloadChannelDescription;
+
+  /// No description provided for @dlgDownloadPreparing.
+  ///
+  /// In en, this message translates to:
+  /// **'Preparing download…'**
+  String get dlgDownloadPreparing;
+
+  /// No description provided for @dlgDownloadPreparingChapters.
+  ///
+  /// In en, this message translates to:
+  /// **'Preparing {count} chapters…'**
+  String dlgDownloadPreparingChapters(int count);
+
+  /// No description provided for @dlgDownloadQueued.
+  ///
+  /// In en, this message translates to:
+  /// **'Waiting to start'**
+  String get dlgDownloadQueued;
+
+  /// No description provided for @dlgDownloadPaused.
+  ///
+  /// In en, this message translates to:
+  /// **'Paused'**
+  String get dlgDownloadPaused;
+
+  /// No description provided for @dlgDownloadPages.
+  ///
+  /// In en, this message translates to:
+  /// **'{done} of {total} pages'**
+  String dlgDownloadPages(Object done, Object total);
+
+  /// No description provided for @dlgDownloadChapterOf.
+  ///
+  /// In en, this message translates to:
+  /// **'Chapter {done} of {total}'**
+  String dlgDownloadChapterOf(Object done, Object total);
+
+  /// No description provided for @dlgDownloadComplete.
+  ///
+  /// In en, this message translates to:
+  /// **'Download complete'**
+  String get dlgDownloadComplete;
+
+  /// No description provided for @dlgDownloadCompleteBody.
+  ///
+  /// In en, this message translates to:
+  /// **'{done} chapters saved to this device'**
+  String dlgDownloadCompleteBody(int done);
+
+  /// No description provided for @dlgDownloadFailed.
+  ///
+  /// In en, this message translates to:
+  /// **'Download failed'**
+  String get dlgDownloadFailed;
+
+  /// No description provided for @dlgDownloadCancelled.
+  ///
+  /// In en, this message translates to:
+  /// **'Download cancelled'**
+  String get dlgDownloadCancelled;
+
+  /// No description provided for @dlgDownloadPartialBody.
+  ///
+  /// In en, this message translates to:
+  /// **'{done} of {total} chapters saved'**
+  String dlgDownloadPartialBody(int done, int total);
+
+  /// No description provided for @dlgDownloadResume.
+  ///
+  /// In en, this message translates to:
+  /// **'Resume'**
+  String get dlgDownloadResume;
+
+  /// No description provided for @dlgDownloadPause.
+  ///
+  /// In en, this message translates to:
+  /// **'Pause'**
+  String get dlgDownloadPause;
+
+  /// No description provided for @dlgDownloadCancel.
+  ///
+  /// In en, this message translates to:
+  /// **'Cancel download'**
+  String get dlgDownloadCancel;
+
+  /// No description provided for @dlgDownloadCancelTitle.
+  ///
+  /// In en, this message translates to:
+  /// **'Cancel this download?'**
+  String get dlgDownloadCancelTitle;
+
+  /// No description provided for @dlgDownloadCancelBody.
+  ///
+  /// In en, this message translates to:
+  /// **'{saved} of {total} chapters are already saved and will stay on this device. The rest will not be downloaded.'**
+  String dlgDownloadCancelBody(int saved, int total);
+
+  /// No description provided for @dlgDownloadRemoveJob.
+  ///
+  /// In en, this message translates to:
+  /// **'Remove from list'**
+  String get dlgDownloadRemoveJob;
+
+  /// No description provided for @dlgInProgress.
+  ///
+  /// In en, this message translates to:
+  /// **'In progress'**
+  String get dlgInProgress;
+
+  /// No description provided for @dlgQueued.
+  ///
+  /// In en, this message translates to:
+  /// **'Queued'**
+  String get dlgQueued;
+
+  /// No description provided for @dlgFailed.
+  ///
+  /// In en, this message translates to:
+  /// **'Failed'**
+  String get dlgFailed;
+
+  /// No description provided for @dlgQueuedDownload.
+  ///
+  /// In en, this message translates to:
+  /// **'Queued {count} chapters for download'**
+  String dlgQueuedDownload(int count);
+
+  /// No description provided for @dlgAlreadyDownloaded.
+  ///
+  /// In en, this message translates to:
+  /// **'Already downloaded'**
+  String get dlgAlreadyDownloaded;
+
+  /// No description provided for @dlgDownloadNothingQueued.
+  ///
+  /// In en, this message translates to:
+  /// **'Nothing to download'**
+  String get dlgDownloadNothingQueued;
+
   /// No description provided for @settingsNewChapters.
   ///
   /// In en, this message translates to:

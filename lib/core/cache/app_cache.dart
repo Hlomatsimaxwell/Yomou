@@ -3,6 +3,7 @@ import 'dart:io';
 import 'package:flutter_cache_manager/flutter_cache_manager.dart';
 import 'package:path/path.dart' as p;
 import 'package:path_provider/path_provider.dart';
+import 'package:yomou/core/storage/storage_stats.dart';
 
 /// App-wide image cache manager.
 ///
@@ -77,14 +78,6 @@ class AppImageCache {
 
   /// Human readable usage label, e.g. "12.4 MB" or "890 KB".
   Future<String> usageLabel() async {
-    final bytes = await usageBytes();
-    if (bytes >= 1073741824) {
-      return '${(bytes / 1073741824).toStringAsFixed(2)} GB';
-    }
-    if (bytes >= 1048576) {
-      return '${(bytes / 1048576).toStringAsFixed(1)} MB';
-    }
-    if (bytes >= 1024) return '${(bytes / 1024).toStringAsFixed(0)} KB';
-    return '$bytes B';
+    return formatBytes(await usageBytes());
   }
 }

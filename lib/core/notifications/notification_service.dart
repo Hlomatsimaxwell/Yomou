@@ -5,6 +5,7 @@ import 'dart:typed_data';
 
 import 'package:flutter_local_notifications/flutter_local_notifications.dart';
 import 'package:shared_preferences/shared_preferences.dart';
+import 'package:yomou/core/notifications/notification_image.dart';
 
 /// A manga suggestion ready to be shown as a notification.
 class SuggestedMangaNotification {
@@ -464,34 +465,10 @@ class NotificationService {
 
   /// Best-effort download of an image (or read of a `local://` file), used to
   /// attach cover art to notifications. Returns null when unavailable.
-  Future<Uint8List?> _fetchImageBytes(String? url) async {
-    if (url == null || url.isEmpty) return null;
-    if (url.startsWith('local://')) {
-      try {
-        final file = File(url.substring('local://'.length));
-        return await file.readAsBytes();
-      } catch (_) {
-        return null;
-      }
-    }
-    final client = HttpClient()..connectionTimeout = const Duration(seconds: 5);
-    try {
-      final request = await client.getUrl(Uri.parse(url));
-      final response = await request.close().timeout(
-        const Duration(seconds: 10),
-      );
-      if (response.statusCode != 200) return null;
-      final builder = BytesBuilder(copy: false);
-      await for (final chunk in response) {
-        builder.add(chunk);
-      }
-      return builder.takeBytes();
-    } catch (_) {
-      return null;
-    } finally {
-      client.close(force: true);
-    }
-  }
+  /// Delegates to the shared fetcher so every notification decodes covers the
+  /// same way.
+  Future<Uint8List?> _fetchImageBytes(String? url) =>
+      NotificationImage.bytesFor(url);
 }
 
 /// Where a tapped notification should take the user.

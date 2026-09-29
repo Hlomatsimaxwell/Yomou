@@ -16,7 +16,6 @@ import 'package:yomou/widgets/safe_image.dart';
 import 'package:yomou/core/cache/app_cache.dart';
 import 'package:yomou/core/diagnostics/diag_log.dart';
 import 'package:yomou/core/storage/storage_stats.dart';
-import 'package:yomou/features/downloads/services/metered_network_gate.dart';
 import '../../../core/database/database_helper.dart';
 import '../../../core/database/source_cache.dart';
 import '../../../core/widgets/ios/ios_sheet.dart';
@@ -32,6 +31,9 @@ import 'package:yomou/core/widgets/empty_state.dart';
 import 'package:yomou/features/settings/screens/settings_screen.dart';
 import 'package:yomou/l10n/generated/app_localizations.dart';
 import '../services/chapter_downloader.dart';
+import '../services/download_job.dart';
+import '../services/download_requests.dart';
+import '../services/download_scheduler.dart';
 
 // Reading modes (Kotatsu-style).
 enum ReadingMode { standard, rightToLeft, vertical, webtoon }
@@ -2362,126 +2364,51 @@ class _ReaderScreenState extends ConsumerState<ReaderScreen>
     });
   }
 
-  Future<bool> _downloadChapter(Chapter chapter, {bool notify = true}) async {
-    MangaSource? source;
+  MangaSource? _resolveSource() {
     if (widget.sourceId != null) {
-      source = getSourceBySourceId(widget.sourceId!);
+      final byId = getSourceBySourceId(widget.sourceId!);
+      if (byId != null) return byId;
     }
-    source ??= ref.read(currentSourceProvider);
-    if (source == null) return false;
-    final src = source;
+    return ref.read(currentSourceProvider);
+  }
 
-    // Honours the "Downloading over cellular network" setting, prompting on
-    // mobile data when it's set to "Ask every time".
-    final metered = await askAboutMeteredDownload(context, ref);
-    if (!mounted) return false;
-    if (metered == null || !metered.allowed) {
-      if (notify) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(
-            content: Text(AppLocalizations.of(context).dlsCellularBlocked),
-          ),
-        );
-      }
-      return false;
-    }
-
-    final List<String> pages;
-    try {
-      pages = await SourceCache.pageUrls(
-        sourceId: src.id,
-        chapterId: chapter.id,
-        fetch: () => src.getPageUrls(chapter.id),
-      );
-    } catch (e) {
-      if (notify && mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(
-            content: Text(
-              AppLocalizations.of(context).readerFailedLoadChapterPages,
-            ),
-          ),
-        );
-      }
-      return false;
-    }
-    if (!mounted) return false;
-
-    final task = _ChapterDownloadTask()..total = pages.length;
-    setState(() => _activeDownloads[chapter.id] = task);
+  /// Polls a job row until it reaches a terminal state, mirroring its page
+  /// progress into the reader's inline indicator for [chapterId].
+  ///
+  /// The reader is not the downloader's owner, so a chapter that is still
+  /// running when the user navigates away is simply left running — the service
+  /// keeps going and the notification keeps reporting.
+  Future<bool> _awaitJob(String? jobId, String chapterId) async {
+    if (jobId == null) return false;
+    final task = _ChapterDownloadTask()..jobId = jobId;
+    setState(() => _activeDownloads[chapterId] = task);
     _refreshTray();
 
-    final saved = await ChapterDownloader.downloadChapter(
-      mangaId: widget.mangaId,
-      chapterId: chapter.id,
-      pages: pages,
-      headers: source.headers,
-      networkSourceId: source.id,
-      isCancelled: () => task.cancelled,
-      onProgress: (done, total) {
-        task
-          ..done = done
-          ..total = total;
-        if (mounted) setState(() {});
+    while (mounted) {
+      final job = await DownloadScheduler.load(jobId);
+      if (!mounted) break;
+      if (job == null) {
+        setState(() => _activeDownloads.remove(chapterId));
         _refreshTray();
-      },
-    );
-    if (!mounted) return false;
-
-    if (saved == null) {
-      setState(() => _activeDownloads.remove(chapter.id));
-      _refreshTray();
-      if (notify && !task.cancelled) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(
-            content: Text(
-              AppLocalizations.of(context).readerFailedDownloadChapter,
-            ),
-          ),
-        );
+        return false;
       }
-      return false;
+      task
+        ..done = job.donePages
+        ..total = job.totalPages;
+      if (job.status.isOpen) {
+        setState(() {});
+        _refreshTray();
+        await Future<void>.delayed(const Duration(milliseconds: 400));
+        continue;
+      }
+      setState(() => _activeDownloads.remove(chapterId));
+      _refreshTray();
+      return job.status == DownloadJobStatus.completed;
     }
 
-    final dir = await ChapterDownloader.chapterDir(widget.mangaId, chapter.id);
-    await DatabaseHelper.instance.addDownload(
-      mangaId: widget.mangaId,
-      chapterId: chapter.id,
-      chapterNumber: double.tryParse(chapter.chapterNumber) ?? 0,
-      chapterTitle: chapter.title,
-      pageCount: saved.length,
-      localDir: dir.path,
-      pageUrls: jsonEncode(pages),
-    );
-    await DatabaseHelper.instance.upsertManga(
-      mangaId: widget.mangaId,
-      title: widget.mangaTitle ?? 'Unknown',
-      coverUrl: widget.mangaCoverUrl,
-      sourceId: widget.sourceId,
-    );
-    if (!mounted) return false;
-
-    setState(() {
-      _activeDownloads.remove(chapter.id);
-      _downloadedChapters.add(chapter.id);
-    });
-    bumpDownloadsRevision(ref);
-    _refreshTray();
-
-    final index = widget.allChapters.indexWhere((c) => c.id == chapter.id);
-    if (index != -1) _refreshLoadedChapterFiles(index);
-
-    if (notify) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(
-          content: Text(
-            AppLocalizations.of(context).readerDownloadedChapter(chapter.title),
-          ),
-          duration: const Duration(seconds: 2),
-        ),
-      );
-    }
-    return true;
+    // Reader disposed mid-download: the job keeps running, just stop tracking.
+    _activeDownloads.remove(chapterId);
+    return false;
   }
 
   Future<void> _confirmRemoveDownload(String chapterId, String title) async {
@@ -2677,19 +2604,42 @@ class _ReaderScreenState extends ConsumerState<ReaderScreen>
         .where((c) => _selectedIds.contains(c.id))
         .toList();
     _exitSelection();
-    var success = 0;
-    for (final ch in chapters) {
-      final ok = await _downloadChapter(ch, notify: false);
-      if (ok) success++;
-    }
-    if (!mounted) return;
-    ScaffoldMessenger.of(context).showSnackBar(
-      SnackBar(
-        content: Text(
-          AppLocalizations.of(context).downloadedChaptersCount(success),
-        ),
-      ),
+
+    final source = _resolveSource();
+    if (source == null || chapters.isEmpty) return;
+
+    final result = await DownloadRequests.enqueue(
+      context: context,
+      ref: ref,
+      source: source,
+      mangaId: widget.mangaId,
+      mangaTitle: widget.mangaTitle,
+      coverUrl: widget.mangaCoverUrl,
+      chapters: chapters,
     );
+    if (!mounted) return;
+
+    final l = AppLocalizations.of(context);
+    if (result.blocked) {
+      ScaffoldMessenger.of(
+        context,
+      ).showSnackBar(SnackBar(content: Text(l.dlsCellularBlocked)));
+      return;
+    }
+    if (result.isEmpty) {
+      ScaffoldMessenger.of(
+        context,
+      ).showSnackBar(SnackBar(content: Text(l.dlgDownloadNothingQueued)));
+      return;
+    }
+
+    // Queued as one job, so the selection doesn't become N notifications and
+    // N foreground services. Track the first chapter inline as a hint of
+    // activity, then let the notification and Downloads screen carry it.
+    ScaffoldMessenger.of(
+      context,
+    ).showSnackBar(SnackBar(content: Text(l.dlgQueuedDownload(result.queued))));
+    _awaitJob(result.jobId, chapters.first.id);
   }
 
   Future<void> _deleteSelectedDownloads() async {
@@ -3876,6 +3826,10 @@ class _ChapterDownloadTask {
   bool cancelled = false;
   int done = 0;
   int total = 0;
+
+  /// Download job backing this indicator, so a cancel can reach the scheduler
+  /// rather than trying to stop work the reader no longer owns.
+  String? jobId;
 
   void cancel() => cancelled = true;
 }

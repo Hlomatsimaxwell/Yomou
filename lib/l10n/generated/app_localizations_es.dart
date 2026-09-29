@@ -344,6 +344,151 @@ class AppLocalizationsEs extends AppLocalizations {
       'Download skipped — mobile data downloads are off';
 
   @override
+  String dlgChapterCount(int count) {
+    String _temp0 = intl.Intl.pluralLogic(
+      count,
+      locale: localeName,
+      other: '$count chapters',
+      one: '1 chapter',
+    );
+    return '$_temp0';
+  }
+
+  @override
+  String dlgReadProgress(int read, int total) {
+    return '$read of $total read';
+  }
+
+  @override
+  String dlgSelectedCount(int count) {
+    return '$count selected';
+  }
+
+  @override
+  String get dlgRemoveAll => 'Remove all downloads';
+
+  @override
+  String get dlgRemoveAllTitle => 'Remove all downloads?';
+
+  @override
+  String get dlgRemoveAllBody =>
+      'This deletes every downloaded chapter from this device. It can\'t be undone.';
+
+  @override
+  String get dlgRemoveSelectedTitle => 'Remove selected downloads?';
+
+  @override
+  String dlgRemoveSelectedBody(int count) {
+    String _temp0 = intl.Intl.pluralLogic(
+      count,
+      locale: localeName,
+      other: 'This deletes $count downloaded chapters from this device.',
+      one: 'This deletes 1 downloaded chapter from this device.',
+    );
+    return '$_temp0 It can\'t be undone.';
+  }
+
+  @override
+  String get dlgSettingsItem => 'Downloads settings';
+
+  @override
+  String get dlgSettingsItemSubtitle =>
+      'Where chapters and saved pages are stored';
+
+  @override
+  String get dlgRead => 'read';
+
+  @override
+  String get dlgDownloadChannelName => 'Downloads';
+
+  @override
+  String get dlgDownloadChannelDescription =>
+      'Progress and results for chapters being saved to this device';
+
+  @override
+  String get dlgDownloadPreparing => 'Preparing download…';
+
+  @override
+  String dlgDownloadPreparingChapters(int count) {
+    return 'Preparing $count chapters…';
+  }
+
+  @override
+  String get dlgDownloadQueued => 'Waiting to start';
+
+  @override
+  String get dlgDownloadPaused => 'Paused';
+
+  @override
+  String dlgDownloadPages(Object done, Object total) {
+    return '$done of $total pages';
+  }
+
+  @override
+  String dlgDownloadChapterOf(Object done, Object total) {
+    return 'Chapter $done of $total';
+  }
+
+  @override
+  String get dlgDownloadComplete => 'Download complete';
+
+  @override
+  String dlgDownloadCompleteBody(int done) {
+    return '$done chapters saved to this device';
+  }
+
+  @override
+  String get dlgDownloadFailed => 'Download failed';
+
+  @override
+  String get dlgDownloadCancelled => 'Download cancelled';
+
+  @override
+  String dlgDownloadPartialBody(int done, int total) {
+    return '$done of $total chapters saved';
+  }
+
+  @override
+  String get dlgDownloadResume => 'Resume';
+
+  @override
+  String get dlgDownloadPause => 'Pause';
+
+  @override
+  String get dlgDownloadCancel => 'Cancel download';
+
+  @override
+  String get dlgDownloadCancelTitle => 'Cancel this download?';
+
+  @override
+  String dlgDownloadCancelBody(int saved, int total) {
+    return '$saved of $total chapters are already saved and will stay on this device. The rest will not be downloaded.';
+  }
+
+  @override
+  String get dlgDownloadRemoveJob => 'Remove from list';
+
+  @override
+  String get dlgInProgress => 'In progress';
+
+  @override
+  String get dlgQueued => 'Queued';
+
+  @override
+  String get dlgFailed => 'Failed';
+
+  @override
+  String dlgQueuedDownload(int count) {
+    return 'Queued $count chapters for download';
+  }
+
+  @override
+  String get dlgAlreadyDownloaded => 'Already downloaded';
+
+  @override
+  String get dlgDownloadNothingQueued => 'Nothing to download';
+
+  @override
   String get settingsNewChapters => 'Buscar capítulos nuevos';
 
   @override

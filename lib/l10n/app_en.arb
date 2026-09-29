@@ -150,6 +150,114 @@
   "dlsCellularAllowAlways": "Allow always",
   "dlsCellularDontAllow": "Don't allow",
   "dlsCellularBlocked": "Download skipped — mobile data downloads are off",
+  "dlgChapterCount": "{count, plural, =1{1 chapter} other{{count} chapters}}",
+  "@dlgChapterCount": {
+    "placeholders": {
+      "count": {
+        "type": "int"
+      }
+    }
+  },
+  "dlgReadProgress": "{read} of {total} read",
+  "@dlgReadProgress": {
+    "placeholders": {
+      "read": {
+        "type": "int"
+      },
+      "total": {
+        "type": "int"
+      }
+    }
+  },
+  "dlgSelectedCount": "{count} selected",
+  "@dlgSelectedCount": {
+    "placeholders": {
+      "count": {
+        "type": "int"
+      }
+    }
+  },
+  "dlgRemoveAll": "Remove all downloads",
+  "dlgRemoveAllTitle": "Remove all downloads?",
+  "dlgRemoveAllBody": "This deletes every downloaded chapter from this device. It can't be undone.",
+  "dlgRemoveSelectedTitle": "Remove selected downloads?",
+  "dlgRemoveSelectedBody": "{count, plural, =1{This deletes 1 downloaded chapter from this device.} other{This deletes {count} downloaded chapters from this device.}} It can't be undone.",
+  "@dlgRemoveSelectedBody": {
+    "placeholders": {
+      "count": {
+        "type": "int"
+      }
+    }
+  },
+  "dlgSettingsItem": "Downloads settings",
+  "dlgSettingsItemSubtitle": "Where chapters and saved pages are stored",
+  "dlgRead": "read",
+  "dlgDownloadChannelName": "Downloads",
+  "dlgDownloadChannelDescription": "Progress and results for chapters being saved to this device",
+  "dlgDownloadPreparing": "Preparing download…",
+  "dlgDownloadPreparingChapters": "Preparing {count} chapters…",
+  "@dlgDownloadPreparingChapters": {
+    "placeholders": {
+      "count": {
+        "type": "int"
+      }
+    }
+  },
+  "dlgDownloadQueued": "Waiting to start",
+  "dlgDownloadPaused": "Paused",
+  "dlgDownloadPages": "{done} of {total} pages",
+  "dlgDownloadChapterOf": "Chapter {done} of {total}",
+  "dlgDownloadComplete": "Download complete",
+  "dlgDownloadCompleteBody": "{done} chapters saved to this device",
+  "@dlgDownloadCompleteBody": {
+    "placeholders": {
+      "done": {
+        "type": "int"
+      }
+    }
+  },
+  "dlgDownloadFailed": "Download failed",
+  "dlgDownloadCancelled": "Download cancelled",
+  "dlgDownloadPartialBody": "{done} of {total} chapters saved",
+  "@dlgDownloadPartialBody": {
+    "placeholders": {
+      "done": {
+        "type": "int"
+      },
+      "total": {
+        "type": "int"
+      }
+    }
+  },
+  "dlgDownloadResume": "Resume",
+  "dlgDownloadPause": "Pause",
+  "dlgDownloadCancel": "Cancel download",
+  "dlgDownloadCancelTitle": "Cancel this download?",
+  "dlgDownloadCancelBody": "{saved} of {total} chapters are already saved and will stay on this device. The rest will not be downloaded.",
+  "@dlgDownloadCancelBody": {
+    "placeholders": {
+      "saved": {
+        "type": "int"
+      },
+      "total": {
+        "type": "int"
+      }
+    }
+  },
+  "dlgDownloadRemoveJob": "Remove from list",
+  "dlgInProgress": "In progress",
+  "dlgQueued": "Queued",
+  "dlgFailed": "Failed",
+  "dlgQueuedDownload": "Queued {count} chapters for download",
+  "@dlgQueuedDownload": {
+    "placeholders": {
+      "count": {
+        "type": "int"
+      }
+    }
+  },
+  "dlgAlreadyDownloaded": "Already downloaded",
+  "dlgDownloadNothingQueued": "Nothing to download",
   "settingsNewChapters": "Check for new chapters",
   "settingsNewChaptersSubtitle": "Look for updates, Notifications settings",
   "settingsServices": "Services",

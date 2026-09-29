@@ -1,6 +1,17 @@
 import 'package:flutter/services.dart';
 import 'package:path_provider/path_provider.dart';
 
+/// Human readable byte count, e.g. "12.4 MB" or "890 KB".
+///
+/// Shared by every screen that reports a size on disk (download cards, cache
+/// usage) so the units stay consistent app-wide.
+String formatBytes(int bytes) {
+  if (bytes >= 1073741824) return '${(bytes / 1073741824).toStringAsFixed(2)} GB';
+  if (bytes >= 1048576) return '${(bytes / 1048576).toStringAsFixed(1)} MB';
+  if (bytes >= 1024) return '${(bytes / 1024).toStringAsFixed(0)} KB';
+  return '$bytes B';
+}
+
 /// Free/total byte counts for a directory path, read on the native side via
 /// `StatFs`. Used by the Local manga directories screen for the storage bars.
 class StorageStats {

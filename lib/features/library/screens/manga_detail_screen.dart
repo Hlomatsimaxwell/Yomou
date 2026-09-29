@@ -1,6 +1,6 @@
+import 'dart:async';
 import 'package:yomou/widgets/cached_manga_image.dart';
 import 'package:remixicon/remixicon.dart';
-import 'dart:convert';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:url_launcher/url_launcher.dart';
@@ -11,12 +11,16 @@ import 'package:yomou/features/library/providers/favorites_provider.dart';
 import 'package:yomou/features/library/providers/downloads_provider.dart';
 import 'package:yomou/features/history/providers/history_provider.dart';
 import 'package:yomou/features/library/widgets/downloaded_badge.dart';
+import 'package:yomou/features/library/widgets/chapter_job_indicator.dart';
+import 'package:yomou/features/library/widgets/download_batch_banner.dart';
 import 'package:yomou/features/library/screens/related_manga_screen.dart';
 import 'package:yomou/features/library/screens/edit_manga_screen.dart';
 import 'package:yomou/features/library/screens/alternatives_screen.dart';
 import 'package:yomou/features/reader/screens/reader_screen.dart';
-import 'package:yomou/features/downloads/services/metered_network_gate.dart';
 import 'package:yomou/features/reader/services/chapter_downloader.dart';
+import 'package:yomou/features/reader/services/download_job.dart';
+import 'package:yomou/features/reader/services/download_requests.dart';
+import 'package:yomou/features/reader/services/download_scheduler.dart';
 import 'package:yomou/data/models/chapter.dart';
 import 'package:yomou/data/models/manga.dart';
 import 'package:yomou/data/models/manga_source.dart';
@@ -89,6 +93,16 @@ class _MangaDetailScreenState extends ConsumerState<MangaDetailScreen> {
 
   // Per-chapter download progress: {chapterId: (done, total)}.
   final Map<String, ({int done, int total})> _downloadingChapters = {};
+
+  /// Chapters handed to the download scheduler, still being queued. The
+  /// scheduler resolves every page list up front, so this covers the brief
+  /// window between tapping "download" and the job existing.
+  int _batchQueued = 0;
+
+  /// The live job for this series, polled so the chapter rows can show
+  /// real per-chapter progress while the foreground service works.
+  DownloadJob? _activeJob;
+  Timer? _jobPoll;
 
   // Real related manga loaded from the source (excluding the current one).
   List<Manga> _relatedManga = [];
@@ -456,8 +470,80 @@ class _MangaDetailScreenState extends ConsumerState<MangaDetailScreen> {
     bumpFavoritesRevision(ref);
   }
 
+  /// Where [chapterId] sits in the live job's queue, if the series has one.
+  ///
+  /// The job row only carries aggregate page counts, so per-chapter state is
+  /// derived from queue position: everything before the cursor is on disk, the
+  /// chapter at the cursor is in flight, and the rest are still pending. That
+  /// is honest — a per-chapter page fraction would be a guess.
+  ChapterJobState _jobChapterState(String chapterId) {
+    final job = _activeJob;
+    if (job == null || !job.status.isOpen) return ChapterJobState.none;
+    final index = job.chapters.indexWhere((c) => c.id == chapterId);
+    if (index < 0) return ChapterJobState.none;
+    if (index < job.doneChapters) return ChapterJobState.saved;
+    if (index == job.doneChapters) {
+      return job.status == DownloadJobStatus.running
+          ? ChapterJobState.active
+          : ChapterJobState.pending;
+    }
+    return ChapterJobState.pending;
+  }
+
+  /// Pauses a running batch, or resumes a paused one. Both are the same
+  /// affordance because WorkManager has no pause: pausing cancels the platform
+  /// work and keeps the row, resuming re-registers it.
+  Future<void> _toggleJobPause() async {
+    final job = _activeJob;
+    if (job == null) return;
+    if (job.status == DownloadJobStatus.paused) {
+      await DownloadScheduler.resume(job);
+    } else {
+      await DownloadScheduler.pause(job.jobId);
+    }
+    if (!mounted) return;
+    final reloaded = await DownloadScheduler.load(job.jobId);
+    if (!mounted) return;
+    setState(() => _activeJob = reloaded);
+    _watchJob(job.jobId);
+  }
+
+  /// Stops a batch for good. Chapters already saved stay on disk.
+  Future<void> _cancelJob() async {
+    final job = _activeJob;
+    if (job == null) return;
+    final l = AppLocalizations.of(context);
+    final confirmed = await showDialog<bool>(
+      context: context,
+      builder: (dialogContext) => AlertDialog(
+        title: Text(l.dlgDownloadCancelTitle),
+        content: Text(
+          l.dlgDownloadCancelBody(job.doneChapters, job.totalChapters),
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.of(dialogContext).pop(false),
+            child: Text(AppLocalizations.of(dialogContext).cancel),
+          ),
+          FilledButton(
+            onPressed: () => Navigator.of(dialogContext).pop(true),
+            child: Text(l.dlgDownloadCancel),
+          ),
+        ],
+      ),
+    );
+    if (confirmed != true) return;
+
+    await DownloadScheduler.cancel(job.jobId);
+    if (!mounted) return;
+    _jobPoll?.cancel();
+    setState(() => _activeJob = null);
+    bumpDownloadsRevision(ref);
+  }
+
   @override
   void dispose() {
+    _jobPoll?.cancel();
     _sheetController.dispose();
     super.dispose();
   }
@@ -882,6 +968,15 @@ class _MangaDetailScreenState extends ConsumerState<MangaDetailScreen> {
                             },
                           ),
                         ),
+                        if (_batchQueued > 0 || _activeJob != null)
+                          SliverToBoxAdapter(
+                            child: DownloadBatchBanner(
+                              job: _activeJob,
+                              pendingCount: _batchQueued,
+                              onPause: _toggleJobPause,
+                              onCancel: _cancelJob,
+                            ),
+                          ),
                         if (_showSheetContent) ...[
                           if (_activeTab == 0)
                             _buildChapterListSliver()
@@ -1079,23 +1174,15 @@ class _MangaDetailScreenState extends ConsumerState<MangaDetailScreen> {
                         : Theme.of(context).colorScheme.primary,
                     size: 18,
                   )
-                else if (_downloadingChapters.containsKey(ch.id))
+                else if (_jobChapterState(ch.id) != ChapterJobState.none)
                   Padding(
                     padding: const EdgeInsets.only(right: 8),
                     child: SizedBox(
                       width: 20,
                       height: 20,
-                      child: CircularProgressIndicator(
-                        value: _downloadingChapters[ch.id]!.total > 0
-                            ? (_downloadingChapters[ch.id]!.done /
-                                      _downloadingChapters[ch.id]!.total)
-                                  .clamp(0.0, 1.0)
-                            : null,
-                        strokeWidth: 2.5,
-                        color: dark
-                            ? Colors.white
-                            : Theme.of(context).colorScheme.primary,
-                        backgroundColor: dark ? Colors.white24 : Colors.black12,
+                      child: ChapterJobIndicator(
+                        state: _jobChapterState(ch.id),
+                        isDark: dark,
                       ),
                     ),
                   ),
@@ -1353,81 +1440,75 @@ class _MangaDetailScreenState extends ConsumerState<MangaDetailScreen> {
 
   Future<void> _downloadChapters(List<Chapter> chapters) async {
     final source = _source;
-    if (source == null) return;
-
-    // Honours the "Downloading over cellular network" setting, prompting on
-    // mobile data when it's set to "Ask every time".
-    final metered = await askAboutMeteredDownload(context, ref);
+    if (source == null || chapters.isEmpty) return;
     if (!mounted) return;
-    if (metered == null || !metered.allowed) {
+
+    setState(() => _batchQueued = chapters.length);
+
+    final result = await DownloadRequests.enqueue(
+      context: context,
+      ref: ref,
+      source: source,
+      mangaId: widget.mangaId,
+      mangaTitle: _title,
+      coverUrl: _coverUrl,
+      chapters: chapters,
+    );
+    if (!mounted) return;
+
+    setState(() => _batchQueued = 0);
+    final l = AppLocalizations.of(context);
+    if (result.blocked) {
+      ScaffoldMessenger.of(
+        context,
+      ).showSnackBar(SnackBar(content: Text(l.dlsCellularBlocked)));
+      return;
+    }
+    if (result.isEmpty) {
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(
-          content: Text(AppLocalizations.of(context).dlsCellularBlocked),
+          content: Text(
+            result.alreadyDownloaded > 0 && result.unavailable == 0
+                ? l.dlgAlreadyDownloaded
+                : l.dlgDownloadNothingQueued,
+          ),
         ),
       );
       return;
     }
 
-    var success = 0;
-    for (final ch in chapters) {
-      try {
-        setState(() {
-          _downloadingChapters[ch.id] = const (done: 0, total: 0);
-        });
-        final pages = await source.getPageUrls(ch.id);
-        if (pages.isEmpty) {
-          setState(() => _downloadingChapters.remove(ch.id));
-          continue;
-        }
-        setState(() {
-          _downloadingChapters[ch.id] = (done: 0, total: pages.length);
-        });
-        final saved = await ChapterDownloader.downloadChapter(
-          mangaId: widget.mangaId,
-          chapterId: ch.id,
-          pages: pages,
-          headers: source.headers,
-          networkSourceId: source.id,
-          onProgress: (done, total) {
-            if (mounted) {
-              setState(() {
-                _downloadingChapters[ch.id] = (done: done, total: total);
-              });
-            }
-          },
-        );
-        if (saved == null || saved.isEmpty) continue;
-        final dir = await ChapterDownloader.chapterDir(widget.mangaId, ch.id);
-        await DatabaseHelper.instance.addDownload(
-          mangaId: widget.mangaId,
-          chapterId: ch.id,
-          chapterNumber: double.tryParse(ch.chapterNumber) ?? 0,
-          chapterTitle: ch.title,
-          pageCount: saved.length,
-          localDir: dir.path,
-          pageUrls: jsonEncode(pages),
-        );
-        success++;
-      } catch (_) {
-        // skip failed chapter, continue with the rest
-      }
-      if (mounted) {
-        setState(() => _downloadingChapters.remove(ch.id));
-      }
-    }
-    if (!mounted) return;
+    // The batch now runs in a foreground service, so this screen doesn't drive
+    // it. It only mirrors progress while visible; the authoritative view is the
+    // notification, and the Downloads screen tracks the same job.
+    _watchJob(result.jobId);
     final messenger = ScaffoldMessenger.of(context);
-    final downloadedMessage = AppLocalizations.of(
-      context,
-    ).downloadedChaptersCount(success);
-    bumpDownloadsRevision(ref);
-    await DatabaseHelper.instance.upsertManga(
-      mangaId: widget.mangaId,
-      title: _title,
-      coverUrl: _coverUrl,
-      sourceId: widget.sourceId,
+    messenger.showSnackBar(
+      SnackBar(content: Text(l.dlgQueuedDownload(result.queued))),
     );
-    messenger.showSnackBar(SnackBar(content: Text(downloadedMessage)));
+  }
+
+  /// Polls the job row so the banner and per-chapter rings stay live while this
+  /// screen is on top. Stops itself once the job reaches a terminal state.
+  void _watchJob(String? jobId) {
+    _jobPoll?.cancel();
+    if (jobId == null) return;
+    _jobPoll = Timer.periodic(const Duration(milliseconds: 700), (_) async {
+      final job = await DownloadScheduler.load(jobId);
+      if (!mounted) {
+        _jobPoll?.cancel();
+        return;
+      }
+      if (job == null || !job.status.isOpen) {
+        _jobPoll?.cancel();
+        setState(() {
+          _activeJob = null;
+          _downloadingChapters.clear();
+        });
+        bumpDownloadsRevision(ref);
+        return;
+      }
+      setState(() => _activeJob = job);
+    });
   }
 
   // Chapters not yet read (oldest-first based on read position), capped at

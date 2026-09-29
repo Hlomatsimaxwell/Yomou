@@ -54,6 +54,11 @@ void main() async {
       // Notification init failing (e.g. missing icon resource on some
       // releases) must never block the app from starting.
     }
+    // Unconditional: chapter downloads run as WorkManager jobs too, and must
+    // stay schedulable even with new-chapter notifications switched off.
+    try {
+      await ensureWorkManagerInitialized();
+    } catch (_) {}
     if (await NotificationService.instance.isEnabled()) {
       try {
         await registerUpdateCheckTask();
