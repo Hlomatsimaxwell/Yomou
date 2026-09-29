@@ -353,11 +353,6 @@ class AppLocalizationsEn extends AppLocalizations {
   }
 
   @override
-  String dlgReadProgress(int read, int total) {
-    return '$read of $total read';
-  }
-
-  @override
   String dlgSelectedCount(int count) {
     return '$count selected';
   }

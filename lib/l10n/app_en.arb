@@ -158,17 +158,6 @@
       }
     }
   },
-  "dlgReadProgress": "{read} of {total} read",
-  "@dlgReadProgress": {
-    "placeholders": {
-      "read": {
-        "type": "int"
-      },
-      "total": {
-        "type": "int"
-      }
-    }
-  },
   "dlgSelectedCount": "{count} selected",
   "@dlgSelectedCount": {
     "placeholders": {

@@ -618,9 +618,12 @@ String _absolute(DateTime local, AppLocalizations l) {
 }
 
 /// Chapter numbers render without a trailing `.0` when they're whole.
+///
+/// Fractional numbers keep their own precision rather than being rounded:
+/// `0.04` must stay `0.04`, not collapse to `0.0` and collide with `0.02`.
 String _fmtNumber(double number) {
   if (number == number.roundToDouble()) return number.toInt().toString();
-  return number.toStringAsFixed(1);
+  return number.toString();
 }
 
 /// Separator for composite selection keys. Chapter ids are only unique per
@@ -665,19 +668,6 @@ class _MangaDownloads {
     final raw = chapters.isEmpty ? null : chapters.first['downloadedAt'];
     return raw is String ? DateTime.tryParse(raw) : null;
   }
-
-  int get readCount {
-    if (lastReadChapter < 0) return 0;
-    var count = 0;
-    for (final row in chapters) {
-      final number = (row['chapterNumber'] as num?)?.toDouble() ?? 0;
-      if (number <= lastReadChapter) count++;
-    }
-    return count;
-  }
-
-  double get readFraction =>
-      chapters.isEmpty ? 0 : readCount / chapters.length;
 }
 
 class _DownloadCard extends StatelessWidget {
@@ -785,10 +775,6 @@ class _DownloadCard extends StatelessWidget {
             ),
           ),
           if (expanded) ...[
-            Padding(
-              padding: const EdgeInsets.fromLTRB(14, 0, 14, 12),
-              child: _ReadProgress(group: group),
-            ),
             _ChapterStrip(
               group: group,
               selectionMode: selectionMode,
@@ -804,57 +790,14 @@ class _DownloadCard extends StatelessWidget {
   }
 }
 
-/// Read progress across the downloaded chapters.
-///
-/// Kotatsu puts a byte-progress bar here for a running download. Yomou has no
-/// job layer, so the bar shows how much of what's on disk has been read —
-/// which is the same visual slot with an honest meaning.
-class _ReadProgress extends StatelessWidget {
-  const _ReadProgress({required this.group});
+/// Chapter rows shown before the strip starts scrolling. A manga can have
+/// hundreds of downloaded chapters; without a cap one card would dwarf the
+/// screen and the rest of the list.
+const int _kVisibleChapterRows = 5;
 
-  final _MangaDownloads group;
-
-  @override
-  Widget build(BuildContext context) {
-    final cs = Theme.of(context).colorScheme;
-    final l = AppLocalizations.of(context);
-    final fraction = group.readFraction;
-
-    return Column(
-      crossAxisAlignment: CrossAxisAlignment.start,
-      children: [
-        Row(
-          children: [
-            Expanded(
-              child: Text(
-                l.dlgReadProgress(group.readCount, group.chapters.length),
-                style: TextStyle(color: cs.onSurfaceVariant, fontSize: 12),
-              ),
-            ),
-            Text(
-              '${(fraction * 100).round()}%',
-              style: TextStyle(
-                color: cs.onSurface,
-                fontSize: 12,
-                fontWeight: FontWeight.w600,
-              ),
-            ),
-          ],
-        ),
-        const SizedBox(height: 6),
-        ClipRRect(
-          borderRadius: BorderRadius.circular(999),
-          child: LinearProgressIndicator(
-            value: fraction,
-            minHeight: 5,
-            backgroundColor: cs.onSurface.withValues(alpha: 0.10),
-            valueColor: AlwaysStoppedAnimation<Color>(cs.primary),
-          ),
-        ),
-      ],
-    );
-  }
-}
+/// Fixed row height so the cap above lands on a whole row. The row's natural
+/// height is 26 (badge) + 9 * 2 (padding) = 44.
+const double _kChapterRowHeight = 44;
 
 class _ChapterStrip extends StatelessWidget {
   const _ChapterStrip({
@@ -876,7 +819,6 @@ class _ChapterStrip extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final cs = Theme.of(context).colorScheme;
-    final l = AppLocalizations.of(context);
     final isDark = Theme.of(context).brightness == Brightness.dark;
 
     return Container(
@@ -885,93 +827,92 @@ class _ChapterStrip extends StatelessWidget {
           ? cs.onSurface.withValues(alpha: 0.05)
           : cs.surfaceContainerHighest.withValues(alpha: 0.5),
       padding: const EdgeInsets.symmetric(vertical: 6),
-      child: Column(
-        children: [
-          for (final row in group.chapters)
-            Builder(
-              builder: (context) {
-                final key = group.keyFor(row);
-                final isSelected = selected.contains(key);
-                final number = (row['chapterNumber'] as num?)?.toDouble() ?? 0;
-                final title = (row['chapterTitle'] as String?) ?? '';
-                final isRead = group.lastReadChapter >= 0 && number <= group.lastReadChapter;
-                final label = title.isEmpty
-                    ? l.chapterNum(_fmtNumber(number))
-                    : title;
+      // Capped so a long download history stays a reasonable card height;
+      // shrinkWrap keeps short lists exactly as tall as their rows.
+      child: ConstrainedBox(
+        constraints: const BoxConstraints(
+          maxHeight: _kVisibleChapterRows * _kChapterRowHeight,
+        ),
+        child: ListView.builder(
+          shrinkWrap: true,
+          padding: EdgeInsets.zero,
+          physics: const ClampingScrollPhysics(),
+          itemCount: group.chapters.length,
+          itemBuilder: (context, index) => SizedBox(
+            height: _kChapterRowHeight,
+            child: _row(context, group.chapters[index]),
+          ),
+        ),
+      ),
+    );
+  }
 
-                return Semantics(
-                  // The read tick is colour-only otherwise, so state it for
-                  // screen readers.
-                  label: isRead ? '$label, ${l.dlgRead}' : label,
-                  selected: selectionMode ? isSelected : null,
-                  child: AppPress(
-                    onTap: () => onTap(row),
-                    onLongPress: () => onLongPress(key),
-                    pressedScale: 1.0,
-                    child: Container(
-                      color: isSelected
-                          ? cs.primary.withValues(alpha: 0.12)
-                          : Colors.transparent,
-                      padding: const EdgeInsets.symmetric(
-                        horizontal: 14,
-                        vertical: 9,
-                      ),
-                      child: Row(
-                        children: [
-                          Container(
-                            width: 26,
-                            height: 26,
-                            alignment: Alignment.center,
-                            decoration: BoxDecoration(
-                              color: isRead
-                                  ? cs.primary
-                                  : cs.onSurface.withValues(alpha: 0.10),
-                              borderRadius: BorderRadius.circular(999),
-                            ),
-                            child: Text(
-                              _fmtNumber(number),
-                              style: TextStyle(
-                                fontSize: 11,
-                                fontWeight: FontWeight.w600,
-                                color: isRead
-                                    ? cs.onPrimary
-                                    : cs.onSurfaceVariant,
-                              ),
-                            ),
-                          ),
-                          const SizedBox(width: 10),
-                          Expanded(
-                            child: Text(
-                              label,
-                              maxLines: 1,
-                              overflow: TextOverflow.ellipsis,
-                              style: TextStyle(color: cs.onSurface, fontSize: 13),
-                            ),
-                          ),
-                          if (selectionMode)
-                            Icon(
-                              isSelected
-                                  ? RemixIcons.checkbox_fill
-                                  : RemixIcons.checkbox_blank_line,
-                              color: isSelected
-                                  ? cs.primary
-                                  : cs.onSurfaceVariant,
-                              size: 19,
-                            )
-                          else if (isRead)
-                            Icon(
-                              RemixIcons.checkbox_circle_fill,
-                              color: cs.primary,
-                              size: 17,
-                            ),
-                        ],
-                      ),
-                    ),
+  Widget _row(BuildContext context, Map<String, dynamic> row) {
+    final cs = Theme.of(context).colorScheme;
+    final l = AppLocalizations.of(context);
+    final key = group.keyFor(row);
+    final isSelected = selected.contains(key);
+    final number = (row['chapterNumber'] as num?)?.toDouble() ?? 0;
+    final title = (row['chapterTitle'] as String?) ?? '';
+    final isRead = group.lastReadChapter >= 0 && number <= group.lastReadChapter;
+    final label =
+        title.isEmpty ? l.chapterNum(_fmtNumber(number)) : title;
+
+    return Semantics(
+      // The read tick is colour-only otherwise, so state it for screen readers.
+      label: isRead ? '$label, ${l.dlgRead}' : label,
+      selected: selectionMode ? isSelected : null,
+      child: AppPress(
+        onTap: () => onTap(row),
+        onLongPress: () => onLongPress(key),
+        pressedScale: 1.0,
+        child: Container(
+          color:
+              isSelected ? cs.primary.withValues(alpha: 0.12) : Colors.transparent,
+          padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 9),
+          child: Row(
+            children: [
+              Container(
+                width: 26,
+                height: 26,
+                alignment: Alignment.center,
+                decoration: BoxDecoration(
+                  color: isRead
+                      ? cs.primary
+                      : cs.onSurface.withValues(alpha: 0.10),
+                  borderRadius: BorderRadius.circular(999),
+                ),
+                child: Text(
+                  _fmtNumber(number),
+                  style: TextStyle(
+                    fontSize: 11,
+                    fontWeight: FontWeight.w600,
+                    color: isRead ? cs.onPrimary : cs.onSurfaceVariant,
                   ),
-                );
-              },
-            ),
-        ],
+                ),
+              ),
+              const SizedBox(width: 10),
+              Expanded(
+                child: Text(
+                  label,
+                  maxLines: 1,
+                  overflow: TextOverflow.ellipsis,
+                  style: TextStyle(color: cs.onSurface, fontSize: 13),
+                ),
+              ),
+              if (selectionMode)
+                Icon(
+                  isSelected
+                      ? RemixIcons.checkbox_fill
+                      : RemixIcons.checkbox_blank_line,
+                  color: isSelected ? cs.primary : cs.onSurfaceVariant,
+                  size: 19,
+                )
+              else if (isRead)
+                Icon(RemixIcons.check_line, color: cs.primary, size: 17),
+            ],
+          ),
+        ),
       ),
     );
   }

@@ -722,12 +722,6 @@ abstract class AppLocalizations {
   /// **'{count, plural, =1{1 chapter} other{{count} chapters}}'**
   String dlgChapterCount(int count);
 
-  /// No description provided for @dlgReadProgress.
-  ///
-  /// In en, this message translates to:
-  /// **'{read} of {total} read'**
-  String dlgReadProgress(int read, int total);
-
   /// No description provided for @dlgSelectedCount.
   ///
   /// In en, this message translates to:

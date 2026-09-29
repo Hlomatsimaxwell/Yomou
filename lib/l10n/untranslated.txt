@@ -43,7 +43,6 @@
     "dlsCellularDontAllow",
     "dlsCellularBlocked",
     "dlgChapterCount",
-    "dlgReadProgress",
     "dlgSelectedCount",
     "dlgRemoveAll",
     "dlgRemoveAllTitle",
