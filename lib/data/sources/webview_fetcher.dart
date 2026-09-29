@@ -10,6 +10,19 @@ import 'captcha_gate.dart';
 import 'source_network.dart';
 import 'package:yomou/core/diagnostics/diag_log.dart';
 
+/// One queued WebView operation. [priority] tasks are the ones a user is
+/// waiting on (opening a source, viewing details, reading); everything else
+/// queues behind them so background fan-outs can't stall the foreground.
+class _Pending {
+  _Pending(this.run, {required this.priority}) : queuedAt = DateTime.now();
+  final Future<void> Function() run;
+  final bool priority;
+
+  /// When the task was queued, so queue-starvation time can be told apart
+  /// from a slow page in the diagnostics.
+  final DateTime queuedAt;
+}
+
 /// Fetches pages that only exist after JavaScript runs.
 ///
 /// MangaFire (and other Cloudflare-fronted sites) serve an empty SPA shell to
@@ -28,8 +41,83 @@ class WebViewFetcher {
   OverlayEntry? _entry;
   Completer<String>? _pending;
 
-  /// Serializes loads: one WebView, one page at a time.
-  Future<void> _chain = Future<void>.value();
+  final List<_Pending> _queue = [];
+  bool _draining = false;
+
+  /// True while a queued task is inside the WebView, so the keep-alive ping
+  /// never interleaves with a request's own polling.
+  bool _busy = false;
+
+  /// Keeps the hidden WebView's renderer warm. Android parks an off-screen,
+  /// near-invisible WebView's renderer when it sits idle, and the first call
+  /// after every idle stretch pays a long unfreeze (~15-44s on this device).
+  /// A trivial evaluation every few seconds stops it parking.
+  Timer? _keepAlive;
+
+  /// Marks the current async call tree as background work, so its WebView
+  /// requests queue behind anything the user is waiting on.
+  ///
+  /// A zone value rather than a static flag: several fan-outs run in parallel,
+  /// and a shared flag would leak one batch's status onto a foreground request
+  /// that happens to run at the same time.
+  static const _backgroundKey = Symbol('yomou.webview.background');
+
+  /// Runs [body] with its WebView requests queued as background-priority.
+  static Future<T> runBackground<T>(Future<T> Function() body) =>
+      runZoned(body, zoneValues: {_backgroundKey: true});
+
+  static bool get _isBackground => Zone.current[_backgroundKey] == true;
+
+  /// Queues [task], foreground tasks jumping over any queued background ones
+  /// while keeping FIFO order among themselves.
+  void _enqueue(_Pending task) {
+    if (task.priority) {
+      var i = 0;
+      while (i < _queue.length && _queue[i].priority) {
+        i++;
+      }
+      _queue.insert(i, task);
+    } else {
+      _queue.add(task);
+    }
+    unawaited(_drain());
+  }
+
+  /// Runs queued operations one at a time. A task enqueued while another is
+  /// running is picked up by the loop, so a foreground request arriving mid-way
+  /// through a background task only waits out that one page.
+  Future<void> _drain() async {
+    if (_draining) return;
+    _draining = true;
+    try {
+      while (_queue.isNotEmpty) {
+        final task = _queue.removeAt(0);
+        final waitMs = DateTime.now().difference(task.queuedAt).inMilliseconds;
+        if (waitMs > 5000) {
+          diagSoon(
+            'webview: queue wait ${waitMs ~/ 1000}s '
+            'pri=${task.priority ? 'high' : 'low'}',
+          );
+        }
+        final t0 = DateTime.now();
+        _busy = true;
+        try {
+          await task.run();
+        } catch (_) {
+          // _run/_runInPage report their own outcome into the completer; this
+          // only keeps one failing task from stalling the queue.
+        } finally {
+          _busy = false;
+        }
+        final took = DateTime.now().difference(t0);
+        if (took > const Duration(seconds: 8)) {
+          diagSoon('webview: task took ${took.inSeconds}s');
+        }
+      }
+    } finally {
+      _draining = false;
+    }
+  }
 
   /// The clearance cookie names Cloudflare sets, which are worth keeping.
   static const Set<String> _keepCookies = {
@@ -43,17 +131,23 @@ class WebViewFetcher {
   /// Loads [url] in the hidden WebView and returns the rendered HTML.
   ///
   /// Requests are queued, so concurrent source calls do not fight over the
-  /// single WebView. Throws on timeout so callers can fall back to plain HTTP.
+  /// single WebView. [priority] requests (a source page, details, the reader)
+  /// jump any queued background fan-out requests. Throws on timeout so callers
+  /// can fall back to plain HTTP.
   Future<String> render(
     String url, {
     required String sourceId,
     String? expected,
     Duration timeout = const Duration(seconds: 30),
+    bool priority = false,
   }) {
     final completer = Completer<String>();
-    _chain = _chain
-        .then((_) => _run(url, sourceId, expected, timeout, completer))
-        .catchError((_) {});
+    _enqueue(
+      _Pending(
+        () => _run(url, sourceId, expected, timeout, completer),
+        priority: priority || !_isBackground,
+      ),
+    );
     return completer.future;
   }
 
@@ -74,11 +168,15 @@ class WebViewFetcher {
     String js, {
     required String sourceId,
     Duration cap = const Duration(seconds: 25),
+    bool priority = false,
   }) {
     final completer = Completer<String>();
-    _chain = _chain
-        .then((_) => _runInPage(url, js, sourceId, cap, completer))
-        .catchError((_) {});
+    _enqueue(
+      _Pending(
+        () => _runInPage(url, js, sourceId, cap, completer),
+        priority: priority || !_isBackground,
+      ),
+    );
     return completer.future;
   }
 
@@ -473,6 +571,7 @@ class WebViewFetcher {
                 ),
                 onWebViewCreated: (controller) {
                   _controller = controller;
+                  _startKeepAlive();
                   if (!ready.isCompleted) ready.complete(controller);
                 },
               ),
@@ -523,8 +622,32 @@ class WebViewFetcher {
 
   /// Releases the hidden WebView (used on sign-out and in tests).
   void dispose() {
+    _keepAlive?.cancel();
+    _keepAlive = null;
     _entry?.remove();
     _entry = null;
     _controller = null;
+  }
+
+  /// Starts (or restarts) the periodic ping that stops the renderer parking.
+  void _startKeepAlive() {
+    _keepAlive?.cancel();
+    _keepAlive = Timer.periodic(
+      const Duration(seconds: 8),
+      (_) => unawaited(_ping()),
+    );
+  }
+
+  /// A trivial main-frame evaluation: cheap, and exactly the kind of touch
+  /// that keeps the renderer from going to sleep. Skipped while a request is
+  /// actually using the view.
+  Future<void> _ping() async {
+    final c = _controller;
+    if (c == null || _busy) return;
+    try {
+      await c.evaluateJavascript(source: '1');
+    } catch (_) {
+      // The renderer may be mid-navigation or gone; a real call recreates it.
+    }
   }
 }

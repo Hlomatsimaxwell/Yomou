@@ -7,6 +7,7 @@ import 'package:yomou/core/utils/concurrent.dart';
 import 'package:yomou/data/models/manga.dart';
 import 'package:yomou/data/models/manga_source.dart';
 import 'package:yomou/data/providers/sources_provider.dart';
+import 'package:yomou/data/sources/webview_fetcher.dart';
 
 /// Number of results the suggestions feed keeps after de-duplicating.
 const _suggestionLimit = 40;
@@ -165,48 +166,52 @@ final suggestionsProvider = FutureProvider.family<List<Manga>, String?>((
   if (sources.isEmpty) return [];
 
   if (genre != null) {
-    final perSource = await _fanout(
-      sources.map((source) async {
-        try {
-          return await _tags(source, [genre]);
-        } catch (_) {
-          return <Manga>[];
-        }
-      }).toList(),
-      hasResult: (per) => per.any((lists) => lists.isNotEmpty),
-      // Several sources should be in before the feed shows: the first one in
-      // alone gave a single-source-correct-looking feed once the WebView
-      // variants started landing.
-      earlyResolve: (per) =>
-          per.where((lists) => lists.isNotEmpty).length >= 2,
+    final perSource = await WebViewFetcher.runBackground(
+      () => _fanout(
+        sources.map((source) async {
+          try {
+            return await _tags(source, [genre]);
+          } catch (_) {
+            return <Manga>[];
+          }
+        }).toList(),
+        hasResult: (per) => per.any((lists) => lists.isNotEmpty),
+        // Several sources should be in before the feed shows: the first one in
+        // alone gave a single-source-correct-looking feed once the WebView
+        // variants started landing.
+        earlyResolve: (per) =>
+            per.where((lists) => lists.isNotEmpty).length >= 2,
+      ),
     );
     return _mixSources(perSource);
   }
 
   final topTags = await DatabaseHelper.instance.getUserTopTags(limit: 5);
 
-  final perSource = await _fanout(
-    sources.map((source) async {
-      try {
-        if (topTags.isNotEmpty) {
-          final matched = await _tags(source, topTags);
-          if (matched.isNotEmpty) {
-            return [matched];
+  final perSource = await WebViewFetcher.runBackground(
+    () => _fanout(
+      sources.map((source) async {
+        try {
+          if (topTags.isNotEmpty) {
+            final matched = await _tags(source, topTags);
+            if (matched.isNotEmpty) {
+              return [matched];
+            }
           }
+          return [await _popular(source)];
+        } catch (_) {
+          return const <List<Manga>>[];
         }
-        return [await _popular(source)];
-      } catch (_) {
-        return const <List<Manga>>[];
-      }
-    }).toList(),
-    hasResult: (per) => per.any((lists) => lists.isNotEmpty),
-    // Each future wraps its manga lists, so "a source with content" is a
-    // wrapper containing at least one non-empty list. Requiring two such
-    // sources keeps the first paint a mix rather than a single source, while
-    // still beating the full fan-out window on a cold cache.
-    earlyResolve: (per) =>
-        per.where((lists) => lists.any((manga) => manga.isNotEmpty)).length >=
-        2,
+      }).toList(),
+      hasResult: (per) => per.any((lists) => lists.isNotEmpty),
+      // Each future wraps its manga lists, so "a source with content" is a
+      // wrapper containing at least one non-empty list. Requiring two such
+      // sources keeps the first paint a mix rather than a single source, while
+      // still beating the full fan-out window on a cold cache.
+      earlyResolve: (per) =>
+          per.where((lists) => lists.any((manga) => manga.isNotEmpty)).length >=
+          2,
+    ),
   );
 
   return _mixSources(perSource.expand((lists) => lists).toList());
@@ -228,19 +233,21 @@ final genreTagsProvider = FutureProvider<List<String>>((ref) async {
     boundVariantFamilies(sourcesFromRows(ref.watch(visibleSourceRowsProvider))),
     _maxGenreTagSources,
   );
-  final perSource = await _fanout(
-    sources.map((source) async {
-      try {
-        return await SourceCache.tags(
-          sourceId: source.id,
-          fetch: source.getAvailableTags,
-        );
-      } catch (_) {
-        return const <String>[];
-      }
-    }).toList(),
-    hasResult: (per) => per.any((tags) => tags.isNotEmpty),
-    earlyResolve: (per) => per.where((tags) => tags.isNotEmpty).length >= 2,
+  final perSource = await WebViewFetcher.runBackground(
+    () => _fanout(
+      sources.map((source) async {
+        try {
+          return await SourceCache.tags(
+            sourceId: source.id,
+            fetch: source.getAvailableTags,
+          );
+        } catch (_) {
+          return const <String>[];
+        }
+      }).toList(),
+      hasResult: (per) => per.any((tags) => tags.isNotEmpty),
+      earlyResolve: (per) => per.where((tags) => tags.isNotEmpty).length >= 2,
+    ),
   );
 
   final seen = <String>{};
