@@ -1097,8 +1097,6 @@
   "rsetVolumeButtonsSub": "Cambia de página con las teclas de volumen mientras hay un capítulo abierto",
   "rsetInvertNavigation": "Invertir control de navegación",
   "rsetInvertNavigationSub": "Desliza y avanza al revés",
-  "rsetColorMode32": "Modo de color de 32 bits",
-  "rsetColorMode32Sub": "No disponible — la app siempre renderiza a color de profundidad completa",
   "rsetReduceMemory": "Reducir consumo de memoria (beta)",
   "rsetReduceMemorySub": "Reduce la caché de páginas y precarga menos páginas",
   "rsetSectionEInk": "E-Ink",

@@ -152,6 +152,16 @@ class _ReaderScreenState extends ConsumerState<ReaderScreen>
     SystemChrome.setEnabledSystemUIMode(SystemUiMode.edgeToEdge);
   }
 
+  /// `setPreferredOrientations` is app-wide, not screen-wide: whatever the
+  /// reader asks for outlives the reader unless something puts it back. Left
+  /// alone, a reader locked to landscape would leave the rest of the app stuck
+  /// in landscape, and picking "Automatic" in there would not be a reader
+  /// setting at all. So the reader treats its own choice as scoped to itself and
+  /// hands the previous policy back on the way out.
+  void _restoreOrientation() {
+    SystemChrome.setPreferredOrientations(_orientationBeforeReader);
+  }
+
   // Chapter transition toast (Kotatsu-style chapter/page pill).
   double _toastOpacity = 0;
   int _toastShownChapter = -1;
@@ -228,6 +238,11 @@ class _ReaderScreenState extends ConsumerState<ReaderScreen>
   // Zone tap bookkeeping, so a press can only ever run one of the two actions.
   Offset? _zoneTapPosition;
   bool _zoneLongPressConsumed = false;
+
+  // The app's own orientation policy, saved on entry so the reader's lock can
+  // be undone on the way out. See `_restoreOrientation`.
+  List<DeviceOrientation> _orientationBeforeReader =
+      DeviceOrientation.values;
 
   // E-Ink page refresh: a short flat flash painted over the canvas, because
   // e-ink panels leave the previous page visible until something forces a
@@ -370,6 +385,10 @@ class _ReaderScreenState extends ConsumerState<ReaderScreen>
       _recreatePageController();
     }
 
+    // Remembered before anything is applied, because the reader is the only
+    // thing that locks orientation and the rest of the app has to get its own
+    // policy back on the way out.
+    _orientationBeforeReader = DeviceOrientation.values;
     _applyOrientation(s.orientation);
     _applyMemoryProfile(s.reduceMemory);
     _armVolumeKeys(s.volumeButtons);
@@ -556,8 +575,10 @@ class _ReaderScreenState extends ConsumerState<ReaderScreen>
     _sessionStopwatch.stop();
     WidgetsBinding.instance.removeObserver(this);
     _statusTimer?.cancel();
-    // The immersive overlay on every exit path restores the normal system UI.
+    // The immersive overlay on every exit path restores the normal system UI,
+    // and the orientation the reader took goes back with it.
     _restoreSystemUi();
+    _restoreOrientation();
     _autoSaveTimer?.cancel();
     _scrollController.dispose();
     _pageController.dispose();

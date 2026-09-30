@@ -121,18 +121,7 @@ class ReaderSettingsScreen extends ConsumerWidget {
           ),
           const _Gap(),
 
-          // --- 4. COLOUR AND MEMORY ---
-          // Android's RGB_565 mode has no Flutter equivalent — the engine is
-          // always 32-bit — so the row says so rather than showing a switch
-          // that cannot do anything.
-          _ToggleRow(
-            icon: RemixIcons.palette_line,
-            title: l.rsetColorMode32,
-            subtitle: l.rsetColorMode32Sub,
-            value: false,
-            enabled: false,
-            onChanged: (v) async {},
-          ),
+          // --- 4. MEMORY ---
           _ToggleRow(
             icon: RemixIcons.cpu_line,
             title: l.rsetReduceMemory,

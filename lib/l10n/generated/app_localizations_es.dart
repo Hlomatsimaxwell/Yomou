@@ -2513,13 +2513,6 @@ class AppLocalizationsEs extends AppLocalizations {
   String get rsetInvertNavigationSub => 'Desliza y avanza al revés';
 
   @override
-  String get rsetColorMode32 => 'Modo de color de 32 bits';
-
-  @override
-  String get rsetColorMode32Sub =>
-      'No disponible — la app siempre renderiza a color de profundidad completa';
-
-  @override
   String get rsetReduceMemory => 'Reducir consumo de memoria (beta)';
 
   @override

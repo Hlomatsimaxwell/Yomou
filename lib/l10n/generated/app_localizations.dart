@@ -4483,18 +4483,6 @@ abstract class AppLocalizations {
   /// **'Swipe and page the other way round'**
   String get rsetInvertNavigationSub;
 
-  /// No description provided for @rsetColorMode32.
-  ///
-  /// In en, this message translates to:
-  /// **'32-bit color mode'**
-  String get rsetColorMode32;
-
-  /// No description provided for @rsetColorMode32Sub.
-  ///
-  /// In en, this message translates to:
-  /// **'Not available — the app always renders at full colour depth'**
-  String get rsetColorMode32Sub;
-
   /// No description provided for @rsetReduceMemory.
   ///
   /// In en, this message translates to:

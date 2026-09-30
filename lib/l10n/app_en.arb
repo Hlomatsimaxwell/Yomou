@@ -1339,8 +1339,6 @@
   "rsetVolumeButtonsSub": "Turn pages with the volume keys while a chapter is open",
   "rsetInvertNavigation": "Invert navigation control",
   "rsetInvertNavigationSub": "Swipe and page the other way round",
-  "rsetColorMode32": "32-bit color mode",
-  "rsetColorMode32Sub": "Not available — the app always renders at full colour depth",
   "rsetReduceMemory": "Reduce memory consumption (beta)",
   "rsetReduceMemorySub": "Cuts the page cache and preloads less ahead",
   "rsetSectionEInk": "E-Ink",

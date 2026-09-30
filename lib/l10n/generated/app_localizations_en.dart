@@ -2491,13 +2491,6 @@ class AppLocalizationsEn extends AppLocalizations {
   String get rsetInvertNavigationSub => 'Swipe and page the other way round';
 
   @override
-  String get rsetColorMode32 => '32-bit color mode';
-
-  @override
-  String get rsetColorMode32Sub =>
-      'Not available — the app always renders at full colour depth';
-
-  @override
   String get rsetReduceMemory => 'Reduce memory consumption (beta)';
 
   @override
