@@ -950,6 +950,12 @@ abstract class AppLocalizations {
   /// **'Suggestions, Synchronization, Tracking'**
   String get settingsServicesSubtitle;
 
+  /// No description provided for @settingsServicesUnavailable.
+  ///
+  /// In en, this message translates to:
+  /// **'Nothing to configure yet'**
+  String get settingsServicesUnavailable;
+
   /// No description provided for @settingsBackup.
   ///
   /// In en, this message translates to:

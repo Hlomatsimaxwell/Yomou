@@ -1512,15 +1512,20 @@ class _HistoryScreenState extends ConsumerState<HistoryScreen> {
         ),
       );
     }
+    final columns =
+        mangaGridColumnsFor(context, userColumns: _gridSize.toInt()).clamp(2, 7);
     return SliverPadding(
       padding: const EdgeInsets.symmetric(horizontal: 16),
       sliver: SliverGrid(
         gridDelegate: SliverGridDelegateWithFixedCrossAxisCount(
-          crossAxisCount: _gridSize.toInt(),
+          crossAxisCount: columns,
           childAspectRatio: mangaCellAspectRatio(
             context,
-            columns: _gridSize.toInt(),
-            titleFontSize: _gridSize >= 4 ? 10 : 12,
+            columns: columns,
+            // Tied to the resolved count, not the stored setting: once a tablet
+            // derives 7 columns the titles have to shrink to match, or they
+            // overflow a cell sized for the old density.
+            titleFontSize: columns >= 4 ? 10 : 12,
           ),
           crossAxisSpacing: kMangaGridCrossSpacing,
           mainAxisSpacing: kMangaGridRowSpacing,

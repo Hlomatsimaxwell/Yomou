@@ -65,6 +65,7 @@
   "settingsNewChaptersSubtitle": "Buscar actualizaciones, ajustes de notificaciones",
   "settingsServices": "Servicios",
   "settingsServicesSubtitle": "Sugerencias, sincronización, seguimiento",
+  "settingsServicesUnavailable": "Todavía no hay nada que configurar",
   "settingsBackup": "Copia de seguridad y restauración",
   "settingsBackupSubtitle": "Crear o restaurar copia, copias periódicas",
   "settingsAbout": "Acerca de",

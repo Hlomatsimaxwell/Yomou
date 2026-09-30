@@ -497,6 +497,10 @@ class AppLocalizationsEs extends AppLocalizations {
       'Sugerencias, sincronización, seguimiento';
 
   @override
+  String get settingsServicesUnavailable =>
+      'Todavía no hay nada que configurar';
+
+  @override
   String get settingsBackup => 'Copia de seguridad y restauración';
 
   @override

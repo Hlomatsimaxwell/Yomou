@@ -791,7 +791,8 @@ class _SuggestionsScreenState extends ConsumerState<SuggestionsScreen> {
       );
     }
 
-    final columns = _gridSize.round().clamp(1, 7);
+    final columns =
+        mangaGridColumnsFor(context, userColumns: _gridSize.round()).clamp(1, 7);
     return SliverPadding(
       padding: const EdgeInsets.symmetric(horizontal: 16),
       sliver: SliverGrid.builder(

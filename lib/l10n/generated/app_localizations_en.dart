@@ -496,6 +496,9 @@ class AppLocalizationsEn extends AppLocalizations {
       'Suggestions, Synchronization, Tracking';
 
   @override
+  String get settingsServicesUnavailable => 'Nothing to configure yet';
+
+  @override
   String get settingsBackup => 'Backup and restore';
 
   @override

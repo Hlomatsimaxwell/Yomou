@@ -14,6 +14,7 @@ import 'package:yomou/features/explore/screens/explore_screen.dart';
 import 'package:yomou/features/feed/screens/feed_screen.dart';
 import 'package:yomou/features/feed/providers/updates_provider.dart';
 import 'package:yomou/core/theme/layout.dart';
+import 'package:yomou/core/widgets/responsive.dart';
 import 'package:yomou/features/reader/screens/reader_screen.dart';
 import 'package:yomou/core/database/database_helper.dart';
 import 'package:yomou/core/database/source_cache.dart';
@@ -310,6 +311,23 @@ class _HomeScreenState extends ConsumerState<HomeScreen>
         _currentIndex == 0;
     _visitedTabs.add(_currentIndex);
 
+    // Wide windows get a side rail and no bottom bar. A bottom bar stretched
+    // across a 12" tablet puts "History" and "Updates" a hand's width apart at
+    // opposite ends of the display, and wastes the width the content wants.
+    final useRail = hasSideNavigation(context);
+
+    // Shared by both layouts so the rail and the bar cannot drift into
+    // different tab behaviour.
+    final content = IndexedStack(
+      index: _currentIndex,
+      children: List.generate(
+        _screens.length,
+        (i) => _visitedTabs.contains(i)
+            ? _screens[i]
+            : const SizedBox.shrink(),
+      ),
+    );
+
     return PopScope(
       canPop: !settings.exitConfirmation,
       onPopInvokedWithResult: (didPop, result) {
@@ -333,24 +351,21 @@ class _HomeScreenState extends ConsumerState<HomeScreen>
       },
       child: Scaffold(
         backgroundColor: Theme.of(context).scaffoldBackgroundColor,
-        extendBody: true,
+        extendBody: !useRail,
         body: NotificationListener<ScrollNotification>(
           onNotification: _onScrollNotification,
-          child: Stack(
+          child: useRail
+              ? Row(
+                  children: [
+                    _buildNavRail(context, updatesCount, accent, enabledTabs),
+                    Expanded(child: content),
+                  ],
+                )
+              : Stack(
             children: [
               // Main body content — placed first so lists/grids extend
               // edge-to-edge and scroll underneath the floating bar.
-              Positioned.fill(
-                child: IndexedStack(
-                  index: _currentIndex,
-                  children: List.generate(
-                    _screens.length,
-                    (i) => _visitedTabs.contains(i)
-                        ? _screens[i]
-                        : const SizedBox.shrink(),
-                  ),
-                ),
-              ),
+              Positioned.fill(child: content),
               // Bottom navigation overlay (floating or solid) + the conditional
               // Continue FAB (History tab only, opt-in). The FAB sits beside the
               // floating pill in one bottom-centered row; with the solid bar it
@@ -625,6 +640,115 @@ class _HomeScreenState extends ConsumerState<HomeScreen>
     };
   }
 
+  /// Side navigation for wide windows, replacing the bottom bar.
+  ///
+  /// Not a stock [NavigationRail]: the app's navigation is its own accent-tinted
+  /// pill, so a Material rail beside it would read as two different apps. This
+  /// is the same pill rotated onto the vertical axis, with the label always
+  /// visible because a rail has the width for it -- which also means the
+  /// show-labels setting has nothing to hide here.
+  Widget _buildNavRail(
+    BuildContext context,
+    int updatesCount,
+    Color accent,
+    List<int> enabledTabs,
+  ) {
+    final dark = Theme.of(context).brightness == Brightness.dark;
+    return Container(
+      width: kNavRailWidth,
+      color: dark ? const Color(0xFF1C1C1E) : Colors.white,
+      child: SafeArea(
+        right: false,
+        child: Column(
+          children: [
+            const SizedBox(height: 8),
+            for (final index in enabledTabs)
+              Padding(
+                padding: const EdgeInsets.symmetric(
+                  horizontal: 8,
+                  vertical: 3,
+                ),
+                child: _buildNavRailItem(index, updatesCount, accent),
+              ),
+            const Spacer(),
+          ],
+        ),
+      ),
+    );
+  }
+
+  Widget _buildNavRailItem(
+    int index,
+    int updatesCount,
+    Color accent,
+  ) {
+    final active = _currentIndex == index;
+    final dark = Theme.of(context).brightness == Brightness.dark;
+    final color = active
+        ? accent
+        : dark
+        ? const Color(0xFF8E8E93)
+        : const Color(0xFF49454F);
+    final (line, fill) = _navIcons(index);
+
+    return Material(
+      color: active
+          ? accent.withValues(alpha: dark ? 0.26 : 0.16)
+          : Colors.transparent,
+      borderRadius: BorderRadius.circular(16),
+      child: InkWell(
+        onTap: () {
+          setState(() => _currentIndex = index);
+          _persistLastUsed(index);
+        },
+        borderRadius: BorderRadius.circular(16),
+        child: Padding(
+          padding: const EdgeInsets.symmetric(vertical: 10, horizontal: 4),
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              index == 4
+                  ? _buildUpdatesIcon(
+                      updatesCount,
+                      active ? fill : line,
+                      color,
+                      accent,
+                    )
+                  : Icon(
+                      active ? fill : line,
+                      size: 22,
+                      color: color,
+                    ),
+              const SizedBox(height: 3),
+              Text(
+                _navLabel(context, index),
+                maxLines: 1,
+                overflow: TextOverflow.ellipsis,
+                style: TextStyle(
+                  fontSize: 10,
+                  height: 1.1,
+                  fontWeight: active ? FontWeight.w600 : FontWeight.w400,
+                  color: color,
+                ),
+              ),
+            ],
+          ),
+        ),
+      ),
+    );
+  }
+
+  /// Line/fill glyph pair per tab, shared by the bottom bar and the side rail
+  /// so the two navigation shapes can never drift into showing different icons
+  /// for the same tab.
+  (IconData, IconData) _navIcons(int index) => switch (index) {
+        0 => (RemixIcons.history_line, RemixIcons.history_fill),
+        1 => (RemixIcons.heart_3_line, RemixIcons.heart_3_fill),
+        2 => (RemixIcons.lightbulb_line, RemixIcons.lightbulb_fill),
+        3 => (RemixIcons.compass_3_line, RemixIcons.compass_3_fill),
+        _ => (RemixIcons.rss_line, RemixIcons.rss_fill),
+      };
+
   // Icon + label slot (friend's iOS-style bar, Remix icons). Every tab shows
   // icon + small label; the active tab swaps to the fill glyph, tints with the
   // accent and scales up 5%. Each item is Expanded so the 5 tabs share the
@@ -645,13 +769,7 @@ class _HomeScreenState extends ConsumerState<HomeScreen>
         : const Color(0xFF49454F);
     final showLabels = settings.showNavLabels;
 
-    final (IconData line, IconData fill) = switch (index) {
-      0 => (RemixIcons.history_line, RemixIcons.history_fill),
-      1 => (RemixIcons.heart_3_line, RemixIcons.heart_3_fill),
-      2 => (RemixIcons.lightbulb_line, RemixIcons.lightbulb_fill),
-      3 => (RemixIcons.compass_3_line, RemixIcons.compass_3_fill),
-      _ => (RemixIcons.rss_line, RemixIcons.rss_fill),
-    };
+    final (line, fill) = _navIcons(index);
 
     return SizedBox(
       height: kBottomBarHeight - 16,

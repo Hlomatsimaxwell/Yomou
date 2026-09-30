@@ -155,12 +155,13 @@ class _FavoritesScreenState extends ConsumerState<FavoritesScreen> {
       );
     }
 
+    final columns = mangaGridColumns(context);
     return SliverPadding(
       padding: const EdgeInsets.symmetric(horizontal: 16),
       sliver: SliverGrid.builder(
         gridDelegate: SliverGridDelegateWithFixedCrossAxisCount(
-          crossAxisCount: 3,
-          childAspectRatio: mangaCellAspectRatio(context, columns: 3),
+          crossAxisCount: columns,
+          childAspectRatio: mangaCellAspectRatio(context, columns: columns),
           crossAxisSpacing: kMangaGridCrossSpacing,
           mainAxisSpacing: kMangaGridRowSpacing,
         ),

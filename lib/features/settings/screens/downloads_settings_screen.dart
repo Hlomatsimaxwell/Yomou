@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:remixicon/remixicon.dart';
 import 'package:yomou/core/backup/saf_directory_picker.dart';
+import 'package:yomou/core/widgets/responsive.dart';
 import 'package:yomou/features/settings/providers/download_settings_provider.dart';
 import 'package:yomou/features/settings/screens/manga_directories_screen.dart';
 import 'package:yomou/l10n/generated/app_localizations.dart';
@@ -20,7 +21,7 @@ class DownloadsSettingsScreen extends ConsumerWidget {
 
     return Scaffold(
       appBar: SettingsAppBar(title: l.downloads),
-      body: ListView(
+      body: CappedContentWidth(child: ListView(
         padding: const EdgeInsets.symmetric(vertical: 8),
         children: [
           _row(
@@ -77,7 +78,7 @@ class DownloadsSettingsScreen extends ConsumerWidget {
           ),
           const SizedBox(height: 24),
         ],
-      ),
+      )),
     );
   }
 

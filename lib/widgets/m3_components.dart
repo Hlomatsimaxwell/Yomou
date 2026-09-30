@@ -109,6 +109,27 @@ Future<T?> showM3ModalSheet<T>(
 
 /// Standard settings-screen app bar: themed foreground, transparent
 /// background, large light-weight title and back arrow.
+/// Present while a settings category screen is rendered inside a wide
+/// two-pane settings layout.
+///
+/// A category screen in a pane has nothing behind it to go back to -- the
+/// sibling categories are selections, not history -- so its app bar drops the
+/// back button. Doing this through a scope rather than a constructor flag on
+/// each screen means all of them pick it up without seven edits, and a screen
+/// cannot end up with a back arrow that pops the whole settings route out from
+/// under a pane tap.
+class SettingsPaneScope extends InheritedWidget {
+  const SettingsPaneScope({super.key, required super.child});
+
+  /// Whether [context] sits inside a two-pane settings detail pane.
+  static bool of(BuildContext context) => context
+      .dependOnInheritedWidgetOfExactType<SettingsPaneScope>()
+      != null;
+
+  @override
+  bool updateShouldNotify(SettingsPaneScope oldWidget) => false;
+}
+
 class SettingsAppBar extends StatelessWidget implements PreferredSizeWidget {
   const SettingsAppBar({super.key, required this.title, this.actions});
 
@@ -123,10 +144,12 @@ class SettingsAppBar extends StatelessWidget implements PreferredSizeWidget {
   @override
   Widget build(BuildContext context) {
     return AppBar(
-      leading: IconButton(
-        icon: const Icon(RemixIcons.arrow_left_line),
-        onPressed: () => Navigator.pop(context),
-      ),
+      leading: SettingsPaneScope.of(context)
+          ? null
+          : IconButton(
+              icon: const Icon(RemixIcons.arrow_left_line),
+              onPressed: () => Navigator.pop(context),
+            ),
       title: Text(
         title,
         style: const TextStyle(fontSize: 22, fontWeight: FontWeight.w400),

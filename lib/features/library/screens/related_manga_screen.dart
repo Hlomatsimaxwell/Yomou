@@ -296,16 +296,17 @@ class _RelatedMangaScreenState extends State<RelatedMangaScreen> {
     final items = _items;
     switch (_selectedMode) {
       case ListMode.grid:
+        final columns = mangaGridColumnsFor(
+          context,
+          userColumns: _gridSize.toInt(),
+        ).clamp(2, 4);
         return GridView.builder(
           padding: const EdgeInsets.symmetric(horizontal: 16),
           gridDelegate: SliverGridDelegateWithFixedCrossAxisCount(
-            crossAxisCount: _gridSize.toInt(),
+            crossAxisCount: columns,
             crossAxisSpacing: kMangaGridCrossSpacing,
             mainAxisSpacing: kMangaGridRowSpacing,
-            childAspectRatio: mangaCellAspectRatio(
-              context,
-              columns: _gridSize.toInt(),
-            ),
+            childAspectRatio: mangaCellAspectRatio(context, columns: columns),
           ),
           itemCount: items.length,
           itemBuilder: (context, index) {

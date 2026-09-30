@@ -757,8 +757,11 @@ class _SourceSearchResultsScreenState extends State<SourceSearchResultsScreen> {
             padding: const EdgeInsets.symmetric(horizontal: 16),
             sliver: SliverGrid.builder(
               gridDelegate: SliverGridDelegateWithFixedCrossAxisCount(
-                crossAxisCount: 3,
-                childAspectRatio: mangaCellAspectRatio(context, columns: 3),
+                crossAxisCount: mangaGridColumns(context),
+                childAspectRatio: mangaCellAspectRatio(
+                  context,
+                  columns: mangaGridColumns(context),
+                ),
                 crossAxisSpacing: kMangaGridCrossSpacing,
                 mainAxisSpacing: kMangaGridRowSpacing,
               ),

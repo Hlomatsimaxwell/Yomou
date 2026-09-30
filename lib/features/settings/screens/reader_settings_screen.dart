@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:remixicon/remixicon.dart';
 import 'package:yomou/core/theme/colors.dart';
+import 'package:yomou/core/widgets/responsive.dart';
 import 'package:yomou/features/settings/providers/appearance_provider.dart';
 import 'package:yomou/features/settings/providers/reader_settings_provider.dart';
 import 'package:yomou/features/settings/screens/reader_actions_screen.dart';
@@ -27,7 +28,7 @@ class ReaderSettingsScreen extends ConsumerWidget {
     // carries a name there, so inventing titles for the rest would be a guess.
     return Scaffold(
       appBar: SettingsAppBar(title: l.settingsReader),
-      body: ListView(
+      body: CappedContentWidth(child: ListView(
         padding: const EdgeInsets.only(bottom: 32),
         children: [
           // --- 1. READING ---
@@ -308,7 +309,7 @@ class ReaderSettingsScreen extends ConsumerWidget {
           // as the first thing a user has to decode.
           _Note(l.rsetDefaultsNote),
         ],
-      ),
+      )),
     );
   }
 

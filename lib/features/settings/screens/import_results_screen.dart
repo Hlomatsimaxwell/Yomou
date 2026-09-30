@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:remixicon/remixicon.dart';
 import 'package:yomou/core/backup/tachiyomi_backup.dart';
+import 'package:yomou/core/widgets/responsive.dart';
 import 'package:yomou/l10n/generated/app_localizations.dart';
 import 'package:yomou/widgets/m3_components.dart';
 
@@ -18,7 +19,7 @@ class ImportResultsScreen extends StatelessWidget {
 
     return Scaffold(
       appBar: SettingsAppBar(title: l.importResultsTitle),
-      body: ListView(
+      body: CappedContentWidth(child: ListView(
         padding: const EdgeInsets.symmetric(vertical: 4, horizontal: 16),
         children: [
           const SizedBox(height: 4),
@@ -45,7 +46,7 @@ class ImportResultsScreen extends StatelessWidget {
           ],
           const SizedBox(height: 16),
         ],
-      ),
+      )),
     );
   }
 }

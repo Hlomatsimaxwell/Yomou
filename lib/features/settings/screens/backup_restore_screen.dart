@@ -7,6 +7,7 @@ import 'package:file_picker/file_picker.dart';
 import 'package:remixicon/remixicon.dart';
 import 'package:yomou/core/backup/tachiyomi_backup.dart';
 import 'package:yomou/core/database/database_helper.dart';
+import 'package:yomou/core/widgets/responsive.dart';
 import 'package:yomou/features/history/providers/history_provider.dart';
 import 'package:yomou/features/library/providers/downloads_provider.dart';
 import 'package:yomou/features/library/providers/favorites_provider.dart';
@@ -313,7 +314,7 @@ class _BackupRestoreScreenState extends ConsumerState<BackupRestoreScreen> {
 
     return Scaffold(
       appBar: SettingsAppBar(title: l.backupRestore),
-      body: ListView(
+      body: CappedContentWidth(child: ListView(
         padding: const EdgeInsets.symmetric(vertical: 8),
         children: [
           _BuildButton(
@@ -362,7 +363,7 @@ class _BackupRestoreScreenState extends ConsumerState<BackupRestoreScreen> {
           ),
           const SizedBox(height: 24),
         ],
-      ),
+      )),
     );
   }
 }

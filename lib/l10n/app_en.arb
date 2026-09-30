@@ -251,6 +251,7 @@
   "settingsNewChaptersSubtitle": "Look for updates, Notifications settings",
   "settingsServices": "Services",
   "settingsServicesSubtitle": "Suggestions, Synchronization, Tracking",
+  "settingsServicesUnavailable": "Nothing to configure yet",
   "settingsBackup": "Backup and restore",
   "settingsBackupSubtitle": "Create or restore a backup, Periodic backups",
   "settingsAbout": "About",

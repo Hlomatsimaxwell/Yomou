@@ -694,9 +694,13 @@ class _MangaGridScreenState extends ConsumerState<MangaGridScreen> {
                     const SizedBox(height: 8),
                     Slider(
                       value: 7 - _gridSize,
-                      min: 1,
-                      max: 6,
-                      divisions: 5,
+                      // Exactly the range the grid clamps to. This used to span
+                      // 1..6 while the grid clamped to 2..5, so the two ends of
+                      // the slider did nothing: picking 6 showed 5 and picking
+                      // 1 showed 2.
+                      min: 2,
+                      max: 5,
+                      divisions: 3,
                       activeColor: dark
                           ? Colors.white
                           : Theme.of(context).colorScheme.primary,
@@ -836,7 +840,8 @@ class _MangaGridScreenState extends ConsumerState<MangaGridScreen> {
       );
     }
 
-    final columns = _gridSize.round().clamp(2, 5);
+    final columns =
+        mangaGridColumnsFor(context, userColumns: _gridSize.round()).clamp(2, 5);
     return Padding(
       padding: const EdgeInsets.symmetric(horizontal: 16),
       child: GridView.builder(

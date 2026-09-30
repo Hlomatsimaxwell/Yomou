@@ -9,6 +9,7 @@ import 'package:yomou/core/database/database_helper.dart';
 import 'package:yomou/core/notifications/background_tasks.dart';
 import 'package:yomou/core/notifications/notification_service.dart';
 import 'package:yomou/core/notifications/notification_settings.dart';
+import 'package:yomou/core/widgets/responsive.dart';
 import 'package:yomou/features/settings/screens/notification_log_screen.dart';
 import 'package:yomou/l10n/generated/app_localizations.dart';
 import 'package:yomou/widgets/m3_components.dart';
@@ -346,7 +347,7 @@ class _NotificationSettingsScreenState
     return Scaffold(
       backgroundColor: Theme.of(context).scaffoldBackgroundColor,
       appBar: SettingsAppBar(title: l.settingsNewChapters),
-      body: ListView(
+      body: CappedContentWidth(child: ListView(
         padding: const EdgeInsets.symmetric(vertical: 8),
         children: [
           Padding(
@@ -486,7 +487,7 @@ class _NotificationSettingsScreenState
           ],
           const SizedBox(height: 24),
         ],
-      ),
+      )),
     );
   }
 

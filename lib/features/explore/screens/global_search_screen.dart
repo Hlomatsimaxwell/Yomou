@@ -495,8 +495,11 @@ class _GlobalSearchScreenState extends ConsumerState<GlobalSearchScreen> {
           physics: const NeverScrollableScrollPhysics(),
           padding: const EdgeInsets.symmetric(horizontal: 16),
           gridDelegate: SliverGridDelegateWithFixedCrossAxisCount(
-            crossAxisCount: 3,
-            childAspectRatio: mangaCellAspectRatio(context, columns: 3),
+            crossAxisCount: mangaGridColumns(context),
+            childAspectRatio: mangaCellAspectRatio(
+              context,
+              columns: mangaGridColumns(context),
+            ),
             crossAxisSpacing: kMangaGridCrossSpacing,
             mainAxisSpacing: kMangaGridRowSpacing,
           ),

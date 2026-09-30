@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:remixicon/remixicon.dart';
 import 'package:yomou/core/cache/app_cache.dart';
+import 'package:yomou/core/widgets/responsive.dart';
 import 'package:yomou/features/settings/providers/cache_settings_provider.dart';
 import 'package:yomou/l10n/generated/app_localizations.dart';
 import 'package:yomou/widgets/m3_components.dart';
@@ -30,7 +31,7 @@ class _StorageSettingsScreenState extends ConsumerState<StorageSettingsScreen> {
 
     return Scaffold(
       appBar: SettingsAppBar(title: l.settingsStorage),
-      body: ListView(
+      body: CappedContentWidth(child: ListView(
         padding: const EdgeInsets.symmetric(vertical: 8),
         children: [
           M3SectionHeader(title: l.storageCacheSection),
@@ -75,7 +76,7 @@ class _StorageSettingsScreenState extends ConsumerState<StorageSettingsScreen> {
           ),
           const SizedBox(height: 24),
         ],
-      ),
+      )),
     );
   }
 
