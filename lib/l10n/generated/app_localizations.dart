@@ -437,7 +437,7 @@ abstract class AppLocalizations {
   /// No description provided for @settingsReaderSubtitle.
   ///
   /// In en, this message translates to:
-  /// **'Read mode, Scale mode, Switch pages'**
+  /// **'Reading mode, scale, page flash'**
   String get settingsReaderSubtitle;
 
   /// No description provided for @settingsStorage.
@@ -4356,6 +4356,510 @@ abstract class AppLocalizations {
   /// In en, this message translates to:
   /// **'loaded'**
   String get captchaContentLoaded;
+
+  /// No description provided for @rsetDefaultsNote.
+  ///
+  /// In en, this message translates to:
+  /// **'These are the defaults for a new title. A manga you have already configured keeps its own setting.'**
+  String get rsetDefaultsNote;
+
+  /// No description provided for @rsetDefaultMode.
+  ///
+  /// In en, this message translates to:
+  /// **'Default mode'**
+  String get rsetDefaultMode;
+
+  /// No description provided for @rsetDefaultModeSub.
+  ///
+  /// In en, this message translates to:
+  /// **'How a chapter opens when you have not set one for this title'**
+  String get rsetDefaultModeSub;
+
+  /// No description provided for @rsetModeStandard.
+  ///
+  /// In en, this message translates to:
+  /// **'Standard'**
+  String get rsetModeStandard;
+
+  /// No description provided for @rsetModeRtl.
+  ///
+  /// In en, this message translates to:
+  /// **'Right-to-left'**
+  String get rsetModeRtl;
+
+  /// No description provided for @rsetModeVertical.
+  ///
+  /// In en, this message translates to:
+  /// **'Vertical'**
+  String get rsetModeVertical;
+
+  /// No description provided for @rsetModeWebtoon.
+  ///
+  /// In en, this message translates to:
+  /// **'Webtoon'**
+  String get rsetModeWebtoon;
+
+  /// No description provided for @rsetScaleMode.
+  ///
+  /// In en, this message translates to:
+  /// **'Scale mode'**
+  String get rsetScaleMode;
+
+  /// No description provided for @rsetScaleModeSub.
+  ///
+  /// In en, this message translates to:
+  /// **'How a page fills the screen'**
+  String get rsetScaleModeSub;
+
+  /// No description provided for @rsetScaleFitCenter.
+  ///
+  /// In en, this message translates to:
+  /// **'Fit center'**
+  String get rsetScaleFitCenter;
+
+  /// No description provided for @rsetScaleFitHeight.
+  ///
+  /// In en, this message translates to:
+  /// **'Fit to height'**
+  String get rsetScaleFitHeight;
+
+  /// No description provided for @rsetScaleFitWidth.
+  ///
+  /// In en, this message translates to:
+  /// **'Fit to width'**
+  String get rsetScaleFitWidth;
+
+  /// No description provided for @rsetScaleKeepAtStart.
+  ///
+  /// In en, this message translates to:
+  /// **'Keep at start'**
+  String get rsetScaleKeepAtStart;
+
+  /// No description provided for @rsetWebtoonZoomOut.
+  ///
+  /// In en, this message translates to:
+  /// **'Default webtoon zoom out'**
+  String get rsetWebtoonZoomOut;
+
+  /// No description provided for @rsetWebtoonZoomOutSub.
+  ///
+  /// In en, this message translates to:
+  /// **'Narrows the strip so long panels are easier to read'**
+  String get rsetWebtoonZoomOutSub;
+
+  /// No description provided for @rsetWebtoonGaps.
+  ///
+  /// In en, this message translates to:
+  /// **'Gaps in webtoon mode'**
+  String get rsetWebtoonGaps;
+
+  /// No description provided for @rsetWebtoonGapsSub.
+  ///
+  /// In en, this message translates to:
+  /// **'Separate the panels so the seam between them is visible'**
+  String get rsetWebtoonGapsSub;
+
+  /// No description provided for @rsetVolumeButtons.
+  ///
+  /// In en, this message translates to:
+  /// **'Enable volume buttons'**
+  String get rsetVolumeButtons;
+
+  /// No description provided for @rsetVolumeButtonsSub.
+  ///
+  /// In en, this message translates to:
+  /// **'Turn pages with the volume keys while a chapter is open'**
+  String get rsetVolumeButtonsSub;
+
+  /// No description provided for @rsetInvertNavigation.
+  ///
+  /// In en, this message translates to:
+  /// **'Invert navigation control'**
+  String get rsetInvertNavigation;
+
+  /// No description provided for @rsetInvertNavigationSub.
+  ///
+  /// In en, this message translates to:
+  /// **'Swipe and page the other way round'**
+  String get rsetInvertNavigationSub;
+
+  /// No description provided for @rsetColorMode32.
+  ///
+  /// In en, this message translates to:
+  /// **'32-bit color mode'**
+  String get rsetColorMode32;
+
+  /// No description provided for @rsetColorMode32Sub.
+  ///
+  /// In en, this message translates to:
+  /// **'Not available — the app always renders at full colour depth'**
+  String get rsetColorMode32Sub;
+
+  /// No description provided for @rsetReduceMemory.
+  ///
+  /// In en, this message translates to:
+  /// **'Reduce memory consumption (beta)'**
+  String get rsetReduceMemory;
+
+  /// No description provided for @rsetReduceMemorySub.
+  ///
+  /// In en, this message translates to:
+  /// **'Cuts the page cache and preloads less ahead'**
+  String get rsetReduceMemorySub;
+
+  /// No description provided for @rsetSectionEInk.
+  ///
+  /// In en, this message translates to:
+  /// **'E-Ink'**
+  String get rsetSectionEInk;
+
+  /// No description provided for @rsetFlashOnChange.
+  ///
+  /// In en, this message translates to:
+  /// **'Flash on page change'**
+  String get rsetFlashOnChange;
+
+  /// No description provided for @rsetFlashOnChangeSub.
+  ///
+  /// In en, this message translates to:
+  /// **'Clear the screen between pages to drop ghosting'**
+  String get rsetFlashOnChangeSub;
+
+  /// No description provided for @rsetFlashDuration.
+  ///
+  /// In en, this message translates to:
+  /// **'Flash duration'**
+  String get rsetFlashDuration;
+
+  /// No description provided for @rsetFlashDurationSub.
+  ///
+  /// In en, this message translates to:
+  /// **'How long the screen stays cleared'**
+  String get rsetFlashDurationSub;
+
+  /// No description provided for @rsetFlashEvery.
+  ///
+  /// In en, this message translates to:
+  /// **'Flash every'**
+  String get rsetFlashEvery;
+
+  /// No description provided for @rsetFlashEverySub.
+  ///
+  /// In en, this message translates to:
+  /// **'Clear the screen once every few pages instead of every page'**
+  String get rsetFlashEverySub;
+
+  /// No description provided for @rsetFlashEveryUnit.
+  ///
+  /// In en, this message translates to:
+  /// **'{count, plural, =1{1 page} other{{count} pages}}'**
+  String rsetFlashEveryUnit(int count);
+
+  /// No description provided for @rsetFlashWith.
+  ///
+  /// In en, this message translates to:
+  /// **'Flash with'**
+  String get rsetFlashWith;
+
+  /// No description provided for @rsetFlashWhite.
+  ///
+  /// In en, this message translates to:
+  /// **'White'**
+  String get rsetFlashWhite;
+
+  /// No description provided for @rsetFlashBlack.
+  ///
+  /// In en, this message translates to:
+  /// **'Black'**
+  String get rsetFlashBlack;
+
+  /// No description provided for @rsetFullscreen.
+  ///
+  /// In en, this message translates to:
+  /// **'Fullscreen mode'**
+  String get rsetFullscreen;
+
+  /// No description provided for @rsetFullscreenSub.
+  ///
+  /// In en, this message translates to:
+  /// **'Hide the system bars while you read'**
+  String get rsetFullscreenSub;
+
+  /// No description provided for @rsetOrientation.
+  ///
+  /// In en, this message translates to:
+  /// **'Screen orientation'**
+  String get rsetOrientation;
+
+  /// No description provided for @rsetOrientationSub.
+  ///
+  /// In en, this message translates to:
+  /// **'Default keeps the reader the way you opened it'**
+  String get rsetOrientationSub;
+
+  /// No description provided for @rsetOrientDefault.
+  ///
+  /// In en, this message translates to:
+  /// **'Default'**
+  String get rsetOrientDefault;
+
+  /// No description provided for @rsetOrientAutomatic.
+  ///
+  /// In en, this message translates to:
+  /// **'Automatic'**
+  String get rsetOrientAutomatic;
+
+  /// No description provided for @rsetOrientPortrait.
+  ///
+  /// In en, this message translates to:
+  /// **'Portrait'**
+  String get rsetOrientPortrait;
+
+  /// No description provided for @rsetOrientLandscape.
+  ///
+  /// In en, this message translates to:
+  /// **'Landscape'**
+  String get rsetOrientLandscape;
+
+  /// No description provided for @rsetKeepScreenOn.
+  ///
+  /// In en, this message translates to:
+  /// **'Keep screen on'**
+  String get rsetKeepScreenOn;
+
+  /// No description provided for @rsetKeepScreenOnSub.
+  ///
+  /// In en, this message translates to:
+  /// **'Stop the display sleeping while a chapter is open'**
+  String get rsetKeepScreenOnSub;
+
+  /// No description provided for @rsetShowInfoBar.
+  ///
+  /// In en, this message translates to:
+  /// **'Show information bar in reader'**
+  String get rsetShowInfoBar;
+
+  /// No description provided for @rsetShowInfoBarSub.
+  ///
+  /// In en, this message translates to:
+  /// **'Progress, battery and time over the page'**
+  String get rsetShowInfoBarSub;
+
+  /// No description provided for @rsetTransparentInfoBar.
+  ///
+  /// In en, this message translates to:
+  /// **'Transparent reader information bar'**
+  String get rsetTransparentInfoBar;
+
+  /// No description provided for @rsetTransparentInfoBarSub.
+  ///
+  /// In en, this message translates to:
+  /// **'Off puts a dark strip behind the text instead'**
+  String get rsetTransparentInfoBarSub;
+
+  /// No description provided for @rsetShowChapterPopup.
+  ///
+  /// In en, this message translates to:
+  /// **'Show chapter change popup'**
+  String get rsetShowChapterPopup;
+
+  /// No description provided for @rsetShowChapterPopupSub.
+  ///
+  /// In en, this message translates to:
+  /// **'Say the chapter name when the page changes'**
+  String get rsetShowChapterPopupSub;
+
+  /// No description provided for @rsetBackground.
+  ///
+  /// In en, this message translates to:
+  /// **'Background'**
+  String get rsetBackground;
+
+  /// No description provided for @rsetBackgroundSub.
+  ///
+  /// In en, this message translates to:
+  /// **'The colour behind the page'**
+  String get rsetBackgroundSub;
+
+  /// No description provided for @rsetBgDefault.
+  ///
+  /// In en, this message translates to:
+  /// **'Default'**
+  String get rsetBgDefault;
+
+  /// No description provided for @rsetBgLight.
+  ///
+  /// In en, this message translates to:
+  /// **'Light'**
+  String get rsetBgLight;
+
+  /// No description provided for @rsetBgDark.
+  ///
+  /// In en, this message translates to:
+  /// **'Dark'**
+  String get rsetBgDark;
+
+  /// No description provided for @rsetBgWhite.
+  ///
+  /// In en, this message translates to:
+  /// **'White'**
+  String get rsetBgWhite;
+
+  /// No description provided for @rsetBgBlack.
+  ///
+  /// In en, this message translates to:
+  /// **'Black'**
+  String get rsetBgBlack;
+
+  /// No description provided for @rsetNumberedPages.
+  ///
+  /// In en, this message translates to:
+  /// **'Numbered pages'**
+  String get rsetNumberedPages;
+
+  /// No description provided for @rsetNumberedPagesSub.
+  ///
+  /// In en, this message translates to:
+  /// **'Print the page counter onto the page itself'**
+  String get rsetNumberedPagesSub;
+
+  /// No description provided for @rsetPreload.
+  ///
+  /// In en, this message translates to:
+  /// **'Preload pages'**
+  String get rsetPreload;
+
+  /// No description provided for @rsetPreloadSub.
+  ///
+  /// In en, this message translates to:
+  /// **'Fetch pages ahead of the one you are reading'**
+  String get rsetPreloadSub;
+
+  /// No description provided for @rsetPreloadAlways.
+  ///
+  /// In en, this message translates to:
+  /// **'Always'**
+  String get rsetPreloadAlways;
+
+  /// No description provided for @rsetPreloadWifiOnly.
+  ///
+  /// In en, this message translates to:
+  /// **'Only on Wi-Fi'**
+  String get rsetPreloadWifiOnly;
+
+  /// No description provided for @rsetPreloadNever.
+  ///
+  /// In en, this message translates to:
+  /// **'Never'**
+  String get rsetPreloadNever;
+
+  /// No description provided for @rsetTwoPages.
+  ///
+  /// In en, this message translates to:
+  /// **'Two pages in landscape'**
+  String get rsetTwoPages;
+
+  /// No description provided for @rsetTwoPagesSub.
+  ///
+  /// In en, this message translates to:
+  /// **'Show a spread instead of a single page'**
+  String get rsetTwoPagesSub;
+
+  /// No description provided for @settingsReaderActions.
+  ///
+  /// In en, this message translates to:
+  /// **'Reader actions'**
+  String get settingsReaderActions;
+
+  /// No description provided for @ractMenuSubtitle.
+  ///
+  /// In en, this message translates to:
+  /// **'What a tap does in each part of the page'**
+  String get ractMenuSubtitle;
+
+  /// No description provided for @ractMenuOverflow.
+  ///
+  /// In en, this message translates to:
+  /// **'More'**
+  String get ractMenuOverflow;
+
+  /// No description provided for @ractReset.
+  ///
+  /// In en, this message translates to:
+  /// **'Reset'**
+  String get ractReset;
+
+  /// No description provided for @ractDisableAll.
+  ///
+  /// In en, this message translates to:
+  /// **'Disable all'**
+  String get ractDisableAll;
+
+  /// No description provided for @ractResetDone.
+  ///
+  /// In en, this message translates to:
+  /// **'Reader actions reset'**
+  String get ractResetDone;
+
+  /// No description provided for @ractDisabledAll.
+  ///
+  /// In en, this message translates to:
+  /// **'All reader actions disabled'**
+  String get ractDisabledAll;
+
+  /// No description provided for @ractTapAction.
+  ///
+  /// In en, this message translates to:
+  /// **'Tap action'**
+  String get ractTapAction;
+
+  /// No description provided for @ractLongTapAction.
+  ///
+  /// In en, this message translates to:
+  /// **'Long tap action'**
+  String get ractLongTapAction;
+
+  /// No description provided for @ractActionNone.
+  ///
+  /// In en, this message translates to:
+  /// **'None'**
+  String get ractActionNone;
+
+  /// No description provided for @ractActionNextPage.
+  ///
+  /// In en, this message translates to:
+  /// **'Next page'**
+  String get ractActionNextPage;
+
+  /// No description provided for @ractActionPrevPage.
+  ///
+  /// In en, this message translates to:
+  /// **'Previous page'**
+  String get ractActionPrevPage;
+
+  /// No description provided for @ractActionNextChapter.
+  ///
+  /// In en, this message translates to:
+  /// **'Next chapter'**
+  String get ractActionNextChapter;
+
+  /// No description provided for @ractActionPrevChapter.
+  ///
+  /// In en, this message translates to:
+  /// **'Previous chapter'**
+  String get ractActionPrevChapter;
+
+  /// No description provided for @ractActionToggleUi.
+  ///
+  /// In en, this message translates to:
+  /// **'Show/hide UI'**
+  String get ractActionToggleUi;
+
+  /// No description provided for @ractActionShowMenu.
+  ///
+  /// In en, this message translates to:
+  /// **'Show menu'**
+  String get ractActionShowMenu;
 }
 
 class _AppLocalizationsDelegate

@@ -6,10 +6,12 @@ import android.content.Intent
 import android.net.ConnectivityManager
 import android.net.NetworkCapabilities
 import android.net.Uri
+import android.os.Build
 import android.os.Environment
 import android.os.StatFs
 import android.provider.DocumentsContract
 import android.provider.Settings
+import android.view.KeyEvent
 import android.view.WindowManager
 import io.flutter.embedding.android.FlutterActivity
 import io.flutter.embedding.engine.FlutterEngine
@@ -19,6 +21,10 @@ import java.io.File
 class MainActivity : FlutterActivity() {
     private val dirPickerRequestCode = 0xDA1
     private var dirPickerResult: MethodChannel.Result? = null
+
+    /** Set by the reader while a chapter is open; see [dispatchKeyEvent]. */
+    private lateinit var volumeChannel: MethodChannel
+    private var volumeKeysEnabled = false
 
     override fun configureFlutterEngine(flutterEngine: FlutterEngine) {
         super.configureFlutterEngine(flutterEngine)
@@ -139,7 +145,85 @@ class MainActivity : FlutterActivity() {
                 else -> result.notImplemented()
             }
         }
+        MethodChannel(
+            flutterEngine.dartExecutor.binaryMessenger,
+            "com.hlomatsi.yomou/display"
+        ).setMethodCallHandler { call, result ->
+            when (call.method) {
+                // "Keep screen on": the reader arms this while a chapter is
+                // open and disarms it on exit, so the display never sleeps
+                // mid-page without leaving the flag set for the whole app.
+                "setKeepScreenOn" -> {
+                    val enabled = call.argument<Boolean>("enabled") ?: false
+                    runOnUiThread {
+                        if (enabled) {
+                            window.addFlags(WindowManager.LayoutParams.FLAG_KEEP_SCREEN_ON)
+                        } else {
+                            window.clearFlags(WindowManager.LayoutParams.FLAG_KEEP_SCREEN_ON)
+                        }
+                    }
+                    result.success(true)
+                }
+                // "Only on Wi-Fi" preloading. Reports unmetered, not Wi-Fi by
+                // name: an unmetered connection is the thing that actually
+                // matters, and Ethernet should behave like Wi-Fi.
+                "isUnmetered" -> {
+                    try {
+                        val cm = getSystemService(Context.CONNECTIVITY_SERVICE)
+                            as? ConnectivityManager
+                        val net = cm?.activeNetwork
+                        result.success(
+                            net == null ||
+                                cm.getNetworkCapabilities(net)
+                                    ?.hasCapability(
+                                        NetworkCapabilities.NET_CAPABILITY_NOT_METERED
+                                    ) == true
+                        )
+                    } catch (e: Exception) {
+                        result.error("connectivity", e.message, null)
+                    }
+                }
+                else -> result.notImplemented()
+            }
+        }
+        MethodChannel(
+            flutterEngine.dartExecutor.binaryMessenger,
+            "com.hlomatsi.yomou/volume"
+        ).also { volumeChannel = it }.setMethodCallHandler { call, result ->
+            when (call.method) {
+                // Armed by the reader only while a chapter is open and the
+                // setting asks for it, so volume keys keep working normally
+                // everywhere else in the app.
+                "setEnabled" -> {
+                    volumeKeysEnabled = call.argument<Boolean>("enabled") ?: false
+                    result.success(true)
+                }
+                else -> result.notImplemented()
+            }
+        }
     }
+
+    /**
+     * Routes volume presses to the reader instead of the system volume panel.
+     * Returns true to swallow the event once the reader is handling it; when
+     * the reader is closed or the setting is off the key travels on untouched.
+     */
+    override fun dispatchKeyEvent(event: KeyEvent): Boolean {
+        if (volumeKeysEnabled && event.action == KeyEvent.ACTION_DOWN) {
+            when (event.keyCode) {
+                KeyEvent.KEYCODE_VOLUME_UP -> {
+                    volumeChannel.invokeMethod("volumeKey", mapOf("up" to true))
+                    return true
+                }
+                KeyEvent.KEYCODE_VOLUME_DOWN -> {
+                    volumeChannel.invokeMethod("volumeKey", mapOf("up" to false))
+                    return true
+                }
+            }
+        }
+        return super.dispatchKeyEvent(event)
+    }
+
 
     override fun onActivityResult(requestCode: Int, resultCode: Int, data: Intent?) {
         super.onActivityResult(requestCode, resultCode, data)

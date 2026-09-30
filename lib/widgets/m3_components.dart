@@ -36,6 +36,10 @@ Future<T?> showM3ModalSheet<T>(
   required List<Widget> children,
   Widget? footer,
   double maxHeightFactor = 0.6,
+
+  /// Optional glyph ahead of [title]. Sheets that pick a single setting use it
+  /// to say what is being picked, so the title is not read in isolation.
+  IconData? titleLeading,
 }) {
   return showModalBottomSheet<T>(
     context: context,
@@ -55,13 +59,27 @@ Future<T?> showM3ModalSheet<T>(
             children: [
               Padding(
                 padding: const EdgeInsets.fromLTRB(24, 4, 24, 8),
-                child: Text(
-                  title,
-                  style: TextStyle(
-                    color: cs.onSurface,
-                    fontSize: 17,
-                    fontWeight: FontWeight.w600,
-                  ),
+                child: Row(
+                  children: [
+                    if (titleLeading != null) ...[
+                      Icon(
+                        titleLeading,
+                        size: 20,
+                        color: cs.onSurfaceVariant,
+                      ),
+                      const SizedBox(width: 12),
+                    ],
+                    Expanded(
+                      child: Text(
+                        title,
+                        style: TextStyle(
+                          color: cs.onSurface,
+                          fontSize: 17,
+                          fontWeight: FontWeight.w600,
+                        ),
+                      ),
+                    ),
+                  ],
                 ),
               ),
               Flexible(

@@ -183,7 +183,7 @@ class AppLocalizationsEn extends AppLocalizations {
   String get settingsReader => 'Reader settings';
 
   @override
-  String get settingsReaderSubtitle => 'Read mode, Scale mode, Switch pages';
+  String get settingsReaderSubtitle => 'Reading mode, scale, page flash';
 
   @override
   String get settingsStorage => 'Storage and network';
@@ -2421,4 +2421,278 @@ class AppLocalizationsEn extends AppLocalizations {
 
   @override
   String get captchaContentLoaded => 'loaded';
+
+  @override
+  String get rsetDefaultsNote =>
+      'These are the defaults for a new title. A manga you have already configured keeps its own setting.';
+
+  @override
+  String get rsetDefaultMode => 'Default mode';
+
+  @override
+  String get rsetDefaultModeSub =>
+      'How a chapter opens when you have not set one for this title';
+
+  @override
+  String get rsetModeStandard => 'Standard';
+
+  @override
+  String get rsetModeRtl => 'Right-to-left';
+
+  @override
+  String get rsetModeVertical => 'Vertical';
+
+  @override
+  String get rsetModeWebtoon => 'Webtoon';
+
+  @override
+  String get rsetScaleMode => 'Scale mode';
+
+  @override
+  String get rsetScaleModeSub => 'How a page fills the screen';
+
+  @override
+  String get rsetScaleFitCenter => 'Fit center';
+
+  @override
+  String get rsetScaleFitHeight => 'Fit to height';
+
+  @override
+  String get rsetScaleFitWidth => 'Fit to width';
+
+  @override
+  String get rsetScaleKeepAtStart => 'Keep at start';
+
+  @override
+  String get rsetWebtoonZoomOut => 'Default webtoon zoom out';
+
+  @override
+  String get rsetWebtoonZoomOutSub =>
+      'Narrows the strip so long panels are easier to read';
+
+  @override
+  String get rsetWebtoonGaps => 'Gaps in webtoon mode';
+
+  @override
+  String get rsetWebtoonGapsSub =>
+      'Separate the panels so the seam between them is visible';
+
+  @override
+  String get rsetVolumeButtons => 'Enable volume buttons';
+
+  @override
+  String get rsetVolumeButtonsSub =>
+      'Turn pages with the volume keys while a chapter is open';
+
+  @override
+  String get rsetInvertNavigation => 'Invert navigation control';
+
+  @override
+  String get rsetInvertNavigationSub => 'Swipe and page the other way round';
+
+  @override
+  String get rsetColorMode32 => '32-bit color mode';
+
+  @override
+  String get rsetColorMode32Sub =>
+      'Not available — the app always renders at full colour depth';
+
+  @override
+  String get rsetReduceMemory => 'Reduce memory consumption (beta)';
+
+  @override
+  String get rsetReduceMemorySub =>
+      'Cuts the page cache and preloads less ahead';
+
+  @override
+  String get rsetSectionEInk => 'E-Ink';
+
+  @override
+  String get rsetFlashOnChange => 'Flash on page change';
+
+  @override
+  String get rsetFlashOnChangeSub =>
+      'Clear the screen between pages to drop ghosting';
+
+  @override
+  String get rsetFlashDuration => 'Flash duration';
+
+  @override
+  String get rsetFlashDurationSub => 'How long the screen stays cleared';
+
+  @override
+  String get rsetFlashEvery => 'Flash every';
+
+  @override
+  String get rsetFlashEverySub =>
+      'Clear the screen once every few pages instead of every page';
+
+  @override
+  String rsetFlashEveryUnit(int count) {
+    String _temp0 = intl.Intl.pluralLogic(
+      count,
+      locale: localeName,
+      other: '$count pages',
+      one: '1 page',
+    );
+    return '$_temp0';
+  }
+
+  @override
+  String get rsetFlashWith => 'Flash with';
+
+  @override
+  String get rsetFlashWhite => 'White';
+
+  @override
+  String get rsetFlashBlack => 'Black';
+
+  @override
+  String get rsetFullscreen => 'Fullscreen mode';
+
+  @override
+  String get rsetFullscreenSub => 'Hide the system bars while you read';
+
+  @override
+  String get rsetOrientation => 'Screen orientation';
+
+  @override
+  String get rsetOrientationSub =>
+      'Default keeps the reader the way you opened it';
+
+  @override
+  String get rsetOrientDefault => 'Default';
+
+  @override
+  String get rsetOrientAutomatic => 'Automatic';
+
+  @override
+  String get rsetOrientPortrait => 'Portrait';
+
+  @override
+  String get rsetOrientLandscape => 'Landscape';
+
+  @override
+  String get rsetKeepScreenOn => 'Keep screen on';
+
+  @override
+  String get rsetKeepScreenOnSub =>
+      'Stop the display sleeping while a chapter is open';
+
+  @override
+  String get rsetShowInfoBar => 'Show information bar in reader';
+
+  @override
+  String get rsetShowInfoBarSub => 'Progress, battery and time over the page';
+
+  @override
+  String get rsetTransparentInfoBar => 'Transparent reader information bar';
+
+  @override
+  String get rsetTransparentInfoBarSub =>
+      'Off puts a dark strip behind the text instead';
+
+  @override
+  String get rsetShowChapterPopup => 'Show chapter change popup';
+
+  @override
+  String get rsetShowChapterPopupSub =>
+      'Say the chapter name when the page changes';
+
+  @override
+  String get rsetBackground => 'Background';
+
+  @override
+  String get rsetBackgroundSub => 'The colour behind the page';
+
+  @override
+  String get rsetBgDefault => 'Default';
+
+  @override
+  String get rsetBgLight => 'Light';
+
+  @override
+  String get rsetBgDark => 'Dark';
+
+  @override
+  String get rsetBgWhite => 'White';
+
+  @override
+  String get rsetBgBlack => 'Black';
+
+  @override
+  String get rsetNumberedPages => 'Numbered pages';
+
+  @override
+  String get rsetNumberedPagesSub =>
+      'Print the page counter onto the page itself';
+
+  @override
+  String get rsetPreload => 'Preload pages';
+
+  @override
+  String get rsetPreloadSub => 'Fetch pages ahead of the one you are reading';
+
+  @override
+  String get rsetPreloadAlways => 'Always';
+
+  @override
+  String get rsetPreloadWifiOnly => 'Only on Wi-Fi';
+
+  @override
+  String get rsetPreloadNever => 'Never';
+
+  @override
+  String get rsetTwoPages => 'Two pages in landscape';
+
+  @override
+  String get rsetTwoPagesSub => 'Show a spread instead of a single page';
+
+  @override
+  String get settingsReaderActions => 'Reader actions';
+
+  @override
+  String get ractMenuSubtitle => 'What a tap does in each part of the page';
+
+  @override
+  String get ractMenuOverflow => 'More';
+
+  @override
+  String get ractReset => 'Reset';
+
+  @override
+  String get ractDisableAll => 'Disable all';
+
+  @override
+  String get ractResetDone => 'Reader actions reset';
+
+  @override
+  String get ractDisabledAll => 'All reader actions disabled';
+
+  @override
+  String get ractTapAction => 'Tap action';
+
+  @override
+  String get ractLongTapAction => 'Long tap action';
+
+  @override
+  String get ractActionNone => 'None';
+
+  @override
+  String get ractActionNextPage => 'Next page';
+
+  @override
+  String get ractActionPrevPage => 'Previous page';
+
+  @override
+  String get ractActionNextChapter => 'Next chapter';
+
+  @override
+  String get ractActionPrevChapter => 'Previous chapter';
+
+  @override
+  String get ractActionToggleUi => 'Show/hide UI';
+
+  @override
+  String get ractActionShowMenu => 'Show menu';
 }

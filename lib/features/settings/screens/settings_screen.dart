@@ -9,6 +9,7 @@ import 'package:yomou/features/settings/screens/backup_restore_screen.dart';
 import 'package:yomou/features/settings/screens/notification_settings_screen.dart';
 import 'package:yomou/features/settings/screens/storage_settings_screen.dart';
 import 'package:yomou/features/settings/screens/downloads_settings_screen.dart';
+import 'package:yomou/features/settings/screens/reader_settings_screen.dart';
 import 'package:yomou/data/providers/sources_provider.dart';
 import 'package:yomou/widgets/m3_components.dart';
 
@@ -61,7 +62,14 @@ class SettingsScreen extends ConsumerWidget {
             icon: RemixIcons.book_open_line,
             title: l.settingsReader,
             subtitle: l.settingsReaderSubtitle,
-            onTap: () {},
+            onTap: () {
+              Navigator.push(
+                context,
+                MaterialPageRoute(
+                  builder: (context) => const ReaderSettingsScreen(),
+                ),
+              );
+            },
           ),
           _buildSettingTile(
             context: context,

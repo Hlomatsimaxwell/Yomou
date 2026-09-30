@@ -26,6 +26,8 @@ import 'package:yomou/features/history/providers/history_provider.dart';
 import 'package:yomou/features/library/providers/downloads_provider.dart';
 import 'package:yomou/features/settings/providers/cache_settings_provider.dart';
 import 'package:yomou/features/settings/providers/download_settings_provider.dart';
+import 'package:yomou/features/settings/providers/reader_actions_provider.dart';
+import 'package:yomou/features/settings/providers/reader_settings_provider.dart';
 import 'package:yomou/features/settings/providers/appearance_provider.dart';
 import 'package:yomou/core/widgets/empty_state.dart';
 import 'package:yomou/features/settings/screens/settings_screen.dart';
@@ -123,11 +125,16 @@ class _ReaderScreenState extends ConsumerState<ReaderScreen>
     // status bar at the top edge. Tapping the controls restores the native
     // system status bar / navigation bars.
     //
+    // With "Fullscreen mode" off there is no immersive state at all: the
+    // system bars stay on screen whatever the controls are doing.
+    //
     // System overlays are explicitly transparent in both states so the manga
     // canvas and background draw all the way to the absolute top edge of the
     // glass — there's never a reserved black strip where the status bar was.
     SystemChrome.setEnabledSystemUIMode(
-      _showControls ? SystemUiMode.edgeToEdge : SystemUiMode.immersiveSticky,
+      !_fullscreen || (_showControls && _showInfoBar)
+          ? SystemUiMode.edgeToEdge
+          : SystemUiMode.immersiveSticky,
     );
     SystemChrome.setSystemUIOverlayStyle(
       const SystemUiOverlayStyle(
@@ -194,6 +201,46 @@ class _ReaderScreenState extends ConsumerState<ReaderScreen>
   bool _useTwoPagesLayout = false;
   bool _rotateScreen = false;
   Timer? _autoScrollTimer;
+
+  // Settings resolved from Settings > Reader (global default, unless this
+  // title already carries its own stored choice for the equivalent key).
+  String _scaleMode = kScaleFitCenter;
+  bool _fullscreen = true;
+  bool _flashOnPageChange = false;
+  String _flashWith = kFlashWhite;
+  int _flashDurationMs = 300;
+
+  /// Flash once every N pages instead of on every page.
+  int _flashEvery = 1;
+  int _webtoonZoomOut = 0;
+  bool _webtoonGaps = false;
+  bool _reduceMemory = false;
+  bool _keepScreenOn = true;
+  bool _showInfoBar = true;
+  bool _transparentInfoBar = true;
+  bool _showChapterPopup = true;
+  bool _numberedPages = false;
+  bool _invertNavigation = false;
+  String _background = kBgDefault;
+  String _preload = kPreloadAlways;
+  bool _preloadAllowed = true;
+
+  // Zone tap bookkeeping, so a press can only ever run one of the two actions.
+  Offset? _zoneTapPosition;
+  bool _zoneLongPressConsumed = false;
+
+  // E-Ink page refresh: a short flat flash painted over the canvas, because
+  // e-ink panels leave the previous page visible until something forces a
+  // full refresh. Android exposes no e-ink API, so this is offered on every
+  // device and simply does nothing until the user turns it on.
+  double _flashOpacity = 0;
+  Timer? _flashTimer;
+  int _flashedPage = -1;
+
+  // Volume-button paging, armed only while a chapter is open.
+  final MethodChannel _volumeChannel =
+      const MethodChannel('com.hlomatsi.yomou/volume');
+  bool _volumeButtons = false;
 
   // Color correction.
   double _brightness = 100;
@@ -270,39 +317,212 @@ class _ReaderScreenState extends ConsumerState<ReaderScreen>
 
   // --- PERSISTED READER SETTINGS ---
 
-  // Reader settings are stored per manga so changing them for one title never
-  // affects another.
+  // In-reader changes stay per manga so changing them for one title never
+  // affects another. They are written as `<mangaId>_reader_*` overrides that
+  // take priority over the global defaults in Settings > Reader.
   String _prefKey(String suffix) => '${widget.mangaId}_$suffix';
 
   Future<void> _loadPrefs() async {
+    // Read from persistence rather than from the provider: the provider starts
+    // on defaults and fills in asynchronously, so a chapter opened during app
+    // start would otherwise silently run on defaults instead of the saved
+    // values. Persistence is the source of truth, and the reader is the only
+    // thing that mutates per-title keys while it is open.
+    final ctx = await resolveReaderContext(widget.mangaId);
+    final s = ctx.settings;
+    // Contrast and sepia have never had a global, so they stay per-title.
     final prefs = await SharedPreferences.getInstance();
-    final modeName = prefs.getString(_prefKey('reader_mode'));
-    final mode = ReadingMode.values.firstWhere(
-      (m) => m.name == modeName,
-      orElse: () => ReadingMode.vertical,
-    );
-    final rotateScreen =
-        prefs.getBool(_prefKey('reader_rotate_screen')) ?? false;
+    final contrast = prefs.getDouble(_prefKey('reader_contrast')) ?? 100;
+    final sepia = prefs.getDouble(_prefKey('reader_sepia')) ?? 0;
+    final brightness = prefs.getDouble(_prefKey('reader_brightness')) ?? 100;
 
     if (!mounted) return;
     setState(() {
-      _readingMode = mode;
-      _useTwoPagesLayout = prefs.getBool(_prefKey('reader_two_pages')) ?? false;
-      _rotateScreen = rotateScreen;
-      _brightness = prefs.getDouble(_prefKey('reader_brightness')) ?? 100;
-      _contrast = prefs.getDouble(_prefKey('reader_contrast')) ?? 100;
-      _sepia = prefs.getDouble(_prefKey('reader_sepia')) ?? 0;
+      _readingMode = ReadingMode.values.firstWhere(
+        (m) => m.name == s.readingMode,
+        orElse: () => ReadingMode.webtoon,
+      );
+      _useTwoPagesLayout = s.twoPages;
+      _scaleMode = s.scaleMode;
+      _fullscreen = s.fullscreen;
+      _flashOnPageChange = s.flashOnPageChange;
+      _flashWith = s.flashWith;
+      _flashDurationMs = s.flashDurationMs;
+      _flashEvery = s.flashEvery;
+      _webtoonZoomOut = s.webtoonZoomOut;
+      _webtoonGaps = s.webtoonGaps;
+      _reduceMemory = s.reduceMemory;
+      _keepScreenOn = s.keepScreenOn;
+      _showInfoBar = s.showInfoBar;
+      _transparentInfoBar = s.transparentInfoBar;
+      _showChapterPopup = s.showChapterPopup;
+      _numberedPages = s.numberedPages;
+      _invertNavigation = s.invertNavigation;
+      _background = s.background;
+      _preload = s.preload;
+      _brightness = brightness;
+      _contrast = contrast;
+      _sepia = sepia;
+      _rotateScreen = s.orientation == kOrientLandscape;
     });
 
     if (_useTwoPagesLayout) {
       _recreatePageController();
     }
 
-    if (rotateScreen) {
-      SystemChrome.setPreferredOrientations([
-        DeviceOrientation.landscapeLeft,
-        DeviceOrientation.landscapeRight,
-      ]);
+    _applyOrientation(s.orientation);
+    _applyMemoryProfile(s.reduceMemory);
+    _armVolumeKeys(s.volumeButtons);
+    _applyKeepScreenOn();
+    _resolvePreloadPolicy();
+    _applySystemUiMode();
+  }
+
+  /// "Keep screen on" holds the window awake for as long as the reader is
+  /// open, and releases it on exit so the flag is never left set app-wide.
+  void _applyKeepScreenOn({bool? force}) {
+    ReaderPlatform.setKeepScreenOn(force ?? _keepScreenOn);
+  }
+
+  /// "Preload pages" gates the prefetch window, which is the reader's only
+  /// source of speculative network traffic.
+  Future<void> _resolvePreloadPolicy() async {
+    if (_preload == kPreloadNever) {
+      _preloadAllowed = false;
+    } else if (_preload == kPreloadWifiOnly) {
+      _preloadAllowed = await ReaderPlatform.isUnmetered();
+    } else {
+      _preloadAllowed = true;
+    }
+  }
+
+  /// Pushes the chosen orientation to the platform.
+  ///
+  /// "Default" and "Automatic" are deliberately different readings: Default
+  /// locks the orientation the reader opened in, so the device cannot rotate
+  /// out from under a page mid-sentence, while Automatic follows the device
+  /// as it turns.
+  void _applyOrientation(String orientation) {
+    switch (orientation) {
+      case kOrientPortrait:
+        SystemChrome.setPreferredOrientations([
+          DeviceOrientation.portraitUp,
+          DeviceOrientation.portraitDown,
+        ]);
+      case kOrientLandscape:
+        SystemChrome.setPreferredOrientations([
+          DeviceOrientation.landscapeLeft,
+          DeviceOrientation.landscapeRight,
+        ]);
+      case kOrientDefault:
+        final isLandscape =
+            MediaQuery.of(context).orientation == Orientation.landscape;
+        SystemChrome.setPreferredOrientations(isLandscape
+            ? [
+                DeviceOrientation.landscapeLeft,
+                DeviceOrientation.landscapeRight,
+              ]
+            : [
+                DeviceOrientation.portraitUp,
+                DeviceOrientation.portraitDown,
+              ]);
+      case kOrientAutomatic:
+      default:
+        SystemChrome.setPreferredOrientations(DeviceOrientation.values);
+    }
+  }
+
+  /// Caps the decoded-image cache to the budget the user picked. This is the
+  /// dominant memory cost in the reader — a long webtoon chapter holds whole
+  /// bitmaps — so the "Reduce memory consumption" switch moves the real limit
+  /// rather than just a label.
+  void _applyMemoryProfile(bool reduce) {
+    final profile = MemoryProfile.forReduceMemory(reduce);
+    // `maximumSizeBytes` is the budget that actually applies; the count-based
+    // `maximumSize` is left alone because deriving an image count from a byte
+    // budget would be a guess about decoded page sizes.
+    PaintingBinding.instance.imageCache.maximumSizeBytes =
+        profile.imageCacheBytes;
+  }
+
+  /// Volume keys are only swallowed while a chapter is open and the user asked
+  /// for paging, so they keep controlling system volume everywhere else.
+  void _armVolumeKeys(bool enabled) {
+    _volumeButtons = enabled;
+    if (!enabled) {
+      _volumeChannel.setMethodCallHandler(null);
+      _setVolumeEnabled(false);
+      return;
+    }
+    _volumeChannel.setMethodCallHandler((call) async {
+      if (call.method != 'volumeKey') return null;
+      final args = call.arguments;
+      final up = args is Map ? (args['up'] as bool? ?? true) : true;
+      if (!mounted) return null;
+      // "Invert navigation control" swaps the keys too, so the keyboard and
+      // the swipe move together instead of fighting each other.
+      final step = _invertNavigation ? -1 : 1;
+      _stepPage(up ? step : -step);
+      return null;
+    });
+    _setVolumeEnabled(true);
+  }
+
+  Future<void> _setVolumeEnabled(bool enabled) async {
+    try {
+      await _volumeChannel.invokeMethod<void>('setEnabled', {'enabled': enabled});
+    } on PlatformException {
+      // Older install without the native side: paging just stays inert.
+    } on MissingPluginException {
+      // Same.
+    }
+  }
+
+  /// E-Ink page flash. A real refresh needs the panel to be cleared, so the
+  /// canvas is briefly flooded with a flat colour; without this an e-ink screen
+  /// can carry page ghosts from the previous chapter.
+  ///
+  /// Android exposes no way to ask whether a panel is e-ink, so this is offered
+  /// on every device — on an LCD or OLED it reads as a plain blink, which is
+  /// exactly what the user asked for by turning it on.
+  ///
+  /// Keyed on the page actually changing: the scrolling modes call this from
+  /// the scroll ticker, which fires on every frame of a drag, and without the
+  /// guard a single swipe would strobe the panel dozens of times. "Flash every"
+  /// then widens that key to every Nth page.
+  void _flashOnPage(int page) {
+    if (!_flashOnPageChange || _flashEvery < 1) return;
+    if (page == _flashedPage) return;
+    if (_flashedPage >= 0 && page ~/ _flashEvery == _flashedPage ~/ _flashEvery) {
+      return;
+    }
+    _flashedPage = page;
+    _flashTimer?.cancel();
+    if (!mounted) return;
+    setState(() => _flashOpacity = 1);
+    _flashTimer = Timer(Duration(milliseconds: _flashDurationMs), () {
+      if (!mounted) return;
+      setState(() => _flashOpacity = 0);
+    });
+  }
+
+  /// Moves one page (or one spread) in the direction the volume key asked for.
+  void _stepPage(int delta) {
+    if (_pages.isEmpty) return;
+    if (_isHorizontal) {
+      if (!_pageController.hasClients) return;
+      final current = (_pageController.page ?? _currentPageIndex).round();
+      final target = (current + delta).clamp(0, _pages.length - 1);
+      if (target != current) _pageController.jumpToPage(target);
+    } else {
+      final target = _currentPageIndex + delta;
+      if (target < 0) {
+        _loadPreviousChapter();
+      } else if (target < _pages.length) {
+        _jumpToPage(target);
+      } else {
+        _loadNextChapter();
+      }
     }
   }
 
@@ -346,6 +566,15 @@ class _ReaderScreenState extends ConsumerState<ReaderScreen>
     _toastTimer?.cancel();
     _scrollStopTimer?.cancel();
     _autoScrollTimer?.cancel();
+    _flashTimer?.cancel();
+    // Hand the volume keys back to the system before the reader goes away, or
+    // they stay swallowed and the user can't change volume anywhere else.
+    if (_volumeButtons) {
+      _volumeChannel.setMethodCallHandler(null);
+      _setVolumeEnabled(false);
+    }
+    // Likewise the wake lock: it belongs to the reader, not the app.
+    if (_keepScreenOn) _applyKeepScreenOn(force: false);
     _zoomAnimController.dispose();
     super.dispose();
   }
@@ -355,6 +584,67 @@ class _ReaderScreenState extends ConsumerState<ReaderScreen>
       _showControls = !_showControls;
     });
     _applySystemUiMode();
+  }
+
+  /// A press on the page can mean two different things depending on how long it
+  /// is held, and the arena does not always settle that in the app's favour —
+  /// a long press can also be reported as a tap. These three handlers make the
+  /// two mutually exclusive: whichever fires first wins, and the other becomes
+  /// a no-op for that press.
+  void _zoneTapDown(TapDownDetails d) {
+    _zoneLongPressConsumed = false;
+    _zoneTapPosition = d.localPosition;
+  }
+
+  void _zoneTapUp(TapUpDetails d) {
+    if (_zoneLongPressConsumed) {
+      _zoneLongPressConsumed = false;
+      return;
+    }
+    _runZoneAction(d.localPosition, gesture: ZoneGesture.tap);
+  }
+
+  void _zoneLongPressStart(LongPressStartDetails d) {
+    // The press it was holding belongs to the long press now, so the tap that
+    // follows the finger lifting is dropped in `_zoneTapUp`. `_zoneTapPosition`
+    // is preferred over the reported one because a finger that drifted a few
+    // pixels should still map to the cell the press started in, not the one it
+    // wandered into.
+    _zoneLongPressConsumed = true;
+    _runZoneAction(_zoneTapPosition ?? d.localPosition,
+        gesture: ZoneGesture.longTap);
+  }
+
+  /// Runs whatever Settings > Reader actions maps to the 3x3 zone the touch
+  /// landed in. A zone mapped to "None" swallows the gesture entirely, which is
+  /// what "Disable all" is for: a stray tap can then never turn a page.
+  void _runZoneAction(Offset position, {required ZoneGesture gesture}) {    final size = MediaQuery.sizeOf(context);
+    if (size.width <= 0 || size.height <= 0) return;
+
+    final column = (position.dx / size.width * kZoneColumns)
+        .floor()
+        .clamp(0, kZoneColumns - 1);
+    final row =
+        (position.dy / size.height * kZoneRows).floor().clamp(0, kZoneRows - 1);
+
+    final action =
+        ref.read(readerActionsProvider).action(row, column, gesture);
+    switch (action) {
+      case kActNextPage:
+        _stepPage(1);
+      case kActPrevPage:
+        _stepPage(-1);
+      case kActNextChapter:
+        _loadNextChapter();
+      case kActPrevChapter:
+        _loadPreviousChapter();
+      case kActShowMenu:
+        _showSettingsSheet();
+      case kActToggleUi:
+        _toggleControls();
+      case kActNone:
+        break;
+    }
   }
 
   /// Kotatsu-style left-hand status text: "Ch. 26/205 Pg. 3/16 12%".
@@ -367,6 +657,93 @@ class _ReaderScreenState extends ConsumerState<ReaderScreen>
     final ch = chapterLabel.isNotEmpty ? chapterLabel : '${chapterIndex + 1}';
     return 'Ch. $ch/${widget.totalChapters} Pg. ${page + 1}/$totalPages $progress%';
   }
+
+  /// The overlay strip shown while the reader is fullscreen and the controls
+  /// are hidden. Extracted so "Transparent reader information bar" can swap the
+  /// backing without duplicating the whole row.
+  Widget _buildInfoBar(int chapterIndex, String chapterLabel) {
+    // The page counter only appears in the bar when "Numbered pages" is on and
+    // the bar is not being used purely for chapter progress.
+    final row = Row(
+      mainAxisAlignment: MainAxisAlignment.spaceBetween,
+      crossAxisAlignment: CrossAxisAlignment.center,
+      children: [
+        Flexible(
+          child: Text(
+            _immersiveStatusText(chapterIndex, chapterLabel),
+            style: _infoTextStyle,
+            maxLines: 1,
+            overflow: TextOverflow.ellipsis,
+          ),
+        ),
+        const SizedBox(width: 12),
+        Row(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            if (_batteryLevel >= 0) ...[
+              Icon(
+                _batteryLevel > 20
+                    ? RemixIcons.battery_2_fill
+                    : RemixIcons.battery_low_fill,
+                color: Colors.white,
+                size: 14,
+              ),
+              const SizedBox(width: 4),
+              Text('$_batteryLevel%', style: _infoTextStyle),
+              const SizedBox(width: 12),
+            ],
+            Text(_clockText, style: _infoTextStyle),
+          ],
+        ),
+      ],
+    );
+
+    return SafeArea(
+      key: const ValueKey('immersiveStatusBar'),
+      top: true,
+      left: false,
+      right: false,
+      minimum: const EdgeInsets.only(top: 0),
+      child: Transform.translate(
+        offset: const Offset(0, -3),
+        child: Padding(
+          padding: const EdgeInsets.fromLTRB(12, 2, 12, 4),
+          child: _transparentInfoBar
+              // Transparent: the glyphs carry their own shadow, which is what
+              // keeps them legible over a white or bright full-bleed page.
+              ? row
+              // Opaque: a short scrim behind the strip, because a drop shadow
+              // alone washes out over a bright page.
+              : DecoratedBox(
+                  decoration: const BoxDecoration(
+                    gradient: LinearGradient(
+                      begin: Alignment.topCenter,
+                      end: Alignment.bottomCenter,
+                      colors: [Color(0xB3000000), Color(0x00000000)],
+                    ),
+                  ),
+                  child: Padding(
+                    padding: const EdgeInsets.symmetric(vertical: 4),
+                    child: row,
+                  ),
+                ),
+        ),
+      ),
+    );
+  }
+
+  /// Shadowed white text: the info bar sits directly on the artwork, so it
+  /// cannot rely on a surface behind it.
+  static const TextStyle _infoTextStyle = TextStyle(
+    color: Colors.white,
+    fontSize: 12.5,
+    fontWeight: FontWeight.w600,
+    letterSpacing: 0.2,
+    shadows: [
+      Shadow(color: Colors.black, blurRadius: 1.5),
+      Shadow(color: Colors.black87, blurRadius: 5, offset: Offset(0, 1)),
+    ],
+  );
 
   int get _currentPageIndex {
     if (_pages.isEmpty) return 0;
@@ -492,15 +869,11 @@ class _ReaderScreenState extends ConsumerState<ReaderScreen>
   }
 
   void _toggleRotateScreen(bool value) {
+    // Still a per-title choice: flipping orientation inside a chapter is
+    // something people do for one title, so it keeps overriding the global.
+    final orientation = value ? kOrientLandscape : kOrientDefault;
     setState(() => _rotateScreen = value);
-    if (value) {
-      SystemChrome.setPreferredOrientations([
-        DeviceOrientation.landscapeLeft,
-        DeviceOrientation.landscapeRight,
-      ]);
-    } else {
-      SystemChrome.setPreferredOrientations(DeviceOrientation.values);
-    }
+    _applyOrientation(orientation);
     _saveBool(_prefKey('reader_rotate_screen'), value);
   }
 
@@ -1923,6 +2296,10 @@ class _ReaderScreenState extends ConsumerState<ReaderScreen>
       setState(() {
         _pages.addAll(newPages);
         _pagesChapters.addAll(newPages.map((_) => chapterIndex));
+        // A chapter that continues the previous one restarts the page indices,
+        // so the flash guard has to forget where it left off or the new
+        // chapter's first page would be treated as already flashed.
+        _flashedPage = -1;
         if (locals != null) {
           _pageFiles.addAll(locals);
         } else {
@@ -2066,8 +2443,16 @@ class _ReaderScreenState extends ConsumerState<ReaderScreen>
 
   // --- CHAPTER TRANSITION TOAST ---
 
-  Future<void> _prefetchNearbyPages({int lookahead = 6}) async {
+  Future<void> _prefetchNearbyPages({int? lookahead}) async {
     if (_pages.isEmpty) return;
+    // "Preload pages: Never" turns off every speculative fetch. Pages the
+    // reader is actually looking at still load; nothing is warmed ahead.
+    if (!_preloadAllowed) return;
+    // "Reduce memory consumption" is a real cap on how far ahead we are willing
+    // to hold pages, not just a cache ceiling, so low-memory readers stop
+    // pulling down pages they would only decode and throw away.
+    final ahead = lookahead ??
+        MemoryProfile.forReduceMemory(_reduceMemory).prefetchWindow;
     final current = _currentPageIndex;
     // Re-center the window only when the anchor actually moved, otherwise a
     // busy scroll ticker would re-schedule the same downloads repeatedly.
@@ -2075,7 +2460,7 @@ class _ReaderScreenState extends ConsumerState<ReaderScreen>
     _prefetchAnchorPage = current;
 
     final start = (current - 2).clamp(0, _pages.length - 1);
-    final end = (current + lookahead).clamp(0, _pages.length - 1);
+    final end = (current + ahead).clamp(0, _pages.length - 1);
     // Snapshot the URLs to prefetch up front: the loop below awaits downloads,
     // and switching chapters mid-loop clears _pages, which would otherwise make
     // _pages[i] throw a RangeError on the next iteration.
@@ -2175,6 +2560,7 @@ class _ReaderScreenState extends ConsumerState<ReaderScreen>
 
   void _handleScrollTicker() {
     final pos = _scrollController.position;
+    _flashOnPage(_currentPageIndex);
     // Warm the on-disk cache for pages a little ahead while scrolling.
     _prefetchNearbyPages();
     // When the reader reaches the last few pages of a chapter, silently warm
@@ -2211,6 +2597,7 @@ class _ReaderScreenState extends ConsumerState<ReaderScreen>
   }
 
   void _maybeShowToast() {
+    if (!_showChapterPopup) return;
     if (_pages.isEmpty || _pagesChapters.isEmpty) return;
     final ci = _pagesChapters[_currentPageIndex];
     if (ci == _toastShownChapter || ci < 0 || ci >= widget.allChapters.length) {
@@ -2846,10 +3233,19 @@ class _ReaderScreenState extends ConsumerState<ReaderScreen>
         if (context.mounted) Navigator.of(context).pop(result);
       },
       child: Scaffold(
-        backgroundColor: Colors.black,
+        backgroundColor: _canvasBackground,
         body: GestureDetector(
-          onTap: _toggleControls,
-          onLongPress: _showSettingsSheet,
+          // Both gestures go through the 3x3 zone map rather than straight to
+          // one handler, so Settings > Reader actions actually decides what a
+          // tap in each part of the page does.
+          //
+          // The two are kept strictly exclusive: a press that ran the long-tap
+          // action is remembered, so the tap that follows can never add a
+          // second one. Otherwise a held finger would open the menu and then
+          // also turn the page it was held over.
+          onTapDown: _zoneTapDown,
+          onTapUp: _zoneTapUp,
+          onLongPressStart: _zoneLongPressStart,
           child: Stack(
             children: [
               // --- VIEWPORT AREA ---
@@ -2975,126 +3371,41 @@ class _ReaderScreenState extends ConsumerState<ReaderScreen>
               // / punch-holes) with the reading progress on the left and the
               // battery + clock on the right. No card surface, no elevation,
               // no back button, and it never intercepts taps toggling controls.
-              Positioned(
-                top: 0,
-                left: 0,
-                right: 0,
-                child: AnimatedSwitcher(
-                  duration: const Duration(milliseconds: 200),
-                  transitionBuilder: (child, animation) =>
-                      FadeTransition(opacity: animation, child: child),
-                  child: !_showControls
-                      ? SafeArea(
-                          key: const ValueKey('immersiveStatusBar'),
-                          top: true,
-                          left: false,
-                          right: false,
-                          minimum: const EdgeInsets.only(top: 0),
-                          child: Transform.translate(
-                            offset: const Offset(0, -3),
-                            child: Padding(
-                              padding: const EdgeInsets.fromLTRB(12, 2, 12, 4),
-                              child: Row(
-                                mainAxisAlignment:
-                                    MainAxisAlignment.spaceBetween,
-                                crossAxisAlignment: CrossAxisAlignment.center,
-                                children: [
-                                  Flexible(
-                                    child: Text(
-                                      _immersiveStatusText(
-                                        readChapterIndex,
-                                        chLabel,
-                                      ),
-                                      style: TextStyle(
-                                        color: Colors.white,
-                                        fontSize: 12.5,
-                                        fontWeight: FontWeight.w600,
-                                        letterSpacing: 0.2,
-                                        shadows: const [
-                                          Shadow(
-                                            color: Colors.black,
-                                            blurRadius: 1.5,
-                                            offset: Offset(0, 0),
-                                          ),
-                                          Shadow(
-                                            color: Colors.black87,
-                                            blurRadius: 5,
-                                            offset: Offset(0, 1),
-                                          ),
-                                        ],
-                                      ),
-                                      maxLines: 1,
-                                      overflow: TextOverflow.ellipsis,
-                                    ),
-                                  ),
-                                  const SizedBox(width: 12),
-                                  Row(
-                                    mainAxisSize: MainAxisSize.min,
-                                    children: [
-                                      if (_batteryLevel >= 0) ...[
-                                        Icon(
-                                          _batteryLevel > 20
-                                              ? RemixIcons.battery_2_fill
-                                              : RemixIcons.battery_low_fill,
-                                          color: Colors.white,
-                                          size: 14,
-                                        ),
-                                        const SizedBox(width: 4),
-                                        Text(
-                                          '$_batteryLevel%',
-                                          style: TextStyle(
-                                            color: Colors.white,
-                                            fontSize: 12.5,
-                                            fontWeight: FontWeight.w600,
-                                            shadows: const [
-                                              Shadow(
-                                                color: Colors.black,
-                                                blurRadius: 1.5,
-                                                offset: Offset(0, 0),
-                                              ),
-                                              Shadow(
-                                                color: Colors.black87,
-                                                blurRadius: 5,
-                                                offset: Offset(0, 1),
-                                              ),
-                                            ],
-                                          ),
-                                        ),
-                                        const SizedBox(width: 12),
-                                      ],
-                                      Text(
-                                        _clockText,
-                                        style: TextStyle(
-                                          color: Colors.white,
-                                          fontSize: 12.5,
-                                          fontWeight: FontWeight.w600,
-                                          letterSpacing: 0.2,
-                                          shadows: const [
-                                            Shadow(
-                                              color: Colors.black,
-                                              blurRadius: 1.5,
-                                              offset: Offset(0, 0),
-                                            ),
-                                            Shadow(
-                                              color: Colors.black87,
-                                              blurRadius: 5,
-                                              offset: Offset(0, 1),
-                                            ),
-                                          ],
-                                        ),
-                                      ),
-                                    ],
-                                  ),
-                                ],
-                              ),
-                            ),
+              // "Show information bar in reader" turns the whole overlay off,
+              // not just its text, so nothing is left floating over the page.
+              if (_showInfoBar)
+                Positioned(
+                  top: 0,
+                  left: 0,
+                  right: 0,
+                  child: AnimatedSwitcher(
+                    duration: const Duration(milliseconds: 200),
+                    transitionBuilder: (child, animation) =>
+                        FadeTransition(opacity: animation, child: child),
+                    child: !_showControls
+                        ? _buildInfoBar(readChapterIndex, chLabel)
+                        : const SizedBox.shrink(
+                            key: ValueKey('noStatusBar'),
                           ),
-                        )
-                      : const SizedBox(
-                          key: ValueKey('noStatusBar'),
-                          width: 0,
-                          height: 0,
-                        ),
+                  ),
+                ),
+
+              // --- E-INK PAGE FLASH ---
+              // Positioned.fill so the colour actually covers the canvas: a
+              // childless ColoredBox would collapse to nothing in a Stack.
+              // Never takes input; it exists only to force a panel refresh and
+              // is fully transparent once the timer clears it.
+              Positioned.fill(
+                child: IgnorePointer(
+                  child: AnimatedOpacity(
+                    opacity: _flashOpacity,
+                    duration: Duration(milliseconds: _flashDurationMs),
+                    child: ColoredBox(
+                      color: _flashWith == kFlashBlack
+                          ? Colors.black
+                          : Colors.white,
+                    ),
+                  ),
                 ),
               ),
 
@@ -3221,6 +3532,9 @@ onPressed: _showSettingsSheet,
 
   // --- VERTICAL READER BUILDER (Vertical / Webtoon) ---
   Widget _buildVerticalReader(Map<String, String>? headers) {
+    // "Default webtoon zoom out" narrows the strip so long webtoon panels are
+    // readable without a pinch on every chapter. 0 leaves the page full width.
+    final zoomFraction = (100 - _webtoonZoomOut) / 100;
     return ScrollConfiguration(
       behavior: ScrollConfiguration.of(context).copyWith(scrollbars: false),
       child: ListView.builder(
@@ -3229,11 +3543,29 @@ onPressed: _showSettingsSheet,
         itemCount: _pages.length + 1,
         itemBuilder: (context, index) {
           if (index < _pages.length) {
-            return _buildPageImage(
+            final page = _buildPageImage(
               _pages[index],
               headers,
               index: index,
               localPath: _pageFiles[index],
+            );
+            if (zoomFraction >= 1 && !_webtoonGaps) return page;
+            // "Gaps in webtoon mode" separates panels so the eye can find the
+            // seam between two images, which otherwise run together on a long
+            // strip. The gap is drawn in the canvas colour, never over a page.
+            return Container(
+              margin: _webtoonGaps
+                  ? const EdgeInsets.symmetric(vertical: 4, horizontal: 2)
+                  : EdgeInsets.zero,
+              color: _webtoonGaps ? _canvasBackground : null,
+              child: zoomFraction >= 1
+                  ? page
+                  : Center(
+                      child: FractionallySizedBox(
+                        widthFactor: zoomFraction,
+                        child: page,
+                      ),
+                    ),
             );
           }
           return _buildLoadingIndicator();
@@ -3247,11 +3579,18 @@ onPressed: _showSettingsSheet,
     final isRtl = _readingMode == ReadingMode.rightToLeft;
 
     Widget pageView = PageView.builder(
-      key: ValueKey('pager-${_readingMode.name}-$_useTwoPagesLayout'),
+      key: ValueKey(
+        'pager-${_readingMode.name}-$_useTwoPagesLayout',
+      ),
       controller: _pageController,
+      // "Invert navigation control" flips which way a swipe moves, so a
+      // left-handed reader can page the other way. The page indices are
+      // untouched: only the direction of travel changes.
+      reverse: _invertNavigation,
       itemCount: _pages.length,
       onPageChanged: (index) {
         _maybeShowToast();
+        _flashOnPage(index);
         // Warm the on-disk cache for pages ahead of where the reader sits.
         _prefetchNearbyPages();
         // Once the reader moves off the landing page, re-arm the adjacent
@@ -3288,6 +3627,49 @@ onPressed: _showSettingsSheet,
     return pageView;
   }
 
+  // --- PAGE GEOMETRY ---
+
+  /// The colour behind the page, from Settings > Reader > Background.
+  /// "Default" keeps the black the reader has always used, which is the only
+  /// value that does not fight a page drawn with transparent margins.
+  Color get _canvasBackground {
+    switch (_background) {
+      case kBgWhite:
+        return Colors.white;
+      case kBgLight:
+        return const Color(0xFFF2F2F7);
+      case kBgDark:
+        return const Color(0xFF1C1C1E);
+      case kBgBlack:
+      case kBgDefault:
+      default:
+        return Colors.black;
+    }
+  }
+
+  /// How a page is fitted into the viewport before pinch-zoom is applied.
+  ///
+  /// Only the paged modes honour this: in the scrolling modes a page is
+  /// always as wide as the screen, because anything narrower would break the
+  /// single continuous strip. The webtoon strip has its own zoom control.
+  BoxFit get _pageFit {
+    if (!_isHorizontal) return BoxFit.fitWidth;
+    switch (_scaleMode) {
+      case kScaleFitHeight:
+        return BoxFit.fitHeight;
+      case kScaleKeepAtStart:
+        // Natural size; _buildPageImage anchors it top-left and makes it
+        // pannable, so a "keep at start" page can still be read past its edge.
+        return BoxFit.none;
+      case kScaleFitCenter:
+      default:
+        return BoxFit.contain;
+    }
+  }
+
+  /// True when the page is drawn unscaled and needs its own pan surface.
+  bool get _pageNeedsPan => _isHorizontal && _scaleMode == kScaleKeepAtStart;
+
   // --- REUSABLE IMAGE WIDGET ---
   Widget _buildPageImage(
     String url,
@@ -3298,12 +3680,13 @@ onPressed: _showSettingsSheet,
     // Changing the key (via retry token) recreates the image widget, which
     // re-triggers the network request.
     final key = ValueKey('$url#${_pageRetryTokens[index] ?? 0}');
+    final fit = _pageFit;
     final Widget image;
     if (localPath != null && File(localPath).existsSync()) {
       image = SafeFileImage(
         key: key,
         file: File(localPath),
-        fit: BoxFit.fitWidth,
+        fit: fit,
         gaplessPlayback: true,
         errorWidget: (context, path, error) =>
             _buildPageError(index: index, localPath: localPath),
@@ -3312,7 +3695,7 @@ onPressed: _showSettingsSheet,
       image = SafeNetworkImage(
         key: key,
         imageUrl: url,
-        fit: BoxFit.fitWidth,
+        fit: fit,
         httpHeaders: headers,
         placeholder: (context, url) => SizedBox(
           height: MediaQuery.sizeOf(context).height,
@@ -3326,7 +3709,57 @@ onPressed: _showSettingsSheet,
             _buildPageError(index: index, error: error),
       );
     }
-    return _applyColorFilter(image);
+    return _wrapKeepAtStart(_applyColorFilter(image));
+  }
+
+  /// "Numbered pages" stamps the page counter onto the artwork itself, in the
+  /// bottom-trailing corner, so a printed or screenshotted page still says
+  /// which page it is. Off by default: it covers part of the image.
+  Widget _maybeStampPageNumber(Widget page) {
+    if (!_numberedPages || _pages.isEmpty) return page;
+    return Stack(
+      children: [
+        page,
+        Positioned(
+          right: 6,
+          bottom: 6,
+          child: IgnorePointer(
+            child: Container(
+              padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
+              decoration: BoxDecoration(
+                color: Colors.black.withValues(alpha: 0.45),
+                borderRadius: BorderRadius.circular(6),
+              ),
+              child: Text(
+                '${_currentPageIndex + 1} / ${_pages.length}',
+                style: const TextStyle(
+                  color: Colors.white,
+                  fontSize: 11,
+                  fontWeight: FontWeight.w600,
+                ),
+              ),
+            ),
+          ),
+        ),
+      ],
+    );
+  }
+
+  /// "Keep at start" draws the page at its natural size, pinned to the
+  /// top-left of the viewport, and scrolls only when the page is larger than
+  /// the screen. Without this a page bigger than the viewport would be cropped
+  /// and its right-hand column unreadable.
+  Widget _wrapKeepAtStart(Widget image) {
+    if (!_pageNeedsPan) return _maybeStampPageNumber(image);
+    return InteractiveViewer(
+      minScale: 1,
+      maxScale: 1,
+      // Let the image keep its own intrinsic size; constraining it would make
+      // `BoxFit.none` centre the overflow instead of starting it top-left.
+      constrained: false,
+      alignment: Alignment.topLeft,
+      child: _maybeStampPageNumber(image),
+    );
   }
 
   // --- SCREEN-LEVEL ZOOM VIEWPORT ---
