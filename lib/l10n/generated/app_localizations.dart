@@ -4471,6 +4471,12 @@ abstract class AppLocalizations {
   /// **'Turn pages with the volume keys while a chapter is open'**
   String get rsetVolumeButtonsSub;
 
+  /// No description provided for @rsetVolumeButtonsUnavailable.
+  ///
+  /// In en, this message translates to:
+  /// **'Not available on this device — iOS gives apps no way to read the volume buttons'**
+  String get rsetVolumeButtonsUnavailable;
+
   /// No description provided for @rsetInvertNavigation.
   ///
   /// In en, this message translates to:

@@ -105,12 +105,26 @@ class ReaderSettingsScreen extends ConsumerWidget {
               MaterialPageRoute(builder: (_) => const ReaderActionsScreen()),
             ),
           ),
-          _ToggleRow(
-            icon: RemixIcons.volume_up_line,
-            title: l.rsetVolumeButtons,
-            subtitle: l.rsetVolumeButtonsSub,
-            value: s.volumeButtons,
-            onChanged: n.setVolumeButtons,
+          // Volume keys are the one setting the platform can refuse. Android
+          // intercepts the press outright; iOS has no equivalent, so the port
+          // has to observe and undo, which can fail. When it does the row is
+          // disabled and says why rather than offering a switch that does
+          // nothing.
+          Builder(
+            builder: (context) {
+              final available =
+                  ref.watch(readerVolumeKeysAvailableProvider).value ?? true;
+              return _ToggleRow(
+                icon: RemixIcons.volume_up_line,
+                title: l.rsetVolumeButtons,
+                subtitle: available
+                    ? l.rsetVolumeButtonsSub
+                    : l.rsetVolumeButtonsUnavailable,
+                value: s.volumeButtons,
+                enabled: available,
+                onChanged: n.setVolumeButtons,
+              );
+            },
           ),
           _ToggleRow(
             icon: RemixIcons.swap_line,

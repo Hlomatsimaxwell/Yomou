@@ -2485,6 +2485,10 @@ class AppLocalizationsEn extends AppLocalizations {
       'Turn pages with the volume keys while a chapter is open';
 
   @override
+  String get rsetVolumeButtonsUnavailable =>
+      'Not available on this device — iOS gives apps no way to read the volume buttons';
+
+  @override
   String get rsetInvertNavigation => 'Invert navigation control';
 
   @override

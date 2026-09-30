@@ -1,7 +1,31 @@
 name: Build iOS IPA
 
+# The previous version of this workflow produced an *unsigned* IPA, which iOS
+# refuses to install on a device: an app with no valid signature will not launch
+# even on a phone that has the developer mode turned on. Signing needs secrets,
+# so this workflow fails early and says which one is missing rather than
+# uploading an artifact that cannot be used.
 on:
   workflow_dispatch:
+    inputs:
+      export_method:
+        description: 'How to distribute (see below)'
+        required: false
+        default: 'ad-hoc'
+        type: choice
+        options:
+          # For installing on your own registered iPhone. "Apple Distribution"
+          # + a profile listing the device UDID. Free Apple accounts can only
+          # use "development", and the profile expires after 7 days.
+          - 'ad-hoc'
+          - 'development'
+          # For uploading to TestFlight / the App Store. Needs an App Store
+          # Connect API key as well, which this workflow does not handle.
+          - 'app-store'
+
+env:
+  BUNDLE_ID: com.hlomatsi.yomou
+  PROFILE_NAME: Runner
 
 jobs:
   build-ios:
@@ -11,7 +35,7 @@ jobs:
       - name: Checkout Code
         uses: actions/checkout@v4
 
-      - name: Setup Java
+      - name: Set up Java
         uses: actions/setup-java@v4
         with:
           distribution: 'temurin'
@@ -20,6 +44,9 @@ jobs:
       - name: Set up Flutter
         uses: subosito/flutter-action@v2
         with:
+          # Kept in step with build_apk.yml. The two workflows disagreeing about
+          # the Flutter version is how you end up debugging a build failure
+          # that only exists in CI.
           flutter-version: '3.47.5'
           channel: 'stable'
           cache: true
@@ -27,17 +54,154 @@ jobs:
       - name: Install Dependencies
         run: flutter pub get
 
-      - name: Build iOS App
-        run: flutter build ios --no-codesign --release
-
-      - name: Package Unsigned IPA
+      - name: Ensure xcbeautify is available
+        # It ships on GitHub's macOS images, but piping a build into a command
+        # that might not exist turns a normal build failure into "command not
+        # found", which tells you nothing about the actual problem.
         run: |
-          mkdir -p Payload
-          mv build/ios/iphoneos/Runner.app Payload/
-          zip -r manga_reader_unsigned.ipa Payload
+          if ! command -v xcbeautify >/dev/null 2>&1; then
+            brew install xcbeautify
+          fi
+
+      - name: Check signing secrets are present
+        env:
+          CERT: ${{ secrets.IOS_CERTIFICATE_P12_BASE64 }}
+          PROFILE: ${{ secrets.IOS_PROVISIONING_PROFILE_BASE64 }}
+          PASSWORD: ${{ secrets.IOS_CERTIFICATE_PASSWORD }}
+          TEAM: ${{ secrets.IOS_TEAM_ID }}
+        run: |
+          missing=()
+          [ -n "$CERT" ]     || missing+=(IOS_CERTIFICATE_P12_BASE64)
+          [ -n "$PASSWORD" ] || missing+=(IOS_CERTIFICATE_PASSWORD)
+          [ -n "$PROFILE" ]  || missing+=(IOS_PROVISIONING_PROFILE_BASE64)
+          [ -n "$TEAM" ]     || missing+=(IOS_TEAM_ID)
+          if [ ${#missing[@]} -gt 0 ]; then
+            echo "::error::Missing repository secrets: ${missing[*]}"
+            echo ""
+            echo "How to create them:"
+            echo "  1. Export your signing certificate (.p12) from Keychain"
+            echo "     Access after exporting from Xcode."
+            echo "     base64 -i Certificate.p12 | pbcopy   -> IOS_CERTIFICATE_P12_BASE64"
+            echo "  2. Download the provisioning profile from developer.apple.com"
+            echo "     base64 -i Profile.mobileprovision | pbcopy -> IOS_PROVISIONING_PROFILE_BASE64"
+            echo "  3. The .p12 password                                 -> IOS_CERTIFICATE_PASSWORD"
+            echo "  4. Apple Developer Team ID                            -> IOS_TEAM_ID"
+            exit 1
+          fi
+
+      - name: Import certificate into a temporary keychain
+        env:
+          CERT: ${{ secrets.IOS_CERTIFICATE_P12_BASE64 }}
+          PASSWORD: ${{ secrets.IOS_CERTIFICATE_PASSWORD }}
+        run: |
+          set -euo pipefail
+          KEYCHAIN=build-ios.keychain-db
+          echo "$CERT" | base64 --decode > certificate.p12
+
+          # A throwaway keychain so the signing identity never lands in the
+          # runner's login keychain, and so the build does not fail if a
+          # leftover keychain from an earlier run still holds a stale identity.
+          security delete-keychain "$KEYCHAIN" 2>/dev/null || true
+          security create-keychain -p "$PASSWORD" "$KEYCHAIN"
+          security set-keychain-settings -lut 21600 "$KEYCHAIN"
+          security unlock-keychain -p "$PASSWORD" "$KEYCHAIN"
+          security import certificate.p12 \
+            -k "$KEYCHAIN" -P "$PASSWORD" -A -T /usr/bin/codesign -t cert
+          security list-keychains -d user -s "$KEYCHAIN" login.keychain-db
+          security set-key-partition-list \
+            -S apple-tool:,apple:,codesign: \
+            -s -k "$PASSWORD" "$KEYCHAIN" >/dev/null
+          rm -f certificate.p12
+
+      - name: Install provisioning profile
+        env:
+          PROFILE: ${{ secrets.IOS_PROVISIONING_PROFILE_BASE64 }}
+        run: |
+          set -euo pipefail
+          mkdir -p "$HOME/Library/MobileDevice/Provisioning Profiles"
+          echo "$PROFILE" | base64 --decode > profile.mobileprovision
+          # Xcode picks profiles up by the UUID inside them, so the file has to
+          # be named after it rather than after the download.
+          UUID=$(/usr/libexec/PlistBuddy -c "Print :UUID" profile.mobileprovision)
+          NAME=$(/usr/libexec/PlistBuddy -c "Print :Name" profile.mobileprovision)
+          cp profile.mobileprovision \
+            "$HOME/Library/MobileDevice/Provisioning Profiles/$UUID.mobileprovision"
+          rm -f profile.mobileprovision
+          echo "Installed profile '$NAME' ($UUID)"
+          {
+            echo "uuid=$UUID"
+            echo "profile_name=$NAME"
+          } >> "$GITHUB_ENV"
+          echo "profile_uuid=$UUID" >> "$GITHUB_ENV"
+
+      - name: Build the Runner scheme
+        env:
+          TEAM: ${{ secrets.IOS_TEAM_ID }}
+        run: |
+          set -euo pipefail
+          # Compiles the Dart and Flutter framework without signing, so the
+          # archive step is the only one that touches certificates.
+          flutter build ios --release --no-codesign
+
+          xcodebuild \
+            -workspace ios/Runner.xcworkspace \
+            -scheme Runner \
+            -configuration Release \
+            -destination 'generic/platform=iOS' \
+            -archivePath build/ios/archive/Runner.xcarchive \
+            CODE_SIGN_STYLE=Manual \
+            DEVELOPMENT_TEAM="$TEAM" \
+            PROVISIONING_PROFILE_SPECIFIER="$PROFILE_NAME" \
+            PRODUCT_BUNDLE_IDENTIFIER="$BUNDLE_ID" \
+            archive \
+            | xcbeautify || exit $?
+
+      - name: Export the IPA
+        env:
+          METHOD: ${{ inputs.export_method }}
+          TEAM: ${{ secrets.IOS_TEAM_ID }}
+        run: |
+          set -euo pipefail
+          CERT_NAME="Apple Distribution"
+          [ "$METHOD" = "development" ] && CERT_NAME="Apple Development"
+
+          cat > ExportOptions.plist <<PLIST
+          <?xml version="1.0" encoding="UTF-8"?>
+          <!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
+          <plist version="1.0">
+          <dict>
+            <key>method</key><string>$METHOD</string>
+            <key>teamID</key><string>$TEAM</string>
+            <key>signingStyle</key><string>manual</string>
+            <key>signingCertificate</key><string>$CERT_NAME</string>
+            <key>compileBitcode</key><false/>
+            <key>provisioningProfiles</key>
+            <dict>
+              <key>$BUNDLE_ID</key><string>$PROFILE_NAME</string>
+            </dict>
+          </dict>
+          </plist>
+          PLIST
+
+          mkdir -p build/ios/ipa
+          xcodebuild \
+            -exportArchive \
+            -archivePath build/ios/archive/Runner.xcarchive \
+            -exportOptionsPlist ExportOptions.plist \
+            -exportPath build/ios/ipa \
+            | xcbeautify || exit $?
+
+          ls -la build/ios/ipa
+          test -n "$(find build/ios/ipa -name '*.ipa' -print -quit)" \
+            || { echo "::error::No .ipa was produced."; exit 1; }
 
       - name: Upload IPA Artifact
         uses: actions/upload-artifact@v4
         with:
           name: manga-reader-ios-ipa
-          path: manga_reader_unsigned.ipa
+          path: build/ios/ipa/*.ipa
+          if-no-files-found: error
+
+      - name: Remove temporary keychain
+        if: always()
+        run: security delete-keychain build-ios.keychain-db || true

@@ -1095,6 +1095,7 @@
   "rsetWebtoonGapsSub": "Separa los paneles para que se vea dónde acaba uno y empieza otro",
   "rsetVolumeButtons": "Activar botones de volumen",
   "rsetVolumeButtonsSub": "Cambia de página con las teclas de volumen mientras hay un capítulo abierto",
+  "rsetVolumeButtonsUnavailable": "No disponible en este dispositivo — iOS no ofrece a las apps forma de leer los botones de volumen",
   "rsetInvertNavigation": "Invertir control de navegación",
   "rsetInvertNavigationSub": "Desliza y avanza al revés",
   "rsetReduceMemory": "Reducir consumo de memoria (beta)",

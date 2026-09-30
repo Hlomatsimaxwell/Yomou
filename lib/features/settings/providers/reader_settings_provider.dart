@@ -1,3 +1,4 @@
+import 'package:flutter/foundation.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:shared_preferences/shared_preferences.dart';
@@ -467,4 +468,40 @@ class ReaderPlatform {
       return true;
     }
   }
+
+  static const MethodChannel _volumeChannel =
+      MethodChannel('com.hlomatsi.yomou/volume');
+
+  /// Whether this platform can actually route volume buttons to the reader.
+  ///
+  /// Android can: `dispatchKeyEvent` on the activity sees the press first, so
+  /// the system never does. iOS has no equivalent — no public API reports a
+  /// volume button press — and the port works by observing `outputVolume`
+  /// through an off-screen `MPVolumeView` and undoing the change. That depends
+  /// on a view Apple does not document as stable, so the capability is probed
+  /// rather than assumed, and a device where it fails gets the setting greyed
+  /// out with a reason instead of a switch that does nothing.
+  ///
+  /// Only iOS is asked. Everywhere else the answer is a yes by definition, and
+  /// treating an unimplemented method as "no" would disable the setting on
+  /// Android for no reason. `defaultTargetPlatform` rather than `dart:io` so
+  /// this stays compilable for the web target.
+  static Future<bool> volumeKeysAvailable() async {
+    if (defaultTargetPlatform != TargetPlatform.iOS) return true;
+    try {
+      return await _volumeChannel.invokeMethod<bool>('isAvailable') ?? false;
+    } on PlatformException {
+      // An older native side without the probe is presumed capable, so an app
+      // update never silently takes the feature away.
+      return true;
+    } on MissingPluginException {
+      return true;
+    }
+  }
 }
+
+/// Whether the platform can route volume buttons to the reader. See
+/// [ReaderPlatform.volumeKeysAvailable].
+final readerVolumeKeysAvailableProvider = FutureProvider<bool>(
+  (ref) => ReaderPlatform.volumeKeysAvailable(),
+);

@@ -2507,6 +2507,10 @@ class AppLocalizationsEs extends AppLocalizations {
       'Cambia de página con las teclas de volumen mientras hay un capítulo abierto';
 
   @override
+  String get rsetVolumeButtonsUnavailable =>
+      'No disponible en este dispositivo — iOS no ofrece a las apps forma de leer los botones de volumen';
+
+  @override
   String get rsetInvertNavigation => 'Invertir control de navegación';
 
   @override

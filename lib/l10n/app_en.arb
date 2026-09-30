@@ -1337,6 +1337,7 @@
   "rsetWebtoonGapsSub": "Separate the panels so the seam between them is visible",
   "rsetVolumeButtons": "Enable volume buttons",
   "rsetVolumeButtonsSub": "Turn pages with the volume keys while a chapter is open",
+  "rsetVolumeButtonsUnavailable": "Not available on this device — iOS gives apps no way to read the volume buttons",
   "rsetInvertNavigation": "Invert navigation control",
   "rsetInvertNavigationSub": "Swipe and page the other way round",
   "rsetReduceMemory": "Reduce memory consumption (beta)",
