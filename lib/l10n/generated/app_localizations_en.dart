@@ -2426,6 +2426,13 @@ class AppLocalizationsEn extends AppLocalizations {
   String get captchaContentLoaded => 'loaded';
 
   @override
+  String get webviewMissingTitle => 'No embedded browser here';
+
+  @override
+  String get webviewMissingBody =>
+      'This screen needs an in-app browser, which this platform does not have. A source behind a captcha check cannot be opened here.';
+
+  @override
   String get rsetDefaultsNote =>
       'These are the defaults for a new title. A manga you have already configured keeps its own setting.';
 

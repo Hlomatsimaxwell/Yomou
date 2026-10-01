@@ -1076,6 +1076,14 @@
   "@captchaContentLoaded": {
     "description": "captchaContentLoaded"
   },
+  "webviewMissingTitle": "Sin navegador integrado",
+  "@webviewMissingTitle": {
+    "description": "webviewMissingTitle"
+  },
+  "webviewMissingBody": "Esta pantalla necesita un navegador integrado, que esta plataforma no tiene. Una fuente protegida por un captcha no se puede abrir aquí.",
+  "@webviewMissingBody": {
+    "description": "webviewMissingBody"
+  },
 
   "rsetDefaultsNote": "Estos son los valores por defecto de un título nuevo. Un manga que ya hayas configurado conserva su propia opción.",
   "rsetDefaultMode": "Modo por defecto",

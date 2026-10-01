@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_inappwebview/flutter_inappwebview.dart';
 import 'package:remixicon/remixicon.dart';
 import 'package:url_launcher/url_launcher.dart';
+import 'package:yomou/core/widgets/webview_support.dart';
 import 'package:yomou/data/sources/source_network.dart';
 
 /// In-app browser for per-source sign-in. The user logs in on the source's
@@ -126,45 +127,47 @@ class _SourceSignInScreenState extends State<SourceSignInScreen> {
           ],
         ),
         body: SafeArea(
-          child: InAppWebView(
-            initialUrlRequest:
-                URLRequest(url: WebUri(widget.initialUrl)),
-            initialSettings: InAppWebViewSettings(
-              javaScriptEnabled: true,
-              domStorageEnabled: true,
-              databaseEnabled: true,
-              supportMultipleWindows: true,
-              mediaPlaybackRequiresUserGesture: false,
-            ),
-            onCreateWindow: (controller, createWindowAction) async {
-              final url = createWindowAction.request.url;
-              if (url == null) return false;
-              showDialog(
-                context: context,
-                builder: (context) => AlertDialog(
-                  title: const Text('New window'),
-                  content: const Text('Open in external browser?'),
-                  actions: [
-                    TextButton(
-                      onPressed: () => Navigator.pop(context),
-                      child: const Text('Cancel'),
-                    ),
-                    TextButton(
-                      onPressed: () async {
-                        Navigator.pop(context);
-                        await launchUrl(
-                          url,
-                          mode: LaunchMode.externalApplication,
-                        );
-                      },
-                      child: const Text('Open'),
-                    ),
-                  ],
-                ),
-              );
-              return true;
-            },
-          ),
+          child: inAppWebViewAvailable
+              ? InAppWebView(
+                  initialUrlRequest:
+                      URLRequest(url: WebUri(widget.initialUrl)),
+                  initialSettings: InAppWebViewSettings(
+                    javaScriptEnabled: true,
+                    domStorageEnabled: true,
+                    databaseEnabled: true,
+                    supportMultipleWindows: true,
+                    mediaPlaybackRequiresUserGesture: false,
+                  ),
+                  onCreateWindow: (controller, createWindowAction) async {
+                    final url = createWindowAction.request.url;
+                    if (url == null) return false;
+                    showDialog(
+                      context: context,
+                      builder: (context) => AlertDialog(
+                        title: const Text('New window'),
+                        content: const Text('Open in external browser?'),
+                        actions: [
+                          TextButton(
+                            onPressed: () => Navigator.pop(context),
+                            child: const Text('Cancel'),
+                          ),
+                          TextButton(
+                            onPressed: () async {
+                              Navigator.pop(context);
+                              await launchUrl(
+                                url,
+                                mode: LaunchMode.externalApplication,
+                              );
+                            },
+                            child: const Text('Open'),
+                          ),
+                        ],
+                      ),
+                    );
+                    return true;
+                  },
+                )
+              : const WebviewUnavailableBody(icon: Icons.login_outlined),
         ),
       ),
     );

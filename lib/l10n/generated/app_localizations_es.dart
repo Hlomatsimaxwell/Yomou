@@ -2449,6 +2449,13 @@ class AppLocalizationsEs extends AppLocalizations {
   String get captchaContentLoaded => 'cargado';
 
   @override
+  String get webviewMissingTitle => 'Sin navegador integrado';
+
+  @override
+  String get webviewMissingBody =>
+      'Esta pantalla necesita un navegador integrado, que esta plataforma no tiene. Una fuente protegida por un captcha no se puede abrir aquí.';
+
+  @override
   String get rsetDefaultsNote =>
       'Estos son los valores por defecto de un título nuevo. Un manga que ya hayas configurado conserva su propia opción.';
 

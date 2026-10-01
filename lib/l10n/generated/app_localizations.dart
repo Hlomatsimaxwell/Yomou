@@ -4363,6 +4363,18 @@ abstract class AppLocalizations {
   /// **'loaded'**
   String get captchaContentLoaded;
 
+  /// webviewMissingTitle
+  ///
+  /// In en, this message translates to:
+  /// **'No embedded browser here'**
+  String get webviewMissingTitle;
+
+  /// webviewMissingBody
+  ///
+  /// In en, this message translates to:
+  /// **'This screen needs an in-app browser, which this platform does not have. A source behind a captcha check cannot be opened here.'**
+  String get webviewMissingBody;
+
   /// No description provided for @rsetDefaultsNote.
   ///
   /// In en, this message translates to:

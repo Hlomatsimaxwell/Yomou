@@ -9,6 +9,7 @@ import 'package:yomou/main.dart' show appNavigatorKey;
 import 'captcha_gate.dart';
 import 'source_network.dart';
 import 'package:yomou/core/diagnostics/diag_log.dart';
+import 'package:yomou/core/widgets/webview_support.dart';
 
 /// One queued WebView operation. [priority] tasks are the ones a user is
 /// waiting on (opening a source, viewing details, reading); everything else
@@ -540,6 +541,20 @@ class WebViewFetcher {
   /// value would contradict the session that actually solved the challenge.
   Future<void> _ensureWebView(String sourceId) async {
     if (_controller != null) return;
+    // Refused before the overlay entry exists, because the failure of an
+    // InAppWebView is not a throw the caller can catch: the widget asserts in
+    // its constructor, which happens when the overlay is next built, after
+    // this method has already returned. The assert then paints a full-screen
+    // red error widget in the app's overlay while the caller carries on
+    // waiting for a controller that can never arrive. Saying no here keeps
+    // the failure on the path the sources already handle - they fall back to
+    // their plain-HTTP path - instead of leaving a red screen behind.
+    if (!inAppWebViewAvailable) {
+      throw UnsupportedError(
+        'no embedded browser on this platform: $sourceId cannot be fetched '
+        'through a WebView',
+      );
+    }
     final navigator = appNavigatorKey.currentState;
     final overlay = navigator?.overlay;
     if (overlay == null) {

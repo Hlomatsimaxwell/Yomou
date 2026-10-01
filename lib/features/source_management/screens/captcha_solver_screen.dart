@@ -10,6 +10,7 @@ import '../../../data/sources/source_network.dart';
 import '../../../data/sources/webview_fetcher.dart';
 import '../../../l10n/generated/app_localizations.dart';
 import 'package:yomou/core/diagnostics/diag_log.dart';
+import 'package:yomou/core/widgets/webview_support.dart';
 
 /// A visible browser the user clears a Cloudflare challenge in.
 ///
@@ -111,6 +112,7 @@ class _CaptchaSolverScreenState extends State<CaptchaSolverScreen> {
   void initState() {
     super.initState();
     diagSoon('solver open source=${widget.sourceId} url=${widget.url}');
+    if (!inAppWebViewAvailable) return;
     _poll = Timer.periodic(
       const Duration(milliseconds: 900),
       (_) => _probe(),
@@ -418,52 +420,56 @@ class _CaptchaSolverScreenState extends State<CaptchaSolverScreen> {
               )
             : null,
       ),
-      body: InAppWebView(
-        initialUrlRequest: URLRequest(url: WebUri(widget.url)),
-        initialSettings: InAppWebViewSettings(
-          javaScriptEnabled: true,
-          domStorageEnabled: true,
-          thirdPartyCookiesEnabled: true,
-          // The UA is deliberately NOT spoofed here: Cloudflare compares
-          // it against the real device fingerprint, and an Android WebView
-          // claiming to be desktop Chrome just re-challenges forever.
-        ),
-        onWebViewCreated: (controller) => _controller = controller,
-        onProgressChanged: (controller, progress) {
-          if (mounted) setState(() => _progress = progress);
-        },
-        onUpdateVisitedHistory: (controller, url, isReload) {
-          _currentUri = url;
-          _probe();
-        },
-        onLoadStop: (controller, url) {
-          _currentUri = url;
-          _captureUserAgent(controller);
-          _probe();
-        },
-      ),
-      bottomNavigationBar: SafeArea(
-        child: Padding(
-          padding: const EdgeInsets.fromLTRB(16, 8, 16, 16),
-          child: Column(
-            mainAxisSize: MainAxisSize.min,
-            crossAxisAlignment: CrossAxisAlignment.stretch,
-            children: [
-              _statusStrip(l10n),
-              Text(
-                l10n.captchaSolveHint,
-                textAlign: TextAlign.center,
-                style: Theme.of(context).textTheme.bodySmall,
+      body: inAppWebViewAvailable
+          ? InAppWebView(
+              initialUrlRequest: URLRequest(url: WebUri(widget.url)),
+              initialSettings: InAppWebViewSettings(
+                javaScriptEnabled: true,
+                domStorageEnabled: true,
+                thirdPartyCookiesEnabled: true,
+                // The UA is deliberately NOT spoofed here: Cloudflare compares
+                // it against the real device fingerprint, and an Android WebView
+                // claiming to be desktop Chrome just re-challenges forever.
               ),
-              const SizedBox(height: 12),
-              FilledButton(
-                onPressed: _saving ? null : _finish,
-                child: Text(l10n.captchaContinue),
+              onWebViewCreated: (controller) => _controller = controller,
+              onProgressChanged: (controller, progress) {
+                if (mounted) setState(() => _progress = progress);
+              },
+              onUpdateVisitedHistory: (controller, url, isReload) {
+                _currentUri = url;
+                _probe();
+              },
+              onLoadStop: (controller, url) {
+                _currentUri = url;
+                _captureUserAgent(controller);
+                _probe();
+              },
+            )
+          : const WebviewUnavailableBody(icon: Icons.gpp_maybe_outlined),
+      bottomNavigationBar: inAppWebViewAvailable
+          ? SafeArea(
+              child: Padding(
+                padding: const EdgeInsets.fromLTRB(16, 8, 16, 16),
+                child: Column(
+                  mainAxisSize: MainAxisSize.min,
+                  crossAxisAlignment: CrossAxisAlignment.stretch,
+                  children: [
+                    _statusStrip(l10n),
+                    Text(
+                      l10n.captchaSolveHint,
+                      textAlign: TextAlign.center,
+                      style: Theme.of(context).textTheme.bodySmall,
+                    ),
+                    const SizedBox(height: 12),
+                    FilledButton(
+                      onPressed: _saving ? null : _finish,
+                      child: Text(l10n.captchaContinue),
+                    ),
+                  ],
+                ),
               ),
-            ],
-          ),
-        ),
-      ),
+            )
+          : null,
     );
   }
 }
