@@ -6,6 +6,7 @@ import 'package:yomou/l10n/generated/app_localizations.dart';
 import 'package:yomou/data/providers/sources_provider.dart';
 import 'package:yomou/features/settings/providers/cache_settings_provider.dart';
 import 'package:yomou/features/source_management/screens/manga_sources_screen.dart';
+import 'package:yomou/widgets/m3_components.dart';
 
 /// Center-aligned modal with heavily rounded corners: bold title top-left, a
 /// vertical list of thin-line circular radio options, and a single Cancel
@@ -201,13 +202,18 @@ class _MangaSourcesSettingsScreenState
       appBar: AppBar(
         backgroundColor: Theme.of(context).scaffoldBackgroundColor,
         elevation: 0,
-        leading: IconButton(
-          icon: Icon(
-            RemixIcons.arrow_left_line,
-            color: dark ? Colors.white : const Color(0xFF1C1B1F),
-          ),
-          onPressed: () => Navigator.pop(context),
-        ),
+        // Same rule as SettingsAppBar: no back arrow when this screen is the
+        // detail pane of a two-pane settings layout, because there is nothing
+        // behind it to go back to.
+        leading: SettingsPaneScope.of(context)
+            ? const SizedBox.shrink()
+            : IconButton(
+                icon: Icon(
+                  RemixIcons.arrow_left_line,
+                  color: dark ? Colors.white : const Color(0xFF1C1B1F),
+                ),
+                onPressed: () => Navigator.pop(context),
+              ),
         title: Text(
           l.settingsMangaSources,
           style: TextStyle(

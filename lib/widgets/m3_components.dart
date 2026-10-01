@@ -143,9 +143,18 @@ class SettingsAppBar extends StatelessWidget implements PreferredSizeWidget {
 
   @override
   Widget build(BuildContext context) {
+    // Inside a pane there is nothing behind this screen to go back to -- the
+    // sibling categories are a selection, not history -- so the arrow goes.
+    //
+    // Both halves are needed. `leading: null` alone is not enough: AppBar then
+    // falls back to automatically implying a back button whenever the route can
+    // pop, which inside a pushed route it always can, so the arrow comes back.
+    // An explicit empty leading is what actually removes it.
+    final inPane = SettingsPaneScope.of(context);
     return AppBar(
-      leading: SettingsPaneScope.of(context)
-          ? null
+      automaticallyImplyLeading: false,
+      leading: inPane
+          ? const SizedBox.shrink()
           : IconButton(
               icon: const Icon(RemixIcons.arrow_left_line),
               onPressed: () => Navigator.pop(context),
