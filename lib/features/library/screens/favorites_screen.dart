@@ -195,7 +195,6 @@ class _FavoritesScreenState extends ConsumerState<FavoritesScreen> {
       },
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
-        mainAxisSize: MainAxisSize.min,
         children: [
           // Strict 2:3 Aspect Ratio for Cover Image
           AspectRatio(
@@ -250,15 +249,17 @@ class _FavoritesScreenState extends ConsumerState<FavoritesScreen> {
             ),
           ),
           const SizedBox(height: kMangaCardTitleGap),
-          Text(
-            item.title,
-            maxLines: 2,
-            overflow: TextOverflow.ellipsis,
-            style: TextStyle(
-              color: titleColor,
-              fontSize: 12,
-              fontWeight: FontWeight.bold,
-              height: 1.2,
+          Flexible(
+            child: Text(
+              item.title,
+              maxLines: 2,
+              overflow: TextOverflow.ellipsis,
+              style: TextStyle(
+                color: titleColor,
+                fontSize: 12,
+                fontWeight: FontWeight.bold,
+                height: 1.2,
+              ),
             ),
           ),
         ],

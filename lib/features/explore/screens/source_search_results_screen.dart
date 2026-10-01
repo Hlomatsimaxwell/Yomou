@@ -796,7 +796,6 @@ class _SourceSearchResultsScreenState extends State<SourceSearchResultsScreen> {
       onTap: () => _openManga(item),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
-        mainAxisSize: MainAxisSize.min,
         children: [
           AspectRatio(
             aspectRatio: 2 / 3,
@@ -831,17 +830,19 @@ class _SourceSearchResultsScreenState extends State<SourceSearchResultsScreen> {
             ),
           ),
           const SizedBox(height: kMangaCardTitleGap),
-          Text(
-            item.title,
-            maxLines: 2,
-            overflow: TextOverflow.ellipsis,
-            style: TextStyle(
-              color: dark
-                  ? Colors.white
-                  : Theme.of(context).colorScheme.onSurface,
-              fontSize: 12,
-              fontWeight: FontWeight.bold,
-              height: 1.2,
+          Flexible(
+            child: Text(
+              item.title,
+              maxLines: 2,
+              overflow: TextOverflow.ellipsis,
+              style: TextStyle(
+                color: dark
+                    ? Colors.white
+                    : Theme.of(context).colorScheme.onSurface,
+                fontSize: 12,
+                fontWeight: FontWeight.bold,
+                height: 1.2,
+              ),
             ),
           ),
         ],

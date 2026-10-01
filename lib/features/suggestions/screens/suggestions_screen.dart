@@ -791,27 +791,41 @@ class _SuggestionsScreenState extends ConsumerState<SuggestionsScreen> {
       );
     }
 
-    final columns =
-        mangaGridColumnsFor(context, userColumns: _gridSize.round()).clamp(1, 7);
+    final columns = mangaGridColumnsFor(
+      context,
+      userColumns: _gridSize.round(),
+    ).clamp(2, 7);
     return SliverPadding(
       padding: const EdgeInsets.symmetric(horizontal: 16),
       sliver: SliverGrid.builder(
         gridDelegate: SliverGridDelegateWithFixedCrossAxisCount(
           crossAxisCount: columns,
-          childAspectRatio: mangaCellAspectRatio(context, columns: columns),
+          childAspectRatio: mangaCellAspectRatio(
+            context,
+            columns: columns,
+            // Same rule and same bounds as the history grid, so a card is the
+            // same size on both tabs. Measured from the resolved column count
+            // rather than the stored setting, which on a wide layout is not
+            // what the grid ends up using.
+            titleFontSize: mangaCardTitleFontSize(columns),
+          ),
           crossAxisSpacing: kMangaGridCrossSpacing,
           mainAxisSpacing: kMangaGridRowSpacing,
         ),
         itemCount: items.length,
         itemBuilder: (context, index) {
           final manga = items[index];
-          return _buildMangaCard(context, manga);
+          return _buildMangaCard(context, manga, columns);
         },
       ),
     );
   }
 
-  Widget _buildMangaCard(BuildContext context, Manga manga) {
+  /// [columns] is the resolved count, not the stored setting: the grid measures
+  /// its cells with it, so the title has to be drawn with the same value or a
+  /// two-line title is measured small and painted large, and the second line
+  /// lands outside the cell.
+  Widget _buildMangaCard(BuildContext context, Manga manga, int columns) {
     final dark = Theme.of(context).brightness == Brightness.dark;
     final titleColor = dark
         ? Colors.white
@@ -832,7 +846,6 @@ class _SuggestionsScreenState extends ConsumerState<SuggestionsScreen> {
       },
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
-        mainAxisSize: MainAxisSize.min,
         children: [
           AspectRatio(
             aspectRatio: 2 / 3,
@@ -867,15 +880,17 @@ class _SuggestionsScreenState extends ConsumerState<SuggestionsScreen> {
             ),
           ),
           const SizedBox(height: kMangaCardTitleGap),
-          Text(
-            manga.title,
-            maxLines: 2,
-            overflow: TextOverflow.ellipsis,
-            style: TextStyle(
-              color: titleColor,
-              fontSize: 12,
-              fontWeight: FontWeight.bold,
-              height: 1.2,
+          Flexible(
+            child: Text(
+              manga.title,
+              maxLines: 2,
+              overflow: TextOverflow.ellipsis,
+              style: TextStyle(
+                color: titleColor,
+                fontSize: mangaCardTitleFontSize(columns),
+                fontWeight: FontWeight.bold,
+                height: 1.2,
+              ),
             ),
           ),
         ],

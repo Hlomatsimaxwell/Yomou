@@ -48,10 +48,11 @@ int mangaGridColumns(
 
 /// Columns for a grid whose density the user chose themselves.
 ///
-/// The choice was made for the screen it was made on, so in a compact window
-/// it is honoured exactly as-is and nothing about the phone changes. In a
-/// wider window it becomes a floor rather than a value: a tablet gets at least
-/// what was asked for, and more when the width affords it.
+/// The choice was made for the screen it was made on, so anywhere short of a
+/// wide layout it is honoured exactly as-is and nothing about the phone
+/// changes at any angle -- including landscape, which is wide but is still a
+/// phone. In a wide window it becomes a floor rather than a value: a tablet
+/// gets at least what was asked for, and more when the width affords it.
 ///
 /// The asymmetry is deliberate. Ignoring the setting outright on a tablet
 /// would strand anyone who deliberately wants a dense grid, while obeying it
@@ -62,18 +63,54 @@ int mangaGridColumnsFor(
   BuildContext context, {
   required int userColumns,
 }) {
-  if (widthClassOf(context) == ScreenWidthClass.compact) return userColumns;
+  if (!usesWideLayout(context)) return userColumns;
   final derived = mangaGridColumns(context);
   return derived > userColumns ? derived : userColumns;
 }
 
-/// Cell aspect ratio that makes a card sit flush with its content:
-/// a 2:3 cover, [titleGap] px gap, and a [titleLines]-line title at
-/// [titleFontSize] with [lineHeight] line height.
+/// Columns at which a card's title drops to the smaller size.
 ///
-/// Pass the same values used by the card's own widgets so the cell is
-/// exactly as tall as its content. Using a flat constant instead leaves
-/// empty space at the bottom of every row.
+/// One definition for both halves of the arrangement: the grid measures each
+/// cell with it and the card paints with it, and when the two disagree a
+/// two-line title is measured at one size and drawn at another, which is what
+/// pushes the second line out of the cell.
+const int kMangaCardCompactColumns = 4;
+
+/// Title font size for a grid of [columns] columns.
+double mangaCardTitleFontSize(int columns) =>
+    columns >= kMangaCardCompactColumns ? 10 : 12;
+
+/// Spare height added below a card's title, in logical pixels.
+///
+/// Without it a cell is sized to fit its title to the last fraction of a
+/// pixel, because [mangaCellAspectRatio] derives the cell height from the same
+/// font size and line height the title is drawn with. That makes the fit
+/// exact on paper and short in practice: the grid rounds its cell height, the
+/// paragraph rounds its own, and the two land a fraction apart often enough
+/// that a two-line title loses its descenders to the cell edge. A few extra
+/// pixels are invisible under the title and make the fit unconditional. Two
+/// is enough to absorb the rounding; anything more is dead space below the
+/// last line of every card, which is most of them.
+///
+/// This does not survive a large system font scale - the title grows with the
+/// user's setting and no fixed slack can track it - which is why the card's
+/// title is also [Flexible], so a scale the slack cannot absorb ellipsises
+/// instead of overflowing.
+const double kMangaCardTitleSlack = 2.0;
+
+/// Cell aspect ratio that makes a card sit flush with its content:
+/// a 2:3 cover, [titleGap] px gap, a [titleLines]-line title at
+/// [titleFontSize] with [titleLineHeight] line height, and
+/// [kMangaCardTitleSlack] spare so the title is not flush against the edge.
+///
+/// Pass the same values used by the card's own widgets so the cell is as tall
+/// as its content. Using a flat constant instead leaves empty space at the
+/// bottom of every row.
+///
+/// [titleFontSize] must come from [mangaCardTitleFontSize] with the same
+/// [columns] the grid resolves to. A cell measured at one font size and drawn
+/// at another is the single most common cause of a clipped second title line,
+/// because the error lands in whichever direction the measurement was wrong.
 double mangaCellAspectRatio(
   BuildContext context, {
   required int columns,
@@ -83,10 +120,14 @@ double mangaCellAspectRatio(
   int titleLines = 2,
   double titleFontSize = 12,
   double titleLineHeight = 1.2,
+  double titleSlack = kMangaCardTitleSlack,
 }) {
   final gridWidth = MediaQuery.sizeOf(context).width - horizontalPadding * 2;
   final cellWidth = (gridWidth - (columns - 1) * crossSpacing) / columns;
   final contentHeight =
-      cellWidth * 3 / 2 + titleGap + titleLines * titleFontSize * titleLineHeight;
+      cellWidth * 3 / 2 +
+      titleGap +
+      titleLines * titleFontSize * titleLineHeight +
+      titleSlack;
   return cellWidth / contentHeight;
 }

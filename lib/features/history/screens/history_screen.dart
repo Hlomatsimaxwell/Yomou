@@ -17,6 +17,7 @@ import 'package:yomou/core/widgets/ios/ios_press.dart';
 import 'package:yomou/core/widgets/ios/ios_sheet.dart';
 import 'package:yomou/core/widgets/ios/ios_toast.dart';
 import 'package:yomou/core/widgets/manga_grid_metrics.dart';
+import 'package:yomou/core/widgets/responsive.dart' show usesWideLayout;
 import 'package:yomou/core/providers/incognito_provider.dart';
 import 'package:yomou/features/history/providers/history_provider.dart';
 import 'package:yomou/features/history/screens/reading_statistics_screen.dart';
@@ -91,6 +92,15 @@ class _HistoryScreenState extends ConsumerState<HistoryScreen> {
   String _searchQuery = '';
 
   String _listMode = 'Grid';
+  /// Column count as the slider holds it, not the column count the grid
+  /// renders.
+  ///
+  /// Kept as a double because the grid-size setting is shared with the
+  /// manga-grid screen, which stores it the same way. The grid may show more
+  /// columns than this on a wide window, so the slider label reads the
+  /// resolved count rather than this number - otherwise moving the slider on a
+  /// tablet would appear to do nothing, because the derived count already
+  /// exceeds every position on it.
   double _gridSize = 3;
   String _sortingOrder = 'Last read';
   bool _isGrouped = true;
@@ -482,16 +492,21 @@ class _HistoryScreenState extends ConsumerState<HistoryScreen> {
   void _showListOptionsSheet(BuildContext context) {
     showIosSheet(
       context,
+      // Scroll-controlled: this sheet holds the mode tabs, the grid-size
+      // slider and the sort order, and at the default 9/16 height cap the
+      // last item is clipped by a couple of pixels.
+      isScrollControlled: true,
       builder: (context) {
         return StatefulBuilder(
           builder: (context, setSheetState) {
             final dark = Theme.of(context).brightness == Brightness.dark;
-            return Padding(
-              padding: const EdgeInsets.fromLTRB(20, 12, 20, 24),
-              child: Column(
-                mainAxisSize: MainAxisSize.min,
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
+            return SingleChildScrollView(
+              child: Padding(
+                padding: const EdgeInsets.fromLTRB(20, 12, 20, 24),
+                child: Column(
+                  mainAxisSize: MainAxisSize.min,
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
                   Text(
                     AppLocalizations.of(context).historyListMode,
                     style: TextStyle(
@@ -540,8 +555,8 @@ class _HistoryScreenState extends ConsumerState<HistoryScreen> {
                         AppLocalizations.of(context).historyGridSize,
                         style: TextStyle(
                           color: dark
-                              ? Colors.white70
-                              : const Color(0xFF49454F),
+                        ? Colors.white70
+                        : const Color(0xFF49454F),
                           fontSize: 14,
                           fontWeight: FontWeight.w500,
                         ),
@@ -549,7 +564,7 @@ class _HistoryScreenState extends ConsumerState<HistoryScreen> {
                       Text(
                         AppLocalizations.of(
                           context,
-                        ).historyGridSizeColumns(_gridSize.toInt()),
+                        ).historyGridSizeColumns(_resolvedColumns(context)),
                         style: TextStyle(
                           color: dark ? Colors.white54 : Colors.black54,
                           fontSize: 12,
@@ -558,24 +573,35 @@ class _HistoryScreenState extends ConsumerState<HistoryScreen> {
                     ],
                   ),
                   const SizedBox(height: 8),
+                  if (usesWideLayout(context))
+                  Padding(
+                    padding: const EdgeInsets.only(bottom: 8),
+                    child: Text(
+                      AppLocalizations.of(context).rsetDefaultsNote,
+                      style: TextStyle(
+                        color: dark ? Colors.white38 : Colors.black38,
+                        fontSize: 11,
+                      ),
+                    ),
+                  ),
                   SliderTheme(
                     data: SliderTheme.of(context).copyWith(
                       trackHeight: 6,
                       activeTrackColor: dark
-                          ? Colors.white
-                          : Theme.of(context).colorScheme.primary,
+                    ? Colors.white
+                    : Theme.of(context).colorScheme.primary,
                       inactiveTrackColor: dark
-                          ? Colors.white12
-                          : Colors.black12,
+                    ? Colors.white12
+                    : Colors.black12,
                       thumbColor: dark
-                          ? Colors.white
-                          : Theme.of(context).colorScheme.primary,
+                    ? Colors.white
+                    : Theme.of(context).colorScheme.primary,
                       thumbShape: const RoundSliderThumbShape(
                         enabledThumbRadius: 10,
                         elevation: 4,
                       ),
                       overlayColor: (dark ? Colors.white : Colors.black)
-                          .withValues(alpha: 0.12),
+                    .withValues(alpha: 0.12),
                       overlayShape: const RoundSliderOverlayShape(
                         overlayRadius: 20,
                       ),
@@ -584,19 +610,29 @@ class _HistoryScreenState extends ConsumerState<HistoryScreen> {
                       ),
                       activeTickMarkColor: Colors.transparent,
                       inactiveTickMarkColor: dark
-                          ? Colors.white30
-                          : Colors.black26,
+                    ? Colors.white30
+                    : Colors.black26,
                     ),
                     child: Slider(
+                      // Reversed so that dragging right means "more columns",
+                      // which is what the track reads as going.
                       value: 7 - _gridSize,
                       min: 1,
                       max: 6,
                       divisions: 5,
-                      onChanged: (value) {
+                      onChanged: usesWideLayout(context)
+                      // The window width already decides the count on a
+                      // wide layout, and the slider is a floor at best, so
+                      // letting it be dragged would change the stored
+                      // number without changing a single pixel - a control
+                      // that looks live and is not. Disabled here, with
+                      // the note above saying why.
+                    ? null
+                    : (value) {
                         final actualColumns = 7 - value;
 
                         setSheetState(() {
-                          _gridSize = actualColumns;
+                            _gridSize = actualColumns;
                         });
                         setState(() {});
                         _savePreference('history_grid_size', actualColumns);
@@ -626,42 +662,42 @@ class _HistoryScreenState extends ConsumerState<HistoryScreen> {
                         width: 1,
                       ),
                       boxShadow: dark
-                          ? null
-                          : [
-                              BoxShadow(
-                                color: Colors.black.withValues(alpha: 0.04),
-                                blurRadius: 4,
-                              ),
-                            ],
+                    ? null
+                    : [
+                        BoxShadow(
+                          color: Colors.black.withValues(alpha: 0.04),
+                          blurRadius: 4,
+                        ),
+                      ],
                     ),
                     child: DropdownButtonHideUnderline(
                       child: DropdownButton<String>(
                         value: _sortingOrder,
                         dropdownColor: dark
-                            ? const Color(0xFF2C2C2E)
-                            : Colors.white,
+                      ? const Color(0xFF2C2C2E)
+                      : Colors.white,
                         isExpanded: true,
                         icon: Icon(
                           RemixIcons.arrow_drop_down_line,
                           color: dark
-                              ? Colors.white70
-                              : const Color(0xFF49454F),
+                        ? Colors.white70
+                        : const Color(0xFF49454F),
                         ),
                         style: TextStyle(
                           color: dark ? Colors.white : const Color(0xFF1C1B1F),
                           fontSize: 15,
                         ),
                         items: _sortOptions.map((value) {
-                          return DropdownMenuItem<String>(
-                            value: value,
-                            child: Text(_sortLabel(context, value)),
-                          );
+                            return DropdownMenuItem<String>(
+                              value: value,
+                              child: Text(_sortLabel(context, value)),
+                            );
                         }).toList(),
                         onChanged: (newValue) {
                           if (newValue == null) return;
 
                           setSheetState(() {
-                            _sortingOrder = newValue;
+                              _sortingOrder = newValue;
                           });
                           setState(() {});
                           _savePreference('history_sorting_order', newValue);
@@ -678,8 +714,8 @@ class _HistoryScreenState extends ConsumerState<HistoryScreen> {
                           Icon(
                             RemixIcons.list_unordered,
                             color: dark
-                                ? Colors.white70
-                                : const Color(0xFF49454F),
+                          ? Colors.white70
+                          : const Color(0xFF49454F),
                             size: 20,
                           ),
                           const SizedBox(width: 12),
@@ -687,8 +723,8 @@ class _HistoryScreenState extends ConsumerState<HistoryScreen> {
                             AppLocalizations.of(context).historyGroup,
                             style: TextStyle(
                               color: dark
-                                  ? Colors.white
-                                  : const Color(0xFF1C1B1F),
+                            ? Colors.white
+                            : const Color(0xFF1C1B1F),
                               fontSize: 15,
                               fontWeight: FontWeight.w500,
                             ),
@@ -699,17 +735,17 @@ class _HistoryScreenState extends ConsumerState<HistoryScreen> {
                         value: _isGrouped,
                         activeThumbColor: dark ? Colors.black : Colors.white,
                         activeTrackColor: dark
-                            ? Colors.white
-                            : Theme.of(context).colorScheme.primary,
+                      ? Colors.white
+                      : Theme.of(context).colorScheme.primary,
                         inactiveThumbColor: dark
-                            ? Colors.white54
-                            : Colors.black54,
+                      ? Colors.white54
+                      : Colors.black54,
                         inactiveTrackColor: dark
-                            ? const Color(0xFF2C2C2E)
-                            : Colors.black12,
+                      ? const Color(0xFF2C2C2E)
+                      : Colors.black12,
                         onChanged: (value) {
                           setSheetState(() {
-                            _isGrouped = value;
+                              _isGrouped = value;
                           });
                           setState(() {});
                           _savePreference('history_is_grouped', value);
@@ -718,6 +754,7 @@ class _HistoryScreenState extends ConsumerState<HistoryScreen> {
                     ],
                   ),
                 ],
+                ),
               ),
             );
           },
@@ -725,6 +762,14 @@ class _HistoryScreenState extends ConsumerState<HistoryScreen> {
       },
     );
   }
+
+  /// Columns the history grid actually renders.
+  ///
+  /// Read from here rather than from [_gridSize] wherever the number is shown
+  /// or measured: on a wide layout the two differ, because the derived count
+  /// can sit above every position on the slider.
+  int _resolvedColumns(BuildContext context) =>
+      mangaGridColumnsFor(context, userColumns: _gridSize.toInt()).clamp(2, 7);
 
   String _modeLabel(BuildContext context, String mode) {
     final l = AppLocalizations.of(context);
@@ -860,7 +905,7 @@ class _HistoryScreenState extends ConsumerState<HistoryScreen> {
                       color: fg.withValues(alpha: 0.9),
                     ),
                     const SizedBox(width: 14),
-                    Expanded(
+                    Flexible(
                       child: Text(
                         l.incognitoMode,
                         style: TextStyle(fontSize: 16, color: fg),
@@ -1512,8 +1557,7 @@ class _HistoryScreenState extends ConsumerState<HistoryScreen> {
         ),
       );
     }
-    final columns =
-        mangaGridColumnsFor(context, userColumns: _gridSize.toInt()).clamp(2, 7);
+    final columns = _resolvedColumns(context);
     return SliverPadding(
       padding: const EdgeInsets.symmetric(horizontal: 16),
       sliver: SliverGrid(
@@ -1525,7 +1569,7 @@ class _HistoryScreenState extends ConsumerState<HistoryScreen> {
             // Tied to the resolved count, not the stored setting: once a tablet
             // derives 7 columns the titles have to shrink to match, or they
             // overflow a cell sized for the old density.
-            titleFontSize: columns >= 4 ? 10 : 12,
+            titleFontSize: mangaCardTitleFontSize(columns),
           ),
           crossAxisSpacing: kMangaGridCrossSpacing,
           mainAxisSpacing: kMangaGridRowSpacing,
@@ -1536,6 +1580,7 @@ class _HistoryScreenState extends ConsumerState<HistoryScreen> {
             return GridHistoryCard(
               item: item,
               gridSize: _gridSize,
+              columns: columns,
               isSelected: _selectedMangaIds.contains(item['mangaId']),
               onTap: () => _handleGridCardTap(context, item),
               onLongPress: () => _enterSelection(item['mangaId'] as String),
@@ -1551,6 +1596,16 @@ class _HistoryScreenState extends ConsumerState<HistoryScreen> {
 class GridHistoryCard extends StatefulWidget {
   final Map<String, dynamic> item;
   final double gridSize;
+
+  /// Columns the grid actually resolved to, not [gridSize].
+  ///
+  /// The card shrinks its title at four columns, so it has to be told how many
+  /// columns there really are: on a wide layout the count is derived from the
+  /// window and can be well past the stored setting, and a card still painting
+  /// a 12pt title into a cell measured for 10pt is what pushes the second line
+  /// out of the cell.
+  final int columns;
+
   final bool isSelected;
   final VoidCallback onTap;
   final VoidCallback onLongPress;
@@ -1559,6 +1614,7 @@ class GridHistoryCard extends StatefulWidget {
     super.key,
     required this.item,
     required this.gridSize,
+    required this.columns,
     this.isSelected = false,
     required this.onTap,
     required this.onLongPress,
@@ -1575,7 +1631,8 @@ class _GridHistoryCardState extends State<GridHistoryCard> {
     final newChapters = widget.item['newChapters'] as int;
     final hasDownloadedChapters = widget.item['hasDownloadedChapters'] == true;
     final isFavorited = widget.item['isFavorite'] == true;
-    final bool isCompactGrid = widget.gridSize >= 4;
+    final bool isCompactGrid =
+        widget.columns >= kMangaCardCompactColumns;
     final dark = Theme.of(context).brightness == Brightness.dark;
 
     return GestureDetector(
@@ -1583,7 +1640,6 @@ class _GridHistoryCardState extends State<GridHistoryCard> {
       onLongPress: widget.onLongPress,
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
-        mainAxisSize: MainAxisSize.min,
         children: [
           AspectRatio(
             aspectRatio: 2 / 3,
@@ -1731,7 +1787,7 @@ class _GridHistoryCardState extends State<GridHistoryCard> {
             ),
           ),
           const SizedBox(height: kMangaCardTitleGap),
-          Expanded(
+          Flexible(
             child: Text(
               widget.item['title'],
               maxLines: 2,
