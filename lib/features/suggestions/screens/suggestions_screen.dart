@@ -13,7 +13,8 @@ import 'package:yomou/features/suggestions/providers/suggestions_provider.dart';
 import 'package:yomou/core/theme/layout.dart';
 import 'package:yomou/core/providers/incognito_provider.dart';
 import 'package:yomou/core/widgets/empty_state.dart';
-import 'package:yomou/core/widgets/hide_on_scroll.dart';
+import 'package:yomou/core/widgets/tab_header.dart';
+import 'package:yomou/core/widgets/responsive.dart' show usesWideLayout;
 import 'package:yomou/core/widgets/ios/ios_menu.dart';
 import 'package:yomou/core/widgets/ios/ios_sheet.dart';
 import 'package:yomou/core/widgets/ios/ios_toast.dart';
@@ -105,14 +106,12 @@ class _SuggestionsScreenState extends ConsumerState<SuggestionsScreen> {
           onRefresh: _refresh,
           color: Theme.of(context).colorScheme.primary,
           backgroundColor: Theme.of(context).scaffoldBackgroundColor,
-          child: HideOnScroll(
-            header: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                const SizedBox(height: 8),
-                _buildSearchBar(),
-              ],
-            ),
+          child: TabHeader(
+            mode: usesWideLayout(context)
+                ? TabHeaderMode.fixed
+                : TabHeaderMode.collapsing,
+            title: AppLocalizations.of(context).suggestions,
+            searchBar: _buildSearchBar(),
             body: CustomScrollView(
               physics: const AlwaysScrollableScrollPhysics(),
               slivers: [

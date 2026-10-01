@@ -3,9 +3,14 @@ import 'package:flutter/widgets.dart';
 const double kBottomBarHeight = 60;
 
 /// Width of the side navigation rail that replaces the bottom bar once the
-/// window is wide enough for one. 88 rather than a Material rail's 80 because
-/// the label sits under the icon here, not beside it, and needs the room.
-const double kNavRailWidth = 88;
+/// window is wide enough for one.
+///
+/// Icon-only, at Material's 80. The rail used to carry a label under each icon
+/// and was 88 for it, but a window wide enough for a rail is also wide enough
+/// to put the tab's name in the content pane's own header -- so the rail says
+/// which tab an icon is, and the header says which tab you are on. Each name
+/// appears exactly once, and the rail gets the width a rail is normally given.
+const double kNavRailWidth = 80;
 
 /// Width of the settings category pane in the two-pane settings layout. Wide
 /// enough for an icon plus a title and subtitle, narrow enough that the detail

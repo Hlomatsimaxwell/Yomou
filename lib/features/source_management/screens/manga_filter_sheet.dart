@@ -62,11 +62,29 @@ Future<MangaFilter?> showMangaFilterSheet(
 /// [onSave] persists the active filter for this source (called by Save + Done).
 /// Named presets are stored under [presetsKey] so saved filters can be
 /// recalled, renamed and deleted.
+///
+/// Set [inline] to render the same controls as a permanent pane instead of a
+/// route. A fullscreen sheet asks you to commit or throw away your changes,
+/// which only makes sense when there is a way out; a pane that is simply
+/// always there has neither, so it applies through [onApplied] instead of
+/// popping, and its close control hands over to [onClose] rather than popping
+/// a route.
 class MangaFilterSheet extends ConsumerStatefulWidget {
   final MangaFilter initial;
   final List<String> tags;
   final String presetsKey;
   final void Function(MangaFilter filter) onSave;
+
+  /// Rendered as a pane rather than pushed as a route. See the class docs.
+  final bool inline;
+
+  /// Called with the new filter when the user applies in [inline] mode, where
+  /// there is no route to return a value through.
+  final ValueChanged<MangaFilter>? onApplied;
+
+  /// Called by the close control in [inline] mode. The pane's owner decides
+  /// what closing means; with nothing to close the control hides itself.
+  final VoidCallback? onClose;
 
   const MangaFilterSheet({
     super.key,
@@ -74,6 +92,9 @@ class MangaFilterSheet extends ConsumerStatefulWidget {
     required this.tags,
     required this.presetsKey,
     required this.onSave,
+    this.inline = false,
+    this.onApplied,
+    this.onClose,
   });
 
   @override
@@ -331,7 +352,22 @@ class _MangaFilterSheetState extends ConsumerState<MangaFilterSheet> {
 
   void _done() {
     widget.onSave(_current);
+    if (widget.inline) {
+      // A pane has no route to pop back to, so the result goes out through
+      // onApplied instead. The grid reloads from that, exactly as it does from
+      // the sheet's return value.
+      widget.onApplied?.call(_current);
+      return;
+    }
     Navigator.pop(context, _current);
+  }
+
+  void _close() {
+    if (widget.inline) {
+      widget.onClose?.call();
+      return;
+    }
+    Navigator.pop(context);
   }
 
   void _reset() {
@@ -353,17 +389,20 @@ class _MangaFilterSheetState extends ConsumerState<MangaFilterSheet> {
     final dark = Theme.of(context).brightness == Brightness.dark;
 
     return Column(
-      mainAxisSize: MainAxisSize.min,
+      mainAxisSize: widget.inline ? MainAxisSize.max : MainAxisSize.min,
       children: [
         Padding(
           padding: const EdgeInsets.fromLTRB(8, 4, 12, 8),
           child: Row(
             children: [
-              IconButton(
-                icon: const Icon(RemixIcons.close_line, size: 22),
-                tooltip: AppLocalizations.of(context).filterClose,
-                onPressed: () => Navigator.pop(context),
-              ),
+              // A pane that is always on screen has nothing to close, so the
+              // control only appears when its owner gave it something to do.
+              if (!widget.inline || widget.onClose != null)
+                IconButton(
+                  icon: const Icon(RemixIcons.close_line, size: 22),
+                  tooltip: AppLocalizations.of(context).filterClose,
+                  onPressed: _close,
+                ),
               const SizedBox(width: 4),
               Expanded(
                 child: Text(
@@ -466,7 +505,7 @@ class _MangaFilterSheetState extends ConsumerState<MangaFilterSheet> {
               Expanded(
                 child: _buildFooterButton(
                   context,
-                  label: l.filterDone,
+                  label: widget.inline ? l.filterApply : l.filterDone,
                   filled: true,
                   onTap: _done,
                 ),

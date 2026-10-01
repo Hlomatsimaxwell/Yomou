@@ -718,23 +718,28 @@ class _HomeScreenState extends ConsumerState<HomeScreen>
         : const Color(0xFF49454F);
     final (line, fill) = _navIcons(index);
 
-    return Material(
-      color: active
-          ? accent.withValues(alpha: dark ? 0.26 : 0.16)
-          : Colors.transparent,
-      borderRadius: BorderRadius.circular(16),
-      child: InkWell(
-        onTap: () {
-          setState(() => _currentIndex = index);
-          _persistLastUsed(index);
-        },
+    // The name lives in the content pane's header now, so the rail is
+    // icon-only. The tooltip carries it instead: an icon with no text and no
+    // tooltip is a guess, and this rail is the only way to change tab.
+    return Tooltip(
+      message: _navLabel(context, index),
+      child: Material(
+        color: active
+            ? accent.withValues(alpha: dark ? 0.26 : 0.16)
+            : Colors.transparent,
         borderRadius: BorderRadius.circular(16),
-        child: Padding(
-          padding: const EdgeInsets.symmetric(vertical: 10, horizontal: 4),
-          child: Column(
-            mainAxisSize: MainAxisSize.min,
-            children: [
-              index == 4
+        child: InkWell(
+          onTap: () {
+            setState(() => _currentIndex = index);
+            _persistLastUsed(index);
+          },
+          borderRadius: BorderRadius.circular(16),
+          child: Padding(
+            // Square-ish rather than the old label-height row, so the icons
+            // sit on a regular rhythm down the rail with nothing under them.
+            padding: const EdgeInsets.symmetric(vertical: 14, horizontal: 4),
+            child: Center(
+              child: index == 4
                   ? _buildUpdatesIcon(
                       updatesCount,
                       active ? fill : line,
@@ -743,22 +748,10 @@ class _HomeScreenState extends ConsumerState<HomeScreen>
                     )
                   : Icon(
                       active ? fill : line,
-                      size: 22,
+                      size: 24,
                       color: color,
                     ),
-              const SizedBox(height: 3),
-              Text(
-                _navLabel(context, index),
-                maxLines: 1,
-                overflow: TextOverflow.ellipsis,
-                style: TextStyle(
-                  fontSize: 10,
-                  height: 1.1,
-                  fontWeight: active ? FontWeight.w600 : FontWeight.w400,
-                  color: color,
-                ),
-              ),
-            ],
+            ),
           ),
         ),
       ),

@@ -36,8 +36,14 @@ int mangaGridColumns(
   double targetCellWidth = kMangaGridTargetCellWidth,
   int minColumns = 2,
   int maxColumns = kMangaGridMaxColumns,
+  double? availableWidth,
 }) {
-  final available = MediaQuery.sizeOf(context).width - horizontalPadding * 2;
+  // Defaults to the viewport, which is right for a grid that has the screen to
+  // itself. A grid sharing the row with a side pane must pass the width it
+  // actually got, or it derives columns for space it does not have and paints
+  // cells narrower than the target.
+  final base = availableWidth ?? MediaQuery.sizeOf(context).width;
+  final available = base - horizontalPadding * 2;
   // The spacing is added to the available width because only the gaps between
   // columns exist -- without the +1 term the last column is counted as having
   // a gap it does not, and the count comes out one short at some widths.
@@ -62,9 +68,10 @@ int mangaGridColumns(
 int mangaGridColumnsFor(
   BuildContext context, {
   required int userColumns,
+  double? availableWidth,
 }) {
   if (!usesWideLayout(context)) return userColumns;
-  final derived = mangaGridColumns(context);
+  final derived = mangaGridColumns(context, availableWidth: availableWidth);
   return derived > userColumns ? derived : userColumns;
 }
 
@@ -121,8 +128,12 @@ double mangaCellAspectRatio(
   double titleFontSize = 12,
   double titleLineHeight = 1.2,
   double titleSlack = kMangaCardTitleSlack,
+  double? availableWidth,
 }) {
-  final gridWidth = MediaQuery.sizeOf(context).width - horizontalPadding * 2;
+  // See [mangaGridColumns]: a grid beside a side pane passes the width it
+  // actually has, so the cell it is measured at is the cell it is given.
+  final base = availableWidth ?? MediaQuery.sizeOf(context).width;
+  final gridWidth = base - horizontalPadding * 2;
   final cellWidth = (gridWidth - (columns - 1) * crossSpacing) / columns;
   final contentHeight =
       cellWidth * 3 / 2 +

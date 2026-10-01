@@ -1673,6 +1673,22 @@ class AppLocalizationsEs extends AppLocalizations {
   String get filterDone => 'Hecho';
 
   @override
+  String get filterApply => 'Aplicar';
+
+  @override
+  String get sourcePreview => 'Vista previa';
+
+  @override
+  String get openFullDetails => 'Abrir detalles completos';
+
+  @override
+  String get previewSourceMissing => 'Fuente no disponible';
+
+  @override
+  String get previewSourceMissingSubtitle =>
+      'Este título venía de una fuente que ya no está instalada, así que no se pueden cargar sus detalles.';
+
+  @override
   String get filterAllLanguages => 'Todos';
 
   @override

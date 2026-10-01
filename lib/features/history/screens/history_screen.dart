@@ -10,7 +10,7 @@ import 'package:yomou/features/settings/screens/settings_screen.dart';
 import 'package:yomou/core/database/database_helper.dart';
 import 'package:yomou/core/database/source_cache.dart';
 import 'package:yomou/core/widgets/empty_state.dart';
-import 'package:yomou/core/widgets/hide_on_scroll.dart';
+import 'package:yomou/core/widgets/tab_header.dart';
 import 'package:yomou/core/widgets/ios/ios_menu.dart';
 import 'package:yomou/core/widgets/ios/ios_nav_bar.dart';
 import 'package:yomou/core/widgets/ios/ios_press.dart';
@@ -1053,27 +1053,26 @@ class _HistoryScreenState extends ConsumerState<HistoryScreen> {
       },
       child: Scaffold(
         backgroundColor: Theme.of(context).scaffoldBackgroundColor,
-        // Same shape as the Suggestions screen: RefreshIndicator wraps
-        // HideOnScroll, the search bar is the collapsible header, and the
-        // filter chips scroll away with the list. HideOnScroll only collapses
-        // while a header-height of content remains below, so a history shorter
-        // than the header stays put instead of displacing its content.
+        // Same shape as the Suggestions screen: RefreshIndicator wraps the
+        // header, the search bar is the collapsible header on a phone, and the
+        // filter chips scroll away with the list. On a wide window TabHeader
+        // pins a title beside the search bar instead, since there is room for
+        // one and the rail no longer carries a label. HideOnScroll only
+        // collapses while a header-height of content remains below, so a
+        // history shorter than the header stays put instead of displacing its
+        // content.
         body: SafeArea(
           child: RefreshIndicator(
             onRefresh: _refreshHistory,
             color: Theme.of(context).colorScheme.primary,
             backgroundColor: Theme.of(context).scaffoldBackgroundColor,
-            child: HideOnScroll(
-              header: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  const SizedBox(height: 8),
-                  if (_isSelecting)
-                    _buildSelectionBar(context)
-                  else
-                    _buildSearchBar(),
-                ],
-              ),
+            child: TabHeader(
+              mode: usesWideLayout(context)
+                  ? TabHeaderMode.fixed
+                  : TabHeaderMode.collapsing,
+              title: AppLocalizations.of(context).history,
+              leading: _isSelecting ? _buildSelectionBar(context) : null,
+              searchBar: _buildSearchBar(),
               body: CustomScrollView(
                 physics: const AlwaysScrollableScrollPhysics(),
                 slivers: [

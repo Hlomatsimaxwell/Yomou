@@ -18,11 +18,13 @@ import 'package:yomou/features/source_management/screens/captcha_solver_screen.d
 import 'package:yomou/core/widgets/ios/ios_menu.dart';
 import 'package:yomou/core/widgets/ios/ios_sheet.dart';
 import 'package:yomou/core/widgets/manga_grid_metrics.dart';
+import 'package:yomou/core/widgets/responsive.dart';
 import 'package:yomou/data/models/manga.dart';
 import 'package:yomou/data/models/manga_filter.dart';
 import 'package:yomou/data/providers/sources_provider.dart';
 import 'package:yomou/features/settings/providers/appearance_provider.dart';
 import 'package:yomou/features/source_management/screens/manga_filter_sheet.dart';
+import 'package:yomou/features/source_management/widgets/manga_preview_pane.dart';
 import 'package:yomou/features/source_management/screens/source_settings_screen.dart';
 import 'package:yomou/l10n/generated/app_localizations.dart';
 import 'package:yomou/widgets/source_icon.dart';
@@ -43,6 +45,15 @@ class _MangaGridScreenState extends ConsumerState<MangaGridScreen> {
   String? _activeTag;
   List<String> _tags = const <String>[];
   MangaFilter _filter = const MangaFilter();
+
+  /// Whether the filter pane is showing beside the catalogue.
+  ///
+  /// Only ever false on a wide layout -- on a phone the filter is a fullscreen
+  /// sheet and there is nothing to collapse back to, so a collapsed pane
+  /// cannot be the resting state. The header's filter row toggles it, which is
+  /// what keeps that control live: with a permanent pane there is no sheet to
+  /// open, so tapping it has to mean something else or it would be decoration.
+  bool _filterPaneOpen = true;
   final TextEditingController _searchController = TextEditingController();
   bool _isSearching = false;
   String _searchQuery = '';
@@ -133,6 +144,21 @@ class _MangaGridScreenState extends ConsumerState<MangaGridScreen> {
   }
 
   Future<void> _openFilterSheet() async {
+    // A wide layout has the filter as a pane already, so the header's filter
+    // row shows and hides that pane rather than pushing a route over the top
+    // of it.
+    //
+    // The preview counts as covering the filter, so tapping this while a
+    // preview is up brings the filter forward instead of hiding the pane --
+    // the preview is not what the user asked to dismiss, and closing the pane
+    // would have taken it anyway. Only a visible filter is one tap to hide.
+    if (usesWideLayout(context)) {
+      setState(
+        () => _filterPaneOpen =
+            !_filterPaneOpen || _previewManga != null,
+      );
+      return;
+    }
     final source = getSourceByName(widget.sourceName);
     final result = await showMangaFilterSheet(
       context,
@@ -142,8 +168,20 @@ class _MangaGridScreenState extends ConsumerState<MangaGridScreen> {
       onSave: _saveFilter,
     );
     if (result == null) return;
+    _applyFilter(result);
+  }
+
+  /// Adopts a new filter and refetches.
+  ///
+  /// Shared by the sheet's return value and the pane's apply button: the pane
+  /// has no route to return through, so it hands the filter over directly and
+  /// this is what turns it into a reload. Clearing the tag chip selection
+  /// matters here -- the two filter the same list by different means, and
+  /// leaving a client-side tag active on top of a freshly applied source-side
+  /// filter would silently intersect them.
+  void _applyFilter(MangaFilter filter) {
     setState(() {
-      _filter = result;
+      _filter = filter;
       _activeTag = null;
       _selectedFilterIndex = -1;
     });
@@ -325,17 +363,9 @@ class _MangaGridScreenState extends ConsumerState<MangaGridScreen> {
     final random = Random();
     final randomManga = _mangaList[random.nextInt(_mangaList.length)];
 
-    Navigator.push(
-      context,
-      MaterialPageRoute(
-        builder: (context) => MangaDetailScreen(
-          mangaId: randomManga.id,
-          title: randomManga.title,
-          imageUrl: randomManga.coverUrl,
-          sourceId: randomManga.sourceId,
-        ),
-      ),
-    );
+    // A dice roll is a decision to leave the grid, not a browse, so it opens
+    // the screen outright even where a cover tap would only preview.
+    _openDetail(randomManga);
   }
 
   @override
@@ -349,10 +379,6 @@ class _MangaGridScreenState extends ConsumerState<MangaGridScreen> {
   Widget build(BuildContext context) {
     final dark = Theme.of(context).brightness == Brightness.dark;
     final scheme = Theme.of(context).colorScheme;
-    final displayedManga = _mangaList.where((item) {
-      if (_searchQuery.isEmpty) return true;
-      return item.title.toLowerCase().contains(_searchQuery.toLowerCase());
-    }).toList();
 
     return Scaffold(
       backgroundColor: Theme.of(context).scaffoldBackgroundColor,
@@ -421,74 +447,116 @@ class _MangaGridScreenState extends ConsumerState<MangaGridScreen> {
           ),
         ],
       ),
-      body: RefreshIndicator(
-        color: dark ? Colors.white : scheme.primary,
-        backgroundColor: dark ? const Color(0xFF2C2C2E) : Colors.white,
-        onRefresh: _refresh,
-        child: SingleChildScrollView(
-          controller: _scrollController,
-          physics: const AlwaysScrollableScrollPhysics(),
-          padding: const EdgeInsets.only(bottom: 40),
-          child: Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              Padding(
-                padding: const EdgeInsets.symmetric(
-                  horizontal: 16,
-                  vertical: 8,
-                ),
-                child: Row(
-                  mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                  children: [
-                    Row(
-                      children: [
-                        SourceIcon(
-                          name: widget.sourceName,
-                          iconUrl: getSourceByName(widget.sourceName).iconUrl,
-                          size: 40,
+      body: _buildBody(context, dark, scheme),
+    );
+  }
+
+  /// The catalogue, with the side pane when there is one to show.
+  ///
+  /// The pane is a single slot holding whichever of the two is live: the filter
+  /// normally, or a manga's preview once a cover is tapped. It stays on screen
+  /// after the filter is closed if a preview is showing, and disappears only
+  /// when neither is -- collapsing the filter while a preview is up would take
+  /// the preview with it, which is not what closing the filter asks for.
+  Widget _buildBody(BuildContext context, bool dark, ColorScheme scheme) {
+    final catalogue = _buildCatalogueScroll(context, dark, scheme);
+    if (!usesWideLayout(context)) return catalogue;
+    final showPane = _filterPaneOpen || _previewManga != null;
+    if (!showPane) return catalogue;
+    return Row(
+      crossAxisAlignment: CrossAxisAlignment.stretch,
+      children: [
+        Expanded(child: catalogue),
+        VerticalDivider(
+          width: 1,
+          thickness: 1,
+          color: dark ? Colors.white12 : Colors.black12,
+        ),
+        _buildFilterPane(context, dark),
+      ],
+    );
+  }
+
+  /// The catalogue column: source header, quick filters, and the grid or list.
+  ///
+  /// Its own scroll view either way. On a wide layout it is one pane of two
+  /// and must not inherit the pane's scroll, or scrolling the filter would
+  /// drag the catalogue with it.
+  Widget _buildCatalogueScroll(
+    BuildContext context,
+    bool dark,
+    ColorScheme scheme,
+  ) {
+    final displayedManga = _mangaList.where((item) {
+      if (_searchQuery.isEmpty) return true;
+      return item.title.toLowerCase().contains(_searchQuery.toLowerCase());
+    }).toList();
+
+    return RefreshIndicator(
+      color: dark ? Colors.white : scheme.primary,
+      backgroundColor: dark ? const Color(0xFF2C2C2E) : Colors.white,
+      onRefresh: _refresh,
+      child: SingleChildScrollView(
+        controller: _scrollController,
+        physics: const AlwaysScrollableScrollPhysics(),
+        padding: const EdgeInsets.only(bottom: 40),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Padding(
+              padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+              child: Row(
+                mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                children: [
+                  Row(
+                    children: [
+                      SourceIcon(
+                        name: widget.sourceName,
+                        iconUrl: getSourceByName(widget.sourceName).iconUrl,
+                        size: 40,
+                      ),
+                      const SizedBox(width: 12),
+                      Text(
+                        widget.sourceName,
+                        style: TextStyle(
+                          color: dark ? Colors.white : scheme.onSurface,
+                          fontSize: 22,
+                          fontWeight: FontWeight.bold,
                         ),
-                        const SizedBox(width: 12),
-                        Text(
-                          widget.sourceName,
-                          style: TextStyle(
-                            color: dark ? Colors.white : scheme.onSurface,
-                            fontSize: 22,
-                            fontWeight: FontWeight.bold,
-                          ),
-                        ),
-                      ],
-                    ),
-                    Row(
-                      children: [
-                        GestureDetector(
-                          behavior: HitTestBehavior.opaque,
-                          onTap: _openFilterSheet,
-                          child: Row(
-                            children: [
-                              Icon(
-                                RemixIcons.filter_line,
-                                color: dark
-                                    ? Colors.white70
-                                    : const Color(0xFF49454F),
-                                size: 18,
+                      ),
+                    ],
+                  ),
+                  Row(
+                    children: [
+                      GestureDetector(
+                        behavior: HitTestBehavior.opaque,
+                        onTap: _openFilterSheet,
+                        child: Row(
+                          children: [
+                            Icon(
+                              RemixIcons.filter_line,
+                              color: dark
+                                  ? Colors.white70
+                                  : const Color(0xFF49454F),
+                              size: 18,
+                            ),
+                            const SizedBox(width: 4),
+                            Text(
+                              _sortLabel(AppLocalizations.of(context)),
+                              style: TextStyle(
+                                color: dark ? Colors.white : scheme.onSurface,
+                                fontSize: 14,
+                                fontWeight: FontWeight.w600,
                               ),
-                              const SizedBox(width: 4),
-                              Text(
-                                _sortLabel(AppLocalizations.of(context)),
-                                style: TextStyle(
-                                  color: dark ? Colors.white : scheme.onSurface,
-                                  fontSize: 14,
-                                  fontWeight: FontWeight.w600,
-                                ),
-                              ),
-                            ],
-                          ),
+                            ),
+                          ],
                         ),
-                      ],
-                    ),
-                  ],
-                ),
+                      ),
+                    ],
+                  ),
+                ],
               ),
+            ),
               const SizedBox(height: 12),
               if (ref.watch(appearanceSettingsProvider).showQuickFilters &&
                   _tags.isNotEmpty)
@@ -571,8 +639,98 @@ class _MangaGridScreenState extends ConsumerState<MangaGridScreen> {
                     ),
                   ),
                 ),
-            ],
-          ),
+          ],
+        ),
+      ),
+    );
+  }
+
+  /// The filter as a permanent pane beside the catalogue.
+  ///
+  /// Same controls as the sheet; see [MangaFilterSheet] on why the apply path
+  /// differs. Fixed width rather than a flex share: the filter's sections are
+  /// rows of genre pills, and a pane that flexes would either wrap them into a
+  /// ragged ladder on a very wide window or start clipping them on a merely
+  /// tablet-sized one.
+  Widget _buildFilterPane(BuildContext context, bool dark) {
+    final source = getSourceByName(widget.sourceName);
+    final preview = _previewManga;
+    return SizedBox(
+      width: 340,
+      // A preview slides in over the filter rather than replacing it, so
+      // closing the preview reveals the filter still as the user left it --
+      // half-made genre selections and all. Rebuilding the filter from
+      // [_filter] instead would silently discard whatever was typed but not
+      // yet applied.
+      //
+      // The filter is only mounted while it is actually open, so a pane left
+      // showing just a preview does not keep a whole second scroll view alive
+      // behind it.
+      child: Stack(
+        children: [
+          if (_filterPaneOpen)
+            Positioned.fill(
+              child: MangaFilterSheet(
+                initial: _filter,
+                tags: _tags,
+                presetsKey: 'source_presets_${source.id}',
+                onSave: _saveFilter,
+                inline: true,
+                onApplied: _applyFilter,
+                onClose: () => setState(() => _filterPaneOpen = false),
+              ),
+            ),
+          if (preview != null)
+            Positioned.fill(
+              child: Material(
+                color: Theme.of(context).scaffoldBackgroundColor,
+                child: MangaPreviewPane(
+                  manga: preview,
+                  onRead: () => _openDetail(preview, autoStartReader: true),
+                  onOpenFull: () => _openDetail(preview),
+                  onClose: () => setState(() => _previewManga = null),
+                ),
+              ),
+            ),
+        ],
+      ),
+    );
+  }
+
+  /// The manga whose preview is showing, or null when the filter is on top.
+  Manga? _previewManga;
+
+  /// Tapping a cover.
+  ///
+  /// A wide layout previews it in the pane instead of leaving the grid, which
+  /// is the point of the pane: browsing stays where it was, so a cover that
+  /// turns out not to be interesting costs a tap rather than a trip back
+  /// through the stack. Anywhere narrower there is no room for a pane beside
+  /// the grid, so the cover opens the screen directly as it always has.
+  void _onMangaTap(Manga item) {
+    if (usesWideLayout(context)) {
+      _selectPreview(item);
+      return;
+    }
+    _openDetail(item);
+  }
+
+  void _selectPreview(Manga manga) {
+    if (_previewManga?.id == manga.id) return;
+    setState(() => _previewManga = manga);
+  }
+
+  /// Open the full detail screen, optionally starting the reader on arrival.
+  Future<void> _openDetail(Manga manga, {bool autoStartReader = false}) async {
+    await Navigator.push(
+      context,
+      MaterialPageRoute(
+        builder: (context) => MangaDetailScreen(
+          mangaId: manga.id,
+          title: manga.title,
+          imageUrl: manga.coverUrl,
+          sourceId: manga.sourceId,
+          autoStartReader: autoStartReader,
         ),
       ),
     );
@@ -840,23 +998,48 @@ class _MangaGridScreenState extends ConsumerState<MangaGridScreen> {
       );
     }
 
-    final columns =
-        mangaGridColumnsFor(context, userColumns: _gridSize.round()).clamp(2, 5);
+    // Clamped to the same ceiling every other manga grid uses. It was 5 here
+    // and nowhere else, which made this the one screen where the derived
+    // count could be thrown away: a wide window resolves 8 columns and 5 was
+    // substituted, so a source catalogue showed five oversized covers beside
+    // eight compact ones on History. The bound is shared rather than written
+    // out so the two cannot drift apart again.
     return Padding(
       padding: const EdgeInsets.symmetric(horizontal: 16),
-      child: GridView.builder(
-        shrinkWrap: true,
-        physics: const NeverScrollableScrollPhysics(),
-        gridDelegate: SliverGridDelegateWithFixedCrossAxisCount(
-          crossAxisCount: columns,
-          childAspectRatio: mangaCellAspectRatio(context, columns: columns),
-          crossAxisSpacing: kMangaGridCrossSpacing,
-          mainAxisSpacing: kMangaGridRowSpacing,
-        ),
-        itemCount: items.length,
-        itemBuilder: (context, index) {
-          final item = items[index];
-          return _buildMangaCard(context, item);
+      // Measured from the constraints rather than the viewport: on a wide
+      // layout this grid shares the row with the filter pane, so the viewport
+      // is 340px wider than the grid actually is. Deriving columns from the
+      // viewport there would size eight cells into space that holds six and a
+      // half, and every cover would come out narrower than intended.
+      child: LayoutBuilder(
+        builder: (context, constraints) {
+          final width = constraints.maxWidth;
+          final columns = mangaGridColumnsFor(
+            context,
+            userColumns: _gridSize.round(),
+            availableWidth: width,
+          ).clamp(2, kMangaGridMaxColumns);
+          final fontSize = mangaCardTitleFontSize(columns);
+          return GridView.builder(
+            shrinkWrap: true,
+            physics: const NeverScrollableScrollPhysics(),
+            gridDelegate: SliverGridDelegateWithFixedCrossAxisCount(
+              crossAxisCount: columns,
+              childAspectRatio: mangaCellAspectRatio(
+                context,
+                columns: columns,
+                titleFontSize: fontSize,
+                availableWidth: width,
+              ),
+              crossAxisSpacing: kMangaGridCrossSpacing,
+              mainAxisSpacing: kMangaGridRowSpacing,
+            ),
+            itemCount: items.length,
+            itemBuilder: (context, index) {
+              final item = items[index];
+              return _buildMangaCard(context, item, fontSize);
+            },
+          );
         },
       ),
     );
@@ -865,19 +1048,7 @@ class _MangaGridScreenState extends ConsumerState<MangaGridScreen> {
   Widget _buildMangaListRow(BuildContext context, Manga item) {
     final dark = Theme.of(context).brightness == Brightness.dark;
     return InkWell(
-      onTap: () {
-        Navigator.push(
-          context,
-          MaterialPageRoute(
-            builder: (context) => MangaDetailScreen(
-              mangaId: item.id,
-              title: item.title,
-              imageUrl: item.coverUrl,
-              sourceId: item.sourceId,
-            ),
-          ),
-        );
-      },
+      onTap: () => _onMangaTap(item),
       child: Padding(
         padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 6),
         child: Row(
@@ -936,22 +1107,10 @@ class _MangaGridScreenState extends ConsumerState<MangaGridScreen> {
     );
   }
 
-  Widget _buildMangaCard(BuildContext context, Manga item) {
+  Widget _buildMangaCard(BuildContext context, Manga item, double titleFontSize) {
     final dark = Theme.of(context).brightness == Brightness.dark;
     return GestureDetector(
-      onTap: () {
-        Navigator.push(
-          context,
-          MaterialPageRoute(
-            builder: (context) => MangaDetailScreen(
-              mangaId: item.id,
-              title: item.title,
-              imageUrl: item.coverUrl,
-              sourceId: item.sourceId,
-            ),
-          ),
-        );
-      },
+      onTap: () => _onMangaTap(item),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
@@ -1011,7 +1170,10 @@ class _MangaGridScreenState extends ConsumerState<MangaGridScreen> {
                 color: dark
                     ? Colors.white
                     : Theme.of(context).colorScheme.onSurface,
-                fontSize: 12,
+                // The size the cell was measured at, not a fixed 12: a cell
+                // sized for a 10pt title and drawn with a 12pt one clips the
+                // second line of every title long enough to need one.
+                fontSize: titleFontSize,
                 fontWeight: FontWeight.bold,
                 height: 1.2,
               ),

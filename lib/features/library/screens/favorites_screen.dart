@@ -8,7 +8,8 @@ import 'package:yomou/features/library/widgets/downloaded_badge.dart';
 import 'package:yomou/features/library/screens/manga_detail_screen.dart';
 import 'package:yomou/core/theme/layout.dart';
 import 'package:yomou/core/widgets/empty_state.dart';
-import 'package:yomou/core/widgets/hide_on_scroll.dart';
+import 'package:yomou/core/widgets/tab_header.dart';
+import 'package:yomou/core/widgets/responsive.dart' show usesWideLayout;
 import 'package:yomou/core/widgets/manga_grid_metrics.dart';
 import 'package:yomou/l10n/generated/app_localizations.dart';
 import 'package:yomou/core/widgets/search_bar.dart';
@@ -37,14 +38,12 @@ class _FavoritesScreenState extends ConsumerState<FavoritesScreen> {
     return Scaffold(
       backgroundColor: Theme.of(context).scaffoldBackgroundColor,
       body: SafeArea(
-        child: HideOnScroll(
-          header: Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              const SizedBox(height: 8),
-              _buildSearchBar(),
-            ],
-          ),
+        child: TabHeader(
+          mode: usesWideLayout(context)
+              ? TabHeaderMode.fixed
+              : TabHeaderMode.collapsing,
+          title: AppLocalizations.of(context).favorites,
+          searchBar: _buildSearchBar(),
           body: CustomScrollView(
             physics: const AlwaysScrollableScrollPhysics(),
             slivers: [

@@ -7,6 +7,7 @@ import 'package:url_launcher/url_launcher.dart';
 import 'package:yomou/core/database/database_helper.dart';
 import 'package:yomou/core/widgets/ios/ios_press.dart';
 import 'package:yomou/core/database/source_cache.dart';
+import 'package:yomou/core/widgets/responsive.dart' show usesWideLayout;
 import 'package:yomou/features/library/providers/favorites_provider.dart';
 import 'package:yomou/features/library/providers/downloads_provider.dart';
 import 'package:yomou/features/history/providers/history_provider.dart';
@@ -44,12 +45,24 @@ class MangaDetailScreen extends ConsumerStatefulWidget {
   final String imageUrl;
   final String? sourceId;
 
+  /// Open the reader as soon as the chapters are in, instead of waiting to be
+  /// asked.
+  ///
+  /// Set by the browse screen's preview pane, where the user has already
+  /// committed to reading this title and came from a grid rather than from
+  /// this screen. Pushing the reader directly from there would mean fetching
+  /// the chapter list in the pane as well, so the request happens here instead
+  /// and only once. Going back from the reader then lands on this screen with
+  /// the list already loaded, which is what the user sees next anyway.
+  final bool autoStartReader;
+
   const MangaDetailScreen({
     super.key,
     required this.mangaId,
     required this.title,
     required this.imageUrl,
     this.sourceId,
+    this.autoStartReader = false,
   });
 
   @override
@@ -115,9 +128,34 @@ class _MangaDetailScreenState extends ConsumerState<MangaDetailScreen> {
   // Real bookmarks for this manga.
   List<Bookmark> _bookmarks = [];
 
+  // Set when this screen was asked to start reading on arrival, and cleared
+  // once it has done so. Guarded rather than fired inline because both inputs
+  // the reader needs arrive from separate futures: the chapter list from
+  // _loadChapters and the saved page from _loadProgress. Whichever finishes
+  // second starts the reader, so neither has to wait on the other.
+  bool _autoStartPending = false;
+  bool _autoStartDone = false;
+
   // Captures the DraggableScrollableSheet's scroll controller so we can
   // programmatically scroll the chapter list to the oldest chapter.
   ScrollController? _sheetContentController;
+
+  // The chapter list's scroll controller on a wide layout, where the list is a
+  // pane beside the details rather than a tray sliding over them.
+  //
+  // Both are kept because only one is ever live: [_listScrollController] is
+  // what the jump-to-end button and the "can this scroll" check read, so they
+  // follow whichever layout is showing instead of each having to know which.
+  final ScrollController _widePaneController = ScrollController();
+  ScrollController? get _listScrollController => usesWideLayout(context)
+      ? _widePaneController
+      : _sheetContentController;
+
+  // The wide pane owns its controller outright, so it attaches the scroll
+  // listener once when it is built. The tray hands us its controller inside
+  // DraggableScrollableSheet's builder instead, and that builder can run many
+  // times, so the tray's listener is attached there.
+  bool _widePaneScrollListening = false;
   bool _trayScrollListening = false;
   bool _trayAtBottom = false;
   bool _isLoadingBookmarks = true;
@@ -146,6 +184,7 @@ class _MangaDetailScreenState extends ConsumerState<MangaDetailScreen> {
   @override
   void initState() {
     super.initState();
+    _autoStartPending = widget.autoStartReader;
     _loadFavoriteStatus();
     _loadMetadataOverrides();
     _loadChapters();
@@ -266,6 +305,7 @@ class _MangaDetailScreenState extends ConsumerState<MangaDetailScreen> {
           _chapters = _sortChaptersNewestFirst(chapters);
           _isLoadingChapters = false;
         });
+        _maybeAutoStartReader();
       }
       if (chapters.isNotEmpty && mounted) {
         _loadPreviewPages();
@@ -288,6 +328,7 @@ class _MangaDetailScreenState extends ConsumerState<MangaDetailScreen> {
           _chapterError = e.toString();
           _isLoadingChapters = false;
         });
+        _maybeAutoStartReader();
       }
     }
   }
@@ -323,6 +364,33 @@ class _MangaDetailScreenState extends ConsumerState<MangaDetailScreen> {
         final clamped = _lastReadChapter.clamp(0, total.toDouble());
         _progressPercent = (clamped / total) * 100;
       }
+    });
+    _maybeAutoStartReader();
+  }
+
+  /// Start the reader once both of its inputs have arrived.
+  ///
+  /// Progress is the one that gates it, not the chapters: opening the reader
+  /// at a page belonging to a chapter that has not loaded yet would land on a
+  /// page the reader cannot show, whereas waiting for chapters while progress
+  /// is still loading just means resuming from page one of the right chapter.
+  /// If the chapter fetch fails there is nothing to open, so the request is
+  /// dropped rather than retried in a loop -- the screen is still there, and
+  /// the user can refresh it by hand.
+  void _maybeAutoStartReader() {
+    if (!_autoStartPending || _autoStartDone) return;
+    if (_isLoadingChapters) return;
+    if (_chapters.isEmpty) {
+      _autoStartPending = false;
+      return;
+    }
+    _autoStartPending = false;
+    _autoStartDone = true;
+    // Deferred out of the setState that loading progress just ran inside, so
+    // the reader is pushed once this frame has been built.
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      if (!mounted) return;
+      _openReader();
     });
   }
 
@@ -554,6 +622,7 @@ class _MangaDetailScreenState extends ConsumerState<MangaDetailScreen> {
   void dispose() {
     _jobPoll?.cancel();
     _sheetController.dispose();
+    _widePaneController.dispose();
     super.dispose();
   }
 
@@ -568,7 +637,7 @@ class _MangaDetailScreenState extends ConsumerState<MangaDetailScreen> {
   // Scroll the chapter list to the chapter you were last reading (or the
   // first chapter for a fresh manga).
   void _scrollToResumeChapter() {
-    final sc = _sheetContentController;
+    final sc = _listScrollController;
     if (sc == null) return;
     final fraction = _chapters.length <= 1
         ? 1.0
@@ -592,13 +661,14 @@ class _MangaDetailScreenState extends ConsumerState<MangaDetailScreen> {
   }
 
   // True when the tray list is scrolled to its last chapter.
-  bool get _trayCanScroll =>
-      _sheetContentController?.hasClients == true &&
-      _sheetContentController!.position.maxScrollExtent > 40;
+  bool get _trayCanScroll {
+    final sc = _listScrollController;
+    return sc?.hasClients == true && sc!.position.maxScrollExtent > 40;
+  }
 
-  // Track whether the tray list has scrolled to its last chapter.
+  // Track whether the chapter list has scrolled to its last chapter.
   void _onTrayContentScroll() {
-    final sc = _sheetContentController;
+    final sc = _listScrollController;
     if (sc == null || !sc.hasClients) return;
     final pos = sc.position;
     final atBottom =
@@ -608,9 +678,9 @@ class _MangaDetailScreenState extends ConsumerState<MangaDetailScreen> {
     }
   }
 
-  // Jump the full-screen tray list to its very top (chapter 1).
+  // Jump the chapter list to its very top (chapter 1).
   void _jumpTrayToTop() {
-    final sc = _sheetContentController;
+    final sc = _listScrollController;
     if (sc == null || !sc.hasClients) return;
     sc.animateTo(
       0,
@@ -619,9 +689,9 @@ class _MangaDetailScreenState extends ConsumerState<MangaDetailScreen> {
     );
   }
 
-  // Jump the full-screen tray list to its last loaded chapter.
+  // Jump the chapter list to its last loaded chapter.
   void _jumpTrayToBottom() {
-    final sc = _sheetContentController;
+    final sc = _listScrollController;
     if (sc == null || !sc.hasClients) return;
     sc.animateTo(
       sc.position.maxScrollExtent,
@@ -848,6 +918,12 @@ class _MangaDetailScreenState extends ConsumerState<MangaDetailScreen> {
 
   @override
   Widget build(BuildContext context) {
+    if (usesWideLayout(context)) {
+      return Scaffold(
+        backgroundColor: Theme.of(context).scaffoldBackgroundColor,
+        body: SafeArea(child: _buildWideLayout(context)),
+      );
+    }
     return Scaffold(
       backgroundColor: Theme.of(context).scaffoldBackgroundColor,
       body: Stack(
@@ -921,61 +997,7 @@ class _MangaDetailScreenState extends ConsumerState<MangaDetailScreen> {
                       slivers: [
                         SliverPersistentHeader(
                           pinned: true,
-                          delegate: _SheetHeaderDelegate(
-                            isExpanded: _isExpanded,
-                            activeTab: _activeTab,
-                            topPadding: MediaQuery.of(context).padding.top,
-                            bottomPadding: MediaQuery.of(
-                              context,
-                            ).padding.bottom,
-                            unreadCount: _unreadCount,
-                            showContinueButton:
-                                _activeTab == 0 && _chapters.isNotEmpty,
-                            hasRead: _lastReadChapter >= 0,
-                            continueChapterNumber:
-                                _lastReadChapter >= 0 &&
-                                    _resumeChapterIndex >= 0 &&
-                                    _resumeChapterIndex < _chapters.length
-                                ? _chapters[_resumeChapterIndex].chapterNumber
-                                : null,
-                            isSelectionMode: _selectionMode,
-                            selectedCount: _selectedIds.length,
-                            isAllSelected:
-                                _selectedIds.length == _chapters.length &&
-                                _chapters.isNotEmpty,
-                            hasSelectionGap: _hasSelectionGap,
-                            onContinuePressed: _openReader,
-                            onExitSelection: _exitSelection,
-                            onSelectRange: _selectChapterRange,
-                            onSelectAll: _selectAllChapters,
-                            onDeselectAll: _deselectAllChapters,
-                            onToggleSelectedRead: _toggleSelectedRead,
-                            isAllSelectedRead: _isAllSelectedRead,
-                            hasDownloaded: _isSelectedDownloaded,
-                            onRemoveDownloads: _deleteSelectedDownloads,
-                            onDownload: _downloadSelectedChapters,
-                            onBarTap: () {
-                              final current = _sheetController.size;
-                              if (current < 0.2) {
-                                _animateSheetTo(0.5);
-                                _scrollToResumeChapter();
-                              } else if (current > 0.6) {
-                                // Fullscreen: collapse back to the half state.
-                                _animateSheetTo(0.5);
-                              } else {
-                                _animateSheetTo(0.08);
-                              }
-                            },
-                            reverseOrder: _reverseOrder,
-                            onToggleOrder: () =>
-                                setState(() => _reverseOrder = !_reverseOrder),
-                            onTabSelected: (index) {
-                              setState(() => _activeTab = index);
-                              if (_sheetController.size < 0.2) {
-                                _animateSheetTo(0.5);
-                              }
-                            },
-                          ),
+                          delegate: _buildSheetHeaderDelegate(),
                         ),
                         if (_batchQueued > 0 || _activeJob != null)
                           SliverToBoxAdapter(
@@ -1023,6 +1045,184 @@ class _MangaDetailScreenState extends ConsumerState<MangaDetailScreen> {
         ],
       ),
     );
+  }
+
+  /// Builds the chapter-list header for whichever layout is showing.
+  ///
+  /// [docked] is the wide layout, where the list is a pane rather than a tray.
+  /// The differences are all consequences of there being no sheet: no drag
+  /// handle, no expand chevron, no bottom safe-area padding to clear, and an
+  /// order toggle that is always present rather than only at full screen --
+  /// there is no "collapsed" state for it to be hiding in. Tapping the bar to
+  /// cycle the sheet is meaningless when there is no sheet, so it is inert.
+  _SheetHeaderDelegate _buildSheetHeaderDelegate({bool docked = false}) {
+    return _SheetHeaderDelegate(
+      docked: docked,
+      isExpanded: docked || _isExpanded,
+      activeTab: _activeTab,
+      topPadding: docked ? 0 : MediaQuery.of(context).padding.top,
+      bottomPadding: docked ? 0 : MediaQuery.of(context).padding.bottom,
+      unreadCount: _unreadCount,
+      showContinueButton: _activeTab == 0 && _chapters.isNotEmpty,
+      hasRead: _lastReadChapter >= 0,
+      continueChapterNumber:
+          _lastReadChapter >= 0 &&
+              _resumeChapterIndex >= 0 &&
+              _resumeChapterIndex < _chapters.length
+          ? _chapters[_resumeChapterIndex].chapterNumber
+          : null,
+      isSelectionMode: _selectionMode,
+      selectedCount: _selectedIds.length,
+      isAllSelected:
+          _selectedIds.length == _chapters.length && _chapters.isNotEmpty,
+      hasSelectionGap: _hasSelectionGap,
+      onContinuePressed: _openReader,
+      onExitSelection: _exitSelection,
+      onSelectRange: _selectChapterRange,
+      onSelectAll: _selectAllChapters,
+      onDeselectAll: _deselectAllChapters,
+      onToggleSelectedRead: _toggleSelectedRead,
+      isAllSelectedRead: _isAllSelectedRead,
+      hasDownloaded: _isSelectedDownloaded,
+      onRemoveDownloads: _deleteSelectedDownloads,
+      onDownload: _downloadSelectedChapters,
+      onBarTap: () {
+        if (docked) return;
+        final current = _sheetController.size;
+        if (current < 0.2) {
+          _animateSheetTo(0.5);
+          _scrollToResumeChapter();
+        } else if (current > 0.6) {
+          // Fullscreen: collapse back to the half state.
+          _animateSheetTo(0.5);
+        } else {
+          _animateSheetTo(0.08);
+        }
+      },
+      reverseOrder: _reverseOrder,
+      onToggleOrder: () => setState(() => _reverseOrder = !_reverseOrder),
+      onTabSelected: (index) {
+        setState(() => _activeTab = index);
+        if (docked) return;
+        if (_sheetController.size < 0.2) {
+          _animateSheetTo(0.5);
+        }
+      },
+    );
+  }
+
+  /// Master-detail layout for tablets and desktop windows.
+  ///
+  /// The phone layout stacks everything in one column and puts the chapter
+  /// list in a tray that slides up over it, which works because a phone has one
+  /// sensible way to use the height. A wide window has both, and stacking them
+  /// just makes a tall narrow column with a lot of space beside it. So the
+  /// details and the chapter list each get a column and their own scroll
+  /// position: reading a chapter list no longer loses the reader's place in
+  /// the description, and vice versa.
+  ///
+  /// The tray does not exist here. There is nothing to drag and nothing to
+  /// expand, so the header drops its handle and chevron and keeps the tabs,
+  /// Continue pill, order toggle and selection mode that lived in the tray.
+  Widget _buildWideLayout(BuildContext context) {
+    final dark = Theme.of(context).brightness == Brightness.dark;
+    return Row(
+      crossAxisAlignment: CrossAxisAlignment.stretch,
+      children: [
+        Expanded(
+          flex: 5,
+          child: SingleChildScrollView(
+            // Distinct from the tray: the bottom inset here is only the safe
+            // area, because there is no bar to clear.
+            padding: EdgeInsets.only(
+              bottom: 24 + MediaQuery.of(context).padding.bottom,
+            ),
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                _buildTopAppBar(),
+                _buildHeaderSection(),
+                const SizedBox(height: 16),
+                _buildSourceCard(),
+                const SizedBox(height: 16),
+                _buildDescriptionSection(),
+                const SizedBox(height: 12),
+                _buildTagChips(),
+                const SizedBox(height: 20),
+                _buildRelatedMangaSection(),
+              ],
+            ),
+          ),
+        ),
+        // A hairline rather than a wide divider: it has to read as a pane
+        // boundary without pulling attention from the covers.
+        VerticalDivider(
+          width: 1,
+          thickness: 1,
+          color: dark ? Colors.white12 : Colors.black12,
+        ),
+        Expanded(
+          flex: 6,
+          child: Stack(
+            children: [
+              CustomScrollView(
+                controller: _buildWidePaneController(),
+                slivers: [
+                  SliverPersistentHeader(
+                    pinned: true,
+                    delegate: _buildSheetHeaderDelegate(docked: true),
+                  ),
+                  if (_batchQueued > 0 || _activeJob != null)
+                    SliverToBoxAdapter(
+                      child: DownloadBatchBanner(
+                        job: _activeJob,
+                        pendingCount: _batchQueued,
+                        onPause: _toggleJobPause,
+                        onCancel: _cancelJob,
+                      ),
+                    ),
+                  if (_activeTab == 0)
+                    _buildChapterListSliver()
+                  else if (_activeTab == 1)
+                    _buildPagesGridSliver()
+                  else
+                    _buildBookmarksSliver(),
+                ],
+              ),
+              // Live whenever the list is actually long enough to need it. The
+              // tray version also fades this in only at full screen; a pane has
+              // the full height from the start, so there is no state to wait
+              // for -- but the length check still applies, or a three-chapter
+              // manga would show a button that cannot do anything.
+              if (_trayCanScroll && !_selectionMode)
+                Positioned(
+                  right: 14,
+                  bottom: 16 + MediaQuery.of(context).padding.bottom,
+                  child: _TrayJumpButton(
+                    atBottom: _trayAtBottom,
+                    onTap: _trayAtBottom ? _jumpTrayToTop : _jumpTrayToBottom,
+                  ),
+                ),
+            ],
+          ),
+        ),
+      ],
+    );
+  }
+
+  /// The wide pane's scroll controller, with the at-bottom listener attached
+  /// the first time it is asked for.
+  ///
+  /// Attached here rather than at construction because the pane is built
+  /// inside [build]: a controller with a listener that is never used, or one
+  /// whose listener outlives the layout it was for, both cost more than this
+  /// one line of bookkeeping.
+  ScrollController _buildWidePaneController() {
+    if (!_widePaneScrollListening) {
+      _widePaneScrollListening = true;
+      _widePaneController.addListener(_onTrayContentScroll);
+    }
+    return _widePaneController;
   }
 
   Widget _buildChapterListSliver() {
@@ -3079,6 +3279,10 @@ class _SheetDragHandle extends StatelessWidget {
 }
 
 class _SheetHeaderDelegate extends SliverPersistentHeaderDelegate {
+  /// The list is a pane in a two-pane layout, not a tray sliding over the
+  /// details, so there is no handle to drag and no chevron to expand.
+  final bool docked;
+
   final bool isExpanded;
   final int activeTab;
   final double topPadding;
@@ -3107,6 +3311,7 @@ class _SheetHeaderDelegate extends SliverPersistentHeaderDelegate {
   final VoidCallback onToggleOrder;
 
   _SheetHeaderDelegate({
+    this.docked = false,
     required this.isExpanded,
     required this.activeTab,
     required this.topPadding,
@@ -3145,7 +3350,7 @@ class _SheetHeaderDelegate extends SliverPersistentHeaderDelegate {
     final scheme = Theme.of(context).colorScheme;
     return GestureDetector(
       behavior: HitTestBehavior.opaque,
-      onTap: isSelectionMode ? null : onBarTap,
+      onTap: isSelectionMode || docked ? null : onBarTap,
       child: Container(
         decoration: BoxDecoration(
           color: dark ? const Color(0xFF1E1E20) : Colors.white,
@@ -3156,15 +3361,22 @@ class _SheetHeaderDelegate extends SliverPersistentHeaderDelegate {
         padding: EdgeInsets.only(
           left: 10,
           right: 10,
-          top: isExpanded ? (topPadding + 6) : 6,
-          bottom: isExpanded ? 6 : (6 + bottomPadding),
+          // A docked pane sits inside the page's SafeArea already, so it adds
+          // no top or bottom inset of its own -- only the tray has to clear
+          // the status bar and the bar below it.
+          top: docked ? 6 : (isExpanded ? (topPadding + 6) : 6),
+          bottom: docked ? 6 : (isExpanded ? 6 : (6 + bottomPadding)),
         ),
         alignment: Alignment.center,
         child: Column(
           mainAxisSize: MainAxisSize.min,
           children: [
-            const _SheetDragHandle(),
-            const SizedBox(height: 6),
+            // A grab handle on a pane that cannot be dragged is a control that
+            // lies, so it only exists in the tray.
+            if (!docked) ...[
+              const _SheetDragHandle(),
+              const SizedBox(height: 6),
+            ],
             AnimatedSwitcher(
               duration: const Duration(milliseconds: 200),
               child: isSelectionMode
@@ -3213,9 +3425,26 @@ class _SheetHeaderDelegate extends SliverPersistentHeaderDelegate {
           onTap: () => onTabSelected(2),
         ),
         const Spacer(),
+        // A docked pane keeps the Continue pill: it is the primary action on
+        // this screen, and the fullscreen tray only drops it because the
+        // reader is already the thing filling the screen. Here the reader is
+        // still a tap away, so Continue and the order toggle both stay.
+        if (docked) ...[
+          if (showContinueButton) ...[
+            _buildPrimaryButton(context: context, dark: dark, scheme: scheme),
+            const SizedBox(width: 6),
+          ],
+          _buildTabIcon(
+            RemixIcons.arrow_up_down_line,
+            reverseOrder,
+            dark: dark,
+            scheme: scheme,
+            onTap: onToggleOrder,
+          ),
+        ]
         // Fullscreen: Continue pill and chevron are replaced by the
         // search and overflow menu icons in the tray's trailing corner.
-        if (isExpanded) ...[
+        else if (isExpanded) ...[
           _buildTabIcon(
             RemixIcons.search_line,
             false,

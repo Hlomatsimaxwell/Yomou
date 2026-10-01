@@ -3086,6 +3086,36 @@ abstract class AppLocalizations {
   /// **'Done'**
   String get filterDone;
 
+  /// No description provided for @filterApply.
+  ///
+  /// In en, this message translates to:
+  /// **'Apply'**
+  String get filterApply;
+
+  /// No description provided for @sourcePreview.
+  ///
+  /// In en, this message translates to:
+  /// **'Preview'**
+  String get sourcePreview;
+
+  /// No description provided for @openFullDetails.
+  ///
+  /// In en, this message translates to:
+  /// **'Open full details'**
+  String get openFullDetails;
+
+  /// No description provided for @previewSourceMissing.
+  ///
+  /// In en, this message translates to:
+  /// **'Source not available'**
+  String get previewSourceMissing;
+
+  /// No description provided for @previewSourceMissingSubtitle.
+  ///
+  /// In en, this message translates to:
+  /// **'This title came from a source that is no longer installed, so its details cannot be loaded.'**
+  String get previewSourceMissingSubtitle;
+
   /// No description provided for @filterAllLanguages.
   ///
   /// In en, this message translates to:

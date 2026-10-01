@@ -1660,6 +1660,22 @@ class AppLocalizationsEn extends AppLocalizations {
   String get filterDone => 'Done';
 
   @override
+  String get filterApply => 'Apply';
+
+  @override
+  String get sourcePreview => 'Preview';
+
+  @override
+  String get openFullDetails => 'Open full details';
+
+  @override
+  String get previewSourceMissing => 'Source not available';
+
+  @override
+  String get previewSourceMissingSubtitle =>
+      'This title came from a source that is no longer installed, so its details cannot be loaded.';
+
+  @override
   String get filterAllLanguages => 'All';
 
   @override

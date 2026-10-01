@@ -6,7 +6,8 @@ import 'package:yomou/features/explore/screens/global_search_screen.dart';
 import 'package:yomou/features/feed/providers/updates_provider.dart';
 import 'package:yomou/core/theme/layout.dart';
 import 'package:yomou/core/widgets/empty_state.dart';
-import 'package:yomou/core/widgets/hide_on_scroll.dart';
+import 'package:yomou/core/widgets/tab_header.dart';
+import 'package:yomou/core/widgets/responsive.dart' show usesWideLayout;
 import 'package:yomou/features/library/screens/manga_detail_screen.dart';
 import 'package:yomou/features/library/widgets/downloaded_badge.dart';
 import 'package:yomou/features/library/widgets/favorite_badge.dart';
@@ -62,14 +63,12 @@ class _FeedScreenState extends ConsumerState<FeedScreen> {
     return Scaffold(
       backgroundColor: Theme.of(context).scaffoldBackgroundColor,
       body: SafeArea(
-        child: HideOnScroll(
-          header: Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              const SizedBox(height: 8),
-              _buildSearchBar(context),
-            ],
-          ),
+        child: TabHeader(
+          mode: usesWideLayout(context)
+              ? TabHeaderMode.fixed
+              : TabHeaderMode.collapsing,
+          title: AppLocalizations.of(context).updates,
+          searchBar: _buildSearchBar(context),
           body: SingleChildScrollView(
             padding: EdgeInsets.only(bottom: bottomBarClearance(context)),
             child: Column(

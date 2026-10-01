@@ -5,7 +5,8 @@ import 'package:remixicon/remixicon.dart';
 import 'package:yomou/core/database/source_cache.dart';
 import 'package:yomou/core/widgets/ios/ios_menu.dart';
 import 'package:yomou/core/widgets/ios/ios_press.dart';
-import 'package:yomou/core/widgets/hide_on_scroll.dart';
+import 'package:yomou/core/widgets/tab_header.dart';
+import 'package:yomou/core/widgets/responsive.dart' show usesWideLayout;
 import 'package:yomou/core/widgets/search_bar.dart';
 import 'package:yomou/data/models/manga.dart';
 import 'package:yomou/features/explore/screens/global_search_screen.dart';
@@ -72,14 +73,12 @@ class _ExploreScreenState extends ConsumerState<ExploreScreen> {
     return Scaffold(
       backgroundColor: Theme.of(context).scaffoldBackgroundColor,
       body: SafeArea(
-        child: HideOnScroll(
-          header: Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              const SizedBox(height: 8),
-              _buildSearchBar(),
-            ],
-          ),
+        child: TabHeader(
+          mode: usesWideLayout(context)
+              ? TabHeaderMode.fixed
+              : TabHeaderMode.collapsing,
+          title: AppLocalizations.of(context).explore,
+          searchBar: _buildSearchBar(),
           body: RefreshIndicator(
             onRefresh: _refresh,
             child: SingleChildScrollView(
