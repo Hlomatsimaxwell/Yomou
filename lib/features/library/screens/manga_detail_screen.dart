@@ -2592,121 +2592,144 @@ class _MangaDetailScreenState extends ConsumerState<MangaDetailScreen> {
   }
 
   Widget _buildHeaderSection() {
-    final dark = Theme.of(context).brightness == Brightness.dark;
+    // Read from this section's own constraints rather than the window: on a wide
+    // layout it lives in one pane of a split, and the window is not what it was
+    // given.
     return Padding(
       padding: const EdgeInsets.symmetric(horizontal: 16),
-      child: Row(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          Stack(
-            children: [
-              Container(
-                decoration: BoxDecoration(
-                  borderRadius: BorderRadius.circular(16),
-                  border: dark ? null : Border.all(color: Colors.black12),
-                ),
-                child: ClipRRect(
-                  borderRadius: BorderRadius.circular(16),
-                  child: CachedMangaImage(
-                    imageUrl: _coverUrl,
-                    width: 125,
-                    height: 175,
-                    fit: BoxFit.cover,
-                  ),
+      child: LayoutBuilder(
+        builder: (context, constraints) =>
+            _buildHeaderRow(mangaDetailCoverWidth(constraints.maxWidth)),
+      ),
+    );
+  }
+
+  /// The cover and the title block beside it, laid out against the same
+  /// [coverWidth] the caller resolved.
+  Widget _buildHeaderRow(double coverWidth) {
+    final dark = Theme.of(context).brightness == Brightness.dark;
+    final coverHeight = mangaDetailCoverHeight(coverWidth);
+    return Row(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        Stack(
+          children: [
+            Container(
+              decoration: BoxDecoration(
+                borderRadius: BorderRadius.circular(16),
+                border: dark ? null : Border.all(color: Colors.black12),
+              ),
+              child: ClipRRect(
+                borderRadius: BorderRadius.circular(16),
+                child: CachedMangaImage(
+                  imageUrl: _coverUrl,
+                  width: coverWidth,
+                  height: coverHeight,
+                  fit: BoxFit.cover,
                 ),
               ),
-              DownloadedMangaBadge(mangaId: widget.mangaId),
-            ],
-          ),
-          const SizedBox(width: 16),
-          Expanded(
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                Text(
-                  _title,
-                  maxLines: 3,
-                  style: TextStyle(
-                    color: dark
-                        ? Colors.white
-                        : Theme.of(context).colorScheme.onSurface,
-                    fontSize: 22,
-                    fontWeight: FontWeight.bold,
-                  ),
+            ),
+            // Grows with the cover, but more slowly than it does. Left at a
+            // flat 24 the badge is the same absolute size as on a 140px grid
+            // cell and reads as a speck on a 203px plate; scaled in step it
+            // would grow into a 50px blob, because the badge is a quarter of a
+            // grid cell and a header cover is not a grid cell. The floor is the
+            // size a phone has always got.
+            DownloadedMangaBadge(
+              mangaId: widget.mangaId,
+              size: (coverWidth * 0.13).clamp(24.0, 32.0),
+              iconSize: (coverWidth * 0.076).clamp(14.0, 19.0),
+            ),
+          ],
+        ),
+        const SizedBox(width: 16),
+        Expanded(
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Text(
+                _title,
+                maxLines: 3,
+                style: TextStyle(
+                  color: dark
+                      ? Colors.white
+                      : Theme.of(context).colorScheme.onSurface,
+                  fontSize: 22,
+                  fontWeight: FontWeight.bold,
                 ),
-                const SizedBox(height: 16),
-                _isLoadingPreferences
-                    ? SizedBox(
-                        height: 36,
-                        width: 36,
-                        child: CircularProgressIndicator(
-                          strokeWidth: 2,
-                          color: dark
-                              ? Colors.white
-                              : Theme.of(context).colorScheme.primary,
+              ),
+              const SizedBox(height: 16),
+              _isLoadingPreferences
+                  ? SizedBox(
+                      height: 36,
+                      width: 36,
+                      child: CircularProgressIndicator(
+                        strokeWidth: 2,
+                        color: dark
+                            ? Colors.white
+                            : Theme.of(context).colorScheme.primary,
+                      ),
+                    )
+                  : GestureDetector(
+                      onTap: _toggleFavorite,
+                      child: Container(
+                        padding: const EdgeInsets.symmetric(
+                          horizontal: 14,
+                          vertical: 8,
                         ),
-                      )
-                    : GestureDetector(
-                        onTap: _toggleFavorite,
-                        child: Container(
-                          padding: const EdgeInsets.symmetric(
-                            horizontal: 14,
-                            vertical: 8,
-                          ),
-                          decoration: BoxDecoration(
+                        decoration: BoxDecoration(
+                          color: dark
+                              ? (_isFavorite
+                                    ? const Color(0xFF3A3A3C)
+                                    : const Color(0xFF1E1E22))
+                              : Colors.white,
+                          borderRadius: BorderRadius.circular(12),
+                          border: Border.all(
                             color: dark
                                 ? (_isFavorite
-                                      ? const Color(0xFF3A3A3C)
-                                      : const Color(0xFF1E1E22))
-                                : Colors.white,
-                            borderRadius: BorderRadius.circular(12),
-                            border: Border.all(
-                              color: dark
-                                  ? (_isFavorite
-                                        ? Colors.white70
-                                        : Colors.white24)
-                                  : (_isFavorite
-                                        ? Colors.redAccent
-                                        : Colors.black12),
-                            ),
-                          ),
-                          child: Row(
-                            mainAxisSize: MainAxisSize.min,
-                            children: [
-                              Icon(
-                                _isFavorite
-                                    ? RemixIcons.heart_3_fill
-                                    : RemixIcons.heart_3_line,
-                                color: _isFavorite
-                                    ? Colors.redAccent
-                                    : (dark
-                                          ? Colors.white
-                                          : Theme.of(
-                                              context,
-                                            ).colorScheme.onSurface),
-                                size: 18,
-                              ),
-                              const SizedBox(width: 8),
-                              Text(
-                                _isFavorite
-                                    ? AppLocalizations.of(context).favorited
-                                    : AppLocalizations.of(context).favorite,
-                                style: TextStyle(
-                                  color: dark
-                                      ? Colors.white
-                                      : Theme.of(context).colorScheme.onSurface,
-                                  fontSize: 14,
-                                ),
-                              ),
-                            ],
+                                      ? Colors.white70
+                                      : Colors.white24)
+                                : (_isFavorite
+                                      ? Colors.redAccent
+                                      : Colors.black12),
                           ),
                         ),
+                        child: Row(
+                          mainAxisSize: MainAxisSize.min,
+                          children: [
+                            Icon(
+                              _isFavorite
+                                  ? RemixIcons.heart_3_fill
+                                  : RemixIcons.heart_3_line,
+                              color: _isFavorite
+                                  ? Colors.redAccent
+                                  : (dark
+                                        ? Colors.white
+                                        : Theme.of(
+                                            context,
+                                          ).colorScheme.onSurface),
+                              size: 18,
+                            ),
+                            const SizedBox(width: 8),
+                            Text(
+                              _isFavorite
+                                  ? AppLocalizations.of(context).favorited
+                                  : AppLocalizations.of(context).favorite,
+                              style: TextStyle(
+                                color: dark
+                                    ? Colors.white
+                                    : Theme.of(context).colorScheme.onSurface,
+                                fontSize: 14,
+                              ),
+                            ),
+                          ],
+                        ),
                       ),
-              ],
-            ),
+                    ),
+            ],
           ),
-        ],
-      ),
+        ),
+      ],
     );
   }
 
@@ -2882,17 +2905,17 @@ class _MangaDetailScreenState extends ConsumerState<MangaDetailScreen> {
                             ? Icon(
                                 Icons.check,
                                 size: 18,
-                          color: ref.watch(accentProvider),
-                        )
-                      : null,
-                  onTap: t.language == current
-                      ? null
-                      : () {
-                          Navigator.pop(sheetContext);
-                          _openTranslation(t);
-                        },
-                ),
-              const SizedBox(height: 8),
+                                color: ref.watch(accentProvider),
+                              )
+                            : null,
+                        onTap: t.language == current
+                            ? null
+                            : () {
+                                Navigator.pop(sheetContext);
+                                _openTranslation(t);
+                              },
+                      ),
+                    const SizedBox(height: 8),
                   ],
                 ),
               ),
@@ -3739,3 +3762,46 @@ class _TrayJumpButton extends StatelessWidget {
     );
   }
 }
+
+/// Share of its column the detail header's cover takes.
+///
+/// The cover used to be a fixed 125x175, which is exactly right on a phone --
+/// the column is 328px there, so it filled the space as intended -- and wrong
+/// everywhere wider. On a wide layout the header sits in the left pane of a 5:6
+/// split, which is around 534px on a 1325px window, so the fixed cover left a
+/// fifth of the column empty on a desktop while the title block beside it kept
+/// growing. That is the whole of the "the art is too small on a desktop" report.
+///
+/// The share is picked so a phone still lands on the old number: 328 * 0.38 is
+/// 124.6, so the floor is what a phone gets and nothing about the phone changes.
+const double _detailCoverShareOfColumn = 0.38;
+
+/// Smallest the cover gets, which is what a phone column resolves to.
+const double _detailCoverMinWidth = 125;
+
+/// Where the cover stops growing.
+///
+/// Past a 240px plate it stops being a thumbnail beside the title and becomes
+/// the subject of the screen, and the title and metadata are pushed into a
+/// column too narrow to hold a synopsis. Reached around a 1536px window; a
+/// larger one spends the extra width on the pane instead.
+const double _detailCoverMaxWidth = 240;
+
+/// The shape the fixed cover had, so growing it does not also reshape it.
+const double _detailCoverAspect = 175 / 125;
+
+/// Width of the detail header's cover in a column [columnWidth] wide.
+///
+/// Public so the numbers can be pinned by a test. The screen reads the database
+/// and the network as it opens, so a widget test cannot pump it, and the entire
+/// change is this arithmetic.
+double mangaDetailCoverWidth(double columnWidth) =>
+    (columnWidth * _detailCoverShareOfColumn).clamp(
+      _detailCoverMinWidth,
+      _detailCoverMaxWidth,
+    );
+
+/// Height that goes with [mangaDetailCoverWidth], holding the 125:175 the
+/// fixed cover had.
+double mangaDetailCoverHeight(double coverWidth) =>
+    coverWidth * _detailCoverAspect;
