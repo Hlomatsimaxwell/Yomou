@@ -83,18 +83,39 @@ Future<T?> showIosMenuPanel<T>(
     barrierColor: Colors.black.withValues(alpha: 0.5),
     clipBehavior: Clip.none,
     useSafeArea: true,
+    // Without this the sheet is capped at roughly 9/16 of the viewport. A
+    // phone in landscape has about 360dp of height, so that cap lands near
+    // 200dp while a five-row menu needs closer to 300 -- which is what made the
+    // history overflow menu overflow by 160 pixels on its side. The cap is
+    // applied explicitly below instead, against the real available height.
+    isScrollControlled: true,
     builder: (sheetContext) {
-      return Align(
-        alignment: Alignment.bottomCenter,
-        child: Container(
-          width: 520,
-          margin: const EdgeInsets.fromLTRB(8, 8, 8, 24),
-          decoration: BoxDecoration(
-            color: iosSheetBackground(sheetContext),
-            borderRadius: BorderRadius.circular(20),
-          ),
-          child: Column(mainAxisSize: MainAxisSize.min, children: children),
-        ),
+      return LayoutBuilder(
+        builder: (context, constraints) {
+          return Align(
+            alignment: Alignment.bottomCenter,
+            child: Container(
+              width: 520,
+              margin: const EdgeInsets.fromLTRB(8, 8, 8, 24),
+              decoration: BoxDecoration(
+                color: iosSheetBackground(sheetContext),
+                borderRadius: BorderRadius.circular(20),
+              ),
+              child: ConstrainedBox(
+                // The 8 and 24 are the margin above, so the panel never claims
+                // height it cannot have. Scrolling below means a menu taller
+                // than a short viewport stays reachable instead of overflowing.
+                constraints: BoxConstraints(maxHeight: constraints.maxHeight - 32),
+                child: SingleChildScrollView(
+                  child: Column(
+                    mainAxisSize: MainAxisSize.min,
+                    children: children,
+                  ),
+                ),
+              ),
+            ),
+          );
+        },
       );
     },
   );

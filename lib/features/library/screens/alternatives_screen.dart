@@ -732,6 +732,10 @@ class _AlternativesScreenState extends ConsumerState<AlternativesScreen> {
     showModalBottomSheet<void>(
       context: context,
       backgroundColor: dark ? const Color(0xFF2E2E33) : Colors.white,
+      // The rows already scroll, so this one cannot overflow -- but without
+      // this the sheet is still capped at about 9/16 of the viewport, which in
+      // landscape leaves a usable but needlessly cramped panel.
+      isScrollControlled: true,
       shape: const RoundedRectangleBorder(
         borderRadius: BorderRadius.vertical(top: Radius.circular(20)),
       ),

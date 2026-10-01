@@ -237,6 +237,15 @@ class _MangaDetailScreenState extends ConsumerState<MangaDetailScreen> {
           fetch: () => src.getChapters(widget.mangaId),
         ),
       );
+      // The chapter fetch is chained off the details fetch, so a details
+      // failure rejects it as well. When that happens nothing awaits this
+      // future - the `await detailsFuture` below throws first and the catch
+      // at the end of this method reports it - and an error with no listener
+      // is handed to the VM, which paints a red error screen over an
+      // otherwise working page. Claiming the error here keeps it on the path
+      // that reports it; the `await chaptersFuture` further down still
+      // throws normally.
+      chaptersFuture.then<void>((_) {}, onError: (Object _) {});
       if (mounted) {
         setState(() {
           _source = src;
@@ -2637,32 +2646,42 @@ class _MangaDetailScreenState extends ConsumerState<MangaDetailScreen> {
     showModalBottomSheet<void>(
       context: context,
       showDragHandle: true,
+      // A title can offer a dozen languages, and this is one row per language
+      // in a non-scrolling column. Without this the sheet is capped at about
+      // 9/16 of the viewport, which on a phone in landscape is ~200dp against
+      // a column that wants several times that -- the same overflow the
+      // history menu had.
+      isScrollControlled: true,
       builder: (sheetContext) {
         final dark = Theme.of(sheetContext).brightness == Brightness.dark;
         return SafeArea(
-          child: Column(
-            mainAxisSize: MainAxisSize.min,
-            crossAxisAlignment: CrossAxisAlignment.stretch,
-            children: [
-              Padding(
-                padding: const EdgeInsets.fromLTRB(20, 0, 20, 8),
-                child: Text(
-                  AppLocalizations.of(sheetContext).detailTranslation,
-                  style: TextStyle(
-                    fontSize: 17,
-                    fontWeight: FontWeight.w600,
-                    color: dark ? Colors.white : null,
-                  ),
-                ),
-              ),
-              for (final t in all)
-                ListTile(
-                  dense: true,
-                  title: Text(MangaLanguage.label(t.language)),
-                  trailing: t.language == current
-                      ? Icon(
-                          Icons.check,
-                          size: 18,
+          child: LayoutBuilder(
+            builder: (context, constraints) => SingleChildScrollView(
+              child: ConstrainedBox(
+                constraints: BoxConstraints(maxHeight: constraints.maxHeight),
+                child: Column(
+                  mainAxisSize: MainAxisSize.min,
+                  crossAxisAlignment: CrossAxisAlignment.stretch,
+                  children: [
+                    Padding(
+                      padding: const EdgeInsets.fromLTRB(20, 0, 20, 8),
+                      child: Text(
+                        AppLocalizations.of(sheetContext).detailTranslation,
+                        style: TextStyle(
+                          fontSize: 17,
+                          fontWeight: FontWeight.w600,
+                          color: dark ? Colors.white : null,
+                        ),
+                      ),
+                    ),
+                    for (final t in all)
+                      ListTile(
+                        dense: true,
+                        title: Text(MangaLanguage.label(t.language)),
+                        trailing: t.language == current
+                            ? Icon(
+                                Icons.check,
+                                size: 18,
                           color: ref.watch(accentProvider),
                         )
                       : null,
@@ -2674,7 +2693,10 @@ class _MangaDetailScreenState extends ConsumerState<MangaDetailScreen> {
                         },
                 ),
               const SizedBox(height: 8),
-            ],
+                  ],
+                ),
+              ),
+            ),
           ),
         );
       },
