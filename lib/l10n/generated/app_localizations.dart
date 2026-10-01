@@ -4489,6 +4489,12 @@ abstract class AppLocalizations {
   /// **'Keep at start'**
   String get rsetScaleKeepAtStart;
 
+  /// No description provided for @rsetSectionReading.
+  ///
+  /// In en, this message translates to:
+  /// **'Reading'**
+  String get rsetSectionReading;
+
   /// No description provided for @rsetSectionStrip.
   ///
   /// In en, this message translates to:
@@ -4579,6 +4585,12 @@ abstract class AppLocalizations {
   /// **'E-Ink'**
   String get rsetSectionEInk;
 
+  /// No description provided for @rsetSectionControls.
+  ///
+  /// In en, this message translates to:
+  /// **'Controls'**
+  String get rsetSectionControls;
+
   /// No description provided for @rsetFlashOnChange.
   ///
   /// In en, this message translates to:
@@ -4644,6 +4656,12 @@ abstract class AppLocalizations {
   /// In en, this message translates to:
   /// **'Black'**
   String get rsetFlashBlack;
+
+  /// No description provided for @rsetSectionDisplay.
+  ///
+  /// In en, this message translates to:
+  /// **'Display'**
+  String get rsetSectionDisplay;
 
   /// No description provided for @rsetFullscreen.
   ///
@@ -4740,6 +4758,12 @@ abstract class AppLocalizations {
   /// In en, this message translates to:
   /// **'Say the chapter name when the page changes'**
   String get rsetShowChapterPopupSub;
+
+  /// No description provided for @rsetSectionPages.
+  ///
+  /// In en, this message translates to:
+  /// **'Pages'**
+  String get rsetSectionPages;
 
   /// No description provided for @rsetBackground.
   ///

@@ -2493,6 +2493,9 @@ class AppLocalizationsEn extends AppLocalizations {
   String get rsetScaleKeepAtStart => 'Keep at start';
 
   @override
+  String get rsetSectionReading => 'Reading';
+
+  @override
   String get rsetSectionStrip => 'Vertical & webtoon';
 
   @override
@@ -2545,6 +2548,9 @@ class AppLocalizationsEn extends AppLocalizations {
   String get rsetSectionEInk => 'E-Ink';
 
   @override
+  String get rsetSectionControls => 'Controls';
+
+  @override
   String get rsetFlashOnChange => 'Flash on page change';
 
   @override
@@ -2586,6 +2592,9 @@ class AppLocalizationsEn extends AppLocalizations {
 
   @override
   String get rsetFlashBlack => 'Black';
+
+  @override
+  String get rsetSectionDisplay => 'Display';
 
   @override
   String get rsetFullscreen => 'Fullscreen mode';
@@ -2638,6 +2647,9 @@ class AppLocalizationsEn extends AppLocalizations {
   @override
   String get rsetShowChapterPopupSub =>
       'Say the chapter name when the page changes';
+
+  @override
+  String get rsetSectionPages => 'Pages';
 
   @override
   String get rsetBackground => 'Background';
