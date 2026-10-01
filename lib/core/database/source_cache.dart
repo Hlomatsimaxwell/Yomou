@@ -91,6 +91,8 @@ class SourceCache {
       forceRefresh: forceRefresh,
       decode: (json) =>
           MangaDetails.fromJson(jsonDecode(json) as Map<String, dynamic>),
+      // Never called with null: _run returns early on a null result instead
+      // of caching it, so the unwrap here can only fail if that changes.
       encode: (v) => jsonEncode(v!.toJson()),
       fetch: fetch,
       onFresh: (details) {
@@ -233,13 +235,25 @@ class SourceCache {
     try {
       final value = await fetch();
       // When the source swallows network errors and returns an empty
-      // result (empty list / empty map) while a valid stale cache exists,
-      // preserve the stale data instead of overwriting it with empties.
+      // result (empty list / empty map / no details at all) while a valid
+      // stale cache exists, preserve the stale data instead of overwriting
+      // it with empties.
+      //
+      // A null result is the same situation, and additionally has no JSON:
+      // there is no encoding of "nothing", so encode() cannot be called on
+      // it at all and a cached null would decode back to null forever. So
+      // null is handled here rather than being written.
       final isEmptyResult =
-          (value is List && value.isEmpty) || (value is Map && value.isEmpty);
+          value == null ||
+          (value is List && value.isEmpty) ||
+          (value is Map && value.isEmpty);
       if (isEmptyResult && fallback != null) {
         completer.complete(fallback);
         return fallback;
+      }
+      if (value == null) {
+        completer.complete(null as T);
+        return null as T;
       }
       await db.insert('source_cache', {
         'key': key,
