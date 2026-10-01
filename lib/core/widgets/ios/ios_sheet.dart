@@ -30,27 +30,40 @@ Future<T?> showIosSheet<T>(
     builder: (sheetContext) {
       return Align(
         alignment: Alignment.bottomCenter,
-        child: Container(
+        child: SizedBox(
           width: maxWidth,
-          constraints: isScrollControlled
-              ? BoxConstraints(
-                  maxHeight: MediaQuery.sizeOf(sheetContext).height * 0.92,
-                )
-              : null,
-          decoration: BoxDecoration(
+          child: Material(
+            // A [Material], not a coloured [Container]. A ListTile paints its
+            // background and its ink splash on the nearest Material ancestor, so
+            // anything coloured sitting between the tile and that Material hides
+            // both -- which is exactly what a BoxDecoration behind the sheet's
+            // content did. Every sheet with a row in it lost its press
+            // feedback, and debug builds reported it on every tap.
             color: iosSheetBackground(sheetContext),
-            borderRadius: BorderRadius.vertical(top: Radius.circular(28)),
-          ),
-          child: Column(
-            mainAxisSize: MainAxisSize.min,
-            children: [
-              const Padding(
-                padding: EdgeInsets.only(top: 10, bottom: 6),
-                child: _IosGrabber(),
+            shape: const RoundedRectangleBorder(
+              borderRadius: BorderRadius.vertical(top: Radius.circular(28)),
+            ),
+            // The corners are rounded, so the splash has to be clipped to them
+            // or it washes over the sheet's outline.
+            clipBehavior: Clip.antiAlias,
+            child: ConstrainedBox(
+              constraints: isScrollControlled
+                  ? BoxConstraints(
+                      maxHeight: MediaQuery.sizeOf(sheetContext).height * 0.92,
+                    )
+                  : const BoxConstraints(),
+              child: Column(
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  const Padding(
+                    padding: EdgeInsets.only(top: 10, bottom: 6),
+                    child: _IosGrabber(),
+                  ),
+                  Flexible(child: Builder(builder: builder)),
+                  const SizedBox(height: 8),
+                ],
               ),
-              Flexible(child: Builder(builder: builder)),
-              const SizedBox(height: 8),
-            ],
+            ),
           ),
         ),
       );
