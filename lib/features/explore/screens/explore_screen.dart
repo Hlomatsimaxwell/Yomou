@@ -14,6 +14,7 @@ import 'package:yomou/features/explore/screens/global_search_screen.dart';
 import 'package:yomou/features/explore/widgets/featured_carousel.dart';
 import 'package:yomou/features/library/screens/bookmarks_screen.dart';
 import 'package:yomou/features/library/screens/downloads_screen.dart';
+import 'package:yomou/features/settings/screens/storage_settings_screen.dart';
 import 'package:yomou/features/library/screens/manga_detail_screen.dart';
 import 'package:yomou/features/settings/screens/settings_screen.dart';
 import 'package:yomou/features/source_management/screens/manga_grid_screen.dart';
@@ -37,11 +38,7 @@ class _ExploreScreenState extends ConsumerState<ExploreScreen> {
   bool _loadingRandom = false;
 
   final List<Map<String, dynamic>> _quickButtons = [
-    {
-      'icon': RemixIcons.sd_card_line,
-      'labelKey': 'storage',
-      'type': 'downloads',
-    },
+    {'icon': RemixIcons.sd_card_line, 'labelKey': 'storage', 'type': 'storage'},
     {
       'icon': RemixIcons.bookmark_3_line,
       'labelKey': 'bookmarks',
@@ -190,61 +187,77 @@ class _ExploreScreenState extends ConsumerState<ExploreScreen> {
     final pillColor = dark ? const Color(0xFF2C2C2E) : const Color(0xFFF8F9FA);
     final fgColor = dark ? Colors.white : const Color(0xFF1C1B1F);
     return Padding(
-      padding: const EdgeInsets.symmetric(horizontal: 16),
-      child: GridView.builder(
-        shrinkWrap: true,
-        physics: const NeverScrollableScrollPhysics(),
-        gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
-          crossAxisCount: 2,
-          childAspectRatio: 4.6,
-          crossAxisSpacing: 12,
-          mainAxisSpacing: 10,
-        ),
-        itemCount: _quickButtons.length,
-        itemBuilder: (context, index) {
-          final btn = _quickButtons[index];
-          final isRandom = btn['type'] == 'random';
-          return AppPress(
-            onTap: () => _handleQuickButton(btn['type'] as String),
-            child: Container(
-              decoration: BoxDecoration(
-                color: pillColor,
-                borderRadius: BorderRadius.circular(16),
-                border: dark
-                    ? Border.all(color: Colors.white.withValues(alpha: 0.06))
-                    : Border.all(color: Colors.black.withValues(alpha: 0.05)),
-              ),
-              child: Padding(
-                padding: const EdgeInsets.symmetric(horizontal: 14),
-                child: Row(
-                  children: [
-                    if (isRandom && _loadingRandom)
-                      SizedBox(
-                        width: 20,
-                        height: 20,
-                        child: CircularProgressIndicator(
-                          color: dark ? Colors.white38 : Colors.black38,
-                          strokeWidth: 2,
-                        ),
-                      )
-                    else
-                      Icon(btn['icon'] as IconData, color: fgColor, size: 20),
-                    const SizedBox(width: 10),
-                    Expanded(
-                      child: Text(
-                        _quickLabel(btn['labelKey'] as String),
-                        style: TextStyle(
-                          color: fgColor,
-                          fontSize: 13,
-                          fontWeight: FontWeight.w500,
-                        ),
-                        overflow: TextOverflow.ellipsis,
-                      ),
-                    ),
-                  ],
-                ),
-              ),
+      padding: const EdgeInsets.symmetric(horizontal: _quickGridPadding),
+      // Measured from the constraints rather than the window. The nav rail sits
+      // beside this screen on a wide layout and takes 80px off it, and
+      // MediaQuery still reports the window width down here.
+      child: LayoutBuilder(
+        builder: (context, constraints) {
+          final layout = _QuickButtonLayout.resolve(constraints.maxWidth);
+          return GridView.builder(
+            shrinkWrap: true,
+            physics: const NeverScrollableScrollPhysics(),
+            gridDelegate: SliverGridDelegateWithFixedCrossAxisCount(
+              crossAxisCount: layout.columns,
+              childAspectRatio: layout.aspectRatio,
+              crossAxisSpacing: _quickGridCrossSpacing,
+              mainAxisSpacing: _quickGridRowSpacing,
             ),
+            itemCount: _quickButtons.length,
+            itemBuilder: (context, index) {
+              final btn = _quickButtons[index];
+              final isRandom = btn['type'] == 'random';
+              return AppPress(
+                onTap: () => _handleQuickButton(btn['type'] as String),
+                child: Container(
+                  decoration: BoxDecoration(
+                    color: pillColor,
+                    borderRadius: BorderRadius.circular(16),
+                    border: dark
+                        ? Border.all(
+                            color: Colors.white.withValues(alpha: 0.06),
+                          )
+                        : Border.all(
+                            color: Colors.black.withValues(alpha: 0.05),
+                          ),
+                  ),
+                  child: Padding(
+                    padding: const EdgeInsets.symmetric(horizontal: 14),
+                    child: Row(
+                      children: [
+                        if (isRandom && _loadingRandom)
+                          SizedBox(
+                            width: 20,
+                            height: 20,
+                            child: CircularProgressIndicator(
+                              color: dark ? Colors.white38 : Colors.black38,
+                              strokeWidth: 2,
+                            ),
+                          )
+                        else
+                          Icon(
+                            btn['icon'] as IconData,
+                            color: fgColor,
+                            size: 20,
+                          ),
+                        const SizedBox(width: 10),
+                        Expanded(
+                          child: Text(
+                            _quickLabel(btn['labelKey'] as String),
+                            style: TextStyle(
+                              color: fgColor,
+                              fontSize: layout.labelSize,
+                              fontWeight: FontWeight.w500,
+                            ),
+                            overflow: TextOverflow.ellipsis,
+                          ),
+                        ),
+                      ],
+                    ),
+                  ),
+                ),
+              );
+            },
           );
         },
       ),
@@ -270,6 +283,18 @@ class _ExploreScreenState extends ConsumerState<ExploreScreen> {
 
   Future<void> _handleQuickButton(String type) async {
     switch (type) {
+      case 'storage':
+        // Storage used to be wired to 'downloads' as well, which left this row
+        // with two cards under two names going to the same screen. This is the
+        // screen that is actually about storage: cache size, and the clear
+        // actions.
+        Navigator.push(
+          context,
+          MaterialPageRoute(
+            builder: (context) => const StorageSettingsScreen(),
+          ),
+        );
+        break;
       case 'downloads':
         Navigator.push(
           context,
@@ -586,6 +611,92 @@ class _ExploreScreenState extends ConsumerState<ExploreScreen> {
       ),
     );
   }
+}
+
+/// Horizontal padding of the quick buttons: the same 16 every other grid uses.
+const double _quickGridPadding = 16;
+const double _quickGridCrossSpacing = 12;
+const double _quickGridRowSpacing = 10;
+
+/// Height every quick button is drawn at, whatever the column count.
+///
+/// A fixed height with a derived ratio, not a fixed ratio: the old 4.6 was
+/// tuned for the 158px cell a phone gives and produced a 600x130 slab on a
+/// desktop, with 110px of nothing above and below a 20px icon. Twenty for the
+/// icon and eight of air above and below is the whole of what is in a pill.
+const double _quickButtonHeight = 36;
+
+/// Narrowest a cell can be and still hold a label on one line.
+///
+/// Measured, not estimated. "Almacenamiento local" is 134px of Roboto at 13pt
+/// where "Local storage" is 79px, and a cell owes 58px to the 14px side padding,
+/// the 20px icon and the 10px gap before it shows any text at all -- so the
+/// Spanish label sets the floor at 192. The four below is air, because a cell
+/// exactly at the requirement is a cell that truncates the moment a font metric
+/// moves by a fraction. Sizing this off the English label is how a Spanish user
+/// ends up reading a cut-off button.
+const double _quickButtonMinCellWidth = 196;
+
+/// Width at which all four fit on one row: four cells at their narrowest, plus
+/// the three gaps between them. 820, so a 768dp tablet in portrait keeps its two
+/// rows and a 900dp window gets the single row.
+const double _quickGridSingleRowWidth =
+    4 * _quickButtonMinCellWidth + 3 * _quickGridCrossSpacing;
+
+/// Cell width at which a label drops from 13pt to 12pt.
+///
+/// Off the cell rather than off the column count, because the two do not track
+/// each other: two-up on a 768dp tablet is a 362px cell while four-up on a 900dp
+/// window is a 208px one, so the same column count can be both the roomy case and
+/// the narrow one. Each width is the Spanish label's own measured requirement at
+/// that size plus the 58px of chrome, so a step down is a step at which the
+/// longest label in the app still fits on a single line.
+const double _quickLabel13Width = 192;
+const double _quickLabel12Width = 182;
+
+/// The two numbers a quick button's geometry resolves to.
+class _QuickButtonLayout {
+  const _QuickButtonLayout({
+    required this.columns,
+    required this.labelSize,
+    required this.aspectRatio,
+  });
+
+  /// Resolves the row's geometry from the width it was actually given.
+  ///
+  /// Two or four, and never three: there are four buttons, and three across
+  /// would leave the fourth alone on a row of its own. One row of four is
+  /// therefore the best a wide window can do, and a phone keeps the two rows it
+  /// has always had, because four across a 328px column leaves 73px per card --
+  /// an icon and no words.
+  factory _QuickButtonLayout.resolve(double width) {
+    final columns = width >= _quickGridSingleRowWidth ? 4 : 2;
+    final cellWidth =
+        (width - (columns - 1) * _quickGridCrossSpacing) / columns;
+    return _QuickButtonLayout(
+      columns: columns,
+      labelSize: _labelSizeFor(cellWidth),
+      aspectRatio: cellWidth / _quickButtonHeight,
+    );
+  }
+
+  /// The largest size at which the longest label in the app fits [cellWidth].
+  ///
+  /// A phone's two-up cells are 138px at the narrowest and 158px at 360, both
+  /// below even the 12pt step, so a 320dp phone in Spanish still ellipsizes. That
+  /// is not a regression -- the row was a fixed 13pt in a 138px cell before this,
+  /// which is worse -- and dropping to 10pt to remove it would buy a fitting label
+  /// at the cost of a legible one, on the one device size where neither is good.
+  /// 11pt is the floor.
+  static double _labelSizeFor(double cellWidth) {
+    if (cellWidth >= _quickLabel13Width) return 13.0;
+    if (cellWidth >= _quickLabel12Width) return 12.0;
+    return 11.0;
+  }
+
+  final int columns;
+  final double labelSize;
+  final double aspectRatio;
 }
 
 /// Horizontal padding of the sources wall: the same 16 every other grid uses.

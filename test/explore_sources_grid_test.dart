@@ -65,14 +65,20 @@ void main() {
     await tester.pumpAndSettle();
   }
 
-  /// The sources grid, told apart from the quick-actions grid above it, which is
-  /// always two columns.
+  /// The sources grid, told apart from the quick-actions grid above it.
+  ///
+  /// Matched on the wall's own spacing rather than on its column count. The quick
+  /// buttons used to be the only other grid and were a fixed two, so a floor of
+  /// four was enough to tell them apart; they now derive their own count and
+  /// reach four on exactly the wide windows this wall is measured at, so a count
+  /// match picks the wrong grid and fails on the number instead of saying so.
+  /// The wall spaces its cells 10 apart and the buttons 12.
   GridView sourcesGrid(WidgetTester tester) {
     final grids = tester.widgetList<GridView>(find.byType(GridView));
     return grids.firstWhere((g) {
       final d = g.gridDelegate;
       return d is SliverGridDelegateWithFixedCrossAxisCount &&
-          d.crossAxisCount >= 4;
+          d.crossAxisSpacing == 10;
     });
   }
 
