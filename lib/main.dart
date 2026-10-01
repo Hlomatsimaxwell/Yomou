@@ -671,9 +671,14 @@ class _HomeScreenState extends ConsumerState<HomeScreen>
   ///
   /// Not a stock [NavigationRail]: the app's navigation is its own accent-tinted
   /// pill, so a Material rail beside it would read as two different apps. This
-  /// is the same pill rotated onto the vertical axis, with the label always
-  /// visible because a rail has the width for it -- which also means the
-  /// show-labels setting has nothing to hide here.
+  /// is the same pill rotated onto the vertical axis.
+  ///
+  /// Icons only. A rail's labels are narrow by default, and the tab name already
+  /// appears once at the top of the tab's own pane; printing it again under the
+  /// icon repeated it on the one screen that already has room for it. The
+  /// tooltip carries the name instead, so the rail still says what it is on
+  /// hover. This also leaves the show-labels setting with nothing to hide here,
+  /// since it governs the bottom bar only.
   Widget _buildNavRail(
     BuildContext context,
     int updatesCount,
