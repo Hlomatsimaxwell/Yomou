@@ -7,6 +7,7 @@ import 'package:yomou/core/widgets/ios/ios_menu.dart';
 import 'package:yomou/core/widgets/ios/ios_press.dart';
 import 'package:yomou/core/widgets/tab_header.dart';
 import 'package:yomou/core/widgets/responsive.dart' show usesWideLayout;
+import 'package:yomou/core/widgets/manga_grid_metrics.dart';
 import 'package:yomou/core/widgets/search_bar.dart';
 import 'package:yomou/data/models/manga.dart';
 import 'package:yomou/features/explore/screens/global_search_screen.dart';
@@ -486,84 +487,200 @@ class _ExploreScreenState extends ConsumerState<ExploreScreen> {
   Widget _buildSourcesGrid(List<Map<String, dynamic>> sources) {
     final dark = Theme.of(context).brightness == Brightness.dark;
     return Padding(
-      padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 8),
-      child: GridView.builder(
-        shrinkWrap: true,
-        physics: const NeverScrollableScrollPhysics(),
-        gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
-          crossAxisCount: 4,
-          childAspectRatio: 0.92,
-          crossAxisSpacing: 10,
-          mainAxisSpacing: 8,
-        ),
-        itemCount: sources.length,
-        itemBuilder: (context, index) {
-          final source = sources[index];
-          final isPinned = source['isPinned'] == true;
-          final name = source['name'] as String;
-          final iconUrl = source['iconUrl'] as String? ?? '';
-
-          // The universal rounded-square plate, sized to dominate the cell —
-          // a dense "app icon" wall rather than sparse blown-up tiles.
-          final tileIcon = SourceIcon(
-            name: name,
-            iconUrl: iconUrl,
-            size: 64,
+      padding: const EdgeInsets.symmetric(
+        horizontal: _sourceGridPadding,
+        vertical: 8,
+      ),
+      // Measured from the constraints rather than the window. The nav rail sits
+      // beside this screen on a wide layout and takes 80px off it, and
+      // MediaQuery still reports the window width down here, so columns derived
+      // from it would size cells for space this grid does not have.
+      child: LayoutBuilder(
+        builder: (context, constraints) {
+          final layout = _SourceCardLayout.resolve(
+            context,
+            constraints.maxWidth,
           );
+          return GridView.builder(
+            shrinkWrap: true,
+            physics: const NeverScrollableScrollPhysics(),
+            gridDelegate: SliverGridDelegateWithFixedCrossAxisCount(
+              crossAxisCount: layout.columns,
+              // Measured from the same icon and label sizes the card paints with,
+              // not a constant: the cell is exactly as tall as its contents at
+              // every column count, so no width leaves a row of empty space.
+              childAspectRatio: layout.aspectRatio,
+              crossAxisSpacing: _sourceGridCrossSpacing,
+              mainAxisSpacing: _sourceGridRowSpacing,
+            ),
+            itemCount: sources.length,
+            itemBuilder: (context, index) {
+              final source = sources[index];
+              final isPinned = source['isPinned'] == true;
+              final name = source['name'] as String;
+              final iconUrl = source['iconUrl'] as String? ?? '';
+              // Inset with the plate rather than fixed, so the pin keeps its
+              // place on the corner as the plate grows.
+              final pinInset = (layout.iconSize * 0.07).roundToDouble();
 
-          return GestureDetector(
-            onTap: () {
-              Navigator.push(
-                context,
-                MaterialPageRoute(
-                  builder: (context) => MangaGridScreen(sourceName: name),
+              // The universal rounded-square plate, sized to fill the cell it is
+              // given rather than to sit in the middle of it. The shape comes
+              // from SourceIcon, which scales its own corner radius with it.
+              return AppPress(
+                onTap: () {
+                  Navigator.push(
+                    context,
+                    MaterialPageRoute(
+                      builder: (context) => MangaGridScreen(sourceName: name),
+                    ),
+                  );
+                },
+                child: Column(
+                  mainAxisAlignment: MainAxisAlignment.center,
+                  children: [
+                    Stack(
+                      clipBehavior: Clip.none,
+                      children: [
+                        SourceIcon(
+                          name: name,
+                          iconUrl: iconUrl,
+                          size: layout.iconSize,
+                        ),
+                        if (isPinned)
+                          Positioned(
+                            left: pinInset,
+                            bottom: pinInset,
+                            child: Transform.rotate(
+                              angle: -0.785398,
+                              child: Icon(
+                                RemixIcons.pushpin_2_fill,
+                                size: 12,
+                                color: dark ? Colors.white70 : Colors.black54,
+                              ),
+                            ),
+                          ),
+                      ],
+                    ),
+                    const SizedBox(height: _sourceGridLabelGap),
+                    Padding(
+                      padding: const EdgeInsets.symmetric(horizontal: 2),
+                      child: Text(
+                        name,
+                        maxLines: 2,
+                        overflow: TextOverflow.ellipsis,
+                        textAlign: TextAlign.center,
+                        style: TextStyle(
+                          color: dark ? Colors.white : const Color(0xFF1C1B1F),
+                          fontSize: layout.labelSize,
+                          fontWeight: FontWeight.w600,
+                          height: 1.2,
+                        ),
+                      ),
+                    ),
+                  ],
                 ),
               );
             },
-            child: Column(
-              mainAxisSize: MainAxisSize.min,
-              crossAxisAlignment: CrossAxisAlignment.center,
-              mainAxisAlignment: MainAxisAlignment.center,
-              children: [
-                Stack(
-                  clipBehavior: Clip.none,
-                  children: [
-                    tileIcon,
-                    if (isPinned)
-                      Positioned(
-                        left: 4,
-                        bottom: 4,
-                        child: Transform.rotate(
-                          angle: -0.785398,
-                          child: Icon(
-                            RemixIcons.pushpin_2_fill,
-                            size: 12,
-                            color: dark ? Colors.white70 : Colors.black54,
-                          ),
-                        ),
-                      ),
-                  ],
-                ),
-                const SizedBox(height: 2),
-                Padding(
-                  padding: const EdgeInsets.symmetric(horizontal: 2),
-                  child: Text(
-                    name,
-                    maxLines: 1,
-                    overflow: TextOverflow.ellipsis,
-                    textAlign: TextAlign.center,
-                    style: TextStyle(
-                      color: dark ? Colors.white : const Color(0xFF1C1B1F),
-                      fontSize: 13,
-                      fontWeight: FontWeight.w600,
-                    ),
-                  ),
-                ),
-              ],
-            ),
           );
         },
       ),
     );
   }
+}
+
+/// Horizontal padding of the sources wall: the same 16 every other grid uses.
+const double _sourceGridPadding = 16;
+const double _sourceGridCrossSpacing = 10;
+const double _sourceGridRowSpacing = 10;
+
+/// Gap between the icon plate and the name under it.
+const double _sourceGridLabelGap = 4;
+
+/// Cell width the sources wall aims for.
+///
+/// Wider than the 100 a manga cover cell uses, because this cell carries a name
+/// under the plate as well as the plate: 96 is about the narrowest width at
+/// which a source logo and a two-line name are both still legible.
+const double _sourceGridTargetCellWidth = 96;
+
+/// Ceiling on the column count.
+///
+/// Past this the plates are small enough that the logo inside one stops being
+/// identifiable, so a wider window spends the extra width on fewer, larger cells
+/// instead of more of them -- the same reasoning as the manga grid's ceiling,
+/// and the reason this is not a max-extent delegate: that one can only ever add
+/// columns, and has no way to hold the plate at a size that stays legible.
+const int _sourceGridMaxColumns = 10;
+
+/// Columns at which the source name drops a size, for the same reason a manga
+/// title does: the cell is narrower, so the same words need less of it.
+const int _sourceGridCompactColumns = 7;
+
+/// The four numbers a source card's geometry resolves to.
+class _SourceCardLayout {
+  const _SourceCardLayout({
+    required this.columns,
+    required this.iconSize,
+    required this.labelSize,
+    required this.aspectRatio,
+  });
+
+  /// Resolves the wall's geometry from the width it was actually given.
+  ///
+  /// The plate and the cell are derived together on purpose. A fixed icon in a
+  /// cell whose width follows the window is what left a 64px plate adrift in a
+  /// 285px cell on a desktop -- four columns per row, four fifths of each one
+  /// empty.
+  factory _SourceCardLayout.resolve(BuildContext context, double width) {
+    final columns = mangaGridColumns(
+      context,
+      // The horizontal padding is already off by the time this runs.
+      horizontalPadding: 0,
+      crossSpacing: _sourceGridCrossSpacing,
+      targetCellWidth: _sourceGridTargetCellWidth,
+      // Four at the narrow end, which is what a phone has always shown. The
+      // plate has a floor size, so a fifth column there would only crush it.
+      minColumns: 4,
+      maxColumns: _sourceGridMaxColumns,
+      availableWidth: width,
+    );
+
+    final cellWidth =
+        (width - (columns - 1) * _sourceGridCrossSpacing) / columns;
+    // Fills the cell rather than sitting in the middle of it, with a floor so a
+    // narrow cell cannot crush the plate and a ceiling so a wide one cannot
+    // stretch a logo past the size it was drawn for.
+    final iconSize = (cellWidth - 28).clamp(56.0, 96.0);
+    final labelSize = columns >= 9
+        ? 11.0
+        : columns >= _sourceGridCompactColumns
+        ? 12.0
+        : 13.0;
+
+    // Two name lines are always reserved. Source names are long enough that a
+    // one-line cell ellipsises most of them, and a truncated name is worse than
+    // a little spare height under the few that fit on one.
+    //
+    // Plus the same slack the manga cells add, for the same reason: the fit is
+    // exact on paper and short in practice, because the grid rounds its cell
+    // height and the Text rounds its own line box. Sharing the constant is the
+    // point -- two numbers with one meaning must not drift apart.
+    final height =
+        iconSize +
+        _sourceGridLabelGap +
+        labelSize * 1.2 * 2 +
+        kMangaCardTitleSlack;
+
+    return _SourceCardLayout(
+      columns: columns,
+      iconSize: iconSize,
+      labelSize: labelSize,
+      aspectRatio: cellWidth / height,
+    );
+  }
+
+  final int columns;
+  final double iconSize;
+  final double labelSize;
+  final double aspectRatio;
 }
