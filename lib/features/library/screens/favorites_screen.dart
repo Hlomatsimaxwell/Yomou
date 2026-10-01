@@ -5,6 +5,7 @@ import 'package:remixicon/remixicon.dart';
 import 'package:yomou/data/models/manga.dart';
 import 'package:yomou/features/library/providers/favorites_provider.dart';
 import 'package:yomou/features/library/widgets/downloaded_badge.dart';
+import 'package:yomou/features/library/widgets/favorite_badge.dart';
 import 'package:yomou/features/library/screens/manga_detail_screen.dart';
 import 'package:yomou/core/theme/layout.dart';
 import 'package:yomou/core/widgets/empty_state.dart';
@@ -160,20 +161,30 @@ class _FavoritesScreenState extends ConsumerState<FavoritesScreen> {
       sliver: SliverGrid.builder(
         gridDelegate: SliverGridDelegateWithFixedCrossAxisCount(
           crossAxisCount: columns,
-          childAspectRatio: mangaCellAspectRatio(context, columns: columns),
+          childAspectRatio: mangaCellAspectRatio(
+            context,
+            columns: columns,
+            // Measured from the resolved column count, the same rule and the
+            // same bounds the history and source grids use. A cell sized for a
+            // 10pt title and drawn with a 12pt one clips the second line of
+            // every title long enough to need one.
+            titleFontSize: mangaCardTitleFontSize(columns),
+          ),
           crossAxisSpacing: kMangaGridCrossSpacing,
           mainAxisSpacing: kMangaGridRowSpacing,
         ),
         itemCount: items.length,
         itemBuilder: (context, index) {
           final item = items[index];
-          return _buildMangaCard(context, item);
+          return _buildMangaCard(context, item, columns);
         },
       ),
     );
   }
 
-  Widget _buildMangaCard(BuildContext context, Manga item) {
+  /// [columns] is the resolved count, not a stored setting: the grid measures
+  /// its cells with it, so the title has to be drawn with the same value.
+  Widget _buildMangaCard(BuildContext context, Manga item, int columns) {
     final dark = Theme.of(context).brightness == Brightness.dark;
     final titleColor = dark
         ? Colors.white
@@ -199,51 +210,55 @@ class _FavoritesScreenState extends ConsumerState<FavoritesScreen> {
           AspectRatio(
             aspectRatio: 2 / 3,
             child: Stack(
+              fit: StackFit.expand,
               children: [
                 ClipRRect(
                   borderRadius: BorderRadius.circular(16),
-                  child: Container(
-                    decoration: BoxDecoration(
-                      borderRadius: BorderRadius.circular(16),
-                      border: dark ? null : Border.all(color: Colors.black12),
-                    ),
-                    child: CachedMangaImage(
-                      imageUrl: item.coverUrl,
-                      width: double.infinity,
-                      height: double.infinity,
-                      fit: BoxFit.cover,
-                      errorWidget: (context, url, error) => Container(
-                        color: const Color(0xFF2C2C2E),
-                        alignment: Alignment.center,
-                        child: const Icon(
-                          RemixIcons.book_open_line,
-                          color: Colors.white38,
-                          size: 28,
+                  // No explicit width or height. Asking for infinity is the
+                  // one size the cover decode cap refuses, which had this grid
+                  // pulling every favourite in at full source resolution --
+                  // roughly 18MB a cover -- while the other grids asked for
+                  // their real tile size and were capped.
+                  child: dark
+                      ? CachedMangaImage(
+                          imageUrl: item.coverUrl,
+                          fit: BoxFit.cover,
+                          errorWidget: (context, url, error) => Container(
+                            color: const Color(0xFF2C2C2E),
+                            alignment: Alignment.center,
+                            child: const Icon(
+                              RemixIcons.book_open_line,
+                              color: Colors.white38,
+                              size: 28,
+                            ),
+                          ),
+                        )
+                      : Container(
+                          decoration: BoxDecoration(
+                            borderRadius: BorderRadius.circular(16),
+                            border: Border.all(color: Colors.black12),
+                          ),
+                          child: CachedMangaImage(
+                            imageUrl: item.coverUrl,
+                            fit: BoxFit.cover,
+                            errorWidget: (context, url, error) => Container(
+                              color: Colors.black12,
+                              alignment: Alignment.center,
+                              child: const Icon(
+                                RemixIcons.book_open_line,
+                                color: Colors.black38,
+                                size: 28,
+                              ),
+                            ),
+                          ),
                         ),
-                      ),
-                    ),
-                  ),
                 ),
-                Positioned(
-                  top: 6,
-                  right: 6,
-                  child: Container(
-                    padding: const EdgeInsets.all(5),
-                    decoration: const BoxDecoration(
-                      color: Colors.redAccent,
-                      shape: BoxShape.circle,
-                    ),
-                    child: const Icon(
-                      RemixIcons.heart_3_fill,
-                      color: Colors.white,
-                      size: 13,
-                    ),
-                  ),
-                ),
-                DownloadedMangaBadge(
-                  mangaId: item.id,
-                  position: const EdgeInsets.only(top: 6, left: 6),
-                ),
+                // The shared badges, so turning list badges off in Appearance
+                // reaches this grid too. It used to draw its own heart inline,
+                // which ignored the setting and did not update when a title was
+                // removed from favourites.
+                DownloadedMangaBadge(mangaId: item.id),
+                FavoriteBadge(mangaId: item.id),
               ],
             ),
           ),
@@ -255,7 +270,7 @@ class _FavoritesScreenState extends ConsumerState<FavoritesScreen> {
               overflow: TextOverflow.ellipsis,
               style: TextStyle(
                 color: titleColor,
-                fontSize: 12,
+                fontSize: mangaCardTitleFontSize(columns),
                 fontWeight: FontWeight.bold,
                 height: 1.2,
               ),
