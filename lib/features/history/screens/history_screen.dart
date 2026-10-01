@@ -616,10 +616,12 @@ class _HistoryScreenState extends ConsumerState<HistoryScreen> {
                     child: Slider(
                       // Reversed so that dragging right means "more columns",
                       // which is what the track reads as going.
-                      value: 7 - _gridSize,
-                      min: 1,
-                      max: 6,
-                      divisions: 5,
+                      value: mangaGridSliderPositionForColumns(_gridSize),
+                      min: kMangaGridSliderMinColumns.toDouble(),
+                      max: kMangaGridSliderMaxColumns.toDouble(),
+                      divisions:
+                          kMangaGridSliderMaxColumns -
+                          kMangaGridSliderMinColumns,
                       onChanged: usesWideLayout(context)
                       // The window width already decides the count on a
                       // wide layout, and the slider is a floor at best, so
@@ -629,7 +631,8 @@ class _HistoryScreenState extends ConsumerState<HistoryScreen> {
                       // the note above saying why.
                     ? null
                     : (value) {
-                        final actualColumns = 7 - value;
+                        final actualColumns =
+                            mangaGridColumnsForSliderPosition(value).toDouble();
 
                         setSheetState(() {
                             _gridSize = actualColumns;
@@ -768,8 +771,20 @@ class _HistoryScreenState extends ConsumerState<HistoryScreen> {
   /// Read from here rather than from [_gridSize] wherever the number is shown
   /// or measured: on a wide layout the two differ, because the derived count
   /// can sit above every position on the slider.
-  int _resolvedColumns(BuildContext context) =>
-      mangaGridColumnsFor(context, userColumns: _gridSize.toInt()).clamp(2, 7);
+  ///
+  /// No clamp of its own. It used to end in `.clamp(2, 7)`, which was this
+  /// screen quietly holding every other grid to a ceiling one lower than the one
+  /// they all share -- so on a wide window History showed seven columns while
+  /// Favourites and a source catalogue showed eight, and the cells did not match
+  /// between tabs of the same library. [mangaGridColumnsFor] already holds the
+  /// derived count to [kMangaGridMaxColumns], and the stored value cannot exceed
+  /// [kMangaGridSliderMaxColumns], so there is nothing left to bound here.
+  int _resolvedColumns(BuildContext context, [double? availableWidth]) =>
+      mangaGridColumnsFor(
+        context,
+        userColumns: _gridSize.toInt(),
+        availableWidth: availableWidth,
+      );
 
   String _modeLabel(BuildContext context, String mode) {
     final l = AppLocalizations.of(context);
@@ -1556,38 +1571,53 @@ class _HistoryScreenState extends ConsumerState<HistoryScreen> {
         ),
       );
     }
-    final columns = _resolvedColumns(context);
-    return SliverPadding(
-      padding: const EdgeInsets.symmetric(horizontal: 16),
-      sliver: SliverGrid(
-        gridDelegate: SliverGridDelegateWithFixedCrossAxisCount(
-          crossAxisCount: columns,
-          childAspectRatio: mangaCellAspectRatio(
-            context,
-            columns: columns,
-            // Tied to the resolved count, not the stored setting: once a tablet
-            // derives 7 columns the titles have to shrink to match, or they
-            // overflow a cell sized for the old density.
-            titleFontSize: mangaCardTitleFontSize(columns),
+    // Measured from the constraints rather than the viewport. The nav rail sits
+    // beside this screen on a wide layout and takes 80px off it, and MediaQuery
+    // still reports the window width down here, so a count derived from it would
+    // size cells for space this grid does not have. crossAxisExtent is measured
+    // before the SliverPadding below, which is what [mangaCellAspectRatio]
+    // expects: it takes the width including the grid's own padding and subtracts
+    // that padding itself.
+    return SliverLayoutBuilder(
+      builder: (context, sliverConstraints) {
+        final availableWidth = sliverConstraints.crossAxisExtent;
+        final columns = _resolvedColumns(context, availableWidth);
+        return SliverPadding(
+          padding: const EdgeInsets.symmetric(
+            horizontal: kMangaGridHorizontalPadding,
           ),
-          crossAxisSpacing: kMangaGridCrossSpacing,
-          mainAxisSpacing: kMangaGridRowSpacing,
-        ),
-        delegate: SliverChildBuilderDelegate(
-          (context, index) {
-            final item = items[index];
-            return GridHistoryCard(
-              item: item,
-              gridSize: _gridSize,
-              columns: columns,
-              isSelected: _selectedMangaIds.contains(item['mangaId']),
-              onTap: () => _handleGridCardTap(context, item),
-              onLongPress: () => _enterSelection(item['mangaId'] as String),
-            );
-          },
-          childCount: items.length,
-        ),
-      ),
+          sliver: SliverGrid(
+            gridDelegate: SliverGridDelegateWithFixedCrossAxisCount(
+              crossAxisCount: columns,
+              childAspectRatio: mangaCellAspectRatio(
+                context,
+                columns: columns,
+                // Tied to the resolved count, not the stored setting: once a
+                // tablet derives 8 columns the titles have to shrink to match,
+                // or they overflow a cell sized for the old density.
+                titleFontSize: mangaCardTitleFontSize(columns),
+                availableWidth: availableWidth,
+              ),
+              crossAxisSpacing: kMangaGridCrossSpacing,
+              mainAxisSpacing: kMangaGridRowSpacing,
+            ),
+            delegate: SliverChildBuilderDelegate(
+              (context, index) {
+                final item = items[index];
+                return GridHistoryCard(
+                  item: item,
+                  gridSize: _gridSize,
+                  columns: columns,
+                  isSelected: _selectedMangaIds.contains(item['mangaId']),
+                  onTap: () => _handleGridCardTap(context, item),
+                  onLongPress: () => _enterSelection(item['mangaId'] as String),
+                );
+              },
+              childCount: items.length,
+            ),
+          ),
+        );
+      },
     );
   }
 }

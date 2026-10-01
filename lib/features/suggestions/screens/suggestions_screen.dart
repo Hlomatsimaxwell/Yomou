@@ -378,7 +378,7 @@ class _SuggestionsScreenState extends ConsumerState<SuggestionsScreen> {
                         Text(
                           AppLocalizations.of(
                             context,
-                          ).historyGridSizeColumns(_gridSize.toInt()),
+                          ).historyGridSizeColumns(_resolvedColumns(context)),
                           style: TextStyle(
                             color: dark ? Colors.white54 : Colors.black54,
                             fontSize: 12,
@@ -417,12 +417,14 @@ class _SuggestionsScreenState extends ConsumerState<SuggestionsScreen> {
                             : Colors.black26,
                       ),
                       child: Slider(
-                        value: 7 - _gridSize,
-                        min: 1,
-                        max: 6,
-                        divisions: 5,
+                        value: mangaGridSliderPositionForColumns(_gridSize),
+                        min: kMangaGridSliderMinColumns.toDouble(),
+                        max: kMangaGridSliderMaxColumns.toDouble(),
+                        divisions: kMangaGridSliderMaxColumns -
+                            kMangaGridSliderMinColumns,
                         onChanged: (value) {
-                          final actualColumns = 7 - value;
+                          final actualColumns =
+                              mangaGridColumnsForSliderPosition(value).toDouble();
                           setSheetState(() {
                             _gridSize = actualColumns;
                           });
@@ -790,35 +792,64 @@ class _SuggestionsScreenState extends ConsumerState<SuggestionsScreen> {
       );
     }
 
-    final columns = mangaGridColumnsFor(
-      context,
-      userColumns: _gridSize.round(),
-    ).clamp(2, 7);
-    return SliverPadding(
-      padding: const EdgeInsets.symmetric(horizontal: 16),
-      sliver: SliverGrid.builder(
-        gridDelegate: SliverGridDelegateWithFixedCrossAxisCount(
-          crossAxisCount: columns,
-          childAspectRatio: mangaCellAspectRatio(
-            context,
-            columns: columns,
-            // Same rule and same bounds as the history grid, so a card is the
-            // same size on both tabs. Measured from the resolved column count
-            // rather than the stored setting, which on a wide layout is not
-            // what the grid ends up using.
-            titleFontSize: mangaCardTitleFontSize(columns),
+    // Measured from the constraints rather than the viewport: the nav rail sits
+    // beside this screen on a wide layout and takes 80px off it, while MediaQuery
+    // still reports the window width down here. crossAxisExtent is measured
+    // before the SliverPadding below, which is what [mangaCellAspectRatio]
+    // expects -- it takes the width including the grid's own padding and
+    // subtracts that padding itself.
+    return SliverLayoutBuilder(
+      builder: (context, sliverConstraints) {
+        final availableWidth = sliverConstraints.crossAxisExtent;
+        final columns = _resolvedColumns(context, availableWidth);
+        return SliverPadding(
+          padding: const EdgeInsets.symmetric(
+            horizontal: kMangaGridHorizontalPadding,
           ),
-          crossAxisSpacing: kMangaGridCrossSpacing,
-          mainAxisSpacing: kMangaGridRowSpacing,
-        ),
-        itemCount: items.length,
-        itemBuilder: (context, index) {
-          final manga = items[index];
-          return _buildMangaCard(context, manga, columns);
-        },
-      ),
+          sliver: SliverGrid.builder(
+            gridDelegate: SliverGridDelegateWithFixedCrossAxisCount(
+              crossAxisCount: columns,
+              childAspectRatio: mangaCellAspectRatio(
+                context,
+                columns: columns,
+                // Same rule and same bounds as the history grid, so a card is the
+                // same size on both tabs. Measured from the resolved column count
+                // rather than the stored setting, which on a wide layout is not
+                // what the grid ends up using.
+                titleFontSize: mangaCardTitleFontSize(columns),
+                availableWidth: availableWidth,
+              ),
+              crossAxisSpacing: kMangaGridCrossSpacing,
+              mainAxisSpacing: kMangaGridRowSpacing,
+            ),
+            itemCount: items.length,
+            itemBuilder: (context, index) {
+              final manga = items[index];
+              return _buildMangaCard(context, manga, columns);
+            },
+          ),
+        );
+      },
     );
   }
+
+  /// Columns the suggestions grid actually renders.
+  ///
+  /// Read from here rather than from [_gridSize] wherever the number is shown or
+  /// measured: on a wide layout the two differ, because the derived count can sit
+  /// above every position on the slider. The stored value was being shown as the
+  /// "N columns" label while the grid drew the derived one, so the number on the
+  /// sheet described a grid that was not the one on screen.
+  ///
+  /// No clamp of its own. It used to end in `.clamp(2, 7)`, holding this grid to
+  /// a ceiling one lower than the one every other grid shares -- see the same note
+  /// on the history grid's copy.
+  int _resolvedColumns(BuildContext context, [double? availableWidth]) =>
+      mangaGridColumnsFor(
+        context,
+        userColumns: _gridSize.round(),
+        availableWidth: availableWidth,
+      );
 
   /// [columns] is the resolved count, not the stored setting: the grid measures
   /// its cells with it, so the title has to be drawn with the same value or a

@@ -888,6 +888,14 @@ class AppLocalizationsEn extends AppLocalizations {
   }
 
   @override
+  String get favoritesGridSize => 'Grid size';
+
+  @override
+  String favoritesGridSizeColumns(int columns) {
+    return '$columns Columns';
+  }
+
+  @override
   String get historySortingOrder => 'Sorting order';
 
   @override

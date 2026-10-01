@@ -23,6 +23,38 @@ const double kMangaGridTargetCellWidth = 100;
 /// rather than on more columns.
 const int kMangaGridMaxColumns = 8;
 
+/// The range the grid-density sliders move over, in columns.
+///
+/// This is a different thing from [kMangaGridMaxColumns] and the two used to be
+/// written as bare numbers in each screen, which is how a ceiling ended up in
+/// three places with only one of them sharing the constant. The slider is what
+/// a user may *choose* for a narrow layout; the ceiling is what a *derived*
+/// count is held to on a wide one. A stored choice above the ceiling is
+/// impossible here because the range tops out below it.
+///
+/// The slider reads right-to-left -- dragging towards "more columns" moves the
+/// thumb left -- so positions are counted back from
+/// [kMangaGridSliderMaxColumns].
+const int kMangaGridSliderMinColumns = 1;
+const int kMangaGridSliderMaxColumns = 6;
+
+/// The slider position that stands for [columns].
+///
+/// And [mangaGridColumnsForSliderPosition] for the other direction. Both are
+/// here because a slider is a double while the setting it edits is an int, and
+/// every screen had been doing the same `7 - value` and `max + 1 - value` by
+/// hand -- which is how a range could drift from the constant that describes it.
+double mangaGridSliderPositionForColumns(double columns) =>
+    kMangaGridSliderMaxColumns + 1 - columns;
+
+/// Columns a slider position stands for.
+///
+/// The position is counted from the far end, hence the `+ 1 - position`: at
+/// [kMangaGridSliderMaxColumns] on the track this is one column, and at
+/// [kMangaGridSliderMinColumns] it is the maximum.
+int mangaGridColumnsForSliderPosition(double position) =>
+    (kMangaGridSliderMaxColumns + 1 - position).round();
+
 /// How many columns a manga grid should have at the current width.
 ///
 /// Derived from the actual viewport rather than picked from breakpoints, so

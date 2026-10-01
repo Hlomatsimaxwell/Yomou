@@ -416,6 +416,15 @@
       }
     }
   },
+  "favoritesGridSize": "Grid size",
+  "favoritesGridSizeColumns": "{columns} Columns",
+  "@favoritesGridSizeColumns": {
+    "placeholders": {
+      "columns": {
+        "type": "int"
+      }
+    }
+  },
   "historySortingOrder": "Sorting order",
   "historySortAdded": "Added",
   "historySortOldest": "Oldest",

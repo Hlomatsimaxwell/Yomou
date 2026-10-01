@@ -1688,6 +1688,18 @@ abstract class AppLocalizations {
   /// **'{columns} Columns'**
   String historyGridSizeColumns(int columns);
 
+  /// No description provided for @favoritesGridSize.
+  ///
+  /// In en, this message translates to:
+  /// **'Grid size'**
+  String get favoritesGridSize;
+
+  /// No description provided for @favoritesGridSizeColumns.
+  ///
+  /// In en, this message translates to:
+  /// **'{columns} Columns'**
+  String favoritesGridSizeColumns(int columns);
+
   /// No description provided for @historySortingOrder.
   ///
   /// In en, this message translates to:

@@ -2,13 +2,16 @@ import 'package:yomou/widgets/cached_manga_image.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:remixicon/remixicon.dart';
+import 'package:shared_preferences/shared_preferences.dart';
 import 'package:yomou/data/models/manga.dart';
 import 'package:yomou/features/library/providers/favorites_provider.dart';
 import 'package:yomou/features/library/widgets/downloaded_badge.dart';
 import 'package:yomou/features/library/widgets/favorite_badge.dart';
 import 'package:yomou/features/library/screens/manga_detail_screen.dart';
 import 'package:yomou/core/theme/layout.dart';
+import 'package:yomou/core/widgets/ios/ios_press.dart';
 import 'package:yomou/core/widgets/empty_state.dart';
+import 'package:yomou/core/widgets/ios/ios_sheet.dart';
 import 'package:yomou/core/widgets/tab_header.dart';
 import 'package:yomou/core/widgets/responsive.dart' show usesWideLayout;
 import 'package:yomou/core/widgets/manga_grid_metrics.dart';
@@ -25,6 +28,37 @@ class FavoritesScreen extends ConsumerStatefulWidget {
 class _FavoritesScreenState extends ConsumerState<FavoritesScreen> {
   final TextEditingController _searchController = TextEditingController();
   String _searchQuery = '';
+
+  /// The density the user chose for this grid, in columns.
+  ///
+  /// Stored per screen rather than shared with History and Suggestions, which
+  /// keep their own. One global setting would have been less code, but it would
+  /// also have meant a grid that reads well in Favourites -- where the cards are
+  /// the only thing on screen -- being dragged to a density chosen for a list
+  /// with a progress bar in it, or the other way round. Same default as both, so
+  /// nothing moves until it is touched.
+  double _gridSize = 3;
+
+  @override
+  void initState() {
+    super.initState();
+    _loadPreferences();
+  }
+
+  Future<void> _loadPreferences() async {
+    final prefs = await SharedPreferences.getInstance();
+    if (!mounted) return;
+    setState(() {
+      _gridSize = prefs.getDouble('favorites_grid_size') ?? 3.0;
+    });
+  }
+
+  Future<void> _savePreference(String key, dynamic value) async {
+    final prefs = await SharedPreferences.getInstance();
+    if (value is double) {
+      await prefs.setDouble(key, value);
+    }
+  }
 
   @override
   void dispose() {
@@ -76,10 +110,9 @@ class _FavoritesScreenState extends ConsumerState<FavoritesScreen> {
                       child: Text(
                         AppLocalizations.of(context).favoritesCouldNotLoad,
                         style: TextStyle(
-                          color:
-                              Theme.of(context).brightness == Brightness.dark
-                                  ? Colors.white54
-                                  : const Color(0xFF49454F),
+                          color: Theme.of(context).brightness == Brightness.dark
+                              ? Colors.white54
+                              : const Color(0xFF49454F),
                           fontSize: 16,
                         ),
                       ),
@@ -127,16 +160,155 @@ class _FavoritesScreenState extends ConsumerState<FavoritesScreen> {
           _searchQuery = '';
         });
       },
-      trailing: Padding(
-        padding: const EdgeInsets.all(8),
-        child: Icon(
-          RemixIcons.more_2_line,
-          color: dark ? Colors.white70 : Colors.black54,
-          size: 22,
+      trailing: AppPress(
+        onTap: _showGridOptionsSheet,
+        child: Padding(
+          padding: const EdgeInsets.all(8),
+          child: Icon(
+            RemixIcons.more_2_line,
+            color: dark ? Colors.white70 : Colors.black54,
+            size: 22,
+          ),
         ),
       ),
     );
   }
+
+  /// Grid density, in the same shape as the one on History and Suggestions.
+  ///
+  /// The three-dot in this screen's search bar drew an icon and nothing else --
+  /// there was no handler behind it, so it was a control that looked live and
+  /// was not, and the grid below had no density setting at all while its two
+  /// siblings did.
+  void _showGridOptionsSheet() {
+    showIosSheet(
+      context,
+      builder: (context) {
+        return StatefulBuilder(
+          builder: (context, setSheetState) {
+            final dark = Theme.of(context).brightness == Brightness.dark;
+            return Padding(
+              padding: const EdgeInsets.fromLTRB(20, 12, 20, 24),
+              child: Column(
+                mainAxisSize: MainAxisSize.min,
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Row(
+                    mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                    children: [
+                      Text(
+                        AppLocalizations.of(context).favoritesGridSize,
+                        style: TextStyle(
+                          color: dark
+                              ? Colors.white70
+                              : const Color(0xFF49454F),
+                          fontSize: 14,
+                          fontWeight: FontWeight.w500,
+                        ),
+                      ),
+                      Text(
+                        AppLocalizations.of(
+                          context,
+                        ).favoritesGridSizeColumns(_resolvedColumns(context)),
+                        style: TextStyle(
+                          color: dark ? Colors.white54 : Colors.black54,
+                          fontSize: 12,
+                        ),
+                      ),
+                    ],
+                  ),
+                  const SizedBox(height: 8),
+                  if (usesWideLayout(context))
+                    Padding(
+                      padding: const EdgeInsets.only(bottom: 8),
+                      child: Text(
+                        AppLocalizations.of(context).rsetDefaultsNote,
+                        style: TextStyle(
+                          color: dark ? Colors.white38 : Colors.black38,
+                          fontSize: 11,
+                        ),
+                      ),
+                    ),
+                  SliderTheme(
+                    data: SliderTheme.of(context).copyWith(
+                      trackHeight: 6,
+                      activeTrackColor: dark
+                          ? Colors.white
+                          : Theme.of(context).colorScheme.primary,
+                      inactiveTrackColor: dark
+                          ? Colors.white12
+                          : Colors.black12,
+                      thumbColor: dark
+                          ? Colors.white
+                          : Theme.of(context).colorScheme.primary,
+                      thumbShape: const RoundSliderThumbShape(
+                        enabledThumbRadius: 10,
+                        elevation: 4,
+                      ),
+                      overlayColor: (dark ? Colors.white : Colors.black)
+                          .withValues(alpha: 0.12),
+                      overlayShape: const RoundSliderOverlayShape(
+                        overlayRadius: 20,
+                      ),
+                      tickMarkShape: const RoundSliderTickMarkShape(
+                        tickMarkRadius: 2,
+                      ),
+                      activeTickMarkColor: Colors.transparent,
+                      inactiveTickMarkColor: dark
+                          ? Colors.white30
+                          : Colors.black26,
+                    ),
+                    child: Slider(
+                      value: mangaGridSliderPositionForColumns(_gridSize),
+                      min: kMangaGridSliderMinColumns.toDouble(),
+                      max: kMangaGridSliderMaxColumns.toDouble(),
+                      divisions:
+                          kMangaGridSliderMaxColumns -
+                          kMangaGridSliderMinColumns,
+                      // Same reasoning as the history sheet: on a wide layout
+                      // the width decides the count and this is only a floor,
+                      // so dragging it would move a stored number and not a
+                      // single pixel.
+                      onChanged: usesWideLayout(context)
+                          ? null
+                          : (value) {
+                              final actualColumns =
+                                  mangaGridColumnsForSliderPosition(
+                                    value,
+                                  ).toDouble();
+                              setSheetState(() {
+                                _gridSize = actualColumns;
+                              });
+                              setState(() {});
+                              _savePreference(
+                                'favorites_grid_size',
+                                actualColumns,
+                              );
+                            },
+                    ),
+                  ),
+                ],
+              ),
+            );
+          },
+        );
+      },
+    );
+  }
+
+  /// Columns the favourites grid actually renders.
+  ///
+  /// Read from here rather than from [_gridSize] wherever the number is shown or
+  /// measured: on a wide layout the two differ, because the derived count can sit
+  /// above every position on the slider. Without this the grid asked for
+  /// [mangaGridColumns], which honours no stored choice at all, so the cards were
+  /// a different size here than on the two grids that do keep a setting.
+  int _resolvedColumns(BuildContext context, [double? availableWidth]) =>
+      mangaGridColumnsFor(
+        context,
+        userColumns: _gridSize.round(),
+        availableWidth: availableWidth,
+      );
 
   Widget _buildMangaGrid(List<Manga> items) {
     if (items.isEmpty) {
@@ -155,30 +327,44 @@ class _FavoritesScreenState extends ConsumerState<FavoritesScreen> {
       );
     }
 
-    final columns = mangaGridColumns(context);
-    return SliverPadding(
-      padding: const EdgeInsets.symmetric(horizontal: 16),
-      sliver: SliverGrid.builder(
-        gridDelegate: SliverGridDelegateWithFixedCrossAxisCount(
-          crossAxisCount: columns,
-          childAspectRatio: mangaCellAspectRatio(
-            context,
-            columns: columns,
-            // Measured from the resolved column count, the same rule and the
-            // same bounds the history and source grids use. A cell sized for a
-            // 10pt title and drawn with a 12pt one clips the second line of
-            // every title long enough to need one.
-            titleFontSize: mangaCardTitleFontSize(columns),
+    // Measured from the constraints rather than the viewport. The nav rail sits
+    // beside this screen on a wide layout and takes 80px off it, and MediaQuery
+    // still reports the window width down here. crossAxisExtent is measured
+    // before the SliverPadding below, which is what [mangaCellAspectRatio]
+    // expects: it takes the width including the grid's own padding and subtracts
+    // that padding itself.
+    return SliverLayoutBuilder(
+      builder: (context, sliverConstraints) {
+        final availableWidth = sliverConstraints.crossAxisExtent;
+        final columns = _resolvedColumns(context, availableWidth);
+        return SliverPadding(
+          padding: const EdgeInsets.symmetric(
+            horizontal: kMangaGridHorizontalPadding,
           ),
-          crossAxisSpacing: kMangaGridCrossSpacing,
-          mainAxisSpacing: kMangaGridRowSpacing,
-        ),
-        itemCount: items.length,
-        itemBuilder: (context, index) {
-          final item = items[index];
-          return _buildMangaCard(context, item, columns);
-        },
-      ),
+          sliver: SliverGrid.builder(
+            gridDelegate: SliverGridDelegateWithFixedCrossAxisCount(
+              crossAxisCount: columns,
+              childAspectRatio: mangaCellAspectRatio(
+                context,
+                columns: columns,
+                // Measured from the resolved column count, the same rule and the
+                // same bounds the history and source grids use. A cell sized for
+                // a 10pt title and drawn with a 12pt one clips the second line of
+                // every title long enough to need one.
+                titleFontSize: mangaCardTitleFontSize(columns),
+                availableWidth: availableWidth,
+              ),
+              crossAxisSpacing: kMangaGridCrossSpacing,
+              mainAxisSpacing: kMangaGridRowSpacing,
+            ),
+            itemCount: items.length,
+            itemBuilder: (context, index) {
+              final item = items[index];
+              return _buildMangaCard(context, item, columns);
+            },
+          ),
+        );
+      },
     );
   }
 

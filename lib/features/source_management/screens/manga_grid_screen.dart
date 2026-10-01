@@ -1030,6 +1030,13 @@ class _MangaGridScreenState extends ConsumerState<MangaGridScreen> {
                 columns: columns,
                 titleFontSize: fontSize,
                 availableWidth: width,
+                // No padding to subtract: [width] already had this Padding's own
+                // 16 taken off it by the LayoutBuilder above, and the default of
+                // 16 subtracted a second set. The cell came out measured from 32px
+                // narrower than the cell it was then given, so every cover here
+                // was sized for a narrower column than the one it painted into
+                // and the title's second line sat that much closer to the edge.
+                horizontalPadding: 0,
               ),
               crossAxisSpacing: kMangaGridCrossSpacing,
               mainAxisSpacing: kMangaGridRowSpacing,

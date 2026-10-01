@@ -195,6 +195,15 @@
       }
     }
   },
+  "favoritesGridSize": "Tamaño de cuadrícula",
+  "favoritesGridSizeColumns": "{columns} columnas",
+  "@favoritesGridSizeColumns": {
+    "placeholders": {
+      "columns": {
+        "type": "int"
+      }
+    }
+  },
   "historySortingOrder": "Orden de clasificación",
   "historySortAdded": "Añadidas",
   "historySortOldest": "Más antiguas",

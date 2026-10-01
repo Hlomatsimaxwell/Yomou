@@ -899,6 +899,14 @@ class AppLocalizationsEs extends AppLocalizations {
   }
 
   @override
+  String get favoritesGridSize => 'Tamaño de cuadrícula';
+
+  @override
+  String favoritesGridSizeColumns(int columns) {
+    return '$columns columnas';
+  }
+
+  @override
   String get historySortingOrder => 'Orden de clasificación';
 
   @override
