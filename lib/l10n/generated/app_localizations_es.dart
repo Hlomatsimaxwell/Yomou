@@ -1236,6 +1236,9 @@ class AppLocalizationsEs extends AppLocalizations {
   String get readerChapterNotFound => 'No se encontró el capítulo';
 
   @override
+  String get readerChaptersTitle => 'Capítulos';
+
+  @override
   String get readerSavePage => 'Guardar página';
 
   @override
@@ -2513,18 +2516,29 @@ class AppLocalizationsEs extends AppLocalizations {
   String get rsetScaleKeepAtStart => 'Mantener en el inicio';
 
   @override
-  String get rsetWebtoonZoomOut => 'Alejar webtoon por defecto';
+  String get rsetSectionStrip => 'Vertical y webtoon';
+
+  @override
+  String get rsetWebtoonZoomOut => 'Alejar por defecto';
 
   @override
   String get rsetWebtoonZoomOutSub =>
       'Estrecha la tira para que los paneles largos se lean mejor';
 
   @override
-  String get rsetWebtoonGaps => 'Separación en modo webtoon';
+  String get rsetWebtoonGaps => 'Separación entre páginas';
 
   @override
   String get rsetWebtoonGapsSub =>
       'Separa los paneles para que se vea dónde acaba uno y empieza otro';
+
+  @override
+  String get rsetStripUnavailable =>
+      'Solo se usa en los modos vertical y webtoon';
+
+  @override
+  String get rsetTwoPagesUnavailable =>
+      'Solo se usa en los modos estándar y de derecha a izquierda';
 
   @override
   String get rsetVolumeButtons => 'Activar botones de volumen';
@@ -2587,6 +2601,9 @@ class AppLocalizationsEs extends AppLocalizations {
 
   @override
   String get rsetFlashWith => 'Parpadear con';
+
+  @override
+  String get rsetFlashWithSub => 'A qué color se limpia la pantalla';
 
   @override
   String get rsetFlashWhite => 'Blanco';
@@ -2696,6 +2713,20 @@ class AppLocalizationsEs extends AppLocalizations {
 
   @override
   String get rsetTwoPagesSub => 'Muestra un doble en vez de una sola página';
+
+  @override
+  String get rsetReset => 'Restablecer ajustes del lector';
+
+  @override
+  String get rsetResetSub =>
+      'Devuelve todos los ajustes de esta pantalla a su valor original';
+
+  @override
+  String get rsetResetTitle => '¿Restablecer los ajustes del lector?';
+
+  @override
+  String get rsetResetBody =>
+      'Todos los ajustes del lector vuelven a su valor por defecto. No se tocan los que hayas hecho en títulos individuales.';
 
   @override
   String get settingsReaderActions => 'Acciones del lector';

@@ -35,6 +35,33 @@ const kPreloadNever = 'never';
 const kFlashWhite = 'white';
 const kFlashBlack = 'black';
 
+/// Reading mode ids ("Default mode" picker).
+///
+/// Strings rather than the reader's `ReadingMode` enum: this is a settings
+/// value, stored in prefs and read before the reader exists, and importing the
+/// reader's screen file to name it would be backwards. The names match the
+/// enum's, which is what `ReadingMode.values.byName` in the reader relies on.
+const kModeStandard = 'standard';
+const kModeRtl = 'rightToLeft';
+const kModeVertical = 'vertical';
+const kModeWebtoon = 'webtoon';
+
+/// Whether [mode] pages one image at a time, horizontally.
+///
+/// This is the reader's own `ReaderScreen._isHorizontal`, and the two have to
+/// agree: it decides between the pager and the scrolling list, and the settings
+/// screen uses it to grey out the settings that only the pager can honour.
+bool modeIsPaged(String mode) =>
+    mode == kModeStandard || mode == kModeRtl;
+
+/// Whether [mode] runs as a continuous vertical strip.
+///
+/// The reader's vertical builder serves both vertical and webtoon, so the
+/// strip settings apply to either. Gating them on `webtoon` alone would be
+/// wrong: the code behind them does not care which of the two it is.
+bool modeIsVertical(String mode) =>
+    mode == kModeVertical || mode == kModeWebtoon;
+
 /// Global reader defaults, shown in Settings > Reader.
 ///
 /// These are *defaults*: a title the reader already has a stored choice for
@@ -426,6 +453,14 @@ class ReaderSettingsNotifier extends StateNotifier<ReaderSettings> {
 
   Future<void> setWebtoonZoomOut(int value) =>
       _update(state.copyWith(webtoonZoomOut: value));
+
+  /// Back to [ReaderSettings.defaults], for the reset row at the bottom of the
+  /// screen.
+  ///
+  /// Writes the whole object rather than the handful of fields the user can
+  /// see, so a default that changes between app versions reaches devices that
+  /// have never touched this row.
+  Future<void> resetToDefaults() => _update(ReaderSettings.defaults());
 }
 
 final readerSettingsProvider =

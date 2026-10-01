@@ -12,6 +12,7 @@ import 'package:yomou/features/settings/screens/notification_settings_screen.dar
 import 'package:yomou/features/settings/screens/storage_settings_screen.dart';
 import 'package:yomou/features/settings/screens/downloads_settings_screen.dart';
 import 'package:yomou/features/settings/screens/reader_settings_screen.dart';
+import 'package:yomou/features/settings/widgets/settings_group.dart';
 import 'package:yomou/data/providers/sources_provider.dart';
 import 'package:yomou/widgets/m3_components.dart';
 
@@ -41,7 +42,21 @@ class _Category {
 }
 
 class SettingsScreen extends ConsumerStatefulWidget {
-  const SettingsScreen({super.key});
+  const SettingsScreen({super.key, this.initialCategory});
+
+  /// Which category the detail pane opens on, by its settings title.
+  ///
+  /// Set when settings is reached from somewhere that already knows which
+  /// section the reader wants -- the reader's own menu opening Settings, for
+  /// instance. Those entry points want the two-pane layout with Reader
+  /// selected, not a bare push of [ReaderSettingsScreen]: a page with no
+  /// category list beside it gives no way to reach any other settings and no
+  /// sign the user is inside settings at all.
+  ///
+  /// Matched by title rather than index so inserting a category cannot silently
+  /// point this at the wrong screen. An unmatched or null [initialCategory]
+  /// falls back to the first category, which is what a plain open already did.
+  final String? initialCategory;
 
   @override
   ConsumerState<SettingsScreen> createState() => _SettingsScreenState();
@@ -49,9 +64,17 @@ class SettingsScreen extends ConsumerStatefulWidget {
 
 class _SettingsScreenState extends ConsumerState<SettingsScreen> {
   /// Which category the detail pane is showing. Null until the first build so
-  /// the initial selection lands on the first category without an extra frame
-  /// of empty pane.
+  /// the initial selection lands without an extra frame of empty pane.
   int? _selectedIndex;
+
+  /// Resolves [SettingsScreen.initialCategory] to an index into the categories
+  /// that have screens, or null when the title matches none of them.
+  int? _initialCategoryIndex(List<_Category> selectable) {
+    final wanted = widget.initialCategory;
+    if (wanted == null) return null;
+    final i = selectable.indexWhere((c) => c.title == wanted);
+    return i < 0 ? null : i;
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -133,38 +156,52 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
     // empty pane on a large screen reads as a failed load rather than as an
     // invitation to pick something.
     final selectable = categories.where((c) => c.hasScreen).toList();
-    final index = _selectedIndex ?? 0;
+    final index = _selectedIndex ?? _initialCategoryIndex(selectable) ?? 0;
     final current = selectable[index.clamp(0, selectable.length - 1)];
 
     return Row(
       children: [
         SizedBox(
           width: kSettingsCategoryPaneWidth,
-          child: _buildCategoryList(
-            categories,
-            selected: current,
-            onSelect: (c) {
-              final i = selectable.indexOf(c);
-              if (i >= 0) setState(() => _selectedIndex = i);
-            },
+          // Its own fill, so the two columns are two planes instead of one
+          // surface split by a line.
+          child: ColoredBox(
+            color: SettingsSurfaces.sidebar(context),
+            child: _buildCategoryList(
+              categories,
+              selected: current,
+              onSelect: (c) {
+                final i = selectable.indexOf(c);
+                if (i >= 0) setState(() => _selectedIndex = i);
+              },
+            ),
           ),
         ),
         VerticalDivider(
           width: 1,
-          color: Theme.of(context).brightness == Brightness.dark
-              ? Colors.white12
-              : Colors.black12,
+          color: SettingsSurfaces.columnDivider(context),
         ),
         Expanded(
           // The scope is what tells each category screen it is in a pane, so
           // its app bar drops the back arrow that would otherwise pop the whole
           // settings route.
           child: SettingsPaneScope(
-            child: KeyedSubtree(
-              // Keyed on the category so switching panes rebuilds the screen
-              // instead of reusing the previous one's element tree.
-              key: ValueKey(current.title),
-              child: current.screen!,
+            // Tinted here rather than by each category screen: the pane is one
+            // surface that the six screens all sit on, so if each painted its
+            // own background the seams between them would be the only place the
+            // tone could go wrong. A Theme rather than a ColoredBox because
+            // every one of those screens is a Scaffold, and a Scaffold paints
+            // the theme's background over anything behind it.
+            child: Theme(
+              data: Theme.of(context).copyWith(
+                scaffoldBackgroundColor: SettingsSurfaces.pane(context),
+              ),
+              child: KeyedSubtree(
+                // Keyed on the category so switching panes rebuilds the screen
+                // instead of reusing the previous one's element tree.
+                key: ValueKey(current.title),
+                child: current.screen!,
+              ),
             ),
           ),
         ),
@@ -195,6 +232,10 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
                 }
                 return;
               }
+              // A phone has no category pane, so tapping a row pushes that
+              // category's own screen. [initialCategory] is deliberately not
+              // honoured here: it is about which row the *hub* opens on, and on
+              // a phone the hub is never on screen by the time a row is tapped.
               Navigator.push(
                 context,
                 MaterialPageRoute(builder: (context) => c.screen!),
@@ -311,22 +352,28 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
         : (selected ? accent : null);
 
     return Padding(
-      padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 1),
+      padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 2),
       child: Material(
+        // A filled container rather than a translucent wash over the sidebar:
+        // with the detail pane now carrying its own tint, the selection has to
+        // be a solid shape to read as the current page instead of as a
+        // highlight competing with the pane's colour.
         color: selected
-            ? accent.withValues(alpha: dark ? 0.26 : 0.16)
+            ? (dark
+                ? accent.withValues(alpha: 0.32)
+                : accent.withValues(alpha: 0.14))
             : Colors.transparent,
-        borderRadius: BorderRadius.circular(16),
+        borderRadius: BorderRadius.circular(10),
         child: InkWell(
           onTap: onTap,
-          borderRadius: BorderRadius.circular(16),
+          borderRadius: BorderRadius.circular(10),
           child: Padding(
-            padding: const EdgeInsets.symmetric(vertical: 10, horizontal: 8),
+            padding: const EdgeInsets.symmetric(vertical: 10, horizontal: 10),
             child: Row(
               children: [
                 Padding(
                   padding: const EdgeInsets.only(right: 12),
-                  child: Icon(category.icon, size: 26, color: foreground),
+                  child: Icon(category.icon, size: 24, color: foreground),
                 ),
                 Expanded(
                   child: Column(
@@ -336,7 +383,11 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
                         category.title,
                         style: TextStyle(
                           fontSize: 15,
-                          fontWeight: FontWeight.w600,
+                          // Only the current row is bold, so the eye can find
+                          // it in a column where every row is a 15pt label.
+                          fontWeight: selected
+                              ? FontWeight.w700
+                              : FontWeight.w500,
                           color: foreground,
                         ),
                       ),
@@ -344,8 +395,11 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
                         padding: const EdgeInsets.only(top: 2),
                         child: Text(
                           category.subtitle,
+                          maxLines: 2,
+                          overflow: TextOverflow.ellipsis,
                           style: TextStyle(
-                            fontSize: 13,
+                            fontSize: 12,
+                            height: 1.25,
                             color: foreground ??
                                 (dark ? Colors.white54 : const Color(0xFF49454F)),
                           ),

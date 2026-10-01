@@ -2300,6 +2300,12 @@ abstract class AppLocalizations {
   /// **'Chapter not found'**
   String get readerChapterNotFound;
 
+  /// No description provided for @readerChaptersTitle.
+  ///
+  /// In en, this message translates to:
+  /// **'Chapters'**
+  String get readerChaptersTitle;
+
   /// No description provided for @readerSavePage.
   ///
   /// In en, this message translates to:
@@ -4483,10 +4489,16 @@ abstract class AppLocalizations {
   /// **'Keep at start'**
   String get rsetScaleKeepAtStart;
 
+  /// No description provided for @rsetSectionStrip.
+  ///
+  /// In en, this message translates to:
+  /// **'Vertical & webtoon'**
+  String get rsetSectionStrip;
+
   /// No description provided for @rsetWebtoonZoomOut.
   ///
   /// In en, this message translates to:
-  /// **'Default webtoon zoom out'**
+  /// **'Default zoom out'**
   String get rsetWebtoonZoomOut;
 
   /// No description provided for @rsetWebtoonZoomOutSub.
@@ -4498,7 +4510,7 @@ abstract class AppLocalizations {
   /// No description provided for @rsetWebtoonGaps.
   ///
   /// In en, this message translates to:
-  /// **'Gaps in webtoon mode'**
+  /// **'Gaps between pages'**
   String get rsetWebtoonGaps;
 
   /// No description provided for @rsetWebtoonGapsSub.
@@ -4506,6 +4518,18 @@ abstract class AppLocalizations {
   /// In en, this message translates to:
   /// **'Separate the panels so the seam between them is visible'**
   String get rsetWebtoonGapsSub;
+
+  /// No description provided for @rsetStripUnavailable.
+  ///
+  /// In en, this message translates to:
+  /// **'Only used in the vertical and webtoon modes'**
+  String get rsetStripUnavailable;
+
+  /// No description provided for @rsetTwoPagesUnavailable.
+  ///
+  /// In en, this message translates to:
+  /// **'Only used in the standard and right-to-left modes'**
+  String get rsetTwoPagesUnavailable;
 
   /// No description provided for @rsetVolumeButtons.
   ///
@@ -4602,6 +4626,12 @@ abstract class AppLocalizations {
   /// In en, this message translates to:
   /// **'Flash with'**
   String get rsetFlashWith;
+
+  /// No description provided for @rsetFlashWithSub.
+  ///
+  /// In en, this message translates to:
+  /// **'Which colour the screen is cleared to'**
+  String get rsetFlashWithSub;
 
   /// No description provided for @rsetFlashWhite.
   ///
@@ -4806,6 +4836,30 @@ abstract class AppLocalizations {
   /// In en, this message translates to:
   /// **'Show a spread instead of a single page'**
   String get rsetTwoPagesSub;
+
+  /// No description provided for @rsetReset.
+  ///
+  /// In en, this message translates to:
+  /// **'Reset reader settings'**
+  String get rsetReset;
+
+  /// No description provided for @rsetResetSub.
+  ///
+  /// In en, this message translates to:
+  /// **'Put every setting on this screen back to how it shipped'**
+  String get rsetResetSub;
+
+  /// No description provided for @rsetResetTitle.
+  ///
+  /// In en, this message translates to:
+  /// **'Reset reader settings?'**
+  String get rsetResetTitle;
+
+  /// No description provided for @rsetResetBody.
+  ///
+  /// In en, this message translates to:
+  /// **'Every reader setting goes back to its default. Settings you have made on individual titles are not touched.'**
+  String get rsetResetBody;
 
   /// No description provided for @settingsReaderActions.
   ///

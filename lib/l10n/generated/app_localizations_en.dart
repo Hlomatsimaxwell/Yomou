@@ -1224,6 +1224,9 @@ class AppLocalizationsEn extends AppLocalizations {
   String get readerChapterNotFound => 'Chapter not found';
 
   @override
+  String get readerChaptersTitle => 'Chapters';
+
+  @override
   String get readerSavePage => 'Save page';
 
   @override
@@ -2490,18 +2493,29 @@ class AppLocalizationsEn extends AppLocalizations {
   String get rsetScaleKeepAtStart => 'Keep at start';
 
   @override
-  String get rsetWebtoonZoomOut => 'Default webtoon zoom out';
+  String get rsetSectionStrip => 'Vertical & webtoon';
+
+  @override
+  String get rsetWebtoonZoomOut => 'Default zoom out';
 
   @override
   String get rsetWebtoonZoomOutSub =>
       'Narrows the strip so long panels are easier to read';
 
   @override
-  String get rsetWebtoonGaps => 'Gaps in webtoon mode';
+  String get rsetWebtoonGaps => 'Gaps between pages';
 
   @override
   String get rsetWebtoonGapsSub =>
       'Separate the panels so the seam between them is visible';
+
+  @override
+  String get rsetStripUnavailable =>
+      'Only used in the vertical and webtoon modes';
+
+  @override
+  String get rsetTwoPagesUnavailable =>
+      'Only used in the standard and right-to-left modes';
 
   @override
   String get rsetVolumeButtons => 'Enable volume buttons';
@@ -2563,6 +2577,9 @@ class AppLocalizationsEn extends AppLocalizations {
 
   @override
   String get rsetFlashWith => 'Flash with';
+
+  @override
+  String get rsetFlashWithSub => 'Which colour the screen is cleared to';
 
   @override
   String get rsetFlashWhite => 'White';
@@ -2670,6 +2687,20 @@ class AppLocalizationsEn extends AppLocalizations {
 
   @override
   String get rsetTwoPagesSub => 'Show a spread instead of a single page';
+
+  @override
+  String get rsetReset => 'Reset reader settings';
+
+  @override
+  String get rsetResetSub =>
+      'Put every setting on this screen back to how it shipped';
+
+  @override
+  String get rsetResetTitle => 'Reset reader settings?';
+
+  @override
+  String get rsetResetBody =>
+      'Every reader setting goes back to its default. Settings you have made on individual titles are not touched.';
 
   @override
   String get settingsReaderActions => 'Reader actions';
