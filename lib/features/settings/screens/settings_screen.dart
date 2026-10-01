@@ -116,9 +116,9 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
     ];
 
     // Two panes only where there is genuinely room. Below this the app's own
-    // side rail has already taken 88dp, and a category pane on top of that
-    // leaves the detail pane narrower than the phone it replaced.
-    final twoPane = widthClassOf(context) == ScreenWidthClass.expanded;
+    // side rail has already taken its width, and a category pane on top of
+    // that leaves the detail pane narrower than the phone it replaced.
+    final twoPane = usesWideLayout(context);
 
     return Scaffold(
       appBar: SettingsAppBar(title: l.settings),

@@ -314,7 +314,7 @@ class _HomeScreenState extends ConsumerState<HomeScreen>
     // Wide windows get a side rail and no bottom bar. A bottom bar stretched
     // across a 12" tablet puts "History" and "Updates" a hand's width apart at
     // opposite ends of the display, and wastes the width the content wants.
-    final useRail = hasSideNavigation(context);
+    final useRail = usesWideLayout(context);
 
     // Shared by both layouts so the rail and the bar cannot drift into
     // different tab behaviour.
@@ -358,7 +358,34 @@ class _HomeScreenState extends ConsumerState<HomeScreen>
               ? Row(
                   children: [
                     _buildNavRail(context, updatesCount, accent, enabledTabs),
-                    Expanded(child: content),
+                    Expanded(
+                      child: Stack(
+                        children: [
+                          Positioned.fill(child: content),
+                          // The Continue FAB has to be placed by the rail
+                          // layout too. It used to live only inside the
+                          // bottom-bar overlay, so switching to the rail
+                          // silently took it away -- a reading-progress
+                          // feature vanishing because the window got wider.
+                          Positioned(
+                            right: 20,
+                            // No bottom bar to clear here, so it sits just
+                            // above the safe area instead of above the bar.
+                            bottom: MediaQuery.paddingOf(context).bottom + 20,
+                            child: showFab
+                                ? KeyedSubtree(
+                                    key: const ValueKey('continue-fab'),
+                                    child: _buildContinueFab(accent),
+                                  )
+                                : const SizedBox(
+                                    key: ValueKey('fab-hidden'),
+                                    width: 60,
+                                    height: 60,
+                                  ),
+                          ),
+                        ],
+                      ),
+                    ),
                   ],
                 )
               : Stack(

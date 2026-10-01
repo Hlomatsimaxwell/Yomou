@@ -9,6 +9,21 @@ import 'package:flutter/widgets.dart';
 const double kCompactWidth = 600;
 const double kExpandedWidth = 840;
 
+/// The single threshold at which the app stops behaving like a phone.
+///
+/// Everything width-adaptive reads this one value: the side rail, the two-pane
+/// settings layout, and derived grid density. They were separate checks at
+/// separate thresholds and drifted apart, which is how a phone held in
+/// landscape ended up with a navigation rail -- 760dp is a wide phone, not a
+/// tablet. One value, one decision, no way for the three to disagree.
+const double kWideLayoutWidth = 840;
+
+/// Whether this window is wide enough for the tablet layout: a side rail
+/// instead of a bottom bar, settings in two panes, and grid density derived
+/// from width rather than taken from the user's setting.
+bool usesWideLayout(BuildContext context) =>
+    MediaQuery.sizeOf(context).width >= kWideLayoutWidth;
+
 /// Where the current window falls on the Material width scale.
 enum ScreenWidthClass {
   /// Phones in portrait, and phones in landscape on the larger handsets.
@@ -20,10 +35,8 @@ enum ScreenWidthClass {
   /// Large tablets in either orientation.
   expanded;
 
-  /// True when there is room for a side rail next to the content.
-  bool get hasSideNavigation => this != ScreenWidthClass.compact;
-
   /// The width content should be capped at before it stops reading well.
+  /// Used for measure only -- navigation shape keys off [usesWideLayout].
   double get contentMaxWidth => switch (this) {
         ScreenWidthClass.compact => double.infinity,
         ScreenWidthClass.medium => 720,
@@ -37,13 +50,6 @@ ScreenWidthClass widthClassOf(BuildContext context) {
   if (width >= kCompactWidth) return ScreenWidthClass.medium;
   return ScreenWidthClass.compact;
 }
-
-/// Whether this window should use a side navigation rail instead of a bottom
-/// bar. Narrower than [kExpandedWidth] keeps a bottom bar even on a large
-/// tablet, because a rail plus a wide grid reads better than a rail plus a
-/// stretched one.
-bool hasSideNavigation(BuildContext context) =>
-    widthClassOf(context).hasSideNavigation;
 
 /// Constrains [child] to the class's content width and centres it, so a form
 /// or a settings list on a 12" tablet stays a readable column instead of
