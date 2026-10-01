@@ -18,7 +18,8 @@ import 'package:yomou/core/diagnostics/diag_log.dart';
 import 'package:yomou/core/storage/storage_stats.dart';
 import '../../../core/database/database_helper.dart';
 import '../../../core/database/source_cache.dart';
-import '../../../core/widgets/ios/ios_sheet.dart';
+import 'package:yomou/core/widgets/reader_side_panel.dart';
+import 'package:yomou/core/widgets/responsive.dart';
 import 'package:yomou/data/providers/sources_provider.dart';
 import 'package:yomou/data/models/chapter.dart';
 import 'package:yomou/data/models/manga_source.dart';
@@ -65,6 +66,41 @@ class ReaderScreen extends ConsumerStatefulWidget {
   @override
   ConsumerState<ReaderScreen> createState() => _ReaderScreenState();
 }
+
+/// Widest the chapter tray is allowed to get when presented as a bottom sheet,
+/// in logical pixels.
+///
+/// Only phones use this: on a wide window the tray is a right-anchored side
+/// panel (see [showReaderSidePanel]) with its own width. The sheet itself has
+/// no intrinsic cap, so left alone it spans the full window on a desktop -- a
+/// 1280px-wide column of chapter rows with a grabber stranded in the middle of
+/// it, which reads as a broken layout rather than a deliberate one.
+///
+/// 560 rather than the 520 the other sheets use, because the tray has a grid
+/// mode for page thumbnails and that view needs a little more room than a list
+/// of titles does. Below this the cap simply never binds, so phones are
+/// unaffected.
+const double kReaderTrayMaxWidth = 560;
+
+/// Widest a portrait chrome pill is allowed to get.
+///
+/// The top and bottom bars are 32-radius frosted capsules, but both are laid
+/// out edge to edge, so on a desktop window they stretch to nearly the full
+/// 1280px -- a back button marooned at the far left with a progress track
+/// running the length of the window beside it. As pills they want to be pills,
+/// so on a wide window they centre at this width instead.
+///
+/// 480 is roughly what the portrait contents need: three icon buttons plus a
+/// progress track still long enough to hit a page on, and a title wide enough
+/// that a normal chapter name does not ellipsize. Both texts already cap at
+/// one line, so anything longer truncates rather than overflowing.
+///
+/// Portrait only. The landscape bar carries all seven controls in one row and
+/// spans the window instead -- see [_chromeSideInset].
+///
+/// Below 512 (480 plus the 16px gutter either side) the cap never binds and
+/// the bars are edge to edge exactly as before, so phones are unaffected.
+const double kReaderChromeMaxWidth = 480;
 
 class _ReaderScreenState extends ConsumerState<ReaderScreen>
     with WidgetsBindingObserver, SingleTickerProviderStateMixin {
@@ -295,13 +331,26 @@ class _ReaderScreenState extends ConsumerState<ReaderScreen>
   final DraggableScrollableController _trayExtentController =
       DraggableScrollableController();
 
+  /// Scroll controller for the tray when it is presented as a side panel.
+  ///
+  /// A field rather than a local so the list keeps its position across the
+  /// rebuilds that switching view or toggling selection triggers — a controller
+  /// constructed in `build` would start the list back at the top every time.
+  /// The sheet path does not use this: there the list scrolls through the
+  /// draggable sheet's own controller.
+  final ScrollController _trayPanelController = ScrollController();
+
   void _refreshTray() {
     if (_trayOpen) _trayRefresh?.call();
   }
 
-  bool get _isHorizontal =>
-      _readingMode == ReadingMode.standard ||
-      _readingMode == ReadingMode.rightToLeft;
+  /// Whether this mode pages one image at a time, horizontally.
+  ///
+  /// Delegates to [modeIsPaged] so the reader and the settings screen cannot
+  /// disagree about which mode the pager is for. They have to agree: this
+  /// chooses between the pager and the scrolling list, and the settings screen
+  /// uses it to grey out the settings only the pager can honour.
+  bool get _isHorizontal => modeIsPaged(_readingMode.name);
 
   @override
   void initState() {
@@ -583,6 +632,7 @@ class _ReaderScreenState extends ConsumerState<ReaderScreen>
     _scrollController.dispose();
     _pageController.dispose();
     _trayExtentController.dispose();
+    _trayPanelController.dispose();
     _screenZoom.dispose();
     _toastTimer?.cancel();
     _scrollStopTimer?.cancel();
@@ -677,6 +727,183 @@ class _ReaderScreenState extends ConsumerState<ReaderScreen>
         : (totalPages > 0 ? (((page + 1) / totalPages) * 100).round() : 0);
     final ch = chapterLabel.isNotEmpty ? chapterLabel : '${chapterIndex + 1}';
     return 'Ch. $ch/${widget.totalChapters} Pg. ${page + 1}/$totalPages $progress%';
+  }
+
+  /// The overlay strip shown while the reader is fullscreen and the controls
+  /// Horizontal inset for the floating chrome pills.
+  ///
+  /// Landscape: a plain 16px gutter, so the merged bar spans the window. It
+  /// carries seven controls at once and the page slider between them, and at
+  /// the portrait cap of 480 the slider was left a stub too short to aim at.
+  /// Landscape has the width to spend on it.
+  ///
+  /// Portrait: symmetric insets that centre the bar at
+  /// [kReaderChromeMaxWidth] once the window is wide enough for the cap to
+  /// bind, falling back to a 16px gutter below that. Two short pills stretched
+  /// across a desktop window read as broken bars, which is the case the cap
+  /// exists for.
+  ///
+  /// Expressed as symmetric insets rather than a [Center] around the pill so
+  /// the pills keep their existing [AnimatedPositioned] shape -- a centred
+  /// pill inside an edge-to-edge positioned slot would animate differently
+  /// when the window resizes, and the bars hide by animating their insets
+  /// off-screen.
+  double _chromeSideInset(BuildContext context) {
+    if (_mergeChromeInLandscape) return 16;
+    final inset = (MediaQuery.sizeOf(context).width - kReaderChromeMaxWidth) / 2;
+    return inset < 16 ? 16 : inset;
+  }
+
+  /// Whether the reader's two floating pills should collapse into one.
+  ///
+  /// Landscape has the least vertical room of any orientation and the two
+  /// pills cost it twice, so the bottom pill's contents move up into the top
+  /// one. Portrait is left alone: with height to spare, two bars keep the page
+  /// clear of controls and the title has room for its chapter subtitle.
+  bool get _mergeChromeInLandscape =>
+      MediaQuery.orientationOf(context) == Orientation.landscape;
+
+  /// The 32-radius frosted capsule both reader bars are drawn in.
+  Widget _buildChromeCapsule({
+    required Widget child,
+    required bool dark,
+    required bool frosted,
+  }) {
+    return ClipRRect(
+      borderRadius: BorderRadius.circular(32),
+      child: BackdropFilter(
+        filter: ImageFilter.blur(
+          sigmaX: frosted ? 16 : 0,
+          sigmaY: frosted ? 16 : 0,
+        ),
+        child: Container(
+          padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+          decoration: BoxDecoration(
+            color: frosted
+                ? dark
+                      ? const Color(0x661C1C1E)
+                      : Colors.white.withValues(alpha: 0.62)
+                : dark
+                ? const Color(0xF228282A)
+                : Colors.white,
+            borderRadius: BorderRadius.circular(32),
+            border: Border.all(
+              color: dark ? Colors.white24 : Colors.black12,
+            ),
+          ),
+          child: child,
+        ),
+      ),
+    );
+  }
+
+  Widget _buildReaderBackButton(Color iconColor) {
+    return IconButton(
+      icon: Icon(RemixIcons.arrow_left_line, color: iconColor),
+      onPressed: () async {
+        await _saveCascadingReadProgress();
+        if (!mounted) return;
+        Navigator.pop(context);
+      },
+    );
+  }
+
+  /// The manga title, with the chapter line under it.
+  ///
+  /// [twoLine] is false in the merged landscape bar: that row is already
+  /// carrying six other controls, and a second line would make the pill
+  /// taller for a chapter number the reader can get from the tray.
+  Widget _buildReaderTitleBlock({
+    required bool twoLine,
+    required String chapterLabel,
+  }) {
+    final dark = Theme.of(context).brightness == Brightness.dark;
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      mainAxisSize: MainAxisSize.min,
+      children: [
+        Text(
+          widget.mangaTitle ?? widget.allChapters[_readChapterIndex].title,
+          style: TextStyle(
+            color: dark ? Colors.white : const Color(0xFF1C1B1F),
+            fontSize: 14,
+            fontWeight: FontWeight.w600,
+          ),
+          maxLines: 1,
+          overflow: TextOverflow.ellipsis,
+        ),
+        if (twoLine) ...[
+          const SizedBox(height: 2),
+          Text(
+            AppLocalizations.of(context).readerChapterShort(chapterLabel),
+            style: TextStyle(
+              color: dark ? Colors.white54 : const Color(0xFF49454F),
+              fontSize: 12,
+            ),
+            maxLines: 1,
+            overflow: TextOverflow.ellipsis,
+          ),
+        ],
+      ],
+    );
+  }
+
+  Widget _buildPrevChapterButton(Color iconColor) {
+    return IconButton(
+      tooltip: AppLocalizations.of(context).readerPreviousChapter,
+      icon: Icon(RemixIcons.skip_back_line, color: iconColor, size: 28),
+      onPressed: _currentChapterIndex > 0
+          ? () => _changeChapterExplicitly(_currentChapterIndex - 1)
+          : null,
+    );
+  }
+
+  Widget _buildNextChapterButton(Color iconColor) {
+    return IconButton(
+      tooltip: AppLocalizations.of(context).readerNextChapter,
+      icon: Icon(RemixIcons.skip_forward_line, color: iconColor, size: 28),
+      onPressed: _currentChapterIndex < widget.allChapters.length - 1
+          ? () => _changeChapterExplicitly(_currentChapterIndex + 1)
+          : null,
+    );
+  }
+
+  /// The page slider.
+  ///
+  /// [flexible] shares the row rather than taking all of it, which the merged
+  /// landscape bar needs: the title sits beside the track, and neither may
+  /// crowd the other out.
+  Widget _buildReaderProgressSlot({bool flexible = false, int flex = 2}) {
+    final track = Padding(
+      padding: const EdgeInsets.symmetric(horizontal: 8),
+      child: _buildProgressTrack(),
+    );
+    return flexible ? Flexible(flex: flex, child: track) : Expanded(child: track);
+  }
+
+  Widget _buildReaderChromeDivider() {
+    final dark = Theme.of(context).brightness == Brightness.dark;
+    return Container(
+      width: 1,
+      height: 26,
+      color: dark ? Colors.white24 : Colors.black12,
+    );
+  }
+
+  Widget _buildChaptersButton(Color iconColor) {
+    return IconButton(
+      tooltip: AppLocalizations.of(context).detailChapters,
+      icon: Icon(RemixIcons.list_unordered, color: iconColor, size: 24),
+      onPressed: _showChapterList,
+    );
+  }
+
+  Widget _buildReaderSettingsButton(Color iconColor) {
+    return IconButton(
+      tooltip: AppLocalizations.of(context).settings,
+      icon: Icon(RemixIcons.more_2_line, color: iconColor, size: 24),
+      onPressed: _showSettingsSheet,
+    );
   }
 
   /// The overlay strip shown while the reader is fullscreen and the controls
@@ -1136,15 +1363,53 @@ class _ReaderScreenState extends ConsumerState<ReaderScreen>
 
   void _showChapterList() {
     final currentIndex = _currentChapterIndex;
-    var listView = 'list';
-    var didJump = false;
-
     MangaSource? source;
     if (widget.sourceId != null) {
       source = getSourceBySourceId(widget.sourceId!);
     }
     source ??= ref.read(currentSourceProvider);
     final headers = source?.headers;
+    final l = AppLocalizations.of(context);
+
+    // One local for the current view, shared by both presentations, so the
+    // panel and the sheet are two wrappers around the same state rather than
+    // two copies of it.
+    var listView = 'list';
+    var didJump = false;
+
+    if (usesWideLayout(context)) {
+      // A full-height panel: no extent to drag, so no draggable sheet and no
+      // grabber. The panel's own header carries the title and close button.
+      //
+      // The body is wrapped in a [StatefulBuilder] for the same reason the
+      // sheet path is: the panel lives in its own route, so a `setState` on
+      // this screen would not rebuild it. The builder's setter is the only
+      // thing that can.
+      showReaderSidePanel<void>(
+        context,
+        title: l.readerChaptersTitle,
+        builder: (context) => StatefulBuilder(
+          builder: (context, setSheetState) {
+            if (!didJump) {
+              // Same as the sheet: open at the chapter being read rather than
+              // at the top of the list.
+              _jumpToCurrentInSheet(_trayPanelController, currentIndex, 72, 0);
+              didJump = true;
+            }
+            return _buildTrayBody(
+              listView: listView,
+              setListView: (v) => setSheetState(() => listView = v),
+              currentIndex: currentIndex,
+              headers: headers,
+              onRefresh: () => setSheetState(() {}),
+              isSheet: false,
+              controller: _trayPanelController,
+            );
+          },
+        ),
+      ).then((_) => _closeTray());
+      return;
+    }
 
     showModalBottomSheet(
       context: context,
@@ -1155,98 +1420,116 @@ class _ReaderScreenState extends ConsumerState<ReaderScreen>
         borderRadius: BorderRadius.vertical(top: Radius.circular(28)),
       ),
       builder: (context) {
-        return SizedBox.expand(
-          child: DraggableScrollableSheet(
-            controller: _trayExtentController,
-            initialChildSize: 0.5,
-            minChildSize: 0.3,
-            maxChildSize: 1.0,
-            snap: true,
-            snapSizes: const [0.3, 0.5, 1.0],
-            builder: (context, sheetController) {
-              return StatefulBuilder(
-                builder: (context, setSheetState) {
-                  final dark = Theme.of(context).brightness == Brightness.dark;
-                  _trayOpen = true;
-                  _trayRefresh = () => setSheetState(() {});
-                  if (!didJump) {
-                    // Force the tray back to the mid (0.5) extent on a fresh
-                    // open: the [DraggableScrollableController] is persistent
-                    // and would otherwise inherit the size left over from a
-                    // previous long-press fullscreen.
-                    _trayExtentController.animateTo(
-                      0.5,
-                      duration: const Duration(milliseconds: 250),
-                      curve: Curves.easeOut,
-                    );
-                    _jumpToCurrentInSheet(sheetController, currentIndex, 72, 0);
-                    didJump = true;
-                  }
-
-                  return Container(
-                    decoration: BoxDecoration(
-                      color: dark ? const Color(0xFF1E1E20) : Colors.white,
-                      borderRadius: const BorderRadius.vertical(
-                        top: Radius.circular(28),
-                      ),
-                    ),
-                    child: ClipRRect(
-                      borderRadius: const BorderRadius.vertical(
-                        top: Radius.circular(28),
-                      ),
-                      child: Column(
-                        children: [
-                          Center(
-                            child: Container(
-                              width: 36,
-                              height: 5,
-                              margin: const EdgeInsets.only(top: 12, bottom: 8),
-                              decoration: BoxDecoration(
-                                color: dark
-                                    ? const Color(0xFF6E6E73)
-                                    : Colors.black26,
-                                borderRadius: BorderRadius.circular(3),
-                              ),
-                            ),
-                          ),
-                          _buildChapterSheetHeader(listView, setSheetState),
-                          Expanded(
-                            child: switch (listView) {
-                              'grid' => _buildPageGridView(
-                                sheetController,
-                                currentIndex,
-                                headers,
-                              ),
-                              'bookmark' => _buildBookmarksView(
-                                sheetController,
-                                headers,
-                                onRefresh: () => setSheetState(() {}),
-                              ),
-                              'download' => _buildDownloadsView(
-                                sheetController,
-                              ),
-                              _ => _buildChapterListView(
-                                sheetController,
-                                currentIndex,
-                              ),
-                            },
-                          ),
-                        ],
-                      ),
-                    ),
+        // Capped and centred so the tray reads as a panel on a wide window
+        // rather than a full-width drawer. The cap is on width only -- the
+        // tray keeps the full screen height, since the drag extents below are
+        // fractions of it.
+        return Align(
+          alignment: Alignment.bottomCenter,
+          child: ConstrainedBox(
+            constraints: const BoxConstraints(maxWidth: kReaderTrayMaxWidth),
+            child: SizedBox.expand(
+              child: DraggableScrollableSheet(
+                controller: _trayExtentController,
+                initialChildSize: 0.5,
+                minChildSize: 0.3,
+                maxChildSize: 1.0,
+                snap: true,
+                snapSizes: const [0.3, 0.5, 1.0],
+                builder: (context, sheetController) {
+                  return StatefulBuilder(
+                    builder: (context, setSheetState) {
+                      if (!didJump) {
+                        // Force the tray back to the mid (0.5) extent on a fresh
+                        // open: the [DraggableScrollableController] is persistent
+                        // and would otherwise inherit the size left over from a
+                        // previous long-press fullscreen.
+                        _trayExtentController.animateTo(
+                          0.5,
+                          duration: const Duration(milliseconds: 250),
+                          curve: Curves.easeOut,
+                        );
+                        _jumpToCurrentInSheet(sheetController, currentIndex, 72, 0);
+                        didJump = true;
+                      }
+                      return _buildTrayBody(
+                        listView: listView,
+                        setListView: (v) => setSheetState(() => listView = v),
+                        currentIndex: currentIndex,
+                        headers: headers,
+                        onRefresh: () => setSheetState(() {}),
+                        isSheet: true,
+                        controller: sheetController,
+                      );
+                    },
                   );
                 },
-              );
-            },
+              ),
+            ),
           ),
         );
       },
-    ).then((_) {
-      _trayOpen = false;
-      _trayRefresh = null;
-      _selectedIds.clear();
-      _selectionMode = false;
-    });
+    ).then((_) => _closeTray());
+  }
+
+  void _closeTray() {
+    _trayOpen = false;
+    _trayRefresh = null;
+    _selectedIds.clear();
+    _selectionMode = false;
+  }
+
+  /// The tray's contents, identical under both presentations.
+  ///
+  /// [isSheet] selects only the presentation details: the phone's draggable
+  /// bottom sheet brings a grabber and its own scroll controller (so that
+  /// dragging the sheet drags the list), while the side panel is already full
+  /// height and has neither.
+  Widget _buildTrayBody({
+    required String listView,
+    required ValueChanged<String> setListView,
+    required int currentIndex,
+    required Map<String, String>? headers,
+    required VoidCallback onRefresh,
+    required bool isSheet,
+    required ScrollController controller,
+  }) {
+    final dark = Theme.of(context).brightness == Brightness.dark;
+    _trayOpen = true;
+    _trayRefresh = onRefresh;
+
+    return Column(
+      children: [
+        // A grabber is a bottom-sheet affordance: it invites a drag that the
+        // side panel has no extent for. The panel's header carries the title
+        // and the close button instead.
+        if (isSheet)
+          Center(
+            child: Container(
+              width: 36,
+              height: 5,
+              margin: const EdgeInsets.only(top: 12, bottom: 8),
+              decoration: BoxDecoration(
+                color: dark ? const Color(0xFF6E6E73) : Colors.black26,
+                borderRadius: BorderRadius.circular(3),
+              ),
+            ),
+          ),
+        _buildChapterSheetHeader(listView, setListView),
+        Expanded(
+          child: switch (listView) {
+            'grid' => _buildPageGridView(controller, currentIndex, headers),
+            'bookmark' => _buildBookmarksView(
+              controller,
+              headers,
+              onRefresh: onRefresh,
+            ),
+            'download' => _buildDownloadsView(controller),
+            _ => _buildChapterListView(controller, currentIndex),
+          },
+        ),
+      ],
+    );
   }
 
   // Retries until the sheet's scroll controller is attached, then centers the
@@ -1273,7 +1556,10 @@ class _ReaderScreenState extends ConsumerState<ReaderScreen>
     });
   }
 
-  Widget _buildChapterSheetHeader(String listView, StateSetter setSheetState) {
+  Widget _buildChapterSheetHeader(
+    String listView,
+    ValueChanged<String> setListView,
+  ) {
     final dark = Theme.of(context).brightness == Brightness.dark;
     final iconColor = dark ? Colors.white : const Color(0xFF1C1B1F);
     final selectedCount = _selectedIds.length;
@@ -1361,19 +1647,19 @@ class _ReaderScreenState extends ConsumerState<ReaderScreen>
                     icon: RemixIcons.list_unordered,
                     active: listView == 'list',
                     dark: dark,
-                    onTap: () => setSheetState(() => listView = 'list'),
+                    onTap: () => setListView('list'),
                   ),
                   _buildTrayViewIcon(
                     icon: RemixIcons.grid_line,
                     active: listView == 'grid',
                     dark: dark,
-                    onTap: () => setSheetState(() => listView = 'grid'),
+                    onTap: () => setListView('grid'),
                   ),
                   _buildTrayViewIcon(
                     icon: RemixIcons.bookmark_2_line,
                     active: listView == 'bookmark',
                     dark: dark,
-                    onTap: () => setSheetState(() => listView = 'bookmark'),
+                    onTap: () => setListView('bookmark'),
                   ),
                 ],
               ),
@@ -1935,21 +2221,26 @@ class _ReaderScreenState extends ConsumerState<ReaderScreen>
   // --- SETTINGS SHEET ---
 
   void _showSettingsSheet() {
-    showIosSheet<void>(
+    showReaderSidePanel<void>(
       context,
-      isScrollControlled: true,
+      title: AppLocalizations.of(context).readerSectionOptions,
       builder: (context) {
         return StatefulBuilder(
           builder: (context, setSheetState) {
             final dark = Theme.of(context).brightness == Brightness.dark;
             final l = AppLocalizations.of(context);
+            // The side panel is full height already and bounded by the window,
+            // so it needs no cap. The phone's bottom sheet does: without one it
+            // grows to its content and runs off the top of the screen.
             return SafeArea(
               child: ConstrainedBox(
-                constraints: BoxConstraints(
-                  maxHeight: MediaQuery.sizeOf(context).height * 0.88,
-                ),
+                constraints: usesWideLayout(context)
+                    ? const BoxConstraints()
+                    : BoxConstraints(
+                        maxHeight: MediaQuery.sizeOf(context).height * 0.88,
+                      ),
                 child: SingleChildScrollView(
-                  padding: const EdgeInsets.fromLTRB(20, 0, 20, 24),
+                  padding: const EdgeInsets.fromLTRB(20, 16, 20, 24),
                   child: Column(
                     mainAxisSize: MainAxisSize.min,
                     crossAxisAlignment: CrossAxisAlignment.stretch,
@@ -2149,7 +2440,11 @@ class _ReaderScreenState extends ConsumerState<ReaderScreen>
                           size: 22,
                         ),
                         title: Text(
-                          l.settings,
+                          // "Reader settings", not the generic "Settings":
+                          // every other row in this sheet is a reading control,
+                          // so the row that leaves the reader for a settings
+                          // page should say which section it opens.
+                          l.settingsReader,
                           style: TextStyle(
                             color: dark
                                 ? Colors.white
@@ -2162,7 +2457,16 @@ class _ReaderScreenState extends ConsumerState<ReaderScreen>
                           Navigator.push(
                             context,
                             MaterialPageRoute(
-                              builder: (context) => const SettingsScreen(),
+                              // The settings hub, not the bare Reader screen:
+                              // on a wide window the hub is two panes, and
+                              // arriving directly on Reader would drop the
+                              // category list on the left, so there would be
+                              // no way on to any other settings. [l] is the
+                              // hub's own title for this category, so the
+                              // selection matches the row that gets highlighted.
+                              builder: (context) => SettingsScreen(
+                                initialCategory: l.settingsReader,
+                              ),
                             ),
                           );
                         },
@@ -2881,12 +3185,16 @@ class _ReaderScreenState extends ConsumerState<ReaderScreen>
       _selectionMode = true;
       _selectedIds.add(id);
     });
-    // Jump the tray to full height so the selection actions stay visible.
-    _trayExtentController.animateTo(
-      1.0,
-      duration: const Duration(milliseconds: 250),
-      curve: Curves.easeOut,
-    );
+    // Jump the tray to full height so the selection actions stay visible. The
+    // side panel is already full height and has no attached sheet controller,
+    // so there is nothing to animate there.
+    if (_trayExtentController.isAttached) {
+      _trayExtentController.animateTo(
+        1.0,
+        duration: const Duration(milliseconds: 250),
+        curve: Curves.easeOut,
+      );
+    }
     _refreshTray();
   }
 
@@ -3232,6 +3540,9 @@ class _ReaderScreenState extends ConsumerState<ReaderScreen>
   Widget build(BuildContext context) {
     final dark = Theme.of(context).brightness == Brightness.dark;
     final frosted = ref.watch(appearanceSettingsProvider).useFrostedGlass;
+    // Every glyph in both pills shares one colour, so it is resolved once
+    // here rather than per button.
+    final iconColor = dark ? Colors.white : const Color(0xFF1C1B1F);
     final readChapterIndex = _readChapterIndex;
     final currentChapter = widget.allChapters[readChapterIndex];
     final chLabel = currentChapter.chapterNumber.isNotEmpty
@@ -3286,7 +3597,16 @@ class _ReaderScreenState extends ConsumerState<ReaderScreen>
                           : _buildVerticalReader(headers),
                     ),
 
-              // --- TOP APP BAR OVERLAY (same capsule theming as the bottom bar) ---
+              // --- TOP APP BAR / MERGED CHROME BAR ---
+              // Portrait: back button and title. Landscape: the single merged
+              // bar, carrying the bottom pill's chapter navigation and sheet
+              // buttons as well, because two rows of chrome is the one thing
+              // landscape cannot afford.
+              //
+              // It sits at the top rather than the bottom because of the back
+              // button: a back affordance at the bottom of the screen reads as
+              // a footer control, and thumb-reach arguments for the bottom
+              // apply to chapter navigation, not to leaving a chapter.
               AnimatedPositioned(
                 duration: const Duration(milliseconds: 200),
                 // Fully off-screen when hidden: the capsule is taller than a
@@ -3296,89 +3616,52 @@ class _ReaderScreenState extends ConsumerState<ReaderScreen>
                 top: _showControls
                     ? 0
                     : -(MediaQuery.of(context).padding.top + 96),
-                left: 0,
-                right: 0,
+                left: _chromeSideInset(context),
+                right: _chromeSideInset(context),
                 child: Padding(
                   padding: EdgeInsets.only(
                     top: MediaQuery.of(context).padding.top + 8,
-                    left: 16,
-                    right: 16,
                   ),
-                  child: ClipRRect(
-                    borderRadius: BorderRadius.circular(32),
-                    child: BackdropFilter(
-                      filter: ImageFilter.blur(sigmaX: frosted ? 16 : 0, sigmaY: frosted ? 16 : 0),
-                      child: Container(
-                        padding: const EdgeInsets.symmetric(
-                          horizontal: 8,
-                          vertical: 4,
-                        ),
-                        decoration: BoxDecoration(
-                          color: frosted
-                                ? dark
-                                      ? const Color(0x661C1C1E)
-                                      : Colors.white.withValues(alpha: 0.62)
-                                : dark
-                                    ? const Color(0xF228282A)
-                                    : Colors.white,
-                          borderRadius: BorderRadius.circular(32),
-                          border: Border.all(
-                            color: dark ? Colors.white24 : Colors.black12,
+                  child: _buildChromeCapsule(
+                    dark: dark,
+                    frosted: frosted,
+                    child: _mergeChromeInLandscape
+                        ? Row(
+                            children: [
+                              _buildReaderBackButton(iconColor),
+                              const SizedBox(width: 4),
+                              Expanded(
+                                flex: 2,
+                                child: _buildReaderTitleBlock(
+                                  twoLine: false,
+                                  chapterLabel: chLabel,
+                                ),
+                              ),
+                              const SizedBox(width: 8),
+                              _buildPrevChapterButton(iconColor),
+                              _buildReaderProgressSlot(
+                                flexible: true,
+                                flex: 3,
+                              ),
+                              _buildNextChapterButton(iconColor),
+                              const SizedBox(width: 4),
+                              _buildReaderChromeDivider(),
+                              _buildChaptersButton(iconColor),
+                              _buildReaderSettingsButton(iconColor),
+                            ],
+                          )
+                        : Row(
+                            children: [
+                              _buildReaderBackButton(iconColor),
+                              const SizedBox(width: 4),
+                              Expanded(
+                                child: _buildReaderTitleBlock(
+                                  twoLine: true,
+                                  chapterLabel: chLabel,
+                                ),
+                              ),
+                            ],
                           ),
-                        ),
-                        child: Row(
-                          children: [
-                            IconButton(
-                              icon: Icon(
-                                RemixIcons.arrow_left_line,
-                                color: dark
-                                    ? Colors.white
-                                    : const Color(0xFF1C1B1F),
-                              ),
-                              onPressed: () async {
-                                await _saveCascadingReadProgress();
-                                if (context.mounted) Navigator.pop(context);
-                              },
-                            ),
-                            const SizedBox(width: 4),
-                            Expanded(
-                              child: Column(
-                                crossAxisAlignment: CrossAxisAlignment.start,
-                                mainAxisSize: MainAxisSize.min,
-                                children: [
-                                  Text(
-                                    widget.mangaTitle ?? currentChapter.title,
-                                    style: TextStyle(
-                                      color: dark
-                                          ? Colors.white
-                                          : const Color(0xFF1C1B1F),
-                                      fontSize: 14,
-                                      fontWeight: FontWeight.w600,
-                                    ),
-                                    maxLines: 1,
-                                    overflow: TextOverflow.ellipsis,
-                                  ),
-                                  const SizedBox(height: 2),
-                                  Text(
-                                    AppLocalizations.of(
-                                      context,
-                                    ).readerChapterShort(chLabel),
-                                    style: TextStyle(
-                                      color: dark
-                                          ? Colors.white54
-                                          : const Color(0xFF49454F),
-                                      fontSize: 12,
-                                    ),
-                                    maxLines: 1,
-                                    overflow: TextOverflow.ellipsis,
-                                  ),
-                                ],
-                              ),
-                            ),
-                          ],
-                        ),
-                      ),
-                    ),
                   ),
                 ),
               ),
@@ -3431,116 +3714,31 @@ class _ReaderScreenState extends ConsumerState<ReaderScreen>
               ),
 
               // --- BOTTOM CAPSULE BAR ---
-              AnimatedPositioned(
-                duration: const Duration(milliseconds: 200),
-                bottom: _showControls ? 16 : -100,
-                left: 16,
-                right: 16,
-                child: Builder(
-                  builder: (context) {
-                    final dark =
-                        Theme.of(context).brightness == Brightness.dark;
-                    final iconColor = dark
-                        ? Colors.white
-                        : const Color(0xFF1C1B1F);
-                    return ClipRRect(
-                      borderRadius: BorderRadius.circular(32),
-                      child: BackdropFilter(
-                        filter: ImageFilter.blur(sigmaX: frosted ? 16 : 0, sigmaY: frosted ? 16 : 0),
-                        child: Container(
-                          padding: const EdgeInsets.symmetric(
-                            horizontal: 8,
-                            vertical: 4,
-                          ),
-                          decoration: BoxDecoration(
-                            color: frosted
-                                ? dark
-                                      ? const Color(0x661C1C1E)
-                                      : Colors.white.withValues(alpha: 0.62)
-                                : dark
-                                    ? const Color(0xF228282A)
-                                    : Colors.white,
-                            borderRadius: BorderRadius.circular(32),
-                            border: Border.all(
-                              color: dark ? Colors.white24 : Colors.black12,
-                            ),
-                          ),
-                          child: Row(
-                        children: [
-                          IconButton(
-                            tooltip: AppLocalizations.of(
-                              context,
-                            ).readerPreviousChapter,
-                            icon: Icon(
-                              RemixIcons.skip_back_line,
-                              color: iconColor,
-                              size: 28,
-                            ),
-                            onPressed: _currentChapterIndex > 0
-                                ? () => _changeChapterExplicitly(
-                                    _currentChapterIndex - 1,
-                                  )
-                                : null,
-                          ),
-                          Expanded(
-                            child: Padding(
-                              padding: const EdgeInsets.symmetric(
-                                horizontal: 8,
-                              ),
-                              child: _buildProgressTrack(),
-                            ),
-                          ),
-                          IconButton(
-                            tooltip: AppLocalizations.of(
-                              context,
-                            ).readerNextChapter,
-                            icon: Icon(
-                              RemixIcons.skip_forward_line,
-                              color: iconColor,
-                              size: 28,
-                            ),
-                            onPressed:
-                                _currentChapterIndex <
-                                    widget.allChapters.length - 1
-                                ? () => _changeChapterExplicitly(
-                                    _currentChapterIndex + 1,
-                                  )
-                                : null,
-                          ),
-                          const SizedBox(width: 4),
-                          Container(
-                            width: 1,
-                            height: 26,
-                            color: dark ? Colors.white24 : Colors.black12,
-                          ),
-                          IconButton(
-                            tooltip: AppLocalizations.of(
-                              context,
-                            ).detailChapters,
-                            icon: Icon(
-                              RemixIcons.list_unordered,
-                              color: iconColor,
-                              size: 24,
-                            ),
-                            onPressed: _showChapterList,
-                          ),
-                          IconButton(
-                            tooltip: AppLocalizations.of(context).settings,
-                            icon: Icon(
-                              RemixIcons.more_2_line,
-                              color: iconColor,
-                              size: 24,
-                            ),
-onPressed: _showSettingsSheet,
-                          ),
-                        ],
-                      ),
+              // Portrait only. In landscape these controls live in the merged
+              // top bar, so this pill is not built at all rather than built
+              // empty.
+              if (!_mergeChromeInLandscape)
+                AnimatedPositioned(
+                  duration: const Duration(milliseconds: 200),
+                  bottom: _showControls ? 16 : -100,
+                  left: _chromeSideInset(context),
+                  right: _chromeSideInset(context),
+                  child: _buildChromeCapsule(
+                    dark: dark,
+                    frosted: frosted,
+                    child: Row(
+                      children: [
+                        _buildPrevChapterButton(iconColor),
+                        _buildReaderProgressSlot(),
+                        _buildNextChapterButton(iconColor),
+                        const SizedBox(width: 4),
+                        _buildReaderChromeDivider(),
+                        _buildChaptersButton(iconColor),
+                        _buildReaderSettingsButton(iconColor),
+                      ],
                     ),
                   ),
-                );
-              },
-            ),
-          ),
+                ),
 
               // --- CHAPTER TRANSITION TOAST ---
               if (_toastShownChapter >= 0) _buildChapterToast()!,
