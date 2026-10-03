@@ -53,6 +53,9 @@ class CachedMangaImage extends StatelessWidget {
     'mgeko.cc': 'https://www.mgeko.cc/',
     'imgsrv4.com': 'https://www.mgeko.cc/',
     'imgsrv5.com': 'https://www.mgeko.cc/',
+    // MangaPill serves every cover through this one CDN, which 403s on a
+    // missing referer and 200s for the site root.
+    'readdetectiveconan.com': 'https://mangapill.com/',
   };
 
   /// Path prefix -> the referer that host expects, for sources whose image host
@@ -72,20 +75,30 @@ class CachedMangaImage extends StatelessWidget {
     '/storage/': 'https://mangaball.com/',
   };
 
-  Map<String, String>? get _headers {
-    final uri = Uri.tryParse(imageUrl);
-    if (uri == null || uri.host.isEmpty) return null;
+  /// The referer [imageUrl]'s host expects, or null when it needs none.
+  ///
+  /// Public so a test can assert the mapping against real captured markup: a
+  /// cover host missing from this table is a silent 403, not a broken URL, so
+  /// nothing in the app would otherwise complain about it.
+  static String? refererFor(Uri uri) {
     for (final entry in _referers.entries) {
       if (uri.host == entry.key || uri.host.endsWith('.${entry.key}')) {
-        return {'Referer': entry.value};
+        return entry.value;
       }
     }
     for (final entry in _referersByPath.entries) {
       if (uri.path.startsWith(entry.key)) {
-        return {'Referer': entry.value};
+        return entry.value;
       }
     }
     return null;
+  }
+
+  Map<String, String>? get _headers {
+    final uri = Uri.tryParse(imageUrl);
+    if (uri == null || uri.host.isEmpty) return null;
+    final referer = refererFor(uri);
+    return referer == null ? null : {'Referer': referer};
   }
 
   /// The physical-pixel width to decode a cover at, or null to decode as-is.

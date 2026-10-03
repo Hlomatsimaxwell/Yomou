@@ -8,8 +8,11 @@ import 'source_network.dart';
 
 /// MangaPill — server-rendered Tailwind HTML (no JS parsing needed).
 /// Covers and page images are lazy (`data-src`) and hotlink-protected: every
-/// image request must carry a `Referer: https://mangapill.com/` header, which
-/// this source advertises via [headers] (the reader forwards them).
+/// image request must carry a `Referer: https://mangapill.com/` header, or the
+/// CDN answers 403. The source advertises it via [headers] for its own
+/// requests, and `CachedMangaImage` sends it for covers - see the
+/// `readdetectiveconan.com` entry in its referer map. A cover fetched without
+/// it is a silent grey box, not a broken URL, so it is worth stating twice.
 class MangaPillSource extends DioSource implements MangaSource {
   @override
   String get networkSourceId => id;
@@ -84,7 +87,13 @@ class MangaPillSource extends DioSource implements MangaSource {
   @override
   Future<List<Manga>> getPopularManga({int page = 1}) async {
     try {
-      final html = await grabText('$baseUrl/');
+      // Not the homepage: that carries a single "Trending Mangas" strip of 10
+      // cards, which is all `getPopularManga` used to ever return. The filtered
+      // search page is the site's real paginated listing (50 a page, ~20 pages),
+      // and `status=publishing` keeps it stocked with ongoing series.
+      final html = await grabText(
+        '$baseUrl/search?status=publishing&page=${page < 1 ? 1 : page}',
+      );
       if (html.isEmpty) return [];
       return _parseGrid(html);
     } catch (_) {
@@ -95,9 +104,9 @@ class MangaPillSource extends DioSource implements MangaSource {
   @override
   Future<List<Manga>> searchByTitle(String query, {int page = 1}) async {
     try {
-      if (query.isEmpty || page > 1) return [];
+      if (query.isEmpty) return [];
       final html = await grabText(
-        '$baseUrl/search?q=${Uri.encodeQueryComponent(query)}&page=1',
+        '$baseUrl/search?q=${Uri.encodeQueryComponent(query)}&page=${page < 1 ? 1 : page}',
       );
       if (html.isEmpty) return [];
       return _parseGrid(html);
@@ -112,11 +121,13 @@ class MangaPillSource extends DioSource implements MangaSource {
     int page = 1,
   }) async {
     try {
-      if (tags.isEmpty || page > 1) return [];
+      if (tags.isEmpty) return [];
       final params = tags
           .map((t) => 'genre=${Uri.encodeQueryComponent(t)}')
           .join('&');
-      final html = await grabText('$baseUrl/search?$params&page=1');
+      final html = await grabText(
+        '$baseUrl/search?$params&page=${page < 1 ? 1 : page}',
+      );
       if (html.isEmpty) return [];
       return _parseGrid(html);
     } catch (_) {
