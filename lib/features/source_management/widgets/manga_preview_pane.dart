@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:remixicon/remixicon.dart';
 import 'package:yomou/core/database/source_cache.dart';
+import 'package:yomou/core/diagnostics/diag_log.dart';
 import 'package:yomou/core/widgets/empty_state.dart';
 import 'package:yomou/data/models/manga.dart';
 import 'package:yomou/data/models/manga_details.dart';
@@ -87,6 +88,10 @@ class _MangaPreviewPaneState extends ConsumerState<MangaPreviewPane> {
     final source = getSourceBySourceId(manga.sourceId);
     if (source == null) {
       if (!mounted || _loadingFor != manga.id) return;
+      diagSoon(
+        'preview: no source for mangaId=${manga.id} '
+        'sourceId="${manga.sourceId}"',
+      );
       setState(() {
         _loading = false;
         _error = _kUnknownSource;

@@ -62,7 +62,7 @@ class FlameScansSource extends DioSource implements MangaSource {
           id: id,
           title: title,
           coverUrl: _coverUrl(id, image),
-          sourceId: id,
+          sourceId: this.id,
         ),
       );
     }

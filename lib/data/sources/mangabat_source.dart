@@ -72,7 +72,7 @@ class MangaBatSource extends DioSource implements MangaSource {
           id: id,
           title: title,
           coverUrl: cover,
-          sourceId: id,
+          sourceId: this.id,
         ),
       );
     }
@@ -102,7 +102,7 @@ class MangaBatSource extends DioSource implements MangaSource {
           id: id,
           title: title,
           coverUrl: cover,
-          sourceId: id,
+          sourceId: this.id,
         ),
       );
     }

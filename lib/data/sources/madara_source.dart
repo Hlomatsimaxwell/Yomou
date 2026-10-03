@@ -102,7 +102,7 @@ class MadaraSource extends DioSource implements MangaSource {
           id: id,
           title: title.isEmpty ? 'No name' : title,
           coverUrl: cover,
-          sourceId: id,
+          sourceId: this.id,
         ),
       );
     }

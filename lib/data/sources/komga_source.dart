@@ -65,7 +65,7 @@ class KomgaSource extends DioSource implements MangaSource {
         final id = m['id']?.toString() ?? '';
         final title = m['name']?.toString() ?? '';
         if (id.isEmpty || title.isEmpty) continue;
-        result.add(Manga(id: id, title: title, coverUrl: '$baseUrl/api/v1/series/$id/thumbnail', sourceId: id));
+        result.add(Manga(id: id, title: title, coverUrl: '$baseUrl/api/v1/series/$id/thumbnail', sourceId: this.id));
       }
       return result;
     } catch (_) {
@@ -87,7 +87,9 @@ class KomgaSource extends DioSource implements MangaSource {
         final id = m['id']?.toString() ?? '';
         final title = m['name']?.toString() ?? '';
         if (id.isEmpty || title.isEmpty) continue;
-        result.add(Manga(id: id, title: title, coverUrl: '$baseUrl/api/v1/series/$id/thumbnail', sourceId: id));
+        // `this.id`, not the local: the local is the series' own id, so passing
+        // it as the source stamped every Komga title with its own slug.
+        result.add(Manga(id: id, title: title, coverUrl: '$baseUrl/api/v1/series/$id/thumbnail', sourceId: this.id));
       }
       return result;
     } catch (_) {

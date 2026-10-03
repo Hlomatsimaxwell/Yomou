@@ -49,7 +49,7 @@ class Manhwa18Source extends DioSource implements MangaSource {
       final title = link?.text.trim() ?? '';
       if (title.isEmpty) continue;
       result.add(
-        Manga(id: id, title: title, coverUrl: cover, sourceId: id),
+        Manga(id: id, title: title, coverUrl: cover, sourceId: this.id),
       );
     }
     return result;

@@ -24,7 +24,7 @@ class DatabaseHelper {
 
     return await openDatabase(
       path,
-      version: 14,
+      version: 16,
       onCreate: _createDB,
       onUpgrade: _onUpgrade,
     );
@@ -95,6 +95,51 @@ class DatabaseHelper {
     if (oldVersion < 14) {
       await _createDownloadJobsTable(db);
     }
+    if (oldVersion < 16) {
+      await _repairShuffledSourceIds(db);
+    }
+  }
+
+  /// Repairs `sourceId` values that hold a manga's own address.
+  ///
+  /// Eight listing parsers wrote the manga's slug or URL into this column
+  /// instead of the source's id, so the two columns ended up holding the same
+  /// text. Every title they listed reported itself as coming from a source
+  /// that was not installed, and its details could not be fetched.
+  ///
+  /// The true source is recoverable rather than guessed. The list cache is
+  /// keyed `<sourceId>/list/...` and holds the same ids, and no title appeared
+  /// under two of the affected sources, so the key's prefix is the answer. The
+  /// Manhwa18 rows carry the site's own host and need no cache to identify.
+  /// Whatever is still unresolved afterwards is cleared: an empty id reports
+  /// the title honestly as having no known source, and the correct value is
+  /// written again as soon as its details are fetched.
+  Future _repairShuffledSourceIds(Database db) async {
+    // `instr` rather than `LIKE`: slugs contain `%` and `_`, which `LIKE` would
+    // read as wildcards and match the wrong rows.
+    await db.rawUpdate('''
+      UPDATE manga
+      SET sourceId = (
+        SELECT substr(sc.key, 1, instr(sc.key, '/') - 1)
+        FROM source_cache sc
+        WHERE instr(sc.json, '"id":"' || manga.mangaId || '"') > 0
+        LIMIT 1
+      )
+      WHERE sourceId = mangaId
+        AND sourceId NOT LIKE 'https://manhwa18.com/%'
+        AND EXISTS (
+          SELECT 1 FROM source_cache sc
+          WHERE instr(sc.json, '"id":"' || manga.mangaId || '"') > 0
+        )
+    ''');
+    await db.rawUpdate(
+      "UPDATE manga SET sourceId = 'manhwa18' "
+      "WHERE sourceId LIKE 'https://manhwa18.com/%'",
+    );
+    await db.rawUpdate(
+      "UPDATE manga SET sourceId = '' "
+      "WHERE sourceId = mangaId AND TRIM(sourceId) <> ''",
+    );
   }
 
   Future _createDB(Database db, int version) async {

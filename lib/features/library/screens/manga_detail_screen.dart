@@ -39,6 +39,27 @@ import 'package:yomou/l10n/generated/app_localizations.dart';
 import 'package:yomou/widgets/source_icon.dart';
 import 'package:yomou/core/diagnostics/diag_log.dart';
 
+/// The line shown under "No chapters available" when the list could not load.
+///
+/// A failure that carries its own message reports itself. "This source is not
+/// supported from here" is only true when there was no source to ask at all,
+/// so it is the fallback rather than the first answer. The screen used to test
+/// `_source == null` first, which meant a timeout, a parse change or a captcha
+/// was reported as a missing source: it named a cause that had never been
+/// established and hid the real one, which cost an hour of chasing a resolver
+/// that was working.
+///
+/// [error] wins over [sourceMissing] even when both are true, because a source
+/// that resolved and then failed still needs its failure reported.
+String mangaDetailChapterFailure({
+  required AppLocalizations l,
+  required bool sourceMissing,
+  String? error,
+}) {
+  if (error != null && error.isNotEmpty) return error;
+  return sourceMissing ? l.sourceNotSupported : l.noChaptersAvailable;
+}
+
 class MangaDetailScreen extends ConsumerStatefulWidget {
   final String mangaId;
   final String title;
@@ -1264,9 +1285,11 @@ class _MangaDetailScreenState extends ConsumerState<MangaDetailScreen> {
               ),
               const SizedBox(height: 8),
               Text(
-                _source == null
-                    ? AppLocalizations.of(context).sourceNotSupported
-                    : _chapterError!,
+                mangaDetailChapterFailure(
+                  l: AppLocalizations.of(context),
+                  sourceMissing: _source == null,
+                  error: _chapterError,
+                ),
                 textAlign: TextAlign.center,
                 style: TextStyle(
                   color: dark ? Colors.white38 : Colors.black38,
