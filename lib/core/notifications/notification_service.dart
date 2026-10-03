@@ -80,6 +80,9 @@ class NotificationService {
   static const String _readActionId = 'read';
   static const String _moreActionId = 'more';
 
+  static String get readActionId => _readActionId;
+  static String get moreActionId => _moreActionId;
+
   int _newChapterChildId(String mangaId) =>
       _newChapterChildIdBase + (mangaId.hashCode & 0xFFFFF);
 

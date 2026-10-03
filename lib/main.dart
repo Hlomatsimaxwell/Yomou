@@ -97,7 +97,23 @@ void main() async {
 void _handleNotificationResponse(NotificationResponse response) {
   final navigator = appNavigatorKey.currentState;
   if (navigator == null) return;
-  if (response.actionId != null) return;
+  if (response.actionId != null) {
+    final target = NotificationService.decodeTarget(response.payload);
+    if (target == null || target.mangaId.isEmpty) return;
+    if (target.kind == 'suggestion') {
+      if (response.actionId == NotificationService.readActionId) {
+        _openMangaDetail(navigator, target);
+        return;
+      }
+      if (response.actionId == NotificationService.moreActionId) {
+        navigator.push(
+          MaterialPageRoute(builder: (_) => const SuggestionsScreen()),
+        );
+        return;
+      }
+    }
+    return;
+  }
   if (response.payload == NotificationService.payloadFeed) {
     navigator.push(MaterialPageRoute(builder: (_) => const FeedScreen()));
     return;
