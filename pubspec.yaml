@@ -2,7 +2,7 @@ name: yomou
 description: "Yomou - a Kotatsu-style manga reader."
 publish_to: 'none'
 
-version: 1.0.2+13
+version: 1.0.2+14
 
 environment:
   sdk: ^3.11.5
