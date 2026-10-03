@@ -4153,12 +4153,6 @@ abstract class AppLocalizations {
   /// **'Suggestions refresh rate'**
   String get suggestionsRefreshTitle;
 
-  /// No description provided for @discoverPick.
-  ///
-  /// In en, this message translates to:
-  /// **'Discover this pick from {source}'**
-  String discoverPick(String source);
-
   /// No description provided for @sourceFilter.
   ///
   /// In en, this message translates to:

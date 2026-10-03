@@ -1217,14 +1217,6 @@
   "refreshWeekly": "Every week",
   "suggestionsRefresh": "Suggestions refresh",
   "suggestionsRefreshTitle": "Suggestions refresh rate",
-  "@discoverPick": {
-    "placeholders": {
-      "source": {
-        "type": "String"
-      }
-    }
-  },
-  "discoverPick": "Discover this pick from {source}",
   "@backupYearsAgo": {
     "placeholders": {
       "count": {

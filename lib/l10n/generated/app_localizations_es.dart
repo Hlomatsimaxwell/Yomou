@@ -2333,11 +2333,6 @@ class AppLocalizationsEs extends AppLocalizations {
   String get suggestionsRefreshTitle => 'Frecuencia de sugerencias';
 
   @override
-  String discoverPick(String source) {
-    return 'Discover this pick from $source';
-  }
-
-  @override
   String get sourceFilter => 'Filtro';
 
   @override

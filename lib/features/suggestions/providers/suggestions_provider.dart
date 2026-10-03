@@ -119,7 +119,11 @@ Future<List<T>> _fanout<T>(
 
 /// Evenly spreads at most [limit] picks across [items] instead of truncating
 /// the head, so a bounded subset isn't decided by registry order.
-List<T> _spread<T>(List<T> items, int limit) {
+///
+/// Public because the Explore hero needs the same deal: it shows a bounded
+/// number of the feed, and taking the first twelve of it put exactly the same
+/// twelve covers on that card row as the Suggestions tab opens with.
+List<T> spreadAcross<T>(List<T> items, int limit) {
   if (items.length <= limit) return items;
   final step = items.length / limit;
   return [for (var i = 0; i < limit; i++) items[(i * step).floor()]];
@@ -223,13 +227,13 @@ final suggestionsProvider = FutureProvider.family<List<Manga>, String?>((
 /// Bounded to [_maxGenreTagSources] sources and no per-source timeout: this
 /// fan-out runs alongside the feed and competes with it for the WebView queue,
 /// and it is the one that isn't worth starving anything for. The subset is
-/// spread rather than truncated (see [_spread]) so which sources get asked is
-/// not decided by registry order. Chips read from disk once warm, so the
+/// spread rather than truncated (see [spreadAcross]) so which sources get asked
+/// is not decided by registry order. Chips read from disk once warm, so the
 /// steady-state cost is a cache lookup per source.
 final genreTagsProvider = FutureProvider<List<String>>((ref) async {
   // Bound each variant family first (42 MangaBall languages) so the spread
   // below actually samples across *sites* rather than mostly MangaBall.
-  final sources = _spread(
+  final sources = spreadAcross(
     boundVariantFamilies(sourcesFromRows(ref.watch(visibleSourceRowsProvider))),
     _maxGenreTagSources,
   );

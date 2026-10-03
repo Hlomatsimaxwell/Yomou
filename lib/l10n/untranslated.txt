@@ -76,7 +76,6 @@
     "dlgFailed",
     "dlgQueuedDownload",
     "dlgAlreadyDownloaded",
-    "dlgDownloadNothingQueued",
-    "discoverPick"
+    "dlgDownloadNothingQueued"
   ]
 }
