@@ -50,7 +50,7 @@ class MangaBatSource extends DioSource implements MangaSource {
     return s.replaceAll(RegExp(r'^_+|_+$'), '');
   }
 
-  List<Manga> _parseGrid(String html, String source) {
+  List<Manga> _parseGrid(String html) {
     final document = parser.parse(html);
     final result = <Manga>[];
     final seen = <String>{};
@@ -58,7 +58,7 @@ class MangaBatSource extends DioSource implements MangaSource {
       final titleA = wrap.querySelector('h3 a');
       final href = titleA?.attributes['href'] ?? '';
       if (href.isEmpty) continue;
-      final id = _idFromHref(href);
+      final id = idFromHref(href);
       if (seen.contains(id)) continue;
       final img = wrap.querySelector('a img');
       final cover = img?.attributes['data-src'] ??
@@ -87,7 +87,7 @@ class MangaBatSource extends DioSource implements MangaSource {
       final href = item.querySelector('h3.story_name a')?.attributes['href'] ??
           '';
       if (href.isEmpty) continue;
-      final id = _idFromHref(href);
+      final id = idFromHref(href);
       if (seen.contains(id)) continue;
       final img = item.querySelector('a img');
       final cover = img?.attributes['src'] ??
@@ -109,18 +109,57 @@ class MangaBatSource extends DioSource implements MangaSource {
     return result;
   }
 
-  String _idFromHref(String href) {
+  /// The manga's own slug, from any address the site has handed us.
+  ///
+  /// The site's cards link to the full origin (`https://www.mangabats.com/
+  /// manga/martial-peak`), so removing the origin leaves `manga/martial-peak`.
+  /// Stripping the literal `'/manga/'` never matched that - the leading slash
+  /// is gone by then - so the `manga/` segment survived into the id and every
+  /// caller that prefixes `/manga/` again asked for `/manga/manga/...`, which
+  /// 404s. It matters for more than looks: the chapters API answers that URL
+  /// with an HTML error page, `json.decode` throws, and the empty catch turns
+  /// that into "this title has no chapters".
+  ///
+  /// Existing library rows still hold the old prefixed ids, so [slugFromId]
+  /// normalises on the way out rather than a migration rewriting the `manga`
+  /// table's primary key.
+  ///
+  /// Public so a test can check it against the site's real markup rather than
+  /// a hand-copied href: the bug lived entirely in how this transformed one
+  /// string, and it is invisible from the outside.
+  String idFromHref(String href) {
     var h = href.replaceAll(RegExp(r'^/+'), '').replaceAll(RegExp(r'/$'), '');
-    if (h.startsWith('$baseUrl/')) h = h.substring(baseUrl.length + 1);
-    return h.replaceAll('/manga/', '');
+    if (h.startsWith('$baseUrl/')) {
+      h = h.substring(baseUrl.length + 1);
+    } else if (RegExp(r'^https?://').hasMatch(h)) {
+      final uri = Uri.tryParse(h);
+      h = uri == null ? h : uri.path;
+    }
+    return _stripMangaSegment(h);
   }
+
+  static String _stripMangaSegment(String path) {
+    var p = path;
+    while (p.startsWith('manga/')) {
+      p = p.substring('manga/'.length);
+    }
+    if (p.startsWith('/manga/')) p = p.substring('/manga/'.length);
+    return p.replaceAll(RegExp(r'^/+'), '');
+  }
+
+  /// The slug for [id], tolerating ids saved with the old redundant prefix.
+  ///
+  /// A slug never starts with `manga/` on this site, so dropping that segment
+  /// is unambiguous - which is what lets rows written before the fix keep
+  /// resolving without touching the database.
+  static String slugFromId(String id) => _stripMangaSegment(id);
 
   @override
   Future<List<Manga>> getPopularManga({int page = 1}) async {
     try {
       final html = await grabText('$baseUrl/manga-list/hot-manga?page=$page');
       if (html.isEmpty || _isChallenge(html)) return [];
-      return _parseGrid(html, 'Hot');
+      return _parseGrid(html);
     } catch (_) {
       return [];
     }
@@ -144,7 +183,7 @@ class MangaBatSource extends DioSource implements MangaSource {
   @override
   Future<MangaDetails?> getMangaDetails(String mangaId) async {
     try {
-      final html = await grabText('$baseUrl/manga/$mangaId');
+      final html = await grabText('$baseUrl/manga/${slugFromId(mangaId)}');
       if (html.isEmpty || _isChallenge(html)) return null;
       final document = parser.parse(html);
 
@@ -213,10 +252,11 @@ class MangaBatSource extends DioSource implements MangaSource {
   Future<List<Chapter>> getChapters(String mangaId) async {
     try {
       final chapters = <Chapter>[];
+      final slug = slugFromId(mangaId);
       var offset = 0;
       for (var i = 0; i < 20; i++) {
         final body = await grabText(
-          '$baseUrl/api/manga/$mangaId/chapters?limit=100&offset=$offset',
+          '$baseUrl/api/manga/$slug/chapters?limit=100&offset=$offset',
         );
         if (body.isEmpty) break;
         final page = json.decode(body);
@@ -237,10 +277,10 @@ class MangaBatSource extends DioSource implements MangaSource {
           ).firstMatch(chapterSlug);
           chapters.add(
             Chapter(
-              id: '$mangaId/$chapterSlug',
+              id: '$slug/$chapterSlug',
               title: chapterName,
               chapterNumber: numMatch?.group(1) ?? '',
-              url: '$baseUrl/manga/$mangaId/$chapterSlug',
+              url: '$baseUrl/manga/$slug/$chapterSlug',
               releaseDate: raw['updated_at']?.toString(),
             ),
           );
@@ -295,7 +335,9 @@ class MangaBatSource extends DioSource implements MangaSource {
   @override
   Future<List<String>> getPageUrls(String chapterId) async {
     try {
-      final html = await grabText('$baseUrl/manga/$chapterId');
+      final html = await grabText(
+        '$baseUrl/manga/${slugFromId(chapterId)}',
+      );
       if (html.isEmpty || _isChallenge(html)) return [];
       return _pageUrlsFromScript(html);
     } catch (_) {
