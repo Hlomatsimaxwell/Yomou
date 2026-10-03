@@ -18,10 +18,10 @@ import 'package:yomou/widgets/cached_manga_image.dart';
 ///
 /// Everything the card paints is derived from the width this section is
 /// actually given -- see [_FeaturedLayout]. A fixed 204px height and a fixed
-/// 104x150 cover
-/// meant the card was squeezed to 166px of text column on a 320dp phone and
-/// stretched to a 5.4:1 strip with a 104px cover adrift in 1095px on a desktop
-/// window: wrong at both ends, for the same reason the grids were.
+/// 104x150 cover meant the card was squeezed to 166px of text column on a
+/// 320dp phone and stretched to a 5.4:1 strip with a 104px cover adrift in
+/// 1095px on a desktop window: wrong at both ends, for the same reason the
+/// grids were.
 class FeaturedCarousel extends ConsumerStatefulWidget {
   const FeaturedCarousel({super.key});
 
@@ -53,8 +53,8 @@ class _FeaturedCarouselState extends ConsumerState<FeaturedCarousel> {
   /// with no longer fits.
   ///
   /// A new one rather than a mutation because the fraction is derived from the
-  /// width: resizing a desktop window across [_featuredTwoCardWidth] has to
-  /// change how many cards a page is, and a PageController cannot be told.
+  /// width: resizing a desktop window changes how many cards fit at the target
+  /// card width, and a PageController cannot be told.
   ///
   /// The old controller is disposed after the frame rather than here, because
   /// it is still attached to the PageView this build is about to hand a new one
@@ -860,9 +860,8 @@ const double _featuredCoverAspect = 150 / 104;
 /// The floor is the size the app already shipped, and it is the floor on
 /// purpose: a derived number that came out smaller than what the hero has
 /// always shown on a phone would be a regression dressed up as a fix. The
-/// ceiling is
-/// where the plate stops reading as a book and starts reading as a poster, and
-/// it is what stops a very wide card turning into one.
+/// ceiling is where the plate stops reading as a book and starts reading as
+/// a poster, and it is what stops a very wide card turning into one.
 const double _featuredCoverMin = 104;
 const double _featuredCoverMax = 168;
 
@@ -889,7 +888,7 @@ const double _featuredBlurbLineHeight = 1.35;
 /// Genres to name when there is no description.
 const int _featuredBlurbTags = 3;
 
-/// Type shares of the text column, with the floor and ceiling each stops at.
+/// Type shares of the text column, each with the band it stops at.
 ///
 /// Shares rather than fixed sizes because the text column is what actually
 /// varies: it is the card minus the cover, so it tracks the card's width. The
@@ -917,10 +916,12 @@ const double _featuredMinHeightRatio = 0.6;
 
 /// Ceiling on the card's height, as a backstop.
 ///
-/// Nothing should reach it: the card count is derived from a target width, so
-/// cardWidth stays in a band and the proportion floor tops out around 370.
-/// It is here so that a window wider than any phone, tablet or monitor the
-/// app has been looked at on still lands on a card rather than a letterbox.
+/// The proportion floor alone would take a card past this in one place: just
+/// below the width at which two cards fit, the section still has only the one,
+/// and it is nearly twice the target width. Without the ceiling that card is
+/// 494 tall on a window that has room for it and reads as a wall rather than a
+/// hero. Everywhere else the floor wins and this is never reached -- which is
+/// the sign it is doing the job it is here for and not setting the shape.
 const double _featuredMaxHeight = 380;
 
 /// Dot row.
@@ -945,7 +946,6 @@ int _cardsFor(double width) =>
 /// The numbers a featured card's geometry resolves to.
 class _FeaturedLayout {
   const _FeaturedLayout({
-    required this.cards,
     required this.cardWidth,
     required this.viewportFraction,
     required this.height,
@@ -1021,7 +1021,6 @@ class _FeaturedLayout {
     );
 
     return _FeaturedLayout(
-      cards: cards,
       cardWidth: cardWidth,
       viewportFraction: pageWidth / width,
       height: height,
@@ -1037,16 +1036,17 @@ class _FeaturedLayout {
     );
   }
 
-  /// Cards on screen at once: one on a phone, two in a wide window.
-  final int cards;
-
   /// Width of the painted card, inside its page.
   final double cardWidth;
 
   /// Page extent as a fraction of the section, for [PageController].
   final double viewportFraction;
 
+  /// Height of the whole card: whichever half needs more, the proportion floor,
+  /// then the backstop.
   final double height;
+
+  /// The framed cover: its plate, its art, its spine.
   final double coverWidth;
   final double coverHeight;
 
@@ -1054,8 +1054,11 @@ class _FeaturedLayout {
   /// insets and the cover block.
   final double textWidth;
 
+  /// Type, in shares of the text column, clamped to a legible band each.
   final double titleSize;
   final double blurbSize;
   final double eyebrowSize;
+
+  /// The index number in the corner.
   final double watermarkSize;
 }
