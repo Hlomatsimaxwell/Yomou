@@ -24,7 +24,7 @@ class DatabaseHelper {
 
     return await openDatabase(
       path,
-      version: 16,
+      version: 17,
       onCreate: _createDB,
       onUpgrade: _onUpgrade,
     );
@@ -98,6 +98,9 @@ class DatabaseHelper {
     if (oldVersion < 16) {
       await _repairShuffledSourceIds(db);
     }
+    if (oldVersion < 17) {
+      await repairCachedSourceIds(db);
+    }
   }
 
   /// Repairs `sourceId` values that hold a manga's own address.
@@ -140,6 +143,68 @@ class DatabaseHelper {
       "UPDATE manga SET sourceId = '' "
       "WHERE sourceId = mangaId AND TRIM(sourceId) <> ''",
     );
+  }
+
+  /// Rewrites the `sourceId` inside cached list payloads, and returns how many
+  /// payloads it changed.
+  ///
+  /// Repairing the `manga` table is not enough on its own, and finding that out
+  /// was the whole point of writing this down. The grids and the featured hero
+  /// do not read the library table at all -- they read their rows straight out
+  /// of this cache -- and those payloads still held the slug the broken parsers
+  /// wrote. A title would have been repaired in the library and still reported
+  /// itself as coming from `manga/1861/slug` in the grid it was opened from,
+  /// which is exactly the report this work was answering.
+  ///
+  /// Nothing is inferred here. A list cache row is keyed `<sourceId>/list/...`
+  /// and was written by that source, so every entry in it belongs to the prefix
+  /// of its own key -- the one place in the repair where the source is known
+  /// outright rather than recovered.
+  ///
+  /// Only list payloads are touched. `tags` rows hold strings, `details` and
+  /// `chapters` rows were written by parsers that passed the source correctly,
+  /// and a payload that will not decode was already unreadable, so rewriting it
+  /// would achieve nothing.
+  static Future<int> repairCachedSourceIds(Database db) async {
+    final rows = await db.query(
+      'source_cache',
+      columns: ['key', 'json'],
+      where: "key LIKE '%/list/%'",
+    );
+    var repaired = 0;
+    for (final row in rows) {
+      final key = row['key']! as String;
+      final slash = key.indexOf('/');
+      if (slash <= 0) continue;
+      final sourceId = key.substring(0, slash);
+
+      final List<dynamic> entries;
+      try {
+        final decoded = jsonDecode(row['json']! as String);
+        if (decoded is! List) continue;
+        entries = decoded;
+      } catch (_) {
+        continue;
+      }
+
+      var changed = false;
+      for (final entry in entries) {
+        if (entry is! Map<String, dynamic>) continue;
+        if (entry['sourceId'] == sourceId) continue;
+        entry['sourceId'] = sourceId;
+        changed = true;
+      }
+      if (!changed) continue;
+
+      await db.update(
+        'source_cache',
+        {'json': jsonEncode(entries)},
+        where: 'key = ?',
+        whereArgs: [key],
+      );
+      repaired++;
+    }
+    return repaired;
   }
 
   Future _createDB(Database db, int version) async {

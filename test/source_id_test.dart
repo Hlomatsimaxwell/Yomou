@@ -1,5 +1,8 @@
+import 'dart:convert';
+
 import 'package:flutter_test/flutter_test.dart';
 import 'package:sqflite_common_ffi/sqflite_ffi.dart';
+import 'package:yomou/core/database/database_helper.dart';
 import 'package:yomou/data/models/manga.dart';
 import 'package:yomou/data/providers/sources_provider.dart';
 
@@ -322,6 +325,128 @@ void main() {
       expect(rows.first['lastReadChapter'], 42.0);
       expect(rows.first['lastReadPage'], 7);
       expect(rows.first['sourceId'], 'mangapill');
+    });
+  });
+
+  group('the cached payloads', () {
+    // The grids and the featured hero read these rows, not the library table,
+    // so repairing only `manga` left every card on screen still reporting the
+    // slug. This calls the real method rather than a copy of it, because it is
+    // logic and not a statement: a copied version would pass while the shipped
+    // one stayed broken.
+    late Database db;
+
+    setUp(() async {
+      db = await databaseFactory.openDatabase(inMemoryDatabasePath);
+      await db.execute('''
+        CREATE TABLE source_cache (
+          key TEXT PRIMARY KEY,
+          json TEXT NOT NULL,
+          fetchedAt TEXT NOT NULL
+        )
+      ''');
+    });
+
+    tearDown(() async => db.close());
+
+    Future<void> seedCache(String key, String json) => db.insert(
+      'source_cache',
+      {'key': key, 'json': json, 'fetchedAt': '2026-01-01T00:00:00.000'},
+    );
+
+    Future<List<dynamic>> entriesOf(String key) async {
+      final rows = await db.query(
+        'source_cache',
+        columns: ['json'],
+        where: 'key = ?',
+        whereArgs: [key],
+      );
+      return jsonDecode(rows.first['json']! as String) as List<dynamic>;
+    }
+
+    test('a cached slug is replaced by the key prefix', () async {
+      // What MangaPill wrote, in the payload a grid reads.
+      await seedCache(
+        'mangapill/list/tags/action,fantasy/1',
+        '[{"id":"manga/49/slug","title":"A","coverUrl":"","sourceId":"manga/49/slug","tags":[]}]',
+      );
+
+      final repaired = await DatabaseHelper.repairCachedSourceIds(db);
+
+      expect(repaired, 1);
+      final entry =
+          (await entriesOf('mangapill/list/tags/action,fantasy/1')).first
+              as Map<String, dynamic>;
+      expect(entry['sourceId'], 'mangapill');
+      expect(entry['id'], 'manga/49/slug', reason: 'the manga keeps its id');
+      expect(entry['title'], 'A');
+    });
+
+    test('every entry in a payload is stamped, not just the first', () async {
+      await seedCache(
+        'manhwa18/list/title/hi/1',
+        '[{"id":"a","sourceId":"https://manhwa18.com/manga/a"},'
+            '{"id":"b","sourceId":"https://manhwa18.com/manga/b"}]',
+      );
+
+      await DatabaseHelper.repairCachedSourceIds(db);
+
+      final entries = await entriesOf('manhwa18/list/title/hi/1');
+      expect(
+        entries.cast<Map<String, dynamic>>().map((e) => e['sourceId']),
+        everyElement('manhwa18'),
+      );
+    });
+
+    test('a healthy payload is left byte-for-byte alone', () async {
+      final healthy = '[{"id":"x","sourceId":"mangadex"}]';
+      await seedCache('mangadex/list/popular//1', healthy);
+
+      final repaired = await DatabaseHelper.repairCachedSourceIds(db);
+
+      expect(repaired, 0);
+      final rows = await db.query(
+        'source_cache',
+        columns: ['json'],
+        where: 'key = ?',
+        whereArgs: ['mangadex/list/popular//1'],
+      );
+      expect(rows.first['json'], healthy);
+    });
+
+    test('non-list payloads are left alone', () async {
+      // `tags` holds strings and has no sourceId to fix; `details` was written
+      // by a parser that passed the source correctly.
+      await seedCache('mangapill/tags', '["Action","Adventure"]');
+      await seedCache(
+        'mangapill/details/manga%2F1861%2Fslug',
+        '{"id":"manga/1861/slug","sourceId":"manga/1861/slug"}',
+      );
+
+      final repaired = await DatabaseHelper.repairCachedSourceIds(db);
+
+      expect(repaired, 0);
+      final rows = await db.query('source_cache', columns: ['key', 'json']);
+      expect(rows, hasLength(2));
+    });
+
+    test('a payload that will not decode is skipped, not thrown on', () async {
+      // A cache row can be truncated or half-written. It was unreadable before
+      // this ran and is unreadable after; what must not happen is the migration
+      // dying on it and leaving every later row unrepaired.
+      await seedCache('mangapill/list/broken/1', '[{"id":"a",');
+      await seedCache(
+        'mangabat/list/good/1',
+        '[{"id":"b","sourceId":"manga/b"}]',
+      );
+
+      final repaired = await DatabaseHelper.repairCachedSourceIds(db);
+
+      expect(repaired, 1, reason: 'the row after the broken one is repaired');
+      final entry =
+          (await entriesOf('mangabat/list/good/1')).first
+              as Map<String, dynamic>;
+      expect(entry['sourceId'], 'mangabat');
     });
   });
 }
