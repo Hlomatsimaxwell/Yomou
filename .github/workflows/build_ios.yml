@@ -1,15 +1,33 @@
 name: Build iOS IPA
 
-# The previous version of this workflow produced an *unsigned* IPA, which iOS
-# refuses to install on a device: an app with no valid signature will not launch
-# even on a phone that has the developer mode turned on. Signing needs secrets,
-# so this workflow fails early and says which one is missing rather than
-# uploading an artifact that cannot be used.
+# The default produces a *signed* IPA that installs on a real device. The
+# previous version of this workflow produced an *unsigned* IPA, which iOS
+# refuses to install on a device: an app with no valid signature will not
+# launch even on a phone that has the developer mode turned on. Signing needs
+# secrets, so the signed path fails early and says which one is missing rather
+# than uploading an artifact that cannot be used.
+#
+# Choosing "unsigned" asks a different question -- "does this project compile
+# for iOS at all?" -- and needs no Apple account and no secrets. The IPA it
+# produces is a build artefact only; it will not install on a device, which is
+# precisely why the signed path exists. Nothing else has to change to use it.
 on:
   workflow_dispatch:
     inputs:
+      build_kind:
+        description: 'What to produce (see the comment below)'
+        required: false
+        default: 'signed'
+        type: choice
+        options:
+          # Signed IPA for a real device. Needs the four repository secrets and
+          # a paid Apple Developer account. Failing loudly when they are absent
+          # is deliberate, not an oversight.
+          - 'signed'
+          # Build verification only. No Apple account, no secrets.
+          - 'unsigned'
       export_method:
-        description: 'How to distribute (see below)'
+        description: 'How to distribute (signed builds only)'
         required: false
         default: 'ad-hoc'
         type: choice
@@ -64,6 +82,7 @@ jobs:
           fi
 
       - name: Check signing secrets are present
+        if: inputs.build_kind == 'signed'
         env:
           CERT: ${{ secrets.IOS_CERTIFICATE_P12_BASE64 }}
           PROFILE: ${{ secrets.IOS_PROVISIONING_PROFILE_BASE64 }}
@@ -90,6 +109,7 @@ jobs:
           fi
 
       - name: Import certificate into a temporary keychain
+        if: inputs.build_kind == 'signed'
         env:
           CERT: ${{ secrets.IOS_CERTIFICATE_P12_BASE64 }}
           PASSWORD: ${{ secrets.IOS_CERTIFICATE_PASSWORD }}
@@ -114,6 +134,7 @@ jobs:
           rm -f certificate.p12
 
       - name: Install provisioning profile
+        if: inputs.build_kind == 'signed'
         env:
           PROFILE: ${{ secrets.IOS_PROVISIONING_PROFILE_BASE64 }}
         run: |
@@ -135,6 +156,7 @@ jobs:
           echo "profile_uuid=$UUID" >> "$GITHUB_ENV"
 
       - name: Build the Runner scheme
+        if: inputs.build_kind == 'signed'
         env:
           TEAM: ${{ secrets.IOS_TEAM_ID }}
         run: |
@@ -157,6 +179,7 @@ jobs:
             | xcbeautify || exit $?
 
       - name: Export the IPA
+        if: inputs.build_kind == 'signed'
         env:
           METHOD: ${{ inputs.export_method }}
           TEAM: ${{ secrets.IOS_TEAM_ID }}
@@ -195,13 +218,32 @@ jobs:
           test -n "$(find build/ios/ipa -name '*.ipa' -print -quit)" \
             || { echo "::error::No .ipa was produced."; exit 1; }
 
+      - name: Package an unsigned IPA
+        if: inputs.build_kind == 'unsigned'
+        run: |
+          set -euo pipefail
+          # Deliberately not the signed path: this only proves the project
+          # compiles for iOS. The result carries no signature, so it will not
+          # install on a device, which is exactly why it is a separate choice
+          # rather than a silent fallback when secrets are absent.
+          flutter build ios --release --no-codesign
+          mkdir -p build/ios/ipa/Payload
+          mv build/ios/iphoneos/Runner.app build/ios/ipa/Payload/
+          # zipped from inside the folder so the archive contains "Payload/",
+          # which is the layout an .ipa is required to have.
+          ( cd build/ios/ipa && zip -qry unsigned.ipa Payload )
+          ls -la build/ios/ipa
+
       - name: Upload IPA Artifact
         uses: actions/upload-artifact@v4
         with:
-          name: manga-reader-ios-ipa
+          # Suffixed with the build kind on purpose: an artifact named plainly
+          # "ipa" is indistinguishable from an installable one, and the
+          # unsigned one is not installable.
+          name: manga-reader-ios-ipa-${{ inputs.build_kind }}
           path: build/ios/ipa/*.ipa
           if-no-files-found: error
 
       - name: Remove temporary keychain
-        if: always()
+        if: always() && inputs.build_kind == 'signed'
         run: security delete-keychain build-ios.keychain-db || true
