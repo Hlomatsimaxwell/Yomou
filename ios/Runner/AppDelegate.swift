@@ -31,11 +31,20 @@ import workmanager_apple
     // The reader's two native channels. Android implements these in
     // MainActivity.kt; these are the same contracts on iOS so the Dart side
     // needs no platform branch.
+    //
+    // The messenger comes from the application registrar rather than from
+    // `engineBridge` directly. FlutterImplicitEngineBridge is a protocol
+    // exposing `pluginRegistry` and `applicationRegistrar`; the registrar's
+    // `messenger()` is the documented route, and it is the same messenger the
+    // plugin registrant just registered against, so these channels and the
+    // plugins share one channel.
+    let messenger = engineBridge.applicationRegistrar.messenger()
+
     let display = DisplayChannel()
-    display.register(with: engineBridge.binaryMessenger)
+    display.register(with: messenger)
     displayChannel = display
 
-    let volume = VolumeChannel(messenger: engineBridge.binaryMessenger)
+    let volume = VolumeChannel(messenger: messenger)
     volume.register()
     volumeChannel = volume
   }
