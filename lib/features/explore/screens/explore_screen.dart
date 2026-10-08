@@ -9,6 +9,7 @@ import 'package:yomou/core/widgets/tab_header.dart';
 import 'package:yomou/core/widgets/responsive.dart' show usesWideLayout;
 import 'package:yomou/core/widgets/manga_grid_metrics.dart';
 import 'package:yomou/core/widgets/search_bar.dart';
+import 'package:yomou/core/widgets/yomou_chip.dart';
 import 'package:yomou/data/models/manga.dart';
 import 'package:yomou/features/explore/screens/global_search_screen.dart';
 import 'package:yomou/features/explore/widgets/featured_carousel.dart';
@@ -16,6 +17,8 @@ import 'package:yomou/features/library/screens/bookmarks_screen.dart';
 import 'package:yomou/features/library/screens/downloads_screen.dart';
 import 'package:yomou/features/settings/screens/storage_settings_screen.dart';
 import 'package:yomou/features/library/screens/manga_detail_screen.dart';
+import 'package:yomou/features/onboarding/source_presets_provider.dart';
+import 'package:yomou/features/onboarding/source_presets_switcher_sheet.dart';
 import 'package:yomou/features/settings/screens/settings_screen.dart';
 import 'package:yomou/features/source_management/screens/manga_grid_screen.dart';
 import 'package:yomou/features/source_management/screens/manga_sources_screen.dart';
@@ -104,6 +107,7 @@ class _ExploreScreenState extends ConsumerState<ExploreScreen> {
                     },
                   ),
                   const SizedBox(height: 8),
+                  const SizedBox(height: 4),
                   showInGrid
                       ? _buildSourcesGrid(enabledSources)
                       : _buildSourcesList(enabledSources),
