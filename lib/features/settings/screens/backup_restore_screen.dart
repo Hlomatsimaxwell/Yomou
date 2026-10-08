@@ -5,6 +5,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:file_picker/file_picker.dart';
 import 'package:remixicon/remixicon.dart';
+import 'package:yomou/core/backup/backup_restore.dart';
 import 'package:yomou/core/backup/tachiyomi_backup.dart';
 import 'package:yomou/core/database/database_helper.dart';
 import 'package:yomou/core/widgets/responsive.dart';
@@ -66,38 +67,69 @@ class _BackupRestoreScreenState extends ConsumerState<BackupRestoreScreen> {
   }
 
   Future<void> _restoreBackup() async {
-    final result = await FilePicker.platform.pickFiles(
+    final l = AppLocalizations.of(context);
+    final file = await FilePicker.platform.pickFiles(
       type: FileType.custom,
-      allowedExtensions: ['json'],
+      // `.gz` and `.tachibk` are both Tachiyomi backups; `.json` is either
+      // format, which is why the file is sniffed rather than chosen here.
+      allowedExtensions: ['json', 'tachibk', 'gz'],
+      withData: true,
     );
 
-    if (result == null) return;
+    if (file == null) return;
 
-    final path = result.paths.first;
-    if (path != null) {
-      final dir = path.replaceAll(RegExp(r'[^/]*$'), '');
+    try {
+      final picked = file.files.single;
+      final bytes =
+          picked.bytes ?? await File(picked.path!).readAsBytes();
 
-      try {
-        final file = File(path);
-        final decoded = jsonDecode(await file.readAsString());
-        if (decoded is! Map<String, dynamic>) {
-          throw const FormatException('Invalid backup file');
-        }
-
+      if (picked.path != null) {
+        final dir = picked.path!.replaceAll(RegExp(r'[^/]*$'), '');
         await ref
             .read(cacheSettingsProvider.notifier)
             .setBackupsOutputDirectory(dir);
-
-        if (!mounted) return;
-        ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(content: Text('Restoring from backup')),
-        );
-      } catch (e) {
-        if (!mounted) return;
-        ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(content: Text('Invalid backup file')),
-        );
       }
+
+      final result = await BackupRestore.restore(bytes);
+      if (!mounted) return;
+      bumpHistoryRevision(ref);
+      bumpFavoritesRevision(ref);
+
+      switch (result.format) {
+        case BackupFormat.tachiyomi:
+          final parsed = result.tachiyomi!;
+          if (parsed.mangas.isEmpty && parsed.skipped == 0) {
+            ScaffoldMessenger.of(context).showSnackBar(
+              SnackBar(content: Text(l.tachiyomiImportNone)),
+            );
+            return;
+          }
+          Navigator.push(
+            context,
+            MaterialPageRoute(
+              builder: (context) => ImportResultsScreen(result: parsed),
+            ),
+          );
+        case BackupFormat.yomou:
+          final restored = result.yomou!;
+          ScaffoldMessenger.of(context).showSnackBar(
+            SnackBar(
+              content: Text(
+                restored.isEmpty
+                    ? l.backupRestoreNone
+                    : restored.skippedNewer > 0
+                    ? '${l.backupRestoreDone(restored.restored)} · '
+                          '${l.backupRestoreKeptNewer(restored.skippedNewer)}'
+                    : l.backupRestoreDone(restored.restored),
+              ),
+            ),
+          );
+      }
+    } on FormatException {
+      if (!mounted) return;
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(content: Text(l.tachiyomiImportInvalid)),
+      );
     }
   }
 
@@ -165,44 +197,8 @@ class _BackupRestoreScreenState extends ConsumerState<BackupRestoreScreen> {
           await File(file.files.single.path!).readAsBytes();
 
       final parsed = TachiyomiBackupCodec.import(bytes);
-      final db = DatabaseHelper.instance;
 
-      for (final m in parsed.mangas) {
-        await db.saveMangaProgress(
-          mangaId: m.mangaId,
-          title: m.title,
-          coverUrl: m.coverUrl,
-          sourceId: m.sourceId,
-          lastReadChapter: m.lastReadChapter,
-          lastReadAt: m.lastReadAt,
-        );
-        await db.setFavorite(
-          mangaId: m.mangaId,
-          title: m.title,
-          coverUrl: m.coverUrl,
-          sourceId: m.sourceId,
-          isFavorite: m.isFavorite,
-        );
-        for (final b in m.bookmarks) {
-          await db.addBookmark(
-            mangaId: m.mangaId,
-            chapterId: (b['chapterId'] as String?) ?? m.mangaId,
-            chapterTitle: (b['chapterTitle'] as String?) ?? m.title,
-            pageIndex: 0,
-            pageUrl: (b['pageUrl'] as String?) ?? '',
-          );
-        }
-        for (final r in m.readChapters) {
-          final chapterId = (r['chapterId'] as String?) ?? '';
-          if (chapterId.isEmpty) continue;
-          await db.recordReadingProgress(
-            mangaId: m.mangaId,
-            chapterId: chapterId,
-            chapterNumber: (r['chapterNumber'] as num?)?.toDouble() ?? 0,
-            at: r['lastReadAt'] as DateTime?,
-          );
-        }
-      }
+      await BackupRestore.applyTachiyomi(parsed);
 
       if (!mounted) return;
       bumpHistoryRevision(ref);
