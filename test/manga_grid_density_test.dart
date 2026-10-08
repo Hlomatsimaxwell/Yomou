@@ -1,7 +1,6 @@
 import 'dart:io';
 
 import 'package:flutter/material.dart';
-import 'package:yomou/core/widgets/responsive.dart' show kWideLayoutWidth;
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:yomou/core/widgets/manga_grid_metrics.dart';
@@ -11,7 +10,7 @@ import 'package:yomou/features/library/providers/favorites_provider.dart';
 import 'package:yomou/features/library/screens/favorites_screen.dart';
 import 'package:yomou/l10n/generated/app_localizations.dart';
 
-/// The four manga grids disagreed about how many columns they had.
+/// The manga grids disagreed about how many columns they had.
 ///
 /// Two of them ended in a bare `.clamp(2, 7)`, which held History and Suggestions
 /// to a ceiling one lower than the [kMangaGridMaxColumns] the other two already
@@ -25,8 +24,11 @@ import 'package:yomou/l10n/generated/app_localizations.dart';
 /// they were actually given, so the nav rail's 80px was invisible to them and
 /// every column on a desktop was sized for space the grid did not have.
 ///
-/// These hold all of that to one answer: one ceiling, taken from the shared
-/// helper, measured from the real width.
+/// Density is now one preference for the whole app: exactly six columns
+/// wherever it is read, or the shared derived count when nothing is stored.
+/// These hold all of that to one answer: one ceiling, one stored choice
+/// honoured as-is at any width, and every grid measured from the width it
+/// really got.
 void main() {
   /// The widths a phone, tablet, desktop and very wide desktop present.
   const widths = [360.0, 768.0, 1245.0, 1920.0];
@@ -74,10 +76,11 @@ void main() {
   }
 
   test('one ceiling, and it is the shared one', () {
-    // The property the bare clamps broke: whatever the width, nothing resolves
-    // past the constant every grid shares.
+    // The property the bare clamps broke: on auto, whatever the width, nothing
+    // resolves past the constant every grid shares -- and nothing collapses
+    // below two columns either.
     for (var width = 320.0; width <= 2560.0; width += 20) {
-      final derived = _columnsAt(width, userColumns: 3);
+      final derived = _columnsAt(width, userColumns: null);
       expect(
         derived,
         lessThanOrEqualTo(kMangaGridMaxColumns),
@@ -92,24 +95,36 @@ void main() {
     // stops and the extra width goes into bigger cells. This is the difference
     // between a 7-column grid with 40px of air per cell and an 8-column one
     // without.
-    expect(_columnsAt(1920, userColumns: 3), kMangaGridMaxColumns);
-    expect(_columnsAt(2560, userColumns: 3), kMangaGridMaxColumns);
+    expect(_columnsAt(1920, userColumns: null), kMangaGridMaxColumns);
+    expect(_columnsAt(2560, userColumns: null), kMangaGridMaxColumns);
   });
 
-  test('a stored choice is honoured on a narrow layout, exactly', () {
-    // Below the wide-layout threshold the setting is a value, not a floor: the
-    // phone grid is what the user asked for at any angle, landscape included.
+  test('a stored choice is honoured exactly, at any width', () {
+    // The choice is a value everywhere, phone or tablet or desk. It used to
+    // become a floor past the wide-layout threshold, so a reader who asked for
+    // four columns on a twelve-inch display was handed eight -- and "bigger
+    // covers" was a direction the slider could not reach at all, because the
+    // width already resolved more than any position on it.
     for (final stored in [1, 2, 3, 4, 5, 6]) {
-      expect(_columnsAt(360, userColumns: stored), stored);
-      expect(_columnsAt(700, userColumns: stored), stored);
+      for (final width in [360.0, 700.0, 1245.0, 1920.0]) {
+        expect(
+          _columnsAt(width, userColumns: stored),
+          stored,
+          reason: '$stored columns at ${width}px',
+        );
+      }
     }
   });
 
-  test('a stored choice becomes a floor on a wide layout', () {
-    // A deliberate dense choice survives a tablet; a coarse one is improved on.
-    for (var width = 900.0; width <= 2000.0; width += 100) {
-      final derived = _columnsAt(width, userColumns: 3);
-      expect(derived, greaterThanOrEqualTo(3), reason: 'at ${width}px');
+  test('nothing stored means the width decides', () {
+    // Auto is the other half of the choice: until a grid is touched, it tracks
+    // what the window affords, exactly as the derived helper says.
+    for (var width = 320.0; width <= 2560.0; width += 40) {
+      expect(
+        _columnsAt(width, userColumns: null),
+        _mangaGridColumnsAt(width),
+        reason: 'at ${width}px',
+      );
     }
   });
 
@@ -124,7 +139,7 @@ void main() {
       final (columns, cellWidth) = await resolveFavorites(tester, width);
       expect(
         columns,
-        _columnsAt(width, userColumns: 3),
+        _columnsAt(width, userColumns: null),
         reason: 'favourites disagrees at ${width}px',
       );
       expect(
@@ -242,14 +257,15 @@ String _withoutComments(String source) {
 /// Columns [mangaGridColumnsFor] resolves for a window [width] wide, without
 /// needing a widget tree.
 ///
-/// [mangaGridColumnsFor] asks [usesWideLayout] and falls back to MediaQuery, and
-/// both are unavailable outside a build, so the two are supplied here explicitly.
-/// The constants are read from the source rather than restated, because the point
-/// of the test is that these are the real thresholds.
-int _columnsAt(double width, {required int userColumns}) {
-  if (width < kWideLayoutWidth) return userColumns;
-  final derived = _mangaGridColumnsAt(width);
-  return derived > userColumns ? derived : userColumns;
+/// [mangaGridColumnsFor] reads MediaQuery, which is unavailable outside a build,
+/// so the width is supplied here explicitly. The constants are read from the
+/// source rather than restated, because the point of the test is that these are
+/// the real thresholds. A stored choice is returned as-is -- the whole point of
+/// the unified preference is that it is a value at any width -- and auto (null)
+/// is the derived count.
+int _columnsAt(double width, {required int? userColumns}) {
+  if (userColumns == null) return _mangaGridColumnsAt(width);
+  return userColumns;
 }
 
 /// The derived count at [width], with the media query replaced by the number.

@@ -18,6 +18,7 @@ import 'package:yomou/core/widgets/ios/ios_sheet.dart';
 import 'package:yomou/core/widgets/ios/ios_toast.dart';
 import 'package:yomou/core/widgets/manga_grid_metrics.dart';
 import 'package:yomou/core/widgets/responsive.dart' show usesWideLayout;
+import 'package:yomou/features/settings/providers/grid_density_provider.dart';
 import 'package:yomou/core/providers/incognito_provider.dart';
 import 'package:yomou/features/history/providers/history_provider.dart';
 import 'package:yomou/features/history/screens/reading_statistics_screen.dart';
@@ -92,16 +93,16 @@ class _HistoryScreenState extends ConsumerState<HistoryScreen> {
   String _searchQuery = '';
 
   String _listMode = 'Grid';
-  /// Column count as the slider holds it, not the column count the grid
-  /// renders.
+
+  /// The reader's density choice, from the one preference all four manga grids
+  /// share. Null means auto: derive the count from the width.
   ///
-  /// Kept as a double because the grid-size setting is shared with the
-  /// manga-grid screen, which stores it the same way. The grid may show more
-  /// columns than this on a wide window, so the slider label reads the
-  /// resolved count rather than this number - otherwise moving the slider on a
-  /// tablet would appear to do nothing, because the derived count already
-  /// exceeds every position on it.
-  double _gridSize = 3;
+  /// Kept as a field rather than read from the provider everywhere because the
+  /// grid resolves its columns inside a [SliverLayoutBuilder], which runs
+  /// during layout rather than during build -- watching a provider there is not
+  /// allowed. It is synced from the provider at the top of [build].
+  int? _gridSize;
+
   String _sortingOrder = 'Last read';
   bool _isGrouped = true;
 
@@ -142,14 +143,12 @@ class _HistoryScreenState extends ConsumerState<HistoryScreen> {
     final prefs = await SharedPreferences.getInstance();
 
     final listMode = prefs.getString('history_list_mode') ?? 'Grid';
-    final gridSize = prefs.getDouble('history_grid_size') ?? 3.0;
     final sortingOrder =
         prefs.getString('history_sorting_order') ?? 'Last read';
     final isGrouped = prefs.getBool('history_is_grouped') ?? true;
 
     setState(() {
       _listMode = listMode;
-      _gridSize = gridSize;
       _sortingOrder = sortingOrder;
       _isGrouped = isGrouped;
     });
@@ -492,9 +491,6 @@ class _HistoryScreenState extends ConsumerState<HistoryScreen> {
   void _showListOptionsSheet(BuildContext context) {
     showIosSheet(
       context,
-      // Scroll-controlled: this sheet holds the mode tabs, the grid-size
-      // slider and the sort order, and at the default 9/16 height cap the
-      // last item is clipped by a couple of pixels.
       isScrollControlled: true,
       builder: (context) {
         return StatefulBuilder(
@@ -573,17 +569,6 @@ class _HistoryScreenState extends ConsumerState<HistoryScreen> {
                     ],
                   ),
                   const SizedBox(height: 8),
-                  if (usesWideLayout(context))
-                  Padding(
-                    padding: const EdgeInsets.only(bottom: 8),
-                    child: Text(
-                      AppLocalizations.of(context).rsetDefaultsNote,
-                      style: TextStyle(
-                        color: dark ? Colors.white38 : Colors.black38,
-                        fontSize: 11,
-                      ),
-                    ),
-                  ),
                   SliderTheme(
                     data: SliderTheme.of(context).copyWith(
                       trackHeight: 6,
@@ -616,29 +601,44 @@ class _HistoryScreenState extends ConsumerState<HistoryScreen> {
                     child: Slider(
                       // Reversed so that dragging right means "more columns",
                       // which is what the track reads as going.
-                      value: mangaGridSliderPositionForColumns(_gridSize),
+                      //
+                      // Always live. It used to be disabled on a wide window,
+                      // where the count was derived from the width and the
+                      // stored number was only ever a floor -- a control that
+                      // could be dragged without changing a single pixel. The
+                      // density is now the reader's everywhere, so moving it
+                      // does change the grid on a tablet too.
+                      value: mangaGridSliderPositionForColumns(
+                        // The label can read higher than the track goes: on a
+                        // wide window with no stored choice the width resolves
+                        // eight columns and the slider's range stops at six.
+                        // Show the count, but park the thumb on the end.
+                        (_gridSize ?? _resolvedColumns(context))
+                            .clamp(
+                              kMangaGridSliderMinColumns,
+                              kMangaGridSliderMaxColumns,
+                            )
+                            .toDouble(),
+                      ),
                       min: kMangaGridSliderMinColumns.toDouble(),
                       max: kMangaGridSliderMaxColumns.toDouble(),
                       divisions:
                           kMangaGridSliderMaxColumns -
                           kMangaGridSliderMinColumns,
-                      onChanged: usesWideLayout(context)
-                      // The window width already decides the count on a
-                      // wide layout, and the slider is a floor at best, so
-                      // letting it be dragged would change the stored
-                      // number without changing a single pixel - a control
-                      // that looks live and is not. Disabled here, with
-                      // the note above saying why.
-                    ? null
-                    : (value) {
+                      onChanged: (value) {
                         final actualColumns =
-                            mangaGridColumnsForSliderPosition(value).toDouble();
+                            mangaGridColumnsForSliderPosition(value);
 
                         setSheetState(() {
-                            _gridSize = actualColumns;
+                          _gridSize = actualColumns;
                         });
                         setState(() {});
-                        _savePreference('history_grid_size', actualColumns);
+                        // One preference for every manga grid, so this choice
+                        // follows the reader to explore, search and the
+                        // source browser as well.
+                        ref
+                            .read(gridDensityProvider.notifier)
+                            .setColumns(actualColumns);
                       },
                     ),
                   ),
@@ -782,7 +782,7 @@ class _HistoryScreenState extends ConsumerState<HistoryScreen> {
   int _resolvedColumns(BuildContext context, [double? availableWidth]) =>
       mangaGridColumnsFor(
         context,
-        userColumns: _gridSize.toInt(),
+        userColumns: _gridSize,
         availableWidth: availableWidth,
       );
 
@@ -1003,6 +1003,7 @@ class _HistoryScreenState extends ConsumerState<HistoryScreen> {
   @override
   Widget build(BuildContext context) {
     final appearance = ref.watch(appearanceSettingsProvider);
+    _gridSize = ref.watch(gridDensityProvider);
 
     final filteredList = _historyItems.where(_matchesHistoryFilter).toList();
 
@@ -1606,7 +1607,6 @@ class _HistoryScreenState extends ConsumerState<HistoryScreen> {
                 final item = items[index];
                 return GridHistoryCard(
                   item: item,
-                  gridSize: _gridSize,
                   columns: columns,
                   isSelected: _selectedMangaIds.contains(item['mangaId']),
                   onTap: () => _handleGridCardTap(context, item),
@@ -1624,15 +1624,14 @@ class _HistoryScreenState extends ConsumerState<HistoryScreen> {
 
 class GridHistoryCard extends StatefulWidget {
   final Map<String, dynamic> item;
-  final double gridSize;
 
-  /// Columns the grid actually resolved to, not [gridSize].
+  /// Columns the grid actually resolved to.
   ///
   /// The card shrinks its title at four columns, so it has to be told how many
-  /// columns there really are: on a wide layout the count is derived from the
-  /// window and can be well past the stored setting, and a card still painting
-  /// a 12pt title into a cell measured for 10pt is what pushes the second line
-  /// out of the cell.
+  /// columns there really are: with no stored density the count is derived from
+  /// the window and can be well past any position on the slider, and a card
+  /// still painting a 12pt title into a cell measured for 10pt is what pushes
+  /// the second line out of the cell.
   final int columns;
 
   final bool isSelected;
@@ -1642,7 +1641,6 @@ class GridHistoryCard extends StatefulWidget {
   const GridHistoryCard({
     super.key,
     required this.item,
-    required this.gridSize,
     required this.columns,
     this.isSelected = false,
     required this.onTap,

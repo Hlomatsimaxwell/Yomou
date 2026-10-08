@@ -23,6 +23,7 @@ import 'package:yomou/data/models/manga.dart';
 import 'package:yomou/data/models/manga_filter.dart';
 import 'package:yomou/data/providers/sources_provider.dart';
 import 'package:yomou/features/settings/providers/appearance_provider.dart';
+import 'package:yomou/features/settings/providers/grid_density_provider.dart';
 import 'package:yomou/features/source_management/screens/manga_filter_sheet.dart';
 import 'package:yomou/features/source_management/widgets/manga_preview_pane.dart';
 import 'package:yomou/features/source_management/screens/source_settings_screen.dart';
@@ -67,7 +68,14 @@ class _MangaGridScreenState extends ConsumerState<MangaGridScreen> {
 
   // Grid layout preferences (mirrors history/suggestions list options).
   String _listMode = 'Grid';
-  double _gridSize = 3;
+
+  /// The density the reader chose, from the one preference all manga grids
+  /// share. Null means auto: derive the count from the width.
+  ///
+  /// Assigned at the top of [build] rather than watched in place because the
+  /// grid resolves its columns inside a [LayoutBuilder], which runs during
+  /// layout -- after build -- where watching a provider is not allowed.
+  int? _gridSize;
 
   // Continuous ("endless") scrolling state: page 1 loads first, then scrolling
   // near the bottom fetches the next page and appends it, forever.
@@ -94,11 +102,9 @@ class _MangaGridScreenState extends ConsumerState<MangaGridScreen> {
   Future<void> _loadLayoutPrefs() async {
     final prefs = await SharedPreferences.getInstance();
     final mode = prefs.getString('manga_grid_list_mode') ?? 'Grid';
-    final size = prefs.getDouble('manga_grid_grid_size') ?? 3.0;
     if (!mounted) return;
     setState(() {
       _listMode = mode;
-      _gridSize = size;
     });
   }
 
@@ -377,6 +383,7 @@ class _MangaGridScreenState extends ConsumerState<MangaGridScreen> {
 
   @override
   Widget build(BuildContext context) {
+    _gridSize = ref.watch(gridDensityProvider);
     final dark = Theme.of(context).brightness == Brightness.dark;
     final scheme = Theme.of(context).colorScheme;
 
@@ -841,7 +848,9 @@ class _MangaGridScreenState extends ConsumerState<MangaGridScreen> {
                           ),
                         ),
                         Text(
-                          _l.sourceGridSizeColumns(_gridSize.toInt()),
+                          _l.sourceGridSizeColumns(
+                            _gridSize ?? mangaGridColumns(context),
+                          ),
                           style: TextStyle(
                             color: dark ? Colors.white54 : Colors.black54,
                             fontSize: 12,
@@ -851,23 +860,42 @@ class _MangaGridScreenState extends ConsumerState<MangaGridScreen> {
                     ),
                     const SizedBox(height: 8),
                     Slider(
-                      value: 7 - _gridSize,
-                      // Exactly the range the grid clamps to. This used to span
-                      // 1..6 while the grid clamped to 2..5, so the two ends of
-                      // the slider did nothing: picking 6 showed 5 and picking
-                      // 1 showed 2.
-                      min: 2,
-                      max: 5,
-                      divisions: 3,
+                      // The same track every other manga grid uses. This one
+                      // had its own 2..5 range and its own `7 - value`
+                      // arithmetic, so a reader who set a density here got a
+                      // different number than the same slider gave elsewhere,
+                      // and the ends of neither agreed with what the grid drew.
+                      value: mangaGridSliderPositionForColumns(
+                        // The label can read past the track: with no stored
+                        // choice the width decides, and a wide window decides
+                        // more than six.
+                        (_gridSize ?? mangaGridColumns(context))
+                            .clamp(
+                              kMangaGridSliderMinColumns,
+                              kMangaGridSliderMaxColumns,
+                            )
+                            .toDouble(),
+                      ),
+                      min: kMangaGridSliderMinColumns.toDouble(),
+                      max: kMangaGridSliderMaxColumns.toDouble(),
+                      divisions:
+                          kMangaGridSliderMaxColumns -
+                          kMangaGridSliderMinColumns,
                       activeColor: dark
                           ? Colors.white
                           : Theme.of(context).colorScheme.primary,
                       inactiveColor: dark ? Colors.white12 : Colors.black12,
                       onChanged: (value) {
-                        final actualColumns = 7 - value;
+                        final actualColumns =
+                            mangaGridColumnsForSliderPosition(value);
                         setSheetState(() => _gridSize = actualColumns);
                         setState(() {});
-                        _saveLayoutPref('manga_grid_grid_size', actualColumns);
+                        // One density for every manga grid, so a choice made
+                        // for a source catalogue also holds on History and
+                        // Favourites.
+                        ref
+                            .read(gridDensityProvider.notifier)
+                            .setColumns(actualColumns);
                       },
                     ),
                   ],
@@ -998,12 +1026,12 @@ class _MangaGridScreenState extends ConsumerState<MangaGridScreen> {
       );
     }
 
-    // Clamped to the same ceiling every other manga grid uses. It was 5 here
-    // and nowhere else, which made this the one screen where the derived
-    // count could be thrown away: a wide window resolves 8 columns and 5 was
-    // substituted, so a source catalogue showed five oversized covers beside
-    // eight compact ones on History. The bound is shared rather than written
-    // out so the two cannot drift apart again.
+    // On auto this resolves the same count as every other manga grid, because
+    // the ceiling lives in [mangaGridColumns] rather than at each call site. It
+    // used to be clamped to 5 here and nowhere else, which made this the one
+    // screen where a wide window's eight columns were thrown away: a source
+    // catalogue showed five oversized covers beside eight compact ones on
+    // History. When the reader has chosen a density, that choice is used as-is.
     return Padding(
       padding: const EdgeInsets.symmetric(horizontal: 16),
       // Measured from the constraints rather than the viewport: on a wide
@@ -1016,9 +1044,9 @@ class _MangaGridScreenState extends ConsumerState<MangaGridScreen> {
           final width = constraints.maxWidth;
           final columns = mangaGridColumnsFor(
             context,
-            userColumns: _gridSize.round(),
+            userColumns: _gridSize,
             availableWidth: width,
-          ).clamp(2, kMangaGridMaxColumns);
+          );
           final fontSize = mangaCardTitleFontSize(columns);
           return GridView.builder(
             shrinkWrap: true,

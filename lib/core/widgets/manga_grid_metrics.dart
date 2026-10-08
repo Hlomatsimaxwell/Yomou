@@ -1,7 +1,5 @@
 import 'package:flutter/widgets.dart';
 
-import 'responsive.dart';
-
 /// Shared geometry for the manga-cover grids used across the app
 /// (2:3 cover + title). Keeps every grid's row density identical and
 /// computed from the actual viewport so cells never carry dead space.
@@ -84,27 +82,26 @@ int mangaGridColumns(
   return fit.clamp(minColumns, maxColumns);
 }
 
-/// Columns for a grid whose density the user chose themselves.
+/// Columns for a grid whose density the reader chose themselves.
 ///
-/// The choice was made for the screen it was made on, so anywhere short of a
-/// wide layout it is honoured exactly as-is and nothing about the phone
-/// changes at any angle -- including landscape, which is wide but is still a
-/// phone. In a wide window it becomes a floor rather than a value: a tablet
-/// gets at least what was asked for, and more when the width affords it.
+/// The choice is honoured exactly, on a wide window as on a phone. It used to
+/// become a floor past the wide-layout threshold instead: a tablet derived its
+/// own count from the width and took whichever was larger, which meant the
+/// slider could make covers smaller but never bigger -- and "bigger" is half of
+/// what a density control is for. A reader who wants four enormous covers on a
+/// twelve-inch display asked for four enormous covers.
 ///
-/// The asymmetry is deliberate. Ignoring the setting outright on a tablet
-/// would strand anyone who deliberately wants a dense grid, while obeying it
-/// as a value would turn a 3-column phone choice into three enormous covers on
-/// a 12" display -- and width only ever adds density here, so the setting can
-/// never end up coarser than what was requested.
+/// Pass null for [userColumns] to get the derived count instead, which is what
+/// a grid does when the reader has never expressed a preference.
 int mangaGridColumnsFor(
   BuildContext context, {
-  required int userColumns,
+  required int? userColumns,
   double? availableWidth,
 }) {
-  if (!usesWideLayout(context)) return userColumns;
-  final derived = mangaGridColumns(context, availableWidth: availableWidth);
-  return derived > userColumns ? derived : userColumns;
+  if (userColumns == null) {
+    return mangaGridColumns(context, availableWidth: availableWidth);
+  }
+  return userColumns;
 }
 
 /// Columns at which a card's title drops to the smaller size.

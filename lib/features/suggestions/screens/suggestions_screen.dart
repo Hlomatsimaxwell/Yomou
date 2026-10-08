@@ -22,6 +22,7 @@ import 'package:yomou/core/widgets/manga_grid_metrics.dart';
 import 'package:yomou/l10n/generated/app_localizations.dart';
 import 'package:yomou/core/widgets/search_bar.dart';
 import 'package:yomou/features/settings/providers/cache_settings_provider.dart';
+import 'package:yomou/features/settings/providers/grid_density_provider.dart';
 import 'package:yomou/features/settings/screens/manga_sources_settings_screen.dart';
 import 'package:yomou/features/settings/screens/settings_screen.dart';
 
@@ -39,7 +40,10 @@ class _SuggestionsScreenState extends ConsumerState<SuggestionsScreen> {
   bool _refreshing = false;
 
   String _listMode = 'Grid';
-  double _gridSize = 3;
+
+  /// The density the reader chose, from the one preference all manga grids
+  /// share. Null means auto: derive the count from the width.
+  int? _gridSize;
 
   @override
   void initState() {
@@ -52,7 +56,6 @@ class _SuggestionsScreenState extends ConsumerState<SuggestionsScreen> {
     if (!mounted) return;
     setState(() {
       _listMode = prefs.getString('suggestions_list_mode') ?? 'Grid';
-      _gridSize = prefs.getDouble('suggestions_grid_size') ?? 3.0;
     });
   }
 
@@ -95,6 +98,7 @@ class _SuggestionsScreenState extends ConsumerState<SuggestionsScreen> {
 
   @override
   Widget build(BuildContext context) {
+    _gridSize = ref.watch(gridDensityProvider);
     // Passing _selectedGenre as the family key; provider re-fetches when it changes.
     final suggestionsAsync = ref.watch(suggestionsProvider(_selectedGenre));
     final genreTagsAsync = ref.watch(genreTagsProvider);
@@ -417,22 +421,32 @@ class _SuggestionsScreenState extends ConsumerState<SuggestionsScreen> {
                             : Colors.black26,
                       ),
                       child: Slider(
-                        value: mangaGridSliderPositionForColumns(_gridSize),
+                        // Always live: the density is the reader's on a wide
+                        // window too, so a tablet can be made denser or
+                        // coarser instead of being handed the derived count.
+                        value: mangaGridSliderPositionForColumns(
+                          (_gridSize ?? _resolvedColumns(context))
+                              .clamp(
+                                kMangaGridSliderMinColumns,
+                                kMangaGridSliderMaxColumns,
+                              )
+                              .toDouble(),
+                        ),
                         min: kMangaGridSliderMinColumns.toDouble(),
                         max: kMangaGridSliderMaxColumns.toDouble(),
                         divisions: kMangaGridSliderMaxColumns -
                             kMangaGridSliderMinColumns,
                         onChanged: (value) {
                           final actualColumns =
-                              mangaGridColumnsForSliderPosition(value).toDouble();
+                              mangaGridColumnsForSliderPosition(value);
                           setSheetState(() {
                             _gridSize = actualColumns;
                           });
                           setState(() {});
-                          _savePreference(
-                            'suggestions_grid_size',
-                            actualColumns,
-                          );
+                          // One density for every manga grid.
+                          ref
+                              .read(gridDensityProvider.notifier)
+                              .setColumns(actualColumns);
                         },
                       ),
                     ),
@@ -847,7 +861,7 @@ class _SuggestionsScreenState extends ConsumerState<SuggestionsScreen> {
   int _resolvedColumns(BuildContext context, [double? availableWidth]) =>
       mangaGridColumnsFor(
         context,
-        userColumns: _gridSize.round(),
+        userColumns: _gridSize,
         availableWidth: availableWidth,
       );
 

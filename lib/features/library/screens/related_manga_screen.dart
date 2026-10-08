@@ -1,5 +1,6 @@
 import 'package:yomou/widgets/cached_manga_image.dart';
 import 'package:flutter/material.dart';
+import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:remixicon/remixicon.dart';
 import 'package:yomou/data/models/manga.dart';
 import 'package:yomou/features/library/screens/manga_detail_screen.dart';
@@ -8,10 +9,11 @@ import 'package:yomou/features/library/widgets/favorite_badge.dart';
 import 'package:yomou/core/widgets/ios/ios_menu.dart';
 import 'package:yomou/core/widgets/ios/ios_sheet.dart';
 import 'package:yomou/core/widgets/manga_grid_metrics.dart';
+import 'package:yomou/features/settings/providers/grid_density_provider.dart';
 
 enum ListMode { compact, details, grid }
 
-class RelatedMangaScreen extends StatefulWidget {
+class RelatedMangaScreen extends ConsumerStatefulWidget {
   final String title;
   final List<Manga>? relatedManga;
 
@@ -22,12 +24,16 @@ class RelatedMangaScreen extends StatefulWidget {
   });
 
   @override
-  State<RelatedMangaScreen> createState() => _RelatedMangaScreenState();
+  ConsumerState<RelatedMangaScreen> createState() =>
+      _RelatedMangaScreenState();
 }
 
-class _RelatedMangaScreenState extends State<RelatedMangaScreen> {
+class _RelatedMangaScreenState extends ConsumerState<RelatedMangaScreen> {
   ListMode _selectedMode = ListMode.grid;
-  double _gridSize = 3.0; // 2, 3, or 4 columns
+
+  /// The density the reader chose, from the one preference all manga grids
+  /// share. Null means auto: derive the count from the width.
+  int? _gridSize;
 
   final List<Manga> _fallbackItems = [
     Manga(
@@ -162,13 +168,36 @@ class _RelatedMangaScreenState extends State<RelatedMangaScreen> {
                         trackHeight: 12,
                       ),
                       child: Slider(
-                        value: _gridSize,
-                        min: 2.0,
-                        max: 4.0,
-                        divisions: 2,
-                        onChanged: (val) {
-                          setSheetState(() => _gridSize = val);
-                          setState(() => _gridSize = val);
+                        // Same track and same direction as every other manga
+                        // grid's slider. This one kept its own 2..4 range with
+                        // the value passed straight through, so the thumb sat
+                        // at the opposite end from the four screens that
+                        // reverse it -- drag right here and you got more
+                        // columns, drag right there and you got fewer.
+                        value: mangaGridSliderPositionForColumns(
+                          (_gridSize ?? mangaGridColumns(context))
+                              .clamp(
+                                kMangaGridSliderMinColumns,
+                                kMangaGridSliderMaxColumns,
+                              )
+                              .toDouble(),
+                        ),
+                        min: kMangaGridSliderMinColumns.toDouble(),
+                        max: kMangaGridSliderMaxColumns.toDouble(),
+                        divisions:
+                            kMangaGridSliderMaxColumns -
+                            kMangaGridSliderMinColumns,
+                        onChanged: (value) {
+                          final columns = mangaGridColumnsForSliderPosition(
+                            value,
+                          );
+                          setSheetState(() => _gridSize = columns);
+                          setState(() {});
+                          // One density for every manga grid, so this choice
+                          // follows the reader back to History and Favourites.
+                          ref
+                              .read(gridDensityProvider.notifier)
+                              .setColumns(columns);
                         },
                       ),
                     ),
@@ -237,6 +266,7 @@ class _RelatedMangaScreenState extends State<RelatedMangaScreen> {
 
   @override
   Widget build(BuildContext context) {
+    _gridSize = ref.watch(gridDensityProvider);
     final dark = Theme.of(context).brightness == Brightness.dark;
     return Scaffold(
       backgroundColor: Theme.of(context).scaffoldBackgroundColor,
@@ -296,10 +326,7 @@ class _RelatedMangaScreenState extends State<RelatedMangaScreen> {
     final items = _items;
     switch (_selectedMode) {
       case ListMode.grid:
-        final columns = mangaGridColumnsFor(
-          context,
-          userColumns: _gridSize.toInt(),
-        ).clamp(2, 4);
+        final columns = mangaGridColumnsFor(context, userColumns: _gridSize);
         return GridView.builder(
           padding: const EdgeInsets.symmetric(horizontal: 16),
           gridDelegate: SliverGridDelegateWithFixedCrossAxisCount(

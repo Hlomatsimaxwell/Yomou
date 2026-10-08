@@ -2,7 +2,6 @@ import 'package:yomou/widgets/cached_manga_image.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:remixicon/remixicon.dart';
-import 'package:shared_preferences/shared_preferences.dart';
 import 'package:yomou/data/models/manga.dart';
 import 'package:yomou/features/library/providers/favorites_provider.dart';
 import 'package:yomou/features/library/widgets/downloaded_badge.dart';
@@ -15,6 +14,7 @@ import 'package:yomou/core/widgets/ios/ios_sheet.dart';
 import 'package:yomou/core/widgets/tab_header.dart';
 import 'package:yomou/core/widgets/responsive.dart' show usesWideLayout;
 import 'package:yomou/core/widgets/manga_grid_metrics.dart';
+import 'package:yomou/features/settings/providers/grid_density_provider.dart';
 import 'package:yomou/l10n/generated/app_localizations.dart';
 import 'package:yomou/core/widgets/search_bar.dart';
 
@@ -29,36 +29,13 @@ class _FavoritesScreenState extends ConsumerState<FavoritesScreen> {
   final TextEditingController _searchController = TextEditingController();
   String _searchQuery = '';
 
-  /// The density the user chose for this grid, in columns.
+  /// The density the reader chose, from the one preference all manga grids
+  /// share. Null means auto: derive the count from the width.
   ///
-  /// Stored per screen rather than shared with History and Suggestions, which
-  /// keep their own. One global setting would have been less code, but it would
-  /// also have meant a grid that reads well in Favourites -- where the cards are
-  /// the only thing on screen -- being dragged to a density chosen for a list
-  /// with a progress bar in it, or the other way round. Same default as both, so
-  /// nothing moves until it is touched.
-  double _gridSize = 3;
-
-  @override
-  void initState() {
-    super.initState();
-    _loadPreferences();
-  }
-
-  Future<void> _loadPreferences() async {
-    final prefs = await SharedPreferences.getInstance();
-    if (!mounted) return;
-    setState(() {
-      _gridSize = prefs.getDouble('favorites_grid_size') ?? 3.0;
-    });
-  }
-
-  Future<void> _savePreference(String key, dynamic value) async {
-    final prefs = await SharedPreferences.getInstance();
-    if (value is double) {
-      await prefs.setDouble(key, value);
-    }
-  }
+  /// Synced from the provider at the top of [build] rather than watched in
+  /// place, because the grid resolves its columns inside a layout builder that
+  /// runs after build.
+  int? _gridSize;
 
   @override
   void dispose() {
@@ -68,6 +45,7 @@ class _FavoritesScreenState extends ConsumerState<FavoritesScreen> {
 
   @override
   Widget build(BuildContext context) {
+    _gridSize = ref.watch(gridDensityProvider);
     final favoritesAsync = ref.watch(favoritesProvider);
 
     return Scaffold(
@@ -218,17 +196,6 @@ class _FavoritesScreenState extends ConsumerState<FavoritesScreen> {
                     ],
                   ),
                   const SizedBox(height: 8),
-                  if (usesWideLayout(context))
-                    Padding(
-                      padding: const EdgeInsets.only(bottom: 8),
-                      child: Text(
-                        AppLocalizations.of(context).rsetDefaultsNote,
-                        style: TextStyle(
-                          color: dark ? Colors.white38 : Colors.black38,
-                          fontSize: 11,
-                        ),
-                      ),
-                    ),
                   SliderTheme(
                     data: SliderTheme.of(context).copyWith(
                       trackHeight: 6,
@@ -259,32 +226,37 @@ class _FavoritesScreenState extends ConsumerState<FavoritesScreen> {
                           : Colors.black26,
                     ),
                     child: Slider(
-                      value: mangaGridSliderPositionForColumns(_gridSize),
+                      // Always live. It used to be disabled on a wide layout,
+                      // where the width decided the count and this was only a
+                      // floor -- dragging it moved a stored number and not a
+                      // single pixel. The density is the reader's everywhere
+                      // now, so a tablet changes with it too.
+                      value: mangaGridSliderPositionForColumns(
+                        (_gridSize ?? _resolvedColumns(context))
+                            .clamp(
+                              kMangaGridSliderMinColumns,
+                              kMangaGridSliderMaxColumns,
+                            )
+                            .toDouble(),
+                      ),
                       min: kMangaGridSliderMinColumns.toDouble(),
                       max: kMangaGridSliderMaxColumns.toDouble(),
                       divisions:
                           kMangaGridSliderMaxColumns -
                           kMangaGridSliderMinColumns,
-                      // Same reasoning as the history sheet: on a wide layout
-                      // the width decides the count and this is only a floor,
-                      // so dragging it would move a stored number and not a
-                      // single pixel.
-                      onChanged: usesWideLayout(context)
-                          ? null
-                          : (value) {
-                              final actualColumns =
-                                  mangaGridColumnsForSliderPosition(
-                                    value,
-                                  ).toDouble();
-                              setSheetState(() {
-                                _gridSize = actualColumns;
-                              });
-                              setState(() {});
-                              _savePreference(
-                                'favorites_grid_size',
-                                actualColumns,
-                              );
-                            },
+                      onChanged: (value) {
+                        final actualColumns =
+                            mangaGridColumnsForSliderPosition(value);
+                        setSheetState(() {
+                          _gridSize = actualColumns;
+                        });
+                        setState(() {});
+                        // One density for every manga grid, so this choice
+                        // follows the reader to the other tabs as well.
+                        ref
+                            .read(gridDensityProvider.notifier)
+                            .setColumns(actualColumns);
+                      },
                     ),
                   ),
                 ],
@@ -299,14 +271,14 @@ class _FavoritesScreenState extends ConsumerState<FavoritesScreen> {
   /// Columns the favourites grid actually renders.
   ///
   /// Read from here rather than from [_gridSize] wherever the number is shown or
-  /// measured: on a wide layout the two differ, because the derived count can sit
-  /// above every position on the slider. Without this the grid asked for
+  /// measured: on auto the two differ, because the derived count can sit above
+  /// every position on the slider. Without this the grid asked for
   /// [mangaGridColumns], which honours no stored choice at all, so the cards were
   /// a different size here than on the two grids that do keep a setting.
   int _resolvedColumns(BuildContext context, [double? availableWidth]) =>
       mangaGridColumnsFor(
         context,
-        userColumns: _gridSize.round(),
+        userColumns: _gridSize,
         availableWidth: availableWidth,
       );
 
