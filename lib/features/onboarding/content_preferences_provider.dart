@@ -1,6 +1,8 @@
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 
+import 'package:yomou/features/onboarding/source_presets_provider.dart';
+
 /// Set once the welcome sheet has been completed.
 ///
 /// Read on the first build to decide whether the sheet is presented at all, so
@@ -167,9 +169,11 @@ Future<void> markWelcomeCompleted() async {
 }
 
 class ContentPreferencesNotifier extends StateNotifier<ContentPreferences> {
-  ContentPreferencesNotifier() : super(const ContentPreferences()) {
+  ContentPreferencesNotifier(this._ref) : super(const ContentPreferences()) {
     _load();
   }
+
+  final Ref _ref;
 
   Future<void> _load() async {
     final p = await SharedPreferences.getInstance();
@@ -189,6 +193,12 @@ class ContentPreferencesNotifier extends StateNotifier<ContentPreferences> {
 
   void toggleFormat(String value) => _toggle(state.formats, value, false);
 
+  /// Replaces the entire language selection with [languages].
+  void setLanguages(Set<String> languages) {
+    state = state.copyWith(languages: {...languages});
+    _persist();
+  }
+
   void _toggle(Set<String> current, String value, bool isLanguage) {
     final next = {...current};
     if (!next.remove(value)) next.add(value);
@@ -202,10 +212,11 @@ class ContentPreferencesNotifier extends StateNotifier<ContentPreferences> {
     final p = await SharedPreferences.getInstance();
     await p.setStringList(_languagesKey, state.languages.toList());
     await p.setStringList(_formatsKey, state.formats.toList());
+    _ref.read(sourcePresetsProvider.notifier).syncLanguages(state.languages);
   }
 }
 
 final contentPreferencesProvider =
     StateNotifierProvider<ContentPreferencesNotifier, ContentPreferences>(
-      (ref) => ContentPreferencesNotifier(),
+      (ref) => ContentPreferencesNotifier(ref),
     );

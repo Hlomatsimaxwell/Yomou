@@ -1230,4 +1230,28 @@
   "formatManhwa": "Manhwa",
   "formatManhua": "Manhua",
   "formatNovel": "Novela"
+,
+  "presetsAllSources": "Todas las fuentes",
+  "presetsMySources": "Mis fuentes",
+  "presetsManage": "Gestionar presets",
+  "presetsNew": "Nuevo preset",
+  "presetsEdit": "Editar preset",
+  "presetsDelete": "Eliminar preset",
+  "presetsDeleteConfirm": "¿Eliminar \"{name}\"?",
+  "@presetsDeleteConfirm": {
+    "placeholders": {
+      "name": {
+        "type": "String"
+      }
+    }
+  },
+  "presetsRename": "Renombrar preset",
+  "presetsNameHint": "Nombre del preset",
+  "presetsLanguages": "Idiomas",
+  "presetsCreateFromCurrent": "Guardar selección actual",
+  "presetsEmpty": "Aún no hay presets",
+  "presetsCancel": "Cancelar",
+  "presetsSave": "Guardar",
+  "presetsDeleteAction": "Eliminar",
+  "presetsDefaultName": "Mis fuentes"
 }

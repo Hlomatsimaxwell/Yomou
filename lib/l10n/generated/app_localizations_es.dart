@@ -2886,4 +2886,54 @@ class AppLocalizationsEs extends AppLocalizations {
 
   @override
   String get formatNovel => 'Novela';
+
+  @override
+  String get presetsAllSources => 'Todas las fuentes';
+
+  @override
+  String get presetsMySources => 'Mis fuentes';
+
+  @override
+  String get presetsManage => 'Gestionar presets';
+
+  @override
+  String get presetsNew => 'Nuevo preset';
+
+  @override
+  String get presetsEdit => 'Editar preset';
+
+  @override
+  String get presetsDelete => 'Eliminar preset';
+
+  @override
+  String presetsDeleteConfirm(String name) {
+    return '¿Eliminar \"$name\"?';
+  }
+
+  @override
+  String get presetsRename => 'Renombrar preset';
+
+  @override
+  String get presetsNameHint => 'Nombre del preset';
+
+  @override
+  String get presetsLanguages => 'Idiomas';
+
+  @override
+  String get presetsCreateFromCurrent => 'Guardar selección actual';
+
+  @override
+  String get presetsEmpty => 'Aún no hay presets';
+
+  @override
+  String get presetsCancel => 'Cancelar';
+
+  @override
+  String get presetsSave => 'Guardar';
+
+  @override
+  String get presetsDeleteAction => 'Eliminar';
+
+  @override
+  String get presetsDefaultName => 'Mis fuentes';
 }

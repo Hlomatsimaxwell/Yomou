@@ -2860,4 +2860,54 @@ class AppLocalizationsEn extends AppLocalizations {
 
   @override
   String get formatNovel => 'Novel';
+
+  @override
+  String get presetsAllSources => 'All sources';
+
+  @override
+  String get presetsMySources => 'My sources';
+
+  @override
+  String get presetsManage => 'Manage presets';
+
+  @override
+  String get presetsNew => 'New preset';
+
+  @override
+  String get presetsEdit => 'Edit preset';
+
+  @override
+  String get presetsDelete => 'Delete preset';
+
+  @override
+  String presetsDeleteConfirm(String name) {
+    return 'Delete \"$name\"?';
+  }
+
+  @override
+  String get presetsRename => 'Rename preset';
+
+  @override
+  String get presetsNameHint => 'Preset name';
+
+  @override
+  String get presetsLanguages => 'Languages';
+
+  @override
+  String get presetsCreateFromCurrent => 'Save current selection';
+
+  @override
+  String get presetsEmpty => 'No presets yet';
+
+  @override
+  String get presetsCancel => 'Cancel';
+
+  @override
+  String get presetsSave => 'Save';
+
+  @override
+  String get presetsDeleteAction => 'Delete';
+
+  @override
+  String get presetsDefaultName => 'My sources';
 }

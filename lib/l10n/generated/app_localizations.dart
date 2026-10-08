@@ -5166,6 +5166,102 @@ abstract class AppLocalizations {
   /// In en, this message translates to:
   /// **'Novel'**
   String get formatNovel;
+
+  /// No description provided for @presetsAllSources.
+  ///
+  /// In en, this message translates to:
+  /// **'All sources'**
+  String get presetsAllSources;
+
+  /// No description provided for @presetsMySources.
+  ///
+  /// In en, this message translates to:
+  /// **'My sources'**
+  String get presetsMySources;
+
+  /// No description provided for @presetsManage.
+  ///
+  /// In en, this message translates to:
+  /// **'Manage presets'**
+  String get presetsManage;
+
+  /// No description provided for @presetsNew.
+  ///
+  /// In en, this message translates to:
+  /// **'New preset'**
+  String get presetsNew;
+
+  /// No description provided for @presetsEdit.
+  ///
+  /// In en, this message translates to:
+  /// **'Edit preset'**
+  String get presetsEdit;
+
+  /// No description provided for @presetsDelete.
+  ///
+  /// In en, this message translates to:
+  /// **'Delete preset'**
+  String get presetsDelete;
+
+  /// No description provided for @presetsDeleteConfirm.
+  ///
+  /// In en, this message translates to:
+  /// **'Delete \"{name}\"?'**
+  String presetsDeleteConfirm(String name);
+
+  /// No description provided for @presetsRename.
+  ///
+  /// In en, this message translates to:
+  /// **'Rename preset'**
+  String get presetsRename;
+
+  /// No description provided for @presetsNameHint.
+  ///
+  /// In en, this message translates to:
+  /// **'Preset name'**
+  String get presetsNameHint;
+
+  /// No description provided for @presetsLanguages.
+  ///
+  /// In en, this message translates to:
+  /// **'Languages'**
+  String get presetsLanguages;
+
+  /// No description provided for @presetsCreateFromCurrent.
+  ///
+  /// In en, this message translates to:
+  /// **'Save current selection'**
+  String get presetsCreateFromCurrent;
+
+  /// No description provided for @presetsEmpty.
+  ///
+  /// In en, this message translates to:
+  /// **'No presets yet'**
+  String get presetsEmpty;
+
+  /// No description provided for @presetsCancel.
+  ///
+  /// In en, this message translates to:
+  /// **'Cancel'**
+  String get presetsCancel;
+
+  /// No description provided for @presetsSave.
+  ///
+  /// In en, this message translates to:
+  /// **'Save'**
+  String get presetsSave;
+
+  /// No description provided for @presetsDeleteAction.
+  ///
+  /// In en, this message translates to:
+  /// **'Delete'**
+  String get presetsDeleteAction;
+
+  /// No description provided for @presetsDefaultName.
+  ///
+  /// In en, this message translates to:
+  /// **'My sources'**
+  String get presetsDefaultName;
 }
 
 class _AppLocalizationsDelegate
