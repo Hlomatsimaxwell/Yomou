@@ -234,10 +234,17 @@ class _IosEndSheetShell extends StatelessWidget {
                         top: title == null ? 8 : 0,
                         bottom: 8,
                       ),
-                      // The scroll is the fallback for content taller than the
-                      // window, not the layout: short content lays out at its
-                      // own height and the panel ends where the content does.
-                      child: SingleChildScrollView(child: child),
+                      // No scroll view here, on purpose. The panel hands its
+                      // child a bounded height (the window, minus the header)
+                      // and leaves scrolling to the content: the chapter list's
+                      // tray is a Column with an Expanded in it, and an
+                      // Expanded inside a SingleChildScrollView is "children
+                      // have non-zero flex but incoming height constraints are
+                      // unbounded" -- a hard crash. Every sheet that can outgrow
+                      // the window already scrolls itself (they were bottom
+                      // sheets first), and short content hugs because the
+                      // column above this has MainAxisSize.min.
+                      child: child,
                     ),
                   ),
                 ],

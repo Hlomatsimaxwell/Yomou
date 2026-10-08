@@ -920,7 +920,7 @@ class _HistoryScreenState extends ConsumerState<HistoryScreen> {
                       color: fg.withValues(alpha: 0.9),
                     ),
                     const SizedBox(width: 14),
-                    Flexible(
+                    Expanded(
                       child: Text(
                         l.incognitoMode,
                         style: TextStyle(fontSize: 16, color: fg),
