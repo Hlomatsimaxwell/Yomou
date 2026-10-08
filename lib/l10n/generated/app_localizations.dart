@@ -4986,6 +4986,186 @@ abstract class AppLocalizations {
   /// In en, this message translates to:
   /// **'Show menu'**
   String get ractActionShowMenu;
+
+  /// No description provided for @welcomeTitle.
+  ///
+  /// In en, this message translates to:
+  /// **'Welcome'**
+  String get welcomeTitle;
+
+  /// No description provided for @welcomeIntro.
+  ///
+  /// In en, this message translates to:
+  /// **'Yomou reads from community sources that each publish in their own languages and formats. Pick what you read and Explore, Search and Suggestions will favour it. Nothing here is permanent — you can change it later in Settings.'**
+  String get welcomeIntro;
+
+  /// No description provided for @welcomeRestoreBackup.
+  ///
+  /// In en, this message translates to:
+  /// **'Restore from backup'**
+  String get welcomeRestoreBackup;
+
+  /// No description provided for @welcomeLoginSync.
+  ///
+  /// In en, this message translates to:
+  /// **'Login to sync account'**
+  String get welcomeLoginSync;
+
+  /// No description provided for @welcomeComingSoon.
+  ///
+  /// In en, this message translates to:
+  /// **'Coming soon'**
+  String get welcomeComingSoon;
+
+  /// No description provided for @welcomeLocalDirs.
+  ///
+  /// In en, this message translates to:
+  /// **'Local manga directories'**
+  String get welcomeLocalDirs;
+
+  /// No description provided for @welcomeLanguages.
+  ///
+  /// In en, this message translates to:
+  /// **'Languages'**
+  String get welcomeLanguages;
+
+  /// No description provided for @welcomeType.
+  ///
+  /// In en, this message translates to:
+  /// **'Type'**
+  String get welcomeType;
+
+  /// No description provided for @welcomeStart.
+  ///
+  /// In en, this message translates to:
+  /// **'Start reading'**
+  String get welcomeStart;
+
+  /// No description provided for @backupRestoreDone.
+  ///
+  /// In en, this message translates to:
+  /// **'Restored {count} items'**
+  String backupRestoreDone(int count);
+
+  /// No description provided for @backupRestoreKeptNewer.
+  ///
+  /// In en, this message translates to:
+  /// **'{count} kept — already further along on this device'**
+  String backupRestoreKeptNewer(int count);
+
+  /// No description provided for @backupRestoreNone.
+  ///
+  /// In en, this message translates to:
+  /// **'Nothing to restore in that file'**
+  String get backupRestoreNone;
+
+  /// No description provided for @settingsContentPreferences.
+  ///
+  /// In en, this message translates to:
+  /// **'Content preferences'**
+  String get settingsContentPreferences;
+
+  /// No description provided for @settingsContentPreferencesSubtitle.
+  ///
+  /// In en, this message translates to:
+  /// **'The languages and formats you read'**
+  String get settingsContentPreferencesSubtitle;
+
+  /// No description provided for @langEnglish.
+  ///
+  /// In en, this message translates to:
+  /// **'English'**
+  String get langEnglish;
+
+  /// No description provided for @langSpanish.
+  ///
+  /// In en, this message translates to:
+  /// **'Spanish'**
+  String get langSpanish;
+
+  /// No description provided for @langPortuguese.
+  ///
+  /// In en, this message translates to:
+  /// **'Portuguese'**
+  String get langPortuguese;
+
+  /// No description provided for @langFrench.
+  ///
+  /// In en, this message translates to:
+  /// **'French'**
+  String get langFrench;
+
+  /// No description provided for @langJapanese.
+  ///
+  /// In en, this message translates to:
+  /// **'Japanese'**
+  String get langJapanese;
+
+  /// No description provided for @langKorean.
+  ///
+  /// In en, this message translates to:
+  /// **'Korean'**
+  String get langKorean;
+
+  /// No description provided for @langChinese.
+  ///
+  /// In en, this message translates to:
+  /// **'Chinese'**
+  String get langChinese;
+
+  /// No description provided for @langArabic.
+  ///
+  /// In en, this message translates to:
+  /// **'Arabic'**
+  String get langArabic;
+
+  /// No description provided for @langRussian.
+  ///
+  /// In en, this message translates to:
+  /// **'Russian'**
+  String get langRussian;
+
+  /// No description provided for @langItalian.
+  ///
+  /// In en, this message translates to:
+  /// **'Italian'**
+  String get langItalian;
+
+  /// No description provided for @langGerman.
+  ///
+  /// In en, this message translates to:
+  /// **'German'**
+  String get langGerman;
+
+  /// No description provided for @langIndonesian.
+  ///
+  /// In en, this message translates to:
+  /// **'Indonesian'**
+  String get langIndonesian;
+
+  /// No description provided for @formatManga.
+  ///
+  /// In en, this message translates to:
+  /// **'Manga'**
+  String get formatManga;
+
+  /// No description provided for @formatManhwa.
+  ///
+  /// In en, this message translates to:
+  /// **'Manhwa'**
+  String get formatManhwa;
+
+  /// No description provided for @formatManhua.
+  ///
+  /// In en, this message translates to:
+  /// **'Manhua'**
+  String get formatManhua;
+
+  /// No description provided for @formatNovel.
+  ///
+  /// In en, this message translates to:
+  /// **'Novel'**
+  String get formatNovel;
 }
 
 class _AppLocalizationsDelegate

@@ -2764,4 +2764,100 @@ class AppLocalizationsEn extends AppLocalizations {
 
   @override
   String get ractActionShowMenu => 'Show menu';
+
+  @override
+  String get welcomeTitle => 'Welcome';
+
+  @override
+  String get welcomeIntro =>
+      'Yomou reads from community sources that each publish in their own languages and formats. Pick what you read and Explore, Search and Suggestions will favour it. Nothing here is permanent — you can change it later in Settings.';
+
+  @override
+  String get welcomeRestoreBackup => 'Restore from backup';
+
+  @override
+  String get welcomeLoginSync => 'Login to sync account';
+
+  @override
+  String get welcomeComingSoon => 'Coming soon';
+
+  @override
+  String get welcomeLocalDirs => 'Local manga directories';
+
+  @override
+  String get welcomeLanguages => 'Languages';
+
+  @override
+  String get welcomeType => 'Type';
+
+  @override
+  String get welcomeStart => 'Start reading';
+
+  @override
+  String backupRestoreDone(int count) {
+    return 'Restored $count items';
+  }
+
+  @override
+  String backupRestoreKeptNewer(int count) {
+    return '$count kept — already further along on this device';
+  }
+
+  @override
+  String get backupRestoreNone => 'Nothing to restore in that file';
+
+  @override
+  String get settingsContentPreferences => 'Content preferences';
+
+  @override
+  String get settingsContentPreferencesSubtitle =>
+      'The languages and formats you read';
+
+  @override
+  String get langEnglish => 'English';
+
+  @override
+  String get langSpanish => 'Spanish';
+
+  @override
+  String get langPortuguese => 'Portuguese';
+
+  @override
+  String get langFrench => 'French';
+
+  @override
+  String get langJapanese => 'Japanese';
+
+  @override
+  String get langKorean => 'Korean';
+
+  @override
+  String get langChinese => 'Chinese';
+
+  @override
+  String get langArabic => 'Arabic';
+
+  @override
+  String get langRussian => 'Russian';
+
+  @override
+  String get langItalian => 'Italian';
+
+  @override
+  String get langGerman => 'German';
+
+  @override
+  String get langIndonesian => 'Indonesian';
+
+  @override
+  String get formatManga => 'Manga';
+
+  @override
+  String get formatManhwa => 'Manhwa';
+
+  @override
+  String get formatManhua => 'Manhua';
+
+  @override
+  String get formatNovel => 'Novel';
 }
