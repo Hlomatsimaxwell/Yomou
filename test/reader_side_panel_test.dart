@@ -55,15 +55,66 @@ void main() {
     final rect = tester.getRect(find.text('panel-body'));
     expect(rect.center.dx, greaterThan(1200 * 2 / 3));
 
-    // It is a side panel, not a bottom sheet: no BottomSheet in the tree, and
-    // the titled header sits at the top of the window.
+    // It is a side panel, not a bottom sheet: no BottomSheet in the tree.
     expect(find.byType(BottomSheet), findsNothing);
-    expect(tester.getRect(find.text('Chapters')).top, lessThan(80));
+
+    // The panel hugs its content instead of filling the window. A short body
+    // used to stretch the panel to the full height, leaving a column of empty
+    // surface under whatever was actually in it.
+    final header = tester.getRect(find.text('Chapters'));
+    expect(header.top, greaterThan(100));
+    // The header is at the top of the panel, above the body it labels.
+    expect(header.top, lessThan(rect.top));
 
     // Closing via the header button dismisses the panel.
     await tester.tap(find.byIcon(RemixIcons.close_line));
     await tester.pumpAndSettle();
     expect(find.text('panel-body'), findsNothing);
+  });
+
+  testWidgets('caps at the window and scrolls when the content is taller', (
+    tester,
+  ) async {
+    tester.view.physicalSize = const Size(1200, 800);
+    tester.view.devicePixelRatio = 1.0;
+    addTearDown(tester.view.reset);
+
+    await tester.pumpWidget(
+      MaterialApp(
+        localizationsDelegates: AppLocalizations.localizationsDelegates,
+        supportedLocales: AppLocalizations.supportedLocales,
+        home: Scaffold(
+          body: Builder(
+            builder: (context) => Center(
+              child: ElevatedButton(
+                onPressed: () => showReaderSidePanel<void>(
+                  context,
+                  title: 'Chapters',
+                  builder: (context) => Column(
+                    mainAxisSize: MainAxisSize.min,
+                    children: [
+                      for (var i = 0; i < 60; i++) Text('chapter-$i'),
+                    ],
+                  ),
+                ),
+                child: const Text('open'),
+              ),
+            ),
+          ),
+        ),
+      ),
+    );
+    await openPanel(tester);
+
+    // Hugging the content must not mean growing past the window: the panel
+    // stops at the window's height and scrolls the rest, and the header stays
+    // reachable at the top of it.
+    final header = tester.getRect(find.text('Chapters'));
+    expect(header.top, lessThan(80));
+    expect(tester.takeException(), isNull);
+    // The last row is 60 chapters down, so it cannot all be laid out on
+    // screen -- it is there, but scrolled out of view.
+    expect(find.text('chapter-59'), findsOneWidget);
   });
 
   testWidgets('falls back to a bottom sheet on a narrow window', (

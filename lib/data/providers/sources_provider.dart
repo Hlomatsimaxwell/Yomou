@@ -4,6 +4,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import '../models/manga_source.dart';
 import 'package:yomou/features/settings/providers/cache_settings_provider.dart';
+import 'package:yomou/features/onboarding/content_preferences_provider.dart';
 import '../sources/mangaball_source.dart';
 import '../sources/manganato_service.dart';
 import '../sources/mock_source.dart';
@@ -1058,12 +1059,19 @@ final sourcesProvider =
 /// need the `nsfw: true` flag to be filtered automatically.
 bool isNsfwSource(Map<String, dynamic> source) => source['nsfw'] == true;
 
-/// All source rows, minus any flagged NSFW when "Disable NSFW" is on. This is
-/// the single gate every discovery surface should watch; library/update paths
-/// keep using [sourcesProvider] so existing favorites are never hidden.
+/// All source rows, minus any flagged NSFW when "Disable NSFW" is on, and
+/// minus any contradicting the reader's content preferences (languages and
+/// formats picked on the welcome sheet).
+///
+/// This is the single gate every discovery surface should watch; library/update
+/// paths keep using [sourcesProvider] so existing favorites are never hidden.
 final visibleSourceRowsProvider = Provider<List<Map<String, dynamic>>>((ref) {
   final rows = ref.watch(sourcesProvider);
   final disableNsfw = ref.watch(disableNsfwProvider);
-  if (!disableNsfw) return rows;
-  return rows.where((row) => !isNsfwSource(row)).toList();
+  final content = ref.watch(contentPreferencesProvider);
+
+  return rows.where((row) {
+    if (disableNsfw && isNsfwSource(row)) return false;
+    return content.accepts(row);
+  }).toList();
 });

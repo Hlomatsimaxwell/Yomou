@@ -29,6 +29,8 @@ import 'package:yomou/core/security/app_lock.dart';
 import 'package:yomou/core/security/pin_lock_screen.dart';
 import 'package:yomou/core/diagnostics/source_selftest.dart';
 import 'package:yomou/core/providers/incognito_provider.dart';
+import 'package:yomou/features/onboarding/content_preferences_provider.dart';
+import 'package:yomou/features/onboarding/welcome_sheet.dart';
 import 'package:yomou/l10n/generated/app_localizations.dart';
 import 'package:remixicon/remixicon.dart';
 
@@ -237,7 +239,10 @@ class _HomeScreenState extends ConsumerState<HomeScreen>
   void initState() {
     super.initState();
     WidgetsBinding.instance.addObserver(this);
-    WidgetsBinding.instance.addPostFrameCallback((_) => _initTab());
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      _initTab();
+      _maybeShowWelcome();
+    });
   }
 
   @override
@@ -288,6 +293,19 @@ class _HomeScreenState extends ConsumerState<HomeScreen>
   Future<void> _persistLastUsed(int index) async {
     final prefs = await SharedPreferences.getInstance();
     await prefs.setInt(_lastUsedTabKey, index);
+  }
+
+  /// First launch: the welcome sheet slides up over the home screen, so the
+  /// reader picks their content languages and formats before anything else.
+  ///
+  /// The home screen still builds underneath -- a blank route behind the sheet
+  /// would leave a flash of nothing when it is dismissed -- and the sheet is
+  /// non-dismissible at this point, so the choices cannot be skipped by
+  /// tapping the scrim.
+  Future<void> _maybeShowWelcome() async {
+    if (await isWelcomeCompleted()) return;
+    if (!mounted) return;
+    await showWelcomeSheet(context, isDismissible: false);
   }
 
   // Which bottom-nav tabs are shown, honoring the "Main screen sections"

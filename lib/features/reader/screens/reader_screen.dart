@@ -2229,9 +2229,9 @@ class _ReaderScreenState extends ConsumerState<ReaderScreen>
           builder: (context, setSheetState) {
             final dark = Theme.of(context).brightness == Brightness.dark;
             final l = AppLocalizations.of(context);
-            // The side panel is full height already and bounded by the window,
-            // so it needs no cap. The phone's bottom sheet does: without one it
-            // grows to its content and runs off the top of the screen.
+            // The phone's bottom sheet needs a cap of its own: without one it
+            // grows to its content and runs off the top of the screen. The
+            // panel caps itself around this content, so it needs none.
             return SafeArea(
               child: ConstrainedBox(
                 constraints: usesWideLayout(context)
