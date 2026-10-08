@@ -107,7 +107,6 @@ class _ExploreScreenState extends ConsumerState<ExploreScreen> {
                     },
                   ),
                   const SizedBox(height: 8),
-                  const SizedBox(height: 4),
                   showInGrid
                       ? _buildSourcesGrid(enabledSources)
                       : _buildSourcesList(enabledSources),
