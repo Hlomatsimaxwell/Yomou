@@ -10,6 +10,7 @@ import 'package:yomou/features/settings/screens/settings_screen.dart';
 import 'package:yomou/core/database/database_helper.dart';
 import 'package:yomou/core/database/source_cache.dart';
 import 'package:yomou/core/widgets/empty_state.dart';
+import 'package:yomou/core/widgets/incognito_icon.dart';
 import 'package:yomou/core/widgets/tab_header.dart';
 import 'package:yomou/core/widgets/ios/ios_menu.dart';
 import 'package:yomou/core/widgets/ios/ios_nav_bar.dart';
@@ -1540,32 +1541,37 @@ class _HistoryScreenState extends ConsumerState<HistoryScreen> {
     final onSurface = theme.colorScheme.onSurface;
 
     return Padding(
-      padding: const EdgeInsets.fromLTRB(16, 16, 16, 0),
+      padding: const EdgeInsets.fromLTRB(16, 24, 16, 8),
       child: Row(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          Icon(
-            RemixIcons.spy_line,
-            size: 20,
-            color: onSurface.withValues(alpha: 0.6),
+          IncognitoIcon(
+            size: 24,
+            color: onSurface.withValues(alpha: 0.75),
           ),
-          const SizedBox(width: 10),
+          const SizedBox(width: 12),
           Expanded(
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
+              mainAxisSize: MainAxisSize.min,
               children: [
                 Text(
                   l.incognitoMode,
                   style: theme.textTheme.bodyMedium?.copyWith(
-                    color: onSurface.withValues(alpha: 0.85),
-                    fontWeight: FontWeight.w500,
+                    color: onSurface.withValues(alpha: 0.95),
+                    fontWeight: FontWeight.w600,
+                    height: 1.2,
                   ),
                 ),
-                const SizedBox(height: 2),
+                const SizedBox(height: 1),
                 Text(
                   l.incognitoNoSaveHint,
                   style: theme.textTheme.bodySmall?.copyWith(
-                    color: onSurface.withValues(alpha: 0.5),
+                    // Noticeably lighter than the label above it, so the two
+                    // lines read as a heading and its caption rather than as
+                    // one block.
+                    color: onSurface.withValues(alpha: 0.45),
+                    height: 1.2,
                   ),
                 ),
               ],
