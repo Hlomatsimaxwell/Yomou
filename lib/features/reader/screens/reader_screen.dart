@@ -1437,31 +1437,49 @@ class _ReaderScreenState extends ConsumerState<ReaderScreen>
                 snap: true,
                 snapSizes: const [0.3, 0.5, 1.0],
                 builder: (context, sheetController) {
-                  return StatefulBuilder(
-                    builder: (context, setSheetState) {
-                      if (!didJump) {
-                        // Force the tray back to the mid (0.5) extent on a fresh
-                        // open: the [DraggableScrollableController] is persistent
-                        // and would otherwise inherit the size left over from a
-                        // previous long-press fullscreen.
-                        _trayExtentController.animateTo(
-                          0.5,
-                          duration: const Duration(milliseconds: 250),
-                          curve: Curves.easeOut,
+                  // The sheet itself is transparent so the reader stays
+                  // visible above the tray while it is half-open; the tray
+                  // therefore paints its own rounded surface.
+                  final dark = Theme.of(context).brightness == Brightness.dark;
+                  return Container(
+                    decoration: BoxDecoration(
+                      color: dark ? const Color(0xFF1C1C1E) : Colors.white,
+                      borderRadius: const BorderRadius.vertical(
+                        top: Radius.circular(28),
+                      ),
+                    ),
+                    clipBehavior: Clip.antiAlias,
+                    child: StatefulBuilder(
+                      builder: (context, setSheetState) {
+                        if (!didJump) {
+                          // Force the tray back to the mid (0.5) extent on a
+                          // fresh open: the [DraggableScrollableController] is
+                          // persistent and would otherwise inherit the size
+                          // left over from a previous long-press fullscreen.
+                          _trayExtentController.animateTo(
+                            0.5,
+                            duration: const Duration(milliseconds: 250),
+                            curve: Curves.easeOut,
+                          );
+                          _jumpToCurrentInSheet(
+                            sheetController,
+                            currentIndex,
+                            72,
+                            0,
+                          );
+                          didJump = true;
+                        }
+                        return _buildTrayBody(
+                          listView: listView,
+                          setListView: (v) => setSheetState(() => listView = v),
+                          currentIndex: currentIndex,
+                          headers: headers,
+                          onRefresh: () => setSheetState(() {}),
+                          isSheet: true,
+                          controller: sheetController,
                         );
-                        _jumpToCurrentInSheet(sheetController, currentIndex, 72, 0);
-                        didJump = true;
-                      }
-                      return _buildTrayBody(
-                        listView: listView,
-                        setListView: (v) => setSheetState(() => listView = v),
-                        currentIndex: currentIndex,
-                        headers: headers,
-                        onRefresh: () => setSheetState(() {}),
-                        isSheet: true,
-                        controller: sheetController,
-                      );
-                    },
+                      },
+                    ),
                   );
                 },
               ),
