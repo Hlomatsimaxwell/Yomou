@@ -22,6 +22,11 @@ class AsuraScansSource extends DioSource implements MangaSource {
   @override
   String get iconUrl => 'https://asurascans.com/favicon.ico';
 
+  /// The API root itself answers 404, so the default connectivity check would
+  /// report a healthy source as an HTTP error. Point it at a real endpoint.
+  @override
+  String get testUrl => '$baseUrl/api/series?limit=1&offset=0';
+
   @override
   Map<String, String>? get headers => {
     'Referer': 'https://asurascans.com/',
