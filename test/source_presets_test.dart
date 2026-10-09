@@ -1,8 +1,8 @@
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:shared_preferences/shared_preferences.dart';
-import 'package:yomou/features/onboarding/content_preferences_provider.dart';
-import 'package:yomou/features/onboarding/source_presets_provider.dart';
+import 'package:yomou/features/content_preferences/providers/content_preferences_provider.dart';
+import 'package:yomou/features/content_preferences/providers/source_presets_provider.dart';
 
 /// Presets are language bundles with one of them active, and the active preset
 /// *is* the live language filter. The two sinks that write it -- switching here,

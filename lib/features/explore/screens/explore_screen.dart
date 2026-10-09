@@ -17,8 +17,8 @@ import 'package:yomou/features/library/screens/bookmarks_screen.dart';
 import 'package:yomou/features/library/screens/downloads_screen.dart';
 import 'package:yomou/features/settings/screens/storage_settings_screen.dart';
 import 'package:yomou/features/library/screens/manga_detail_screen.dart';
-import 'package:yomou/features/onboarding/source_presets_list_screen.dart';
-import 'package:yomou/features/onboarding/source_presets_provider.dart';
+import 'package:yomou/features/content_preferences/screens/source_presets_list_screen.dart';
+import 'package:yomou/features/content_preferences/providers/source_presets_provider.dart';
 import 'package:yomou/features/settings/screens/settings_screen.dart';
 import 'package:yomou/features/source_management/screens/manga_grid_screen.dart';
 import 'package:yomou/features/source_management/screens/manga_sources_screen.dart';
@@ -93,7 +93,7 @@ class _ExploreScreenState extends ConsumerState<ExploreScreen> {
                   const SizedBox(height: 20),
                   const FeaturedCarousel(),
                   const SizedBox(height: 20),
-                  _buildPresetSwitcher(),
+                  _buildPresetSection(),
                   const SizedBox(height: 12),
                   _buildSectionHeader(
                     AppLocalizations.of(context).mangaSources,
@@ -395,41 +395,25 @@ class _ExploreScreenState extends ConsumerState<ExploreScreen> {
     }
   }
 
-  /// The row of preset chips above the source wall.
+  /// The labelled preset row above the source wall.
   ///
   /// Presets are language bundles, so they belong next to the sources they
-  /// filter. Switching here writes straight through the preset notifier; the
-  /// trailing button opens the full manager, where a preset can be renamed,
-  /// have its languages edited, or be deleted.
-  Widget _buildPresetSwitcher() {
+  /// filter. The header names the section and carries the manager action the
+  /// same way the source wall's header does; the chips below switch the active
+  /// preset in place.
+  Widget _buildPresetSection() {
     final l = AppLocalizations.of(context);
     final state = ref.watch(sourcePresetsProvider);
     final notifier = ref.read(sourcePresetsProvider.notifier);
 
-    return Row(
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
       children: [
-        Expanded(
-          child: SingleChildScrollView(
-            scrollDirection: Axis.horizontal,
-            padding: const EdgeInsets.only(left: 16, right: 4),
-            child: Row(
-              children: [
-                for (final preset in state.presets) ...[
-                  YomouChip(
-                    label: sourcePresetLabel(l, preset),
-                    selected: preset.id == state.activeId,
-                    onTap: () => notifier.activate(preset.id),
-                  ),
-                  const SizedBox(width: 8),
-                ],
-              ],
-            ),
-          ),
-        ),
-        IconButton(
-          icon: const Icon(RemixIcons.equalizer_line),
-          tooltip: l.presetsManage,
-          onPressed: () {
+        _buildSectionHeader(
+          l.presetsTitle,
+          actionLabel: l.exploreManage,
+          actionColor: Theme.of(context).colorScheme.primary,
+          onMorePressed: () {
             Navigator.push(
               context,
               MaterialPageRoute(
@@ -437,6 +421,23 @@ class _ExploreScreenState extends ConsumerState<ExploreScreen> {
               ),
             );
           },
+        ),
+        const SizedBox(height: 8),
+        SingleChildScrollView(
+          scrollDirection: Axis.horizontal,
+          padding: const EdgeInsets.symmetric(horizontal: 16),
+          child: Row(
+            children: [
+              for (final preset in state.presets) ...[
+                YomouChip(
+                  label: sourcePresetLabel(l, preset),
+                  selected: preset.id == state.activeId,
+                  onTap: () => notifier.activate(preset.id),
+                ),
+                const SizedBox(width: 8),
+              ],
+            ],
+          ),
         ),
       ],
     );

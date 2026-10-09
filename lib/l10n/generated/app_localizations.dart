@@ -5173,6 +5173,12 @@ abstract class AppLocalizations {
   /// **'Novel'**
   String get formatNovel;
 
+  /// No description provided for @presetsTitle.
+  ///
+  /// In en, this message translates to:
+  /// **'Presets'**
+  String get presetsTitle;
+
   /// No description provided for @presetsAllSources.
   ///
   /// In en, this message translates to:

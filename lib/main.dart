@@ -29,7 +29,7 @@ import 'package:yomou/core/security/app_lock.dart';
 import 'package:yomou/core/security/pin_lock_screen.dart';
 import 'package:yomou/core/diagnostics/source_selftest.dart';
 import 'package:yomou/core/providers/incognito_provider.dart';
-import 'package:yomou/features/onboarding/content_preferences_provider.dart';
+import 'package:yomou/features/content_preferences/providers/content_preferences_provider.dart';
 import 'package:yomou/features/onboarding/welcome_sheet.dart';
 import 'package:yomou/l10n/generated/app_localizations.dart';
 import 'package:remixicon/remixicon.dart';

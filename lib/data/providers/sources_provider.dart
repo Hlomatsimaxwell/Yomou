@@ -4,7 +4,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import '../models/manga_source.dart';
 import 'package:yomou/features/settings/providers/cache_settings_provider.dart';
-import 'package:yomou/features/onboarding/content_preferences_provider.dart';
+import 'package:yomou/features/content_preferences/providers/content_preferences_provider.dart';
 import '../sources/mangaball_source.dart';
 import '../sources/manganato_service.dart';
 import '../sources/mock_source.dart';

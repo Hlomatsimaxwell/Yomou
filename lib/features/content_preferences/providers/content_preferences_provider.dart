@@ -1,7 +1,7 @@
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 
-import 'package:yomou/features/onboarding/source_presets_provider.dart';
+import 'package:yomou/features/content_preferences/providers/source_presets_provider.dart';
 
 /// Set once the welcome sheet has been completed.
 ///
@@ -24,7 +24,16 @@ const String _formatsKey = 'onboarding.formats';
 /// "Type" section a real filter instead of a label with nothing behind it.
 const List<String> kContentFormats = ['Manga', 'Manhwa', 'Manhua', 'Novel'];
 
-/// Languages offered by the welcome sheet, in display order.
+/// Languages offered by the welcome sheet and the preset editor, in display
+/// order: the languages readers reach for most, then the rest the registry
+/// declares in alphabetical order.
+///
+/// This is the single language vocabulary. [acceptsSourceRow] recognises
+/// exactly these names, so every language a source can be hidden for is one
+/// the reader can also pick back. A separate "known languages" set used to be
+/// wider than the picker's list, which let a source declare a language the
+/// filter understood but the picker never offered -- hidden and unselectable
+/// at the same time.
 const List<String> kContentLanguages = [
   'English',
   'Spanish',
@@ -38,24 +47,43 @@ const List<String> kContentLanguages = [
   'Italian',
   'German',
   'Indonesian',
+  'Albanian',
+  'Bengali',
+  'Bulgarian',
+  'Catalan',
+  'Czech',
+  'Danish',
+  'Dutch',
+  'Finnish',
+  'Greek',
+  'Hebrew',
+  'Hindi',
+  'Hungarian',
+  'Icelandic',
+  'Kannada',
+  'Malay',
+  'Malayalam',
+  'Nepali',
+  'Norwegian',
+  'Persian',
+  'Polish',
+  'Romanian',
+  'Serbian',
+  'Slovak',
+  'Slovenian',
+  'Swedish',
+  'Tamil',
+  'Thai',
+  'Turkish',
+  'Ukrainian',
+  'Vietnamese',
 ];
 
-/// Every language name the registry is known to declare.
-///
-/// Used only to tell "this row is in a language the reader did not pick" apart
-/// from "this row declares no language at all". Komga's row says
-/// `'Self-hosted (API)'` and the mock says `'Mock'`; neither is a scanlation
-/// language, and filtering either out because someone chose English would hide
-/// a library the user hosts themselves.
-const Set<String> kKnownContentLanguages = {
-  'albanian', 'arabic', 'bengali', 'bulgarian', 'catalan', 'chinese', 'czech',
-  'danish', 'dutch', 'english', 'finnish', 'french', 'german', 'greek',
-  'hebrew', 'hindi', 'hungarian', 'icelandic', 'indonesian', 'italian',
-  'japanese', 'kannada', 'korean', 'malay', 'malayalam', 'nepali', 'norwegian',
-  'persian', 'polish', 'portuguese', 'romanian', 'russian', 'serbian',
-  'slovak', 'slovenian', 'spanish', 'swedish', 'tamil', 'thai', 'turkish',
-  'ukrainian', 'vietnamese',
-};
+/// Lowercase forms of [kContentLanguages], the tags a source row's `language`
+/// string is matched against. Being derived is the point: the set the filter
+/// hides on cannot drift from the set the picker offers.
+final Set<String> _contentLanguageTags =
+    kContentLanguages.map((l) => l.toLowerCase()).toSet();
 
 final Set<String> _formatTags =
     kContentFormats.map((f) => f.toLowerCase()).toSet();
@@ -132,7 +160,7 @@ bool acceptsSourceRow(Map<String, dynamic> row, ContentPreferences prefs) {
     // declaring something this filter does not understand, and guessing it
     // away would hide sources for no reason the reader can see.
     if (!rowLanguages.any(
-      (tag) => languageTagMatches(tag, kKnownContentLanguages),
+      (tag) => languageTagMatches(tag, _contentLanguageTags),
     )) {
       return true;
     }

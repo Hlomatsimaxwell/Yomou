@@ -1,5 +1,5 @@
 import 'package:flutter_test/flutter_test.dart';
-import 'package:yomou/features/onboarding/content_preferences_provider.dart';
+import 'package:yomou/features/content_preferences/providers/content_preferences_provider.dart';
 
 /// The welcome sheet's two sections are filters, not decoration: whatever a
 /// reader picks decides which sources appear in Explore and Search at all.
@@ -79,6 +79,39 @@ void main() {
       expect(acceptsSourceRow(row('Manga, English'), both), isFalse);
       // Right format, wrong language.
       expect(acceptsSourceRow(row('Manhwa, Arabic'), both), isFalse);
+    });
+  });
+
+  group('the language vocabulary', () {
+    test('the filter recognises exactly the languages the picker offers', () {
+      // Every selectable language is understood by the filter: picking it keeps
+      // a row in that language, and picking anything else drops it. If the two
+      // lists could disagree, a source would be hideable without being
+      // reselectable -- the trap this shared vocabulary removed.
+      for (final language in kContentLanguages) {
+        expect(
+          acceptsSourceRow(
+            row('Manga, $language'),
+            ContentPreferences(languages: {language}),
+          ),
+          isTrue,
+          reason: '$language should be recognised when selected',
+        );
+        expect(
+          acceptsSourceRow(
+            row('Manga, $language'),
+            const ContentPreferences(languages: {'Klingon'}),
+          ),
+          isFalse,
+          reason: '$language should be filtered out when not selected',
+        );
+      }
+    });
+
+    test('a language outside the vocabulary passes as unrecognised', () {
+      // Nothing can select Klingon, so hiding a row for it would be a filter
+      // the reader cannot undo.
+      expect(acceptsSourceRow(row('Manga, Klingon'), english), isTrue);
     });
   });
 }

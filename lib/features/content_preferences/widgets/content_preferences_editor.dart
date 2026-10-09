@@ -1,7 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:yomou/core/widgets/yomou_chip.dart';
-import 'package:yomou/features/onboarding/content_preferences_provider.dart';
+import 'package:yomou/features/content_preferences/providers/content_preferences_provider.dart';
 import 'package:yomou/l10n/generated/app_localizations.dart';
 
 /// Localized name for a content language, falling back to the canonical name

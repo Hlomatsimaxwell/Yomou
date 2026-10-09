@@ -2865,6 +2865,9 @@ class AppLocalizationsEn extends AppLocalizations {
   String get formatNovel => 'Novel';
 
   @override
+  String get presetsTitle => 'Presets';
+
+  @override
   String get presetsAllSources => 'All sources';
 
   @override

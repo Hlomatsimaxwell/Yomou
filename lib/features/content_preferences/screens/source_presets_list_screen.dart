@@ -1,9 +1,9 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:remixicon/remixicon.dart';
-import 'package:yomou/features/onboarding/content_preferences_editor.dart';
-import 'package:yomou/features/onboarding/source_presets_edit_sheet.dart';
-import 'package:yomou/features/onboarding/source_presets_provider.dart';
+import 'package:yomou/features/content_preferences/widgets/content_preferences_editor.dart';
+import 'package:yomou/features/content_preferences/screens/source_presets_edit_sheet.dart';
+import 'package:yomou/features/content_preferences/providers/source_presets_provider.dart';
 import 'package:yomou/l10n/generated/app_localizations.dart';
 
 /// The full preset manager, reached from Explore's preset row.

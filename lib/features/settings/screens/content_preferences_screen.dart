@@ -1,7 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:yomou/core/widgets/responsive.dart';
-import 'package:yomou/features/onboarding/content_preferences_editor.dart';
+import 'package:yomou/features/content_preferences/widgets/content_preferences_editor.dart';
 import 'package:yomou/l10n/generated/app_localizations.dart';
 import 'package:yomou/widgets/m3_components.dart';
 

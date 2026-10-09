@@ -3,7 +3,7 @@ import 'dart:convert';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 
-import 'package:yomou/features/onboarding/content_preferences_provider.dart';
+import 'package:yomou/features/content_preferences/providers/content_preferences_provider.dart';
 import 'package:yomou/l10n/generated/app_localizations.dart';
 
 /// The id of the built-in "show everything" preset.
