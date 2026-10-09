@@ -395,6 +395,7 @@
   "readNow": "Read now",
   "manageSources": "Manage sources",
   "incognitoMode": "Incognito mode",
+  "incognitoNoSaveHint": "Your reading progress will not be saved",
   "noRandomRightNow": "No manga available for Random right now",
   "couldNotFindRandom": "Could not find a random manga",
   "historyClearTitle": "Clear history",

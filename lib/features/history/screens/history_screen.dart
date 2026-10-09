@@ -1003,6 +1003,7 @@ class _HistoryScreenState extends ConsumerState<HistoryScreen> {
   @override
   Widget build(BuildContext context) {
     final appearance = ref.watch(appearanceSettingsProvider);
+    final showIncognito = ref.watch(incognitoProvider);
     _gridSize = ref.watch(gridDensityProvider);
 
     final filteredList = _historyItems.where(_matchesHistoryFilter).toList();
@@ -1096,6 +1097,8 @@ class _HistoryScreenState extends ConsumerState<HistoryScreen> {
                     const SliverToBoxAdapter(child: SizedBox(height: 12)),
                     SliverToBoxAdapter(child: _buildFilterChips()),
                   ],
+                  if (!_isSelecting && showIncognito)
+                    SliverToBoxAdapter(child: _buildIncognitoIndicator()),
                   const SliverToBoxAdapter(child: SizedBox(height: 16)),
                   if (filteredList.isEmpty)
                     SliverToBoxAdapter(
@@ -1522,6 +1525,53 @@ class _HistoryScreenState extends ConsumerState<HistoryScreen> {
             ),
           );
         }),
+      ),
+    );
+  }
+
+  /// A quiet reminder that incognito is on.
+  ///
+  /// Sits between the filter chips and the grid: while it is visible the
+  /// "progress is not saved" contract is stated where a reader would otherwise
+  /// wonder why a series they just opened never appears here.
+  Widget _buildIncognitoIndicator() {
+    final l = AppLocalizations.of(context);
+    final theme = Theme.of(context);
+    final onSurface = theme.colorScheme.onSurface;
+
+    return Padding(
+      padding: const EdgeInsets.fromLTRB(16, 16, 16, 0),
+      child: Row(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Icon(
+            RemixIcons.spy_line,
+            size: 20,
+            color: onSurface.withValues(alpha: 0.6),
+          ),
+          const SizedBox(width: 10),
+          Expanded(
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Text(
+                  l.incognitoMode,
+                  style: theme.textTheme.bodyMedium?.copyWith(
+                    color: onSurface.withValues(alpha: 0.85),
+                    fontWeight: FontWeight.w500,
+                  ),
+                ),
+                const SizedBox(height: 2),
+                Text(
+                  l.incognitoNoSaveHint,
+                  style: theme.textTheme.bodySmall?.copyWith(
+                    color: onSurface.withValues(alpha: 0.5),
+                  ),
+                ),
+              ],
+            ),
+          ),
+        ],
       ),
     );
   }

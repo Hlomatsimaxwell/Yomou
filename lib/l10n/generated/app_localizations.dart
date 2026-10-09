@@ -1604,6 +1604,12 @@ abstract class AppLocalizations {
   /// **'Incognito mode'**
   String get incognitoMode;
 
+  /// No description provided for @incognitoNoSaveHint.
+  ///
+  /// In en, this message translates to:
+  /// **'Your reading progress will not be saved'**
+  String get incognitoNoSaveHint;
+
   /// No description provided for @noRandomRightNow.
   ///
   /// In en, this message translates to:

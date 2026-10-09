@@ -854,6 +854,9 @@ class AppLocalizationsEs extends AppLocalizations {
   String get incognitoMode => 'Modo incógnito';
 
   @override
+  String get incognitoNoSaveHint => 'Tu progreso de lectura no se guardará';
+
+  @override
   String get noRandomRightNow =>
       'No hay manga disponible para Aleatorio en este momento';
 
