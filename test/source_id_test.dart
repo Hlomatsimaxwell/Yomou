@@ -83,6 +83,7 @@ void main() {
         'Like Manga',
         'Toonily',
         'Reaper Scans',
+        'ManhuaPlus',
         'MangaPill',
         'Manhwa18',
         'Flame Scans',

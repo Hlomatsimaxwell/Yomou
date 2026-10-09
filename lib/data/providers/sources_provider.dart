@@ -25,6 +25,7 @@ import '../sources/flame_source.dart';
 import '../sources/komga_source.dart';
 import '../sources/mangabat_source.dart';
 import '../sources/mangafire_source.dart';
+import '../sources/manhuaplus_source.dart';
 
 // 1. THE SOURCE REGISTRY
 //
@@ -147,6 +148,8 @@ MangaSource getSourceByName(String name) {
       return _shared('toonily', ToonilySource.new);
     case 'Reaper Scans':
       return _shared('reaperscans', ReaperScansSource.new);
+    case 'ManhuaPlus':
+      return _shared('manhuaplus', ManhuaPlusSource.new);
     case 'MangaPill':
       return _shared('mangapill', MangaPillSource.new);
     case 'Manhwa18':
@@ -243,6 +246,8 @@ MangaSource? getSourceBySourceId(String sourceId) {
       return getSourceByName('Toonily');
     case 'reaperscans':
       return getSourceByName('Reaper Scans');
+    case 'manhuaplus':
+      return getSourceByName('ManhuaPlus');
     case 'mangapill':
       return getSourceByName('MangaPill');
     case 'manhwa18':
@@ -841,6 +846,15 @@ class SourcesNotifier extends StateNotifier<List<Map<String, dynamic>>> {
       'iconUrl': 'https://reaperscans.com/favicon.ico',
       'isPinned': false,
       'nsfw': true,
+    },
+    {
+      'name': 'ManhuaPlus',
+      'language': 'Manhua, English',
+      'bgColor': const Color(0xFFE23D28),
+      'text': 'M',
+      'iconUrl':
+          'https://manhuaplus.com/wp-content/uploads/2020/07/cropped-manhua-vuong-den-1-192x192.jpg',
+      'isPinned': false,
     },
     {
       'name': 'MangaPill',
