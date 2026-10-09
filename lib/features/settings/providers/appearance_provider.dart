@@ -517,6 +517,11 @@ ThemeData _baseTheme(bool dark) {
     focusColor: Colors.transparent,
     dividerColor: Colors.transparent,
     visualDensity: VisualDensity.standard,
+    // ThemeData derives its default icon color from the brightness passed to
+    // its constructor, and this base is always built light. Without setting it
+    // here, every bare Icon(...) stays black in dark mode -- invisible on the
+    // black scaffold (e.g. Explore's "manage presets" button).
+    iconTheme: IconThemeData(color: fg),
     appBarTheme: AppBarTheme(
       backgroundColor: Colors.transparent,
       surfaceTintColor: Colors.transparent,
