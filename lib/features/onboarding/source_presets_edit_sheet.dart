@@ -36,22 +36,48 @@ class _SourcePresetEditSheetState
   void initState() {
     super.initState();
     _name = TextEditingController(text: widget.preset?.name ?? '');
-    _languages = {...(widget.preset?.languages ?? ref.read(contentPreferencesProvider).languages)};
+    _languages = {
+      ...(widget.preset?.languages ??
+          ref.read(contentPreferencesProvider).languages),
+    };
+    // The Save button enables as soon as a name is typed, so the sheet has to
+    // rebuild on every keystroke; the controller has no other listener.
+    _name.addListener(_onNameChanged);
   }
+
+  void _onNameChanged() => setState(() {});
 
   @override
   void dispose() {
+    _name.removeListener(_onNameChanged);
     _name.dispose();
     super.dispose();
   }
 
-  bool get _isValid => _name.text.trim().isNotEmpty || widget.preset != null || _languages.isNotEmpty;
+  /// A preset needs something to identify it: a name, or at least one language.
+  /// Editing an existing one is always allowed so a named preset can be cleared
+  /// back to the "My sources" fallback.
+  bool get _isValid =>
+      _name.text.trim().isNotEmpty ||
+      _languages.isNotEmpty ||
+      widget.preset != null;
+
+  void _save() {
+    final notifier = ref.read(sourcePresetsProvider.notifier);
+    final name = _name.text.trim();
+    final languages = {..._languages};
+    if (widget.preset == null) {
+      notifier.create(name: name, languages: languages);
+    } else {
+      notifier.update(widget.preset!.id, name: name, languages: languages);
+    }
+    Navigator.pop(context);
+  }
 
   @override
   Widget build(BuildContext context) {
     final l = AppLocalizations.of(context);
     final theme = Theme.of(context);
-    final notifier = ref.read(sourcePresetsProvider.notifier);
 
     return SafeArea(
       child: SingleChildScrollView(
@@ -73,21 +99,7 @@ class _SourcePresetEditSheetState
                   ),
                 ),
                 TextButton(
-                  onPressed: () {
-                    if (widget.preset == null) {
-                      notifier.createFromCurrent();
-                      // better: create with name/languages
-                      final created = SourcePreset(
-                        id: 'p${DateTime.now().microsecondsSinceEpoch}',
-                        name: _name.text.trim(),
-                        languages: {..._languages},
-                      );
-                      // recreate via provider? easier: activate logic — just store
-                      // but simpler: use createFromCurrent then rename+activate? quick approach
-                    }
-                    // handled below
-                    Navigator.pop(context);
-                  },
+                  onPressed: _isValid ? _save : null,
                   child: Text(l.presetsSave),
                 ),
               ],

@@ -17,8 +17,8 @@ import 'package:yomou/features/library/screens/bookmarks_screen.dart';
 import 'package:yomou/features/library/screens/downloads_screen.dart';
 import 'package:yomou/features/settings/screens/storage_settings_screen.dart';
 import 'package:yomou/features/library/screens/manga_detail_screen.dart';
+import 'package:yomou/features/onboarding/source_presets_list_screen.dart';
 import 'package:yomou/features/onboarding/source_presets_provider.dart';
-import 'package:yomou/features/onboarding/source_presets_switcher_sheet.dart';
 import 'package:yomou/features/settings/screens/settings_screen.dart';
 import 'package:yomou/features/source_management/screens/manga_grid_screen.dart';
 import 'package:yomou/features/source_management/screens/manga_sources_screen.dart';
@@ -92,7 +92,9 @@ class _ExploreScreenState extends ConsumerState<ExploreScreen> {
                   _buildQuickButtonsGrid(),
                   const SizedBox(height: 20),
                   const FeaturedCarousel(),
-                  const SizedBox(height: 24),
+                  const SizedBox(height: 20),
+                  _buildPresetSwitcher(),
+                  const SizedBox(height: 12),
                   _buildSectionHeader(
                     AppLocalizations.of(context).mangaSources,
                     actionLabel: AppLocalizations.of(context).exploreManage,
@@ -391,6 +393,53 @@ class _ExploreScreenState extends ConsumerState<ExploreScreen> {
     } finally {
       if (mounted) setState(() => _loadingRandom = false);
     }
+  }
+
+  /// The row of preset chips above the source wall.
+  ///
+  /// Presets are language bundles, so they belong next to the sources they
+  /// filter. Switching here writes straight through the preset notifier; the
+  /// trailing button opens the full manager, where a preset can be renamed,
+  /// have its languages edited, or be deleted.
+  Widget _buildPresetSwitcher() {
+    final l = AppLocalizations.of(context);
+    final state = ref.watch(sourcePresetsProvider);
+    final notifier = ref.read(sourcePresetsProvider.notifier);
+
+    return Row(
+      children: [
+        Expanded(
+          child: SingleChildScrollView(
+            scrollDirection: Axis.horizontal,
+            padding: const EdgeInsets.only(left: 16, right: 4),
+            child: Row(
+              children: [
+                for (final preset in state.presets) ...[
+                  YomouChip(
+                    label: sourcePresetLabel(l, preset),
+                    selected: preset.id == state.activeId,
+                    onTap: () => notifier.activate(preset.id),
+                  ),
+                  const SizedBox(width: 8),
+                ],
+              ],
+            ),
+          ),
+        ),
+        IconButton(
+          icon: const Icon(RemixIcons.equalizer_line),
+          tooltip: l.presetsManage,
+          onPressed: () {
+            Navigator.push(
+              context,
+              MaterialPageRoute(
+                builder: (context) => const SourcePresetsListScreen(),
+              ),
+            );
+          },
+        ),
+      ],
+    );
   }
 
   Widget _buildSectionHeader(

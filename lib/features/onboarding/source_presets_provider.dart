@@ -185,6 +185,52 @@ class SourcePresetsNotifier extends StateNotifier<SourcePresetsState> {
     _persist();
   }
 
+  /// Creates a new preset from an explicit name and language selection, then
+  /// makes it the active one so the filter follows what was just saved.
+  ///
+  /// Unlike [createFromCurrent], this does not read the current filter: the
+  /// editor has already collected the languages the reader wants, and taking
+  /// them from the live filter would ignore an edit that also cleared one.
+  void create({String name = '', required Set<String> languages}) {
+    final preset = SourcePreset(
+      id: _newId(),
+      name: name.trim(),
+      languages: {...languages},
+    );
+    state = SourcePresetsState(
+      presets: [...state.presets, preset],
+      activeId: preset.id,
+    );
+    _ref.read(contentPreferencesProvider.notifier).setLanguages({...languages});
+    _persist();
+  }
+
+  /// Rewrites a custom preset's name and languages in place.
+  ///
+  /// When the edited preset is the active one the language filter is updated
+  /// with it; editing a preset the reader is not currently using must not
+  /// change what Explore is showing.
+  void update(
+    String id, {
+    required String name,
+    required Set<String> languages,
+  }) {
+    if (id == kAllPresetId) return;
+    if (!state.presets.any((p) => p.id == id)) return;
+    final updated = state.presets
+        .map(
+          (p) => p.id == id
+              ? p.copyWith(name: name.trim(), languages: {...languages})
+              : p,
+        )
+        .toList();
+    state = SourcePresetsState(presets: updated, activeId: state.activeId);
+    if (state.activeId == id) {
+      _ref.read(contentPreferencesProvider.notifier).setLanguages({...languages});
+    }
+    _persist();
+  }
+
   /// Renames a custom preset. An empty name falls back to the localized
   /// "My sources" label at display time.
   void rename(String id, String name) {
@@ -213,18 +259,26 @@ class SourcePresetsNotifier extends StateNotifier<SourcePresetsState> {
 
   String _newId() => 'p${DateTime.now().microsecondsSinceEpoch}';
 
+  /// Writes the current presets and active id.
+  ///
+  /// Both values are snapshotted before the first `await`: the notifier can be
+  /// disposed while a write is in flight, and reading `state` after that point
+  /// throws rather than letting the last write land.
   Future<void> _persist() async {
+    final presets = state.presets;
+    final activeId = state.activeId;
     final p = await SharedPreferences.getInstance();
     await p.setString(
       _presetsKey,
-      jsonEncode(state.presets.map((preset) => preset.toJson()).toList()),
+      jsonEncode(presets.map((preset) => preset.toJson()).toList()),
     );
-    await _persistActive();
+    await p.setString(_activePresetKey, activeId);
   }
 
   Future<void> _persistActive() async {
+    final activeId = state.activeId;
     final p = await SharedPreferences.getInstance();
-    await p.setString(_activePresetKey, state.activeId);
+    await p.setString(_activePresetKey, activeId);
   }
 }
 

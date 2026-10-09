@@ -208,11 +208,20 @@ class ContentPreferencesNotifier extends StateNotifier<ContentPreferences> {
     _persist();
   }
 
+  /// Persists the selection and folds it into the active preset.
+  ///
+  /// The preset sync happens before the first `await` on purpose: it runs
+  /// synchronously on the notifier's live state, while reading `state` or the
+  /// preset notifier after an await could race a dispose.
   Future<void> _persist() async {
+    _ref
+        .read(sourcePresetsProvider.notifier)
+        .syncLanguages({...state.languages});
+    final languages = state.languages.toList();
+    final formats = state.formats.toList();
     final p = await SharedPreferences.getInstance();
-    await p.setStringList(_languagesKey, state.languages.toList());
-    await p.setStringList(_formatsKey, state.formats.toList());
-    _ref.read(sourcePresetsProvider.notifier).syncLanguages(state.languages);
+    await p.setStringList(_languagesKey, languages);
+    await p.setStringList(_formatsKey, formats);
   }
 }
 
