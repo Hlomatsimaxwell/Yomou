@@ -193,8 +193,11 @@ class MadaraSource extends DioSource implements MangaSource {
       final titleEl = document.querySelector('h1');
       final titleText = titleEl?.text.trim() ?? '';
       final title = titleText.isNotEmpty ? titleText : 'Unknown';
-      final coverEl = document.querySelector(config.mangaCoverSelector) ??
-          document.querySelector('.summary_image img');
+      // Prefer the summary cover: on many Madara pages the first <img> in the
+      // document is the site logo in the header, which the card selector
+      // (`img`) would otherwise hand back as the cover.
+      final coverEl = document.querySelector('.summary_image img') ??
+          document.querySelector(config.mangaCoverSelector);
       final cover = coverEl?.attributes[config.coverAttr] ??
           coverEl?.attributes['src'] ??
           '';
@@ -213,8 +216,22 @@ class MadaraSource extends DioSource implements MangaSource {
         if (t.isNotEmpty && !tags.contains(t)) tags.add(t);
       }
 
-      final statusRaw =
+      var statusRaw =
           document.querySelector(config.detailStatusSelector)?.text.trim() ?? '';
+      // Some sites list "Release" before "Status" under `.post-status`, so the
+      // configured selector lands on the release year. Prefer the row whose
+      // heading actually says "Status" when the site labels its rows.
+      for (final item
+          in document.querySelectorAll('.post-status .post-content_item')) {
+        final heading =
+            item.querySelector('.summary-heading')?.text.trim().toLowerCase() ??
+                '';
+        if (heading.contains('status')) {
+          statusRaw =
+              item.querySelector('.summary-content')?.text.trim() ?? statusRaw;
+          break;
+        }
+      }
       String status = statusRaw;
       switch (statusRaw.toLowerCase()) {
         case 'ongoing':
