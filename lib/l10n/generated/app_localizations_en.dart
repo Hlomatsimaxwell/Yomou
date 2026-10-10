@@ -568,6 +568,13 @@ class AppLocalizationsEn extends AppLocalizations {
       'Skip decorative animation, like the hero sheen and the loading shimmer';
 
   @override
+  String get appearanceHaptics => 'Haptics';
+
+  @override
+  String get appearanceHapticsSubtitle =>
+      'A tap back when you switch tabs, favourite a title or finish a chapter';
+
+  @override
   String get languageFollowSystem => 'Follow system';
 
   @override

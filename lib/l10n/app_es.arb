@@ -88,6 +88,8 @@
   "appearanceFrostedGlassSubtitle": "Desenfoque esmerilado en la barra de navegación, controles del lector y botones flotantes",
   "appearanceReduceMotion": "Reducir movimiento",
   "appearanceReduceMotionSubtitle": "Omitir animaciones decorativas, como el brillo del destacado y la animación de carga",
+  "appearanceHaptics": "Vibración",
+  "appearanceHapticsSubtitle": "Una vibración al cambiar de pestaña, marcar favorito o terminar un capítulo",
   "languageFollowSystem": "Seguir el sistema",
   "languageEn": "Inglés",
   "languageEs": "Español",

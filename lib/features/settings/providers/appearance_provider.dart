@@ -102,6 +102,7 @@ class AppearanceSettings {
     required this.screenshotPolicy,
     required this.useFrostedGlass,
     required this.reduceMotion,
+    required this.hapticsEnabled,
   });
 
   // All requested defaults from spec
@@ -141,6 +142,7 @@ class AppearanceSettings {
         screenshotPolicy: 'Allow',
         useFrostedGlass: true,
         reduceMotion: false,
+        hapticsEnabled: true,
       );
 
   final String colorScheme;
@@ -172,6 +174,10 @@ class AppearanceSettings {
   /// animations" accessibility setting at the point of use.
   final bool reduceMotion;
 
+  /// When true (the default), deliberate actions tap back: switching tabs,
+  /// favouriting a title, and finishing a chapter.
+  final bool hapticsEnabled;
+
   AppearanceSettings copyWith({
     String? colorScheme,
     ThemeMode? themeMode,
@@ -197,6 +203,7 @@ class AppearanceSettings {
     String? screenshotPolicy,
     bool? useFrostedGlass,
     bool? reduceMotion,
+    bool? hapticsEnabled,
   }) =>
       AppearanceSettings(
         colorScheme: colorScheme ?? this.colorScheme,
@@ -229,6 +236,7 @@ class AppearanceSettings {
         screenshotPolicy: screenshotPolicy ?? this.screenshotPolicy,
         useFrostedGlass: useFrostedGlass ?? this.useFrostedGlass,
         reduceMotion: reduceMotion ?? this.reduceMotion,
+        hapticsEnabled: hapticsEnabled ?? this.hapticsEnabled,
       );
 }
 
@@ -262,6 +270,7 @@ class _AppearancePersistence {
   static const _screenshotPolicy = '${_prefix}screenshotPolicy';
   static const _frostedGlass = '${_prefix}frostedGlass';
   static const _reduceMotion = '${_prefix}reduceMotion';
+  static const _haptics = '${_prefix}hapticsEnabled';
 
   static Future<AppearanceSettings> load() async {
     final p = await SharedPreferences.getInstance();
@@ -295,6 +304,7 @@ class _AppearancePersistence {
       screenshotPolicy: p.getString(_screenshotPolicy) ?? 'Allow',
       useFrostedGlass: p.getBool(_frostedGlass) ?? true,
       reduceMotion: p.getBool(_reduceMotion) ?? false,
+      hapticsEnabled: p.getBool(_haptics) ?? true,
     );
   }
 
@@ -324,6 +334,7 @@ class _AppearancePersistence {
     await p.setString(_screenshotPolicy, s.screenshotPolicy);
     await p.setBool(_frostedGlass, s.useFrostedGlass);
     await p.setBool(_reduceMotion, s.reduceMotion);
+    await p.setBool(_haptics, s.hapticsEnabled);
   }
 
   static Map<String, bool>? _decodeMap(String? json) {
@@ -398,6 +409,8 @@ class AppearanceSettingsNotifier extends StateNotifier<AppearanceSettings> {
         set((s) => s.copyWith(useFrostedGlass: !s.useFrostedGlass));
       case 'reduceMotion':
         set((s) => s.copyWith(reduceMotion: !s.reduceMotion));
+      case 'hapticsEnabled':
+        set((s) => s.copyWith(hapticsEnabled: !s.hapticsEnabled));
     }
   }
 

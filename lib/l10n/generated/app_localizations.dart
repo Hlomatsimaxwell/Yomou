@@ -1088,6 +1088,18 @@ abstract class AppLocalizations {
   /// **'Skip decorative animation, like the hero sheen and the loading shimmer'**
   String get appearanceReduceMotionSubtitle;
 
+  /// No description provided for @appearanceHaptics.
+  ///
+  /// In en, this message translates to:
+  /// **'Haptics'**
+  String get appearanceHaptics;
+
+  /// No description provided for @appearanceHapticsSubtitle.
+  ///
+  /// In en, this message translates to:
+  /// **'A tap back when you switch tabs, favourite a title or finish a chapter'**
+  String get appearanceHapticsSubtitle;
+
   /// No description provided for @languageFollowSystem.
   ///
   /// In en, this message translates to:

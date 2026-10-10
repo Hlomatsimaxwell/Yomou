@@ -14,6 +14,7 @@ import 'package:path_provider/path_provider.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import 'package:yomou/widgets/safe_image.dart';
 import 'package:yomou/core/cache/app_cache.dart';
+import 'package:yomou/core/haptics.dart';
 import 'package:yomou/core/diagnostics/diag_log.dart';
 import 'package:yomou/core/storage/storage_stats.dart';
 import '../../../core/database/database_helper.dart';
@@ -2993,8 +2994,13 @@ class _ReaderScreenState extends ConsumerState<ReaderScreen>
     final page = _currentPageIndex;
     final chapter = _readChapterIndex;
     if (page == _autoSavedPage && chapter == _autoSavedChapter) return;
+    // Crossing into a later chapter means the previous one was finished -- the
+    // one moment in the reader worth a firm tap. `_autoSavedChapter` starts at
+    // -1, so the very first save (opening a chapter) stays silent.
+    final finishedChapter = _autoSavedChapter >= 0 && chapter > _autoSavedChapter;
     _autoSavedPage = page;
     _autoSavedChapter = chapter;
+    if (finishedChapter) appHaptic(ref, AppHaptic.medium);
     await _saveCascadingReadProgress();
   }
 

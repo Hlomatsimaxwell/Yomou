@@ -570,6 +570,13 @@ class AppLocalizationsEs extends AppLocalizations {
       'Omitir animaciones decorativas, como el brillo del destacado y la animación de carga';
 
   @override
+  String get appearanceHaptics => 'Vibración';
+
+  @override
+  String get appearanceHapticsSubtitle =>
+      'Una vibración al cambiar de pestaña, marcar favorito o terminar un capítulo';
+
+  @override
   String get languageFollowSystem => 'Seguir el sistema';
 
   @override

@@ -274,6 +274,8 @@
   "appearanceFrostedGlassSubtitle": "Frosted blur on the nav bar, reader controls and floating buttons",
   "appearanceReduceMotion": "Reduce motion",
   "appearanceReduceMotionSubtitle": "Skip decorative animation, like the hero sheen and the loading shimmer",
+  "appearanceHaptics": "Haptics",
+  "appearanceHapticsSubtitle": "A tap back when you switch tabs, favourite a title or finish a chapter",
   "languageFollowSystem": "Follow system",
   "languageEn": "English",
   "languageEs": "Español",

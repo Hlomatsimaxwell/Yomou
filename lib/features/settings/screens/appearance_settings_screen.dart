@@ -89,6 +89,12 @@ class AppearanceSettingsScreen extends ConsumerWidget {
             value: settings.reduceMotion,
             onChanged: (_) => notifier.toggleBool('reduceMotion'),
           ),
+          SwitchListTile(
+            title: Text(l.appearanceHaptics),
+            subtitle: Text(l.appearanceHapticsSubtitle),
+            value: settings.hapticsEnabled,
+            onChanged: (_) => notifier.toggleBool('hapticsEnabled'),
+          ),
 
           // Manga List Section
           M3SectionHeader(title: l.appearanceSectionMangaList),

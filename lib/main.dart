@@ -28,6 +28,7 @@ import 'package:yomou/features/settings/providers/appearance_provider.dart';
 import 'package:yomou/core/security/app_lock.dart';
 import 'package:yomou/core/security/pin_lock_screen.dart';
 import 'package:yomou/core/diagnostics/source_selftest.dart';
+import 'package:yomou/core/haptics.dart';
 import 'package:yomou/core/providers/incognito_provider.dart';
 import 'package:yomou/features/content_preferences/providers/content_preferences_provider.dart';
 import 'package:yomou/features/onboarding/welcome_sheet.dart';
@@ -221,6 +222,13 @@ class _HomeScreenState extends ConsumerState<HomeScreen>
   // tab's network fetches (e.g. multi-source suggestions) at app launch.
   final Set<int> _visitedTabs = {0};
 
+  // One scroll controller per tab, layered over each screen's primary
+  // scrollable, so re-tapping the active tab can scroll it back to the top.
+  final List<ScrollController> _tabScrollControllers = List.generate(
+    _tabNames.length,
+    (_) => ScrollController(),
+  );
+
   // Scroll-hide state for the nav bar + FAB (used when pinNavUiOnScroll is off).
   bool _navHiddenOnScroll = false;
 
@@ -248,7 +256,29 @@ class _HomeScreenState extends ConsumerState<HomeScreen>
   @override
   void dispose() {
     WidgetsBinding.instance.removeObserver(this);
+    for (final controller in _tabScrollControllers) {
+      controller.dispose();
+    }
     super.dispose();
+  }
+
+  /// Switches to a tab, or -- when the active tab is tapped again -- scrolls it
+  /// back to the top. Both are deliberate, so both tap back.
+  void _onTabTapped(int index) {
+    appHaptic(ref);
+    if (index == _currentIndex) {
+      final controller = _tabScrollControllers[_currentIndex];
+      if (controller.hasClients) {
+        controller.animateTo(
+          0,
+          duration: const Duration(milliseconds: 260),
+          curve: Curves.easeOutCubic,
+        );
+      }
+      return;
+    }
+    setState(() => _currentIndex = index);
+    _persistLastUsed(index);
   }
 
   // Re-locks the app (if a PIN is set and "Protect the app" is on) whenever
@@ -362,7 +392,15 @@ class _HomeScreenState extends ConsumerState<HomeScreen>
             // this it ticked (and repainted the whole page) on every other tab
             // too. Muting tickers per tab costs nothing and leaves the hidden
             // tab's state (scroll offsets, controllers) intact.
-            ? TickerMode(enabled: i == _currentIndex, child: _screens[i])
+            ? TickerMode(
+                enabled: i == _currentIndex,
+                // Layered here so re-tapping the tab can reach this screen's
+                // primary scroll view; every tab has exactly one.
+                child: PrimaryScrollController(
+                  controller: _tabScrollControllers[i],
+                  child: _screens[i],
+                ),
+              )
             : const SizedBox.shrink(),
       ),
     );
@@ -773,10 +811,7 @@ class _HomeScreenState extends ConsumerState<HomeScreen>
             : Colors.transparent,
         borderRadius: BorderRadius.circular(16),
         child: InkWell(
-          onTap: () {
-            setState(() => _currentIndex = index);
-            _persistLastUsed(index);
-          },
+          onTap: () => _onTabTapped(index),
           borderRadius: BorderRadius.circular(16),
           child: Padding(
             // Square-ish rather than the old label-height row, so the icons
@@ -838,10 +873,7 @@ class _HomeScreenState extends ConsumerState<HomeScreen>
     return SizedBox(
       height: kBottomBarHeight - 16,
       child: InkWell(
-        onTap: () {
-          setState(() => _currentIndex = index);
-          _persistLastUsed(index);
-        },
+        onTap: () => _onTabTapped(index),
         borderRadius: BorderRadius.circular(20),
         child: Center(
           child: AnimatedContainer(

@@ -5,6 +5,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:url_launcher/url_launcher.dart';
 import 'package:yomou/core/database/database_helper.dart';
+import 'package:yomou/core/haptics.dart';
 import 'package:yomou/core/widgets/ios/ios_press.dart';
 import 'package:yomou/core/database/source_cache.dart';
 import 'package:yomou/core/widgets/responsive.dart' show usesWideLayout;
@@ -553,6 +554,7 @@ class _MangaDetailScreenState extends ConsumerState<MangaDetailScreen> {
 
   // Toggle favorite status in the database and refresh the favorites tab.
   Future<void> _toggleFavorite() async {
+    appHaptic(ref, AppHaptic.light);
     final newValue = !_isFavorite;
     await DatabaseHelper.instance.setFavorite(
       mangaId: widget.mangaId,
