@@ -6,6 +6,7 @@ import '../models/manga_source.dart';
 import 'package:yomou/features/settings/providers/cache_settings_provider.dart';
 import 'package:yomou/features/content_preferences/providers/content_preferences_provider.dart';
 import '../sources/mangaball_source.dart';
+import '../sources/mangago_source.dart';
 import '../sources/manganato_service.dart';
 import '../sources/mock_source.dart';
 import '../sources/manga_dex_source.dart';
@@ -160,6 +161,8 @@ MangaSource getSourceByName(String name) {
       return _shared('komga', KomgaSource.new);
     case 'MangaBat':
       return _shared('mangabat', MangaBatSource.new);
+    case 'Mangago':
+      return _shared('mangago', MangagoSource.new);
     case 'MangaFire English':
       return _shared(
         'mangafire-en',
@@ -258,6 +261,8 @@ MangaSource? getSourceBySourceId(String sourceId) {
       return getSourceByName('Komga');
     case 'mangabat':
       return getSourceByName('MangaBat');
+    case 'mangago':
+      return getSourceByName('Mangago');
     case 'mangafire-en':
       return getSourceByName('MangaFire English');
     case 'mangafire-es':
@@ -896,6 +901,14 @@ class SourcesNotifier extends StateNotifier<List<Map<String, dynamic>>> {
       'bgColor': const Color(0xFF9C27B0),
       'text': 'B',
       'iconUrl': 'https://www.mangabats.com/favicon.ico',
+      'isPinned': false,
+    },
+    {
+      'name': 'Mangago',
+      'language': 'Manga, Manhwa, Manhua, English',
+      'bgColor': const Color(0xFF0D9488),
+      'text': 'M',
+      'iconUrl': 'https://www.mangago.me/favicon.ico',
       'isPinned': false,
     },
     {

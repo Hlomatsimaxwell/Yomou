@@ -3,6 +3,7 @@ import 'package:flutter/widgets.dart';
 
 import '../../data/models/manga_source.dart';
 import '../../data/providers/sources_provider.dart';
+import 'diag_log.dart';
 
 /// Headless bring-up check for sources whose content needs a browser to
 /// appear (Cloudflare-challenged SPAs).
@@ -15,14 +16,27 @@ import '../../data/providers/sources_provider.dart';
 /// ```
 ///
 /// It walks the same path the browse screen uses — popular listing, then
-/// details for the first title — and prints one `SELFTEST` line per step, so
-/// `adb logcat` shows exactly which stage returns nothing.
+/// details for the first title — and writes one `SELFTEST` line per step to the
+/// on-device diag file (Android filters this app's Dart stdout, so logcat shows
+/// nothing; `diag.log` lives beside the WebView dumps).
+///
+/// A single chapter can be probed instead, which is handy while bringing up the
+/// reader for a source whose chapter list starts with removed entries:
+///
+/// ```
+/// flutter run --dart-define=YOMOU_SELFTEST=mangago \
+///   --dart-define=YOMOU_SELFTEST_PAGE=<manga>/<host>/<chapter>
+/// ```
 class SourceSelfTest {
   const SourceSelfTest._();
 
   static final List<String> enabledIds = _splitIds(
-    String.fromEnvironment('YOMOU_SELFTEST'),
+    const String.fromEnvironment('YOMOU_SELFTEST'),
   );
+
+  /// Skips listing/details/chapters and fetches only this chapter's pages.
+  static const String pageOverride =
+      String.fromEnvironment('YOMOU_SELFTEST_PAGE');
 
   static bool get enabled => enabledIds.isNotEmpty;
 
@@ -38,6 +52,9 @@ class SourceSelfTest {
   /// Runs after the first frame so the navigator (and therefore the hidden
   /// WebView overlay) exists.
   static void schedule() {
+    debugPrintSynchronously(
+      'SELFTEST schedule enabled=$enabled ids=$enabledIds',
+    );
     if (!enabled) return;
     WidgetsBinding.instance.addPostFrameCallback((_) => run());
   }
@@ -52,6 +69,18 @@ class SourceSelfTest {
       _log('$id start (${source.name})');
       final sw = Stopwatch()..start();
       try {
+        if (pageOverride.isNotEmpty) {
+          final psw = Stopwatch()..start();
+          final pages = await source.getPageUrls(pageOverride);
+          _log(
+            '$id pages($pageOverride) -> ${pages.length} '
+            'in ${psw.elapsedMilliseconds}ms',
+          );
+          for (final p in pages.take(3)) {
+            _log('$id   page $p');
+          }
+          continue;
+        }
         final list = await source.getPopularManga();
         _log(
           '$id popular -> ${list.length} titles in ${sw.elapsedMilliseconds}ms',
@@ -116,10 +145,16 @@ class SourceSelfTest {
     'MangaFire Portuguese',
     'MangaFire Portuguese Brazil',
     'MangaBall English',
+    'Mangago',
   ];
 
   /// Synchronous on purpose: the throttled printer drops lines when the app
   /// is also logging request failures, and a silent self-test is useless.
-  static void _log(String message) =>
-      debugPrintSynchronously('SELFTEST $message');
+  ///
+  /// The line is also mirrored to the on-device diag file: Android filters
+  /// this app's Dart stdout, so `flutter run`/logcat alone shows nothing.
+  static void _log(String message) {
+    debugPrintSynchronously('SELFTEST $message');
+    diagSoon('SELFTEST $message');
+  }
 }

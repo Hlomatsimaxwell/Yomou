@@ -42,6 +42,9 @@ class WebViewFetcher {
   OverlayEntry? _entry;
   Completer<String>? _pending;
 
+  /// The user agent the live view was built with; null means the platform's.
+  String? _userAgent;
+
   final List<_Pending> _queue = [];
   bool _draining = false;
 
@@ -139,13 +142,14 @@ class WebViewFetcher {
     String url, {
     required String sourceId,
     String? expected,
+    String? userAgent,
     Duration timeout = const Duration(seconds: 30),
     bool priority = false,
   }) {
     final completer = Completer<String>();
     _enqueue(
       _Pending(
-        () => _run(url, sourceId, expected, timeout, completer),
+        () => _run(url, sourceId, expected, userAgent, timeout, completer),
         priority: priority || !_isBackground,
       ),
     );
@@ -168,13 +172,14 @@ class WebViewFetcher {
     String url,
     String js, {
     required String sourceId,
+    String? userAgent,
     Duration cap = const Duration(seconds: 25),
     bool priority = false,
   }) {
     final completer = Completer<String>();
     _enqueue(
       _Pending(
-        () => _runInPage(url, js, sourceId, cap, completer),
+        () => _runInPage(url, js, sourceId, userAgent, cap, completer),
         priority: priority || !_isBackground,
       ),
     );
@@ -185,6 +190,7 @@ class WebViewFetcher {
     String url,
     String js,
     String sourceId,
+    String? userAgent,
     Duration cap,
     Completer<String> completer,
   ) async {
@@ -203,8 +209,7 @@ class WebViewFetcher {
         }
         _challengedAt = null;
       }
-      // The real browser identity is required: a spoofed user agent is
-      // detectable and turns the challenge into an endless verify loop.
+      _applyUserAgent(userAgent);
       await _ensureWebView(sourceId);
       final controller = _controller;
       if (controller == null) throw StateError('no webview');
@@ -429,6 +434,7 @@ class WebViewFetcher {
     String url,
     String sourceId,
     String? expected,
+    String? userAgent,
     Duration timeout,
     Completer<String> completer,
   ) async {
@@ -440,6 +446,7 @@ class WebViewFetcher {
     }
     _pending = completer;
     try {
+      _applyUserAgent(userAgent);
       await _ensureWebView(sourceId);
       final controller = _controller;
       if (controller == null) {
@@ -532,13 +539,29 @@ class WebViewFetcher {
     return last;
   }
 
+  /// Points the hidden WebView at [userAgent] (null restores the platform's).
+  ///
+  /// A site can key its layout on the user agent — Mangago hands a desktop
+  /// agent the reader's full page list and a mobile one only the first few
+  /// images — so the UA has to be selectable per call. It is applied by
+  /// rebuilding the view, never by mutating a live one: Cloudflare ties a
+  /// clearance to the identity it was issued to, so a UA swapped under an
+  /// existing session is exactly the spoof the challenge is looking for.
+  void _applyUserAgent(String? userAgent) {
+    if (_userAgent == userAgent) return;
+    _userAgent = userAgent;
+    _currentOrigin = null;
+    _challengedAt = null;
+    if (_controller != null) dispose();
+  }
+
   /// The WebView is kept alive between requests: solving the challenge once is
   /// the expensive part.
   ///
-  /// Its user agent is left at the platform default on purpose. Cloudflare
-  /// compares the identity the page presents with the one its clearance was
-  /// issued to, and this WebView is shared by every source, so any spoofed
-  /// value would contradict the session that actually solved the challenge.
+  /// Its user agent is the platform default unless a caller asked for another
+  /// one (see [_applyUserAgent]); Cloudflare compares the identity the page
+  /// presents with the one its clearance was issued to, so the value is fixed
+  /// for the life of the view and only changed by rebuilding it.
   Future<void> _ensureWebView(String sourceId) async {
     if (_controller != null) return;
     // Refused before the overlay entry exists, because the failure of an
@@ -582,7 +605,7 @@ class WebViewFetcher {
                   domStorageEnabled: true,
                   thirdPartyCookiesEnabled: true,
                   transparentBackground: true,
-                  userAgent: null,
+                  userAgent: _userAgent,
                 ),
                 onWebViewCreated: (controller) {
                   _controller = controller;
