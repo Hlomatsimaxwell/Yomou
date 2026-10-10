@@ -1,4 +1,5 @@
 import 'package:yomou/widgets/cached_manga_image.dart';
+import 'package:yomou/widgets/manga_hero.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:remixicon/remixicon.dart';
@@ -267,30 +268,40 @@ class _FeedScreenState extends ConsumerState<FeedScreen> {
                     title: update.title,
                     imageUrl: update.coverUrl,
                     sourceId: update.sourceId,
+                    heroTag: mangaCoverHeroTag(
+                      sourceId: update.sourceId,
+                      mangaId: update.mangaId,
+                    ),
                   ),
                 ),
               );
             },
             leading: Stack(
               children: [
-                ClipRRect(
-                  borderRadius: BorderRadius.circular(12),
-                  child: Container(
-                    decoration: BoxDecoration(
-                      borderRadius: BorderRadius.circular(12),
-                      border: dark ? null : Border.all(color: Colors.black12),
-                    ),
-                    child: CachedMangaImage(
-                      imageUrl: update.coverUrl,
-                      width: 48,
-                      height: 48,
-                      fit: BoxFit.cover,
-                      errorWidget: (context, url, error) => Container(
-                        color: const Color(0xFF2C2C2E),
-                        alignment: Alignment.center,
-                        child: const Icon(
-                          RemixIcons.book_open_line,
-                          color: Colors.white38,
+                MangaCoverHero(
+                  tag: mangaCoverHeroTag(
+                    sourceId: update.sourceId,
+                    mangaId: update.mangaId,
+                  ),
+                  child: ClipRRect(
+                    borderRadius: BorderRadius.circular(12),
+                    child: Container(
+                      decoration: BoxDecoration(
+                        borderRadius: BorderRadius.circular(12),
+                        border: dark ? null : Border.all(color: Colors.black12),
+                      ),
+                      child: CachedMangaImage(
+                        imageUrl: update.coverUrl,
+                        width: 48,
+                        height: 48,
+                        fit: BoxFit.cover,
+                        errorWidget: (context, url, error) => Container(
+                          color: const Color(0xFF2C2C2E),
+                          alignment: Alignment.center,
+                          child: const Icon(
+                            RemixIcons.book_open_line,
+                            color: Colors.white38,
+                          ),
                         ),
                       ),
                     ),

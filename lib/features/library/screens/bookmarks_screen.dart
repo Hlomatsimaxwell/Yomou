@@ -1,4 +1,5 @@
 import 'package:yomou/widgets/cached_manga_image.dart';
+import 'package:yomou/widgets/manga_hero.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:remixicon/remixicon.dart';
@@ -170,6 +171,10 @@ class _BookmarkTile extends StatelessWidget {
               title: mangaTitle,
               imageUrl: mangaCover,
               sourceId: sourceId,
+              heroTag: mangaCoverHeroTag(
+                sourceId: sourceId,
+                mangaId: mangaId,
+              ),
             ),
           ),
         );
@@ -191,31 +196,15 @@ class _BookmarkTile extends StatelessWidget {
         padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
         child: Row(
           children: [
-            ClipRRect(
-              borderRadius: BorderRadius.circular(12),
-              child: dark
-                  ? CachedMangaImage(
-                      imageUrl: mangaCover,
-                      width: 48,
-                      height: 64,
-                      fit: BoxFit.cover,
-                      errorWidget: (context, url, error) => Container(
-                        width: 48,
-                        height: 64,
-                        color: const Color(0xFF2C2C2E),
-                        alignment: Alignment.center,
-                        child: const Icon(
-                          RemixIcons.book_open_line,
-                          color: Colors.white38,
-                        ),
-                      ),
-                    )
-                  : Container(
-                      decoration: BoxDecoration(
-                        borderRadius: BorderRadius.circular(12),
-                        border: Border.all(color: Colors.black12),
-                      ),
-                      child: CachedMangaImage(
+            MangaCoverHero(
+              tag: mangaCoverHeroTag(
+                sourceId: sourceId,
+                mangaId: mangaId,
+              ),
+              child: ClipRRect(
+                borderRadius: BorderRadius.circular(12),
+                child: dark
+                    ? CachedMangaImage(
                         imageUrl: mangaCover,
                         width: 48,
                         height: 64,
@@ -223,15 +212,37 @@ class _BookmarkTile extends StatelessWidget {
                         errorWidget: (context, url, error) => Container(
                           width: 48,
                           height: 64,
-                          color: Colors.black12,
+                          color: const Color(0xFF2C2C2E),
                           alignment: Alignment.center,
                           child: const Icon(
                             RemixIcons.book_open_line,
-                            color: Colors.black38,
+                            color: Colors.white38,
+                          ),
+                        ),
+                      )
+                    : Container(
+                        decoration: BoxDecoration(
+                          borderRadius: BorderRadius.circular(12),
+                          border: Border.all(color: Colors.black12),
+                        ),
+                        child: CachedMangaImage(
+                          imageUrl: mangaCover,
+                          width: 48,
+                          height: 64,
+                          fit: BoxFit.cover,
+                          errorWidget: (context, url, error) => Container(
+                            width: 48,
+                            height: 64,
+                            color: Colors.black12,
+                            alignment: Alignment.center,
+                            child: const Icon(
+                              RemixIcons.book_open_line,
+                              color: Colors.black38,
+                            ),
                           ),
                         ),
                       ),
-                    ),
+              ),
             ),
             const SizedBox(width: 12),
             Expanded(

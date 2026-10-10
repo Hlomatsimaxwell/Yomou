@@ -3,6 +3,7 @@ import 'dart:math';
 import 'dart:convert';
 import 'package:shared_preferences/shared_preferences.dart';
 import 'package:yomou/widgets/cached_manga_image.dart';
+import 'package:yomou/widgets/manga_hero.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:yomou/core/database/source_cache.dart';
@@ -738,6 +739,10 @@ class _MangaGridScreenState extends ConsumerState<MangaGridScreen> {
           imageUrl: manga.coverUrl,
           sourceId: manga.sourceId,
           autoStartReader: autoStartReader,
+          heroTag: mangaCoverHeroTag(
+            sourceId: manga.sourceId,
+            mangaId: manga.id,
+          ),
         ),
       ),
     );
@@ -1089,21 +1094,27 @@ class _MangaGridScreenState extends ConsumerState<MangaGridScreen> {
         child: Row(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            ClipRRect(
-              borderRadius: BorderRadius.circular(12),
-              child: SizedBox(
-                width: 52,
-                height: 76,
-                child: CachedMangaImage(
-                  imageUrl: item.coverUrl,
-                  fit: BoxFit.cover,
-                  errorWidget: (context, url, error) => Container(
-                    color: dark ? const Color(0xFF2C2C2E) : Colors.black12,
-                    alignment: Alignment.center,
-                    child: const Icon(
-                      RemixIcons.book_open_line,
-                      color: Colors.white38,
-                      size: 20,
+            MangaCoverHero(
+              tag: mangaCoverHeroTag(
+                sourceId: item.sourceId,
+                mangaId: item.id,
+              ),
+              child: ClipRRect(
+                borderRadius: BorderRadius.circular(12),
+                child: SizedBox(
+                  width: 52,
+                  height: 76,
+                  child: CachedMangaImage(
+                    imageUrl: item.coverUrl,
+                    fit: BoxFit.cover,
+                    errorWidget: (context, url, error) => Container(
+                      color: dark ? const Color(0xFF2C2C2E) : Colors.black12,
+                      alignment: Alignment.center,
+                      child: const Icon(
+                        RemixIcons.book_open_line,
+                        color: Colors.white38,
+                        size: 20,
+                      ),
                     ),
                   ),
                 ),
@@ -1154,41 +1165,47 @@ class _MangaGridScreenState extends ConsumerState<MangaGridScreen> {
             child: Stack(
               fit: StackFit.expand,
               children: [
-                ClipRRect(
-                  borderRadius: BorderRadius.circular(16),
-                  child: dark
-                      ? CachedMangaImage(
-                          imageUrl: item.coverUrl,
-                          fit: BoxFit.cover,
-                          errorWidget: (context, url, error) => Container(
-                            color: const Color(0xFF2C2C2E),
-                            alignment: Alignment.center,
-                            child: const Icon(
-                              RemixIcons.book_open_line,
-                              color: Colors.white38,
-                              size: 28,
-                            ),
-                          ),
-                        )
-                      : Container(
-                          decoration: BoxDecoration(
-                            borderRadius: BorderRadius.circular(16),
-                            border: Border.all(color: Colors.black12),
-                          ),
-                          child: CachedMangaImage(
+                MangaCoverHero(
+                  tag: mangaCoverHeroTag(
+                    sourceId: item.sourceId,
+                    mangaId: item.id,
+                  ),
+                  child: ClipRRect(
+                    borderRadius: BorderRadius.circular(16),
+                    child: dark
+                        ? CachedMangaImage(
                             imageUrl: item.coverUrl,
                             fit: BoxFit.cover,
                             errorWidget: (context, url, error) => Container(
-                              color: Colors.black12,
+                              color: const Color(0xFF2C2C2E),
                               alignment: Alignment.center,
                               child: const Icon(
                                 RemixIcons.book_open_line,
-                                color: Colors.black38,
+                                color: Colors.white38,
                                 size: 28,
                               ),
                             ),
+                          )
+                        : Container(
+                            decoration: BoxDecoration(
+                              borderRadius: BorderRadius.circular(16),
+                              border: Border.all(color: Colors.black12),
+                            ),
+                            child: CachedMangaImage(
+                              imageUrl: item.coverUrl,
+                              fit: BoxFit.cover,
+                              errorWidget: (context, url, error) => Container(
+                                color: Colors.black12,
+                                alignment: Alignment.center,
+                                child: const Icon(
+                                  RemixIcons.book_open_line,
+                                  color: Colors.black38,
+                                  size: 28,
+                                ),
+                              ),
+                            ),
                           ),
-                        ),
+                  ),
                 ),
                 DownloadedMangaBadge(mangaId: item.id),
                 FavoriteBadge(mangaId: item.id),

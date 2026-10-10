@@ -1,5 +1,6 @@
 import 'dart:async';
 import 'package:yomou/widgets/cached_manga_image.dart';
+import 'package:yomou/widgets/manga_hero.dart';
 import 'package:remixicon/remixicon.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
@@ -78,6 +79,11 @@ class MangaDetailScreen extends ConsumerStatefulWidget {
   /// the list already loaded, which is what the user sees next anyway.
   final bool autoStartReader;
 
+  /// The [Hero] tag of the cover that should fly into this screen's cover when
+  /// it was reached by tapping a grid cell. Null (e.g. a deep link) means the
+  /// header cover simply appears.
+  final String? heroTag;
+
   const MangaDetailScreen({
     super.key,
     required this.mangaId,
@@ -85,6 +91,7 @@ class MangaDetailScreen extends ConsumerStatefulWidget {
     required this.imageUrl,
     this.sourceId,
     this.autoStartReader = false,
+    this.heroTag,
   });
 
   @override
@@ -2639,18 +2646,21 @@ class _MangaDetailScreenState extends ConsumerState<MangaDetailScreen> {
       children: [
         Stack(
           children: [
-            Container(
-              decoration: BoxDecoration(
-                borderRadius: BorderRadius.circular(16),
-                border: dark ? null : Border.all(color: Colors.black12),
-              ),
-              child: ClipRRect(
-                borderRadius: BorderRadius.circular(16),
-                child: CachedMangaImage(
-                  imageUrl: _coverUrl,
-                  width: coverWidth,
-                  height: coverHeight,
-                  fit: BoxFit.cover,
+            MangaCoverHero(
+              tag: widget.heroTag,
+              child: Container(
+                decoration: BoxDecoration(
+                  borderRadius: BorderRadius.circular(16),
+                  border: dark ? null : Border.all(color: Colors.black12),
+                ),
+                child: ClipRRect(
+                  borderRadius: BorderRadius.circular(16),
+                  child: CachedMangaImage(
+                    imageUrl: _coverUrl,
+                    width: coverWidth,
+                    height: coverHeight,
+                    fit: BoxFit.cover,
+                  ),
                 ),
               ),
             ),

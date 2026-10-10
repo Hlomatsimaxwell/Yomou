@@ -1,4 +1,5 @@
 import 'package:yomou/widgets/cached_manga_image.dart';
+import 'package:yomou/widgets/manga_hero.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:shared_preferences/shared_preferences.dart';
@@ -283,6 +284,10 @@ class _HistoryScreenState extends ConsumerState<HistoryScreen> {
           title: item['title'],
           imageUrl: item['coverUrl'],
           sourceId: item['sourceId'],
+          heroTag: mangaCoverHeroTag(
+            sourceId: item['sourceId'],
+            mangaId: item['mangaId'],
+          ),
         ),
       ),
     );
@@ -1728,34 +1733,42 @@ class _GridHistoryCardState extends State<GridHistoryCard> {
             aspectRatio: 2 / 3,
             child: Stack(
               children: [
-                ClipRRect(
-                  borderRadius: BorderRadius.circular(14),
-                  child: LayoutBuilder(
-                    builder: (context, constraints) => Container(
-                      decoration: BoxDecoration(
-                        borderRadius: BorderRadius.circular(14),
-                        border: dark ? null : Border.all(color: Colors.black12),
-                      ),
-                      child: CachedMangaImage(
-                        imageUrl: widget.item['coverUrl'],
-                        // Read the tile's real size instead of asking for
-                        // infinity. Infinity is the one width the decode cap
-                        // refuses, which left this the only history mode
-                        // decoding covers at full source resolution - around
-                        // 18MB each, and every tile at once because the grid is
-                        // shrink-wrapped rather than lazy. The delegate already
-                        // hands this tile a tight width, so there is nothing to
-                        // guess.
-                        width: constraints.maxWidth,
-                        height: constraints.maxHeight,
-                        fit: BoxFit.cover,
-                        errorWidget: (context, url, error) => Container(
-                          color: const Color(0xFF2C2C2E),
-                          alignment: Alignment.center,
-                          child: const Icon(
-                            RemixIcons.book_open_line,
-                            color: Colors.white38,
-                            size: 20,
+                MangaCoverHero(
+                  tag: mangaCoverHeroTag(
+                    sourceId: widget.item['sourceId'] as String?,
+                    mangaId: widget.item['mangaId'] as String,
+                  ),
+                  child: ClipRRect(
+                    borderRadius: BorderRadius.circular(14),
+                    child: LayoutBuilder(
+                      builder: (context, constraints) => Container(
+                        decoration: BoxDecoration(
+                          borderRadius: BorderRadius.circular(14),
+                          border: dark
+                              ? null
+                              : Border.all(color: Colors.black12),
+                        ),
+                        child: CachedMangaImage(
+                          imageUrl: widget.item['coverUrl'],
+                          // Read the tile's real size instead of asking for
+                          // infinity. Infinity is the one width the decode cap
+                          // refuses, which left this the only history mode
+                          // decoding covers at full source resolution - around
+                          // 18MB each, and every tile at once because the grid
+                          // is shrink-wrapped rather than lazy. The delegate
+                          // already hands this tile a tight width, so there is
+                          // nothing to guess.
+                          width: constraints.maxWidth,
+                          height: constraints.maxHeight,
+                          fit: BoxFit.cover,
+                          errorWidget: (context, url, error) => Container(
+                            color: const Color(0xFF2C2C2E),
+                            alignment: Alignment.center,
+                            child: const Icon(
+                              RemixIcons.book_open_line,
+                              color: Colors.white38,
+                              size: 20,
+                            ),
                           ),
                         ),
                       ),
@@ -1931,13 +1944,19 @@ class _DetailedHistoryCardState extends State<DetailedHistoryCard> {
           padding: const EdgeInsets.all(10),
           child: Row(
             children: [
-              ClipRRect(
-                borderRadius: BorderRadius.circular(8),
-                child: CachedMangaImage(
-                  imageUrl: widget.item['coverUrl'],
-                  width: 60,
-                  height: 85,
-                  fit: BoxFit.cover,
+              MangaCoverHero(
+                tag: mangaCoverHeroTag(
+                  sourceId: widget.item['sourceId'] as String?,
+                  mangaId: widget.item['mangaId'] as String,
+                ),
+                child: ClipRRect(
+                  borderRadius: BorderRadius.circular(8),
+                  child: CachedMangaImage(
+                    imageUrl: widget.item['coverUrl'],
+                    width: 60,
+                    height: 85,
+                    fit: BoxFit.cover,
+                  ),
                 ),
               ),
               const SizedBox(width: 14),
@@ -2017,18 +2036,24 @@ class _CompactHistoryCardState extends State<CompactHistoryCard> {
     final onSurface = Theme.of(context).colorScheme.onSurface;
     return ListTile(
       contentPadding: const EdgeInsets.symmetric(vertical: 4),
-      leading: ClipRRect(
-        borderRadius: BorderRadius.circular(6),
-        child: Container(
-          decoration: BoxDecoration(
-            borderRadius: BorderRadius.circular(6),
-            border: dark ? null : Border.all(color: Colors.black12),
-          ),
-          child: CachedMangaImage(
-            imageUrl: widget.item['coverUrl'],
-            width: 40,
-            height: 56,
-            fit: BoxFit.cover,
+      leading: MangaCoverHero(
+        tag: mangaCoverHeroTag(
+          sourceId: widget.item['sourceId'] as String?,
+          mangaId: widget.item['mangaId'] as String,
+        ),
+        child: ClipRRect(
+          borderRadius: BorderRadius.circular(6),
+          child: Container(
+            decoration: BoxDecoration(
+              borderRadius: BorderRadius.circular(6),
+              border: dark ? null : Border.all(color: Colors.black12),
+            ),
+            child: CachedMangaImage(
+              imageUrl: widget.item['coverUrl'],
+              width: 40,
+              height: 56,
+              fit: BoxFit.cover,
+            ),
           ),
         ),
       ),
