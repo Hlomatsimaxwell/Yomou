@@ -1,0 +1,10 @@
+{
+  "genres": [
+    {"id": "37", "name": "Adventure"},
+    {"id": "6", "name": "Comedy"},
+    {"id": "39", "name": "Action"}
+  ],
+  "tags": [],
+  "types": [],
+  "statuses": []
+}

@@ -5,6 +5,7 @@ import 'package:shared_preferences/shared_preferences.dart';
 import '../models/manga_source.dart';
 import 'package:yomou/features/settings/providers/cache_settings_provider.dart';
 import 'package:yomou/features/content_preferences/providers/content_preferences_provider.dart';
+import '../sources/atsumoe_source.dart';
 import '../sources/mangaball_source.dart';
 import '../sources/mangago_source.dart';
 import '../sources/manganato_service.dart';
@@ -139,6 +140,8 @@ MangaSource getSourceByName(String name) {
       return _shared('arenascan', ArenascanSource.new);
     case 'Asura Scans':
       return _shared('asurascans', AsuraScansSource.new);
+    case 'Atsumaru':
+      return _shared('atsu', AtsuMoeSource.new);
     case 'ComicK':
       return _shared('comick', ComickSource.new);
     case 'Mgeko':
@@ -239,6 +242,8 @@ MangaSource? getSourceBySourceId(String sourceId) {
       return getSourceByName('Arenascan');
     case 'asurascans':
       return getSourceByName('Asura Scans');
+    case 'atsu':
+      return getSourceByName('Atsumaru');
     case 'comick':
       return getSourceByName('ComicK');
     case 'mgeko':
@@ -807,6 +812,14 @@ class SourcesNotifier extends StateNotifier<List<Map<String, dynamic>>> {
       'bgColor': const Color(0xFFDB0032),
       'text': 'A',
       'iconUrl': 'https://asurascans.com/favicon.ico',
+      'isPinned': false,
+    },
+    {
+      'name': 'Atsumaru',
+      'language': 'Manga, Manhwa, Manhua, English',
+      'bgColor': const Color(0xFFF5A524),
+      'text': 'A',
+      'iconUrl': 'https://atsu.moe/favicon.ico',
       'isPinned': false,
     },
     {

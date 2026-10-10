@@ -1,0 +1,76 @@
+{
+  "mangaPage": {
+    "id": "2VgNt",
+    "title": "Witch Hat Atelier",
+    "englishTitle": null,
+    "synopsis": "In a world where everyone takes wonders like magic spells and dragons for granted, Coco is a girl with a simple dream: she wants to be a witch. But everybody knows magicians are born, not made, and Coco was not born with a gift for magic. Resigned to her un-magical life, Coco is about to give up on her dream to become a witch \u2026 until the day she meets Qifrey, a mysterious, traveling magician. After secretly seeing Qifrey perform magic in a way she\u2019s never seen before, Coco soon learns what everybody \u201cknows\u201d might not be the truth, and discovers that her magical dream may not be as far away as it may seem... \n\n(Source: Kodansha USA) \n\n*Notes:\n\\- Nominated for the 11th Manga Taishou Award in 2018.\n\\- Won the Daruma d'Or at Japan Expo in 2019.\n\\- Won Best U.S. Edition of International Material - Asia at the Eisner Awards in 2020.\n\\- Won the Best Manga Award at the Harvey Awards in 2020.*",
+    "status": "Ongoing",
+    "released": 1451606400000,
+    "totalChapterCount": 99,
+    "poster": {
+      "image": "posters/N3HO30V76uWZV9iG.jpg"
+    },
+    "authors": [
+      {
+        "name": "Kamome Shirahama"
+      },
+      {
+        "name": "Kamome Shirahama"
+      }
+    ],
+    "genres": [
+      {
+        "name": "Adventure"
+      },
+      {
+        "name": "Boys Love"
+      },
+      {
+        "name": "Comedy"
+      },
+      {
+        "name": "Drama"
+      },
+      {
+        "name": "Fantasy"
+      },
+      {
+        "name": "Slice of Life"
+      },
+      {
+        "name": "Tragedy"
+      }
+    ],
+    "chapters": [
+      {
+        "id": "prIIkU",
+        "title": "Chapter 99",
+        "number": 99,
+        "index": 131,
+        "createdAt": 1788464782000
+      },
+      {
+        "id": "CEWMEo",
+        "title": "Chapter 98",
+        "number": 98,
+        "index": 130,
+        "createdAt": 1787322536369
+      },
+      {
+        "id": "WK_m4l",
+        "title": "Chapter 97",
+        "number": 97,
+        "index": 129,
+        "createdAt": 1784516183090
+      },
+      {
+        "id": "61q5pj",
+        "title": "Chapter 96",
+        "number": 96,
+        "index": 128,
+        "createdAt": 1784516186291
+      }
+    ],
+    "moments": []
+  }
+}

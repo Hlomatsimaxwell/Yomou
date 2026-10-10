@@ -146,6 +146,7 @@ class SourceSelfTest {
     'MangaFire Portuguese Brazil',
     'MangaBall English',
     'Mangago',
+    'Atsumaru',
   ];
 
   /// Synchronous on purpose: the throttled printer drops lines when the app

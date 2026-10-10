@@ -1,0 +1,27 @@
+{
+  "readChapter": {
+    "id": "mzO0tF",
+    "number": 1,
+    "title": "Chapter 1",
+    "pages": [
+      {
+        "number": 0,
+        "image": "/static/pages/mzO0tF/0.webp",
+        "width": 1125,
+        "height": 1600
+      },
+      {
+        "number": 1,
+        "image": "/static/pages/mzO0tF/1.webp",
+        "width": 1125,
+        "height": 1600
+      },
+      {
+        "number": 2,
+        "image": "/static/pages/mzO0tF/2.webp",
+        "width": 1125,
+        "height": 1600
+      }
+    ]
+  }
+}

@@ -1,0 +1,87 @@
+{
+  "facet_counts": [],
+  "found": 26794,
+  "hits": [
+    {
+      "document": {
+        "authors": [
+          "SHIRAHAMA Kamome"
+        ],
+        "dateAdded": 1750510102079,
+        "id": "2VgNt",
+        "isAdult": false,
+        "mbRating": 8.47980857142857,
+        "medium": "Comic",
+        "popularity": "16.6M",
+        "poster": "/static/posters/N3HO30V76uWZV9iG.jpg",
+        "posterMedium": "/static/posters/N3HO30V76uWZV9iG-medium.avif",
+        "posterSmall": "/static/posters/N3HO30V76uWZV9iG-small.avif",
+        "status": "Ongoing",
+        "title": "Witch Hat Atelier",
+        "type": "Manga",
+        "year": 2016
+      },
+      "highlight": {},
+      "highlights": []
+    },
+    {
+      "document": {
+        "authors": [
+          "IAN",
+          "Kanara",
+          "Lee HyunMin",
+          "Soulpung"
+        ],
+        "dateAdded": 1751388968484,
+        "id": "3xHoW",
+        "isAdult": false,
+        "mbRating": 8.54783333333334,
+        "medium": "Comic",
+        "popularity": "9.4M",
+        "poster": "/static/posters/3Pe8J1zAEnTA0UeP.jpg",
+        "posterMedium": "/static/posters/3Pe8J1zAEnTA0UeP-medium.avif",
+        "posterSmall": "/static/posters/3Pe8J1zAEnTA0UeP-small.avif",
+        "status": "Hiatus",
+        "title": "The Knight Only Lives Today",
+        "type": "Manwha",
+        "year": 2024
+      },
+      "highlight": {},
+      "highlights": []
+    },
+    {
+      "document": {
+        "authors": [
+          "BK_Moon",
+          "KIM Hyun Soo",
+          "LEE Hyun-Min"
+        ],
+        "dateAdded": 1751446013107,
+        "id": "fX0YJ",
+        "isAdult": false,
+        "mbRating": 8.99966666666667,
+        "medium": "Comic",
+        "popularity": "8.6M",
+        "poster": "/static/posters/QX9jgNKJH6iFeeVd.jpg",
+        "posterMedium": "/static/posters/QX9jgNKJH6iFeeVd-medium.avif",
+        "posterSmall": "/static/posters/QX9jgNKJH6iFeeVd-small.avif",
+        "status": "Completed",
+        "title": "The Greatest Estate Developer",
+        "type": "Manwha",
+        "year": 2021
+      },
+      "highlight": {},
+      "highlights": []
+    }
+  ],
+  "out_of": 26794,
+  "page": 1,
+  "request_params": {
+    "collection_name": "manga",
+    "first_q": "*",
+    "per_page": 3,
+    "q": "*"
+  },
+  "search_cutoff": false,
+  "search_time_ms": 2
+}
