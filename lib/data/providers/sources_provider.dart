@@ -6,6 +6,7 @@ import '../models/manga_source.dart';
 import 'package:yomou/features/settings/providers/cache_settings_provider.dart';
 import 'package:yomou/features/content_preferences/providers/content_preferences_provider.dart';
 import '../sources/atsumoe_source.dart';
+import '../sources/seimanga_source.dart';
 import '../sources/mangaball_source.dart';
 import '../sources/mangago_source.dart';
 import '../sources/manganato_service.dart';
@@ -142,6 +143,8 @@ MangaSource getSourceByName(String name) {
       return _shared('asurascans', AsuraScansSource.new);
     case 'Atsumaru':
       return _shared('atsu', AtsuMoeSource.new);
+    case 'SeiManga':
+      return _shared('seimanga', SeiMangaSource.new);
     case 'ComicK':
       return _shared('comick', ComickSource.new);
     case 'Mgeko':
@@ -268,6 +271,8 @@ MangaSource? getSourceBySourceId(String sourceId) {
       return getSourceByName('MangaBat');
     case 'mangago':
       return getSourceByName('Mangago');
+    case 'seimanga':
+      return getSourceByName('SeiManga');
     case 'mangafire-en':
       return getSourceByName('MangaFire English');
     case 'mangafire-es':
@@ -821,6 +826,15 @@ class SourcesNotifier extends StateNotifier<List<Map<String, dynamic>>> {
       'text': 'A',
       'iconUrl': 'https://atsu.moe/favicon.ico',
       'isPinned': false,
+    },
+    {
+      'name': 'SeiManga',
+      'language': 'Manga, Manhwa, Russian',
+      'bgColor': const Color(0xFF6D28D9),
+      'text': 'S',
+      'iconUrl': 'https://1.seimanga.me/favicon.ico',
+      'isPinned': false,
+      'nsfw': true,
     },
     {
       'name': 'Mgeko',

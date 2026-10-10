@@ -1,0 +1,283 @@
+{
+  "total": 3,
+  "limit": 50,
+  "offset": 0,
+  "list": [
+    {
+      "elementId": {
+        "linkName": "zajgi_moi_instinkt",
+        "type": "MANGA",
+        "externalId": 13992,
+        "siteId": 21,
+        "fuid": "21:M:13992"
+      },
+      "name": "Зажги мой инстинкт",
+      "picUrl": "https://sei.one-way.work/uploads/pics/00/91/424.webp",
+      "elements": [
+        {
+          "id": 1349,
+          "typeName": "genre",
+          "name": "дзёсэй",
+          "picUrl": null
+        },
+        {
+          "id": 6551,
+          "typeName": "tag",
+          "name": "ГГ женщина",
+          "picUrl": null
+        },
+        {
+          "id": 3969,
+          "typeName": "limitation",
+          "name": "NC-17",
+          "picUrl": null
+        },
+        {
+          "id": 6706,
+          "typeName": "tag",
+          "name": "Друзья детства",
+          "picUrl": null
+        },
+        {
+          "id": 6594,
+          "typeName": "tag",
+          "name": "Офисные работники",
+          "picUrl": null
+        },
+        {
+          "id": 1327,
+          "typeName": "genre",
+          "name": "повседневность",
+          "picUrl": null
+        },
+        {
+          "id": 6729,
+          "typeName": "tag",
+          "name": "Соседи",
+          "picUrl": null
+        },
+        {
+          "id": 6319,
+          "typeName": "gournal",
+          "name": "Comic Tint",
+          "picUrl": "https://sei.one-way.work/uploads/pics/00/77/858.webp"
+        },
+        {
+          "id": 5352,
+          "typeName": "publisher",
+          "name": "Kodansha",
+          "picUrl": "https://sei.one-way.work/uploads/pics/00/47/406.webp"
+        },
+        {
+          "id": 6553,
+          "typeName": "tag",
+          "name": "ГГ мужчина",
+          "picUrl": null
+        },
+        {
+          "id": 5813,
+          "typeName": "year",
+          "name": "2018",
+          "picUrl": null
+        },
+        {
+          "id": 1313,
+          "typeName": "genre",
+          "name": "романтика",
+          "picUrl": null
+        },
+        {
+          "id": 1340,
+          "typeName": "genre",
+          "name": "эротика",
+          "picUrl": null
+        }
+      ],
+      "lastUpdate": "2024-09-23T18:05:58Z",
+      "productionStatus": "FINISHED",
+      "translationStatus": "FINISHED",
+      "volumeCount": 9,
+      "chaptersCount": 44,
+      "rating": {
+        "voteCount": 476,
+        "rate": 9.18908
+      }
+    },
+    {
+      "elementId": {
+        "linkName": "dva_zavetnyh_jelaniia_vedmy",
+        "type": "MANGA",
+        "externalId": 3322,
+        "siteId": 21,
+        "fuid": "21:M:3322"
+      },
+      "name": "Два заветных желания ведьмы",
+      "picUrl": "https://sei.one-way.work/uploads/pics/00/56/143.webp",
+      "elements": [
+        {
+          "id": 1313,
+          "typeName": "genre",
+          "name": "романтика",
+          "picUrl": null
+        },
+        {
+          "id": 1349,
+          "typeName": "genre",
+          "name": "дзёсэй",
+          "picUrl": null
+        },
+        {
+          "id": 2519,
+          "typeName": "year",
+          "name": "2009",
+          "picUrl": null
+        },
+        {
+          "id": 5774,
+          "typeName": "gournal",
+          "name": "Petit Comic",
+          "picUrl": "https://sei.one-way.work/uploads/pics/00/66/936.webp"
+        },
+        {
+          "id": 3969,
+          "typeName": "limitation",
+          "name": "NC-17",
+          "picUrl": null
+        },
+        {
+          "id": 1340,
+          "typeName": "genre",
+          "name": "эротика",
+          "picUrl": null
+        },
+        {
+          "id": 5279,
+          "typeName": "publisher",
+          "name": "Shogakukan",
+          "picUrl": "https://sei.one-way.work/uploads/pics/00/48/852.webp"
+        }
+      ],
+      "lastUpdate": "2013-06-03T20:46:31Z",
+      "productionStatus": "FINISHED",
+      "translationStatus": "POSTPONED",
+      "volumeCount": 6,
+      "chaptersCount": 3,
+      "rating": {
+        "voteCount": 324,
+        "rate": 9.24074
+      }
+    },
+    {
+      "elementId": {
+        "linkName": "na_mne_hochet_jenitsia_kronprinc_tiran_iz_drugogo_mira_",
+        "type": "MANGA",
+        "externalId": 17816,
+        "siteId": 21,
+        "fuid": "21:M:17816"
+      },
+      "name": "На мне хочет жениться кронпринц-тиран из другого мира!",
+      "picUrl": "https://sei.one-way.work/uploads/pics/00/93/020.webp",
+      "elements": [
+        {
+          "id": 6579,
+          "typeName": "tag",
+          "name": "Магия",
+          "picUrl": null
+        },
+        {
+          "id": 1349,
+          "typeName": "genre",
+          "name": "дзёсэй",
+          "picUrl": null
+        },
+        {
+          "id": 5417,
+          "typeName": "publisher",
+          "name": "Julian Publishing",
+          "picUrl": "https://sei.one-way.work/uploads/pics/00/46/871.webp"
+        },
+        {
+          "id": 1327,
+          "typeName": "genre",
+          "name": "повседневность",
+          "picUrl": null
+        },
+        {
+          "id": 6553,
+          "typeName": "tag",
+          "name": "ГГ мужчина",
+          "picUrl": null
+        },
+        {
+          "id": 6549,
+          "typeName": "tag",
+          "name": "Воспоминания из другого мира",
+          "picUrl": null
+        },
+        {
+          "id": 1328,
+          "typeName": "genre",
+          "name": "комедия",
+          "picUrl": null
+        },
+        {
+          "id": 1313,
+          "typeName": "genre",
+          "name": "романтика",
+          "picUrl": null
+        },
+        {
+          "id": 6682,
+          "typeName": "gournal",
+          "name": "Pur Comics",
+          "picUrl": null
+        },
+        {
+          "id": 6205,
+          "typeName": "year",
+          "name": "2020",
+          "picUrl": null
+        },
+        {
+          "id": 6602,
+          "typeName": "tag",
+          "name": "Путешествие во времени",
+          "picUrl": null
+        },
+        {
+          "id": 1340,
+          "typeName": "genre",
+          "name": "эротика",
+          "picUrl": null
+        },
+        {
+          "id": 6540,
+          "typeName": "tag",
+          "name": "Ведьма",
+          "picUrl": null
+        },
+        {
+          "id": 6612,
+          "typeName": "tag",
+          "name": "Спортивное тело",
+          "picUrl": null
+        },
+        {
+          "id": 1323,
+          "typeName": "genre",
+          "name": "фэнтези",
+          "picUrl": null
+        }
+      ],
+      "lastUpdate": "2023-09-01T01:49:51Z",
+      "productionStatus": "FINISHED",
+      "translationStatus": "FINISHED",
+      "volumeCount": 1,
+      "chaptersCount": 6,
+      "rating": {
+        "voteCount": 445,
+        "rate": 7.82472
+      }
+    }
+  ]
+}

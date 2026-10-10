@@ -147,6 +147,7 @@ class SourceSelfTest {
     'MangaBall English',
     'Mangago',
     'Atsumaru',
+    'SeiManga',
   ];
 
   /// Synchronous on purpose: the throttled printer drops lines when the app
