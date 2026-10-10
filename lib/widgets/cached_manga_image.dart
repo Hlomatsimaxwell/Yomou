@@ -56,6 +56,9 @@ class CachedMangaImage extends StatelessWidget {
     // MangaPill serves every cover through this one CDN, which 403s on a
     // missing referer and 200s for the site root.
     'readdetectiveconan.com': 'https://mangapill.com/',
+    // SeiManga keeps both its covers and its scans on this host, which 403s on
+    // a missing or foreign referer and 200s when the mirror is sent.
+    'sei.one-way.work': 'https://1.seimanga.me/',
   };
 
   /// Path prefix -> the referer that host expects, for sources whose image host

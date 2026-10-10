@@ -5,6 +5,7 @@ import 'package:flutter_test/flutter_test.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import 'package:yomou/data/models/manga_filter.dart';
 import 'package:yomou/data/sources/seimanga_source.dart';
+import 'package:yomou/widgets/cached_manga_image.dart';
 
 /// SeiManga answers plain HTTP, so these tests pin the parsing against trimmed
 /// captures of the real pages:
@@ -107,6 +108,20 @@ void main() {
       final stub = source();
       expect(await stub.searchByTitle('   '), isEmpty);
       expect(stub.urls, isEmpty);
+    });
+  });
+
+  group('the cover host', () {
+    test('sends the referer its CDN demands', () {
+      // Recorded: this host answers 403 with no referer (or a foreign one) and
+      // 200 for the mirror. Every catalogue cover is served from it, so a
+      // missing entry in the referer table is a wall of blank tiles.
+      expect(
+        CachedMangaImage.refererFor(
+          Uri.parse('https://sei.one-way.work/uploads/pics/00/91/424.webp'),
+        ),
+        'https://1.seimanga.me/',
+      );
     });
   });
 
