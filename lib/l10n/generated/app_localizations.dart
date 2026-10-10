@@ -2150,12 +2150,6 @@ abstract class AppLocalizations {
   /// **'On Device'**
   String get detailOnDevice;
 
-  /// No description provided for @mockSource.
-  ///
-  /// In en, this message translates to:
-  /// **'Mock Source'**
-  String get mockSource;
-
   /// No description provided for @unknown.
   ///
   /// In en, this message translates to:

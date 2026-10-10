@@ -46,7 +46,7 @@ class SourceAltResult {
   bool get hasHits => hits.isNotEmpty;
 }
 
-/// The list of configured (non-mock, de-duplicated) sources, with their
+/// The list of configured (de-duplicated) sources, with their
 /// enabled state and declared language. This drives the watch-loop in the
 /// screen: each source is searched independently so results appear the moment
 /// that source finishes.
@@ -56,7 +56,7 @@ final configuredAltSourcesProvider = Provider<List<AltSource>>((ref) {
   final seen = <String>{};
   for (final row in rows) {
     final name = row['name']?.toString() ?? '';
-    if (name.isEmpty || name == 'Mock Source') continue;
+    if (name.isEmpty) continue;
     final source = getSourceByName(name);
     if (seen.add(source.id)) {
       list.add(

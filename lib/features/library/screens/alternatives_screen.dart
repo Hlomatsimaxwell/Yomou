@@ -743,11 +743,7 @@ class _AlternativesScreenState extends ConsumerState<AlternativesScreen> {
         var showSources = false;
         return StatefulBuilder(
           builder: (ctx, setSheet) {
-            final rows = ref
-                .read(sourcesProvider)
-                .where((r) =>
-                    (r['name']?.toString() ?? '') != 'Mock Source')
-                .toList();
+            final rows = ref.read(sourcesProvider).toList();
             final textColor = dark ? Colors.white : _titleLight;
             return SafeArea(
               child: Column(

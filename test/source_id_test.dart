@@ -48,7 +48,6 @@ void main() {
         'mangafire-ptbr',
         'mangaball-en',
         'mangaball-ptbr',
-        'mock',
       ]) {
         expect(
           () => manga(id: 'x', sourceId: id),
@@ -59,8 +58,8 @@ void main() {
     });
 
     test('an empty sourceId is allowed, and means what it says', () {
-      // Not every caller knows the source -- the mock source and rows written
-      // before the field existed both land here -- so this is not an error.
+      // Not every caller knows the source -- rows written before the field
+      // existed land here -- so this is not an error.
       expect(() => manga(id: 'x', sourceId: ''), returnsNormally);
     });
 
@@ -82,7 +81,6 @@ void main() {
         'Mgeko',
         'Like Manga',
         'Toonily',
-        'Reaper Scans',
         'ManhuaPlus',
         'MangaPill',
         'Manhwa18',
@@ -90,7 +88,6 @@ void main() {
         'Komga',
         'MangaBat',
         'MangaFire English',
-        'Mock Source',
       ]) {
         final source = getSourceByName(name);
         expect(

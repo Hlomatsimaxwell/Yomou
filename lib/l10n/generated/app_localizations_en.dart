@@ -1144,9 +1144,6 @@ class AppLocalizationsEn extends AppLocalizations {
   String get detailOnDevice => 'On Device';
 
   @override
-  String get mockSource => 'Mock Source';
-
-  @override
   String get unknown => 'Unknown';
 
   @override

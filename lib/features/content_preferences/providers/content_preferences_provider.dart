@@ -135,8 +135,8 @@ Set<String> languageTagsOf(Map<String, dynamic> row) {
 /// - it declares formats and none of them were picked, or
 /// - it declares languages and none of them were picked.
 ///
-/// Rows that declare neither (self-hosted servers, the mock source, and rows
-/// written before either field existed) always pass.
+/// Rows that declare neither (self-hosted servers, and rows written before
+/// either field existed) always pass.
 bool acceptsSourceRow(Map<String, dynamic> row, ContentPreferences prefs) {
   // Selections are stored in display casing ("Portuguese (BR)") and the tags
   // off a source row are lowercased, so both sides meet in lowercase. Comparing

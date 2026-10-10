@@ -189,9 +189,7 @@ class _MangaSourcesSettingsScreenState
     final handleLinks = ref.watch(handleLinksProvider);
     final incognitoMode = ref.watch(incognitoModeProvider);
 
-    final sourceList =
-        ref.watch(sourcesProvider).where((s) => s['name'] != 'Mock Source');
-    final rows = sourceList.toList();
+    final rows = ref.watch(sourcesProvider).toList();
     final enabledCount = rows.where(isSourceEnabled).length;
     final totalCount = rows.length;
 

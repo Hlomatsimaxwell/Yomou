@@ -80,9 +80,7 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
   @override
   Widget build(BuildContext context) {
     final l = AppLocalizations.of(context);
-    final sourceRows =
-        ref.watch(sourcesProvider).where((s) => s['name'] != 'Mock Source');
-    final sourceList = sourceRows.toList();
+    final sourceList = ref.watch(sourcesProvider).toList();
     final enabledCount = sourceList.where(isSourceEnabled).length;
     final totalCount = sourceList.length;
 

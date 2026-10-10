@@ -35,55 +35,7 @@ class _RelatedMangaScreenState extends ConsumerState<RelatedMangaScreen> {
   /// share. Null means auto: derive the count from the width.
   int? _gridSize;
 
-  final List<Manga> _fallbackItems = [
-    Manga(
-      id: '1',
-      sourceId: 'mock',
-      title: 'Record of Demon Annihilation',
-      coverUrl: 'https://picsum.photos/seed/rel1/300/450',
-    ),
-    Manga(
-      id: '2',
-      sourceId: 'mock',
-      title: 'A Substitute Bride to the Reaper D...',
-      coverUrl: 'https://picsum.photos/seed/rel2/300/450',
-    ),
-    Manga(
-      id: '3',
-      sourceId: 'mock',
-      title: 'Reincarnation of the Fist King',
-      coverUrl: 'https://picsum.photos/seed/rel3/300/450',
-    ),
-    Manga(
-      id: '4',
-      sourceId: 'mock',
-      title: 'The Hounds of Sisyphus',
-      coverUrl: 'https://picsum.photos/seed/rel4/300/450',
-    ),
-    Manga(
-      id: '5',
-      sourceId: 'mock',
-      title: 'The Divine Witch Will Find ...',
-      coverUrl: 'https://picsum.photos/seed/rel5/300/450',
-    ),
-    Manga(
-      id: '6',
-      sourceId: 'mock',
-      title: 'I Became the Scoundrel of the...',
-      coverUrl: 'https://picsum.photos/seed/rel6/300/450',
-    ),
-    Manga(
-      id: '7',
-      sourceId: 'mock',
-      title: 'Necromancer of a Prestigious ...',
-      coverUrl: 'https://picsum.photos/seed/rel7/300/450',
-    ),
-  ];
-
-  List<Manga> get _items =>
-      (widget.relatedManga != null && widget.relatedManga!.isNotEmpty)
-      ? widget.relatedManga!
-      : _fallbackItems;
+  List<Manga> get _items => widget.relatedManga ?? const [];
 
   void _showListOptionsBottomSheet() {
     showIosSheet(

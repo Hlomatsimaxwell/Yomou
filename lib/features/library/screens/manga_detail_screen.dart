@@ -2786,9 +2786,7 @@ class _MangaDetailScreenState extends ConsumerState<MangaDetailScreen> {
         children: [
           _buildCardRow(
             l.detailSource,
-            _details?.sourceId == 'mock'
-                ? l.mockSource
-                : (_sourceName ?? l.unknown),
+            _sourceName ?? l.unknown,
             leading: _buildSourceIcon(),
           ),
           _buildCardRow(

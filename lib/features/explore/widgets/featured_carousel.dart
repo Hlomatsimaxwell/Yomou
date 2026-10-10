@@ -368,8 +368,7 @@ class _FeaturedCardState extends ConsumerState<_FeaturedCard>
                                   letterSpacing: 1.4,
                                 ),
                               ),
-                              if (sourceId.isNotEmpty &&
-                                  sourceId != 'mock') ...[
+                              if (sourceId.isNotEmpty) ...[
                                 const SizedBox(width: 10),
                                 Flexible(
                                   child: Text(

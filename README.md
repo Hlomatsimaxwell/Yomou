@@ -9,7 +9,7 @@ A dark, native-feeling reader with per-manga sources, progressive chapter tracki
 - **5-tab experience** — History, Favorites, Suggestions, Explore, and an Updates feed with unread-new-chapter badges
 - **Modern navigation** — floating rounded bar with animated Remix icons that swap from outline to filled (fade + scale) on the active tab, with the accent-colored label
 - **Continue Reading FAB** — one tap on the History tab resumes the latest chapter *exactly* where you left off
-- **Multiple sources** — MangaDex, Manganato, Mangakatana, WeebCentral, plus a mock source for offline dev
+- **Multiple sources** — MangaDex, Manganato, Mangakatana, WeebCentral, and more
 - **Full reader** — horizontal & vertical paging, progress tracking, chapter navigation
 - **Offline downloads** — download chapters and read them with no connection (sqflite + Isar caches)
 - **Library & History tools** — search, filters (downloaded / new chapters / completed), sorting, date-grouped lists, progress rings

@@ -35,8 +35,8 @@ const _fanoutRetryWindow = Duration(seconds: 20);
 /// cache, so it runs against a bounded subset instead.
 const _maxGenreTagSources = 8;
 
-/// Resolves the app's enabled sources from the registry rows, skipping the
-/// mock source and collapsing duplicates that map to the same source id.
+/// Resolves the app's enabled sources from the registry rows, collapsing
+/// duplicates that map to the same source id.
 List<MangaSource> sourcesFromRows(List<Map<String, dynamic>> rows) =>
     resolveActiveSources(rows);
 

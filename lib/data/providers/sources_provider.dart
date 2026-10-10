@@ -10,7 +10,6 @@ import '../sources/seimanga_source.dart';
 import '../sources/mangaball_source.dart';
 import '../sources/mangago_source.dart';
 import '../sources/manganato_service.dart';
-import '../sources/mock_source.dart';
 import '../sources/manga_dex_source.dart';
 import '../sources/weebcentral_source.dart';
 import '../sources/mangakatana_source.dart';
@@ -21,7 +20,6 @@ import '../sources/comick_source.dart';
 import '../sources/mgeko_source.dart';
 import '../sources/likemanga_source.dart';
 import '../sources/toonily_source.dart';
-import '../sources/reaperscans_source.dart';
 import '../sources/mangapill_source.dart';
 import '../sources/manhwa18_source.dart';
 import '../sources/flame_source.dart';
@@ -153,8 +151,6 @@ MangaSource getSourceByName(String name) {
       return _shared('likemanga', LikeMangaSource.new);
     case 'Toonily':
       return _shared('toonily', ToonilySource.new);
-    case 'Reaper Scans':
-      return _shared('reaperscans', ReaperScansSource.new);
     case 'ManhuaPlus':
       return _shared('manhuaplus', ManhuaPlusSource.new);
     case 'MangaPill':
@@ -204,8 +200,6 @@ MangaSource getSourceByName(String name) {
         'mangafire-ptbr',
         () => MangaFireSource(sourceId: 'mangafire-ptbr', langCode: 'pt-br'),
       );
-    case 'Mock Source':
-      return _shared('mock', MockSource.new);
     default:
       return _mangaBallByName(name) ??
           _shared(
@@ -255,8 +249,6 @@ MangaSource? getSourceBySourceId(String sourceId) {
       return getSourceByName('Like Manga');
     case 'toonily':
       return getSourceByName('Toonily');
-    case 'reaperscans':
-      return getSourceByName('Reaper Scans');
     case 'manhuaplus':
       return getSourceByName('ManhuaPlus');
     case 'mangapill':
@@ -289,8 +281,6 @@ MangaSource? getSourceBySourceId(String sourceId) {
       return getSourceByName('MangaFire Portuguese Brazil');
     case 'manganato':
       return getSourceByName('Manganato');
-    case 'mock':
-      return getSourceByName('Mock Source');
     default:
       return null;
   }
@@ -308,14 +298,14 @@ bool isSourceEnabled(Map<String, dynamic> source) =>
     source['isEnabled'] != false;
 
 /// Resolves the usable source objects from the registry rows: enabled only,
-/// skipping the mock source and collapsing rows that map to the same id.
+/// collapsing rows that map to the same id.
 List<MangaSource> resolveActiveSources(List<Map<String, dynamic>> rows) {
   final seen = <String>{};
   final list = <MangaSource>[];
   for (final row in rows) {
     if (!isSourceEnabled(row)) continue;
     final name = row['name'] as String? ?? '';
-    if (name.isEmpty || name == 'Mock Source') continue;
+    if (name.isEmpty) continue;
     final source = getSourceByName(name);
     if (seen.add(source.id)) list.add(source);
   }
@@ -853,29 +843,12 @@ class SourcesNotifier extends StateNotifier<List<Map<String, dynamic>>> {
       'isPinned': false,
     },
     {
-      'name': 'Mock Source',
-      'language': 'Mock',
-      'bgColor': const Color(0xFF95A5A6),
-      'text': '?',
-      'iconUrl': '',
-      'isPinned': false,
-    },
-    {
       'name': 'Toonily',
       'language': 'Manhwa, Manhua, English',
       'bgColor': const Color(0xFF7A1F2B),
       'text': 'T',
       'iconUrl':
           'https://static.tnlycdn.com/2017/10/toonily_favicon2-300x300.png',
-      'isPinned': false,
-      'nsfw': true,
-    },
-    {
-      'name': 'Reaper Scans',
-      'language': 'Manhwa, Manhua, English',
-      'bgColor': const Color(0xFFDB0032),
-      'text': 'R',
-      'iconUrl': 'https://reaperscans.com/favicon.ico',
       'isPinned': false,
       'nsfw': true,
     },
