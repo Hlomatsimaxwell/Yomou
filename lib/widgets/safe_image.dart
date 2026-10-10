@@ -159,6 +159,7 @@ class _SafeNetworkImageState extends State<SafeNetworkImage> {
             height: widget.height,
             fit: widget.fit,
             alignment: widget.alignment,
+            cacheWidth: widget.decodeWidth,
             gaplessPlayback: widget.gaplessPlayback,
             errorBuilder: (context, error, stack) => _showError(error),
           );
@@ -282,6 +283,7 @@ class SafeFileImage extends StatefulWidget {
     this.errorWidget,
     this.gaplessPlayback = false,
     this.alignment = Alignment.center,
+    this.decodeWidth,
   });
 
   final File file;
@@ -291,6 +293,11 @@ class SafeFileImage extends StatefulWidget {
   final Widget Function(BuildContext, String, Object)? errorWidget;
   final bool gaplessPlayback;
   final Alignment alignment;
+
+  /// Decode the file at this pixel width rather than full resolution. Same
+  /// contract and rationale as [SafeNetworkImage.decodeWidth]; null keeps the
+  /// source's own resolution.
+  final int? decodeWidth;
 
   @override
   State<SafeFileImage> createState() => _SafeFileImageState();
@@ -347,6 +354,7 @@ class _SafeFileImageState extends State<SafeFileImage> {
         height: widget.height,
         fit: widget.fit,
         alignment: widget.alignment,
+        cacheWidth: widget.decodeWidth,
         gaplessPlayback: widget.gaplessPlayback,
         errorBuilder: (context, error, stack) {
           WidgetsBinding.instance.addPostFrameCallback((_) {
@@ -373,6 +381,7 @@ class _SafeFileImageState extends State<SafeFileImage> {
             height: widget.height,
             fit: widget.fit,
             alignment: widget.alignment,
+            cacheWidth: widget.decodeWidth,
             gaplessPlayback: widget.gaplessPlayback,
             errorBuilder: (context, error, stack) => _showError(error),
           );

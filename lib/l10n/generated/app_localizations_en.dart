@@ -561,6 +561,13 @@ class AppLocalizationsEn extends AppLocalizations {
       'Frosted blur on the nav bar, reader controls and floating buttons';
 
   @override
+  String get appearanceReduceMotion => 'Reduce motion';
+
+  @override
+  String get appearanceReduceMotionSubtitle =>
+      'Skip decorative animation, like the hero sheen and the loading shimmer';
+
+  @override
   String get languageFollowSystem => 'Follow system';
 
   @override

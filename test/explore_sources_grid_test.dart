@@ -73,8 +73,8 @@ void main() {
   /// reach four on exactly the wide windows this wall is measured at, so a count
   /// match picks the wrong grid and fails on the number instead of saying so.
   /// The wall spaces its cells 10 apart and the buttons 12.
-  GridView sourcesGrid(WidgetTester tester) {
-    final grids = tester.widgetList<GridView>(find.byType(GridView));
+  SliverGrid sourcesGrid(WidgetTester tester) {
+    final grids = tester.widgetList<SliverGrid>(find.byType(SliverGrid));
     return grids.firstWhere((g) {
       final d = g.gridDelegate;
       return d is SliverGridDelegateWithFixedCrossAxisCount &&

@@ -4,6 +4,7 @@ import 'dart:math' as math;
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_test/flutter_test.dart';
+import 'package:shared_preferences/shared_preferences.dart';
 import 'package:yomou/core/widgets/ios/ios_press.dart';
 import 'package:yomou/data/models/manga.dart';
 import 'package:yomou/features/explore/widgets/featured_carousel.dart';
@@ -67,10 +68,9 @@ void main() {
 
   /// Fixed frames rather than `pumpAndSettle`.
   ///
-  /// The card runs a sheen that repeats forever and the skeleton pulses
-  /// forever, so the tree never settles and `pumpAndSettle` would sit there
-  /// until it timed out. Twelve 60ms frames is enough for the provider, the
-  /// layout and a page snap.
+  /// The skeleton pulses forever while the feed loads, so the tree never
+  /// settles and `pumpAndSettle` would sit there until it timed out. Twelve
+  /// 60ms frames is enough for the provider, the layout and a page snap.
   Future<void> settle(WidgetTester tester, [int frames = 12]) async {
     for (var i = 0; i < frames; i++) {
       await tester.pump(const Duration(milliseconds: 60));
@@ -475,6 +475,29 @@ void main() {
       await pumpFeed(tester, 360, const []);
       expect(find.byType(PageView), findsNothing);
       expect(find.byType(AnimatedContainer), findsNothing);
+      expect(tester.takeException(), isNull);
+    });
+  });
+
+  group('reduce motion', () {
+    testWidgets('stops the loading shimmer, so the screen settles', (
+      tester,
+    ) async {
+      // The preference is read from the persisted store the notifier loads.
+      SharedPreferences.setMockInitialValues({'appearance.reduceMotion': true});
+      final never = Completer<List<Manga>>();
+
+      await pumpAt(tester, 360, () => never.future);
+
+      // The shimmer repeats forever, so a settle here can only finish if the
+      // preference muted it. Without that it would time out instead.
+      await tester.pumpAndSettle(
+        const Duration(milliseconds: 50),
+        EnginePhase.sendSemanticsUpdate,
+        const Duration(seconds: 30),
+      );
+
+      expect(find.byType(FadeTransition), findsWidgets);
       expect(tester.takeException(), isNull);
     });
   });

@@ -82,20 +82,23 @@ class _ExploreScreenState extends ConsumerState<ExploreScreen> {
           searchBar: _buildSearchBar(),
           body: RefreshIndicator(
             onRefresh: _refresh,
-            child: SingleChildScrollView(
+            // Slivers, not a Column inside a scroll view: the sources wall is
+            // long (a row and a network icon per source) and a Column builds and
+            // decodes all of it up front. A sliver only builds what is on
+            // screen, so opening Explore and scrolling it cost the visible rows
+            // rather than the whole catalogue.
+            child: CustomScrollView(
               physics: const AlwaysScrollableScrollPhysics(),
-              padding: EdgeInsets.only(bottom: bottomBarClearance(context)),
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  const SizedBox(height: 16),
-                  _buildQuickButtonsGrid(),
-                  const SizedBox(height: 20),
-                  const FeaturedCarousel(),
-                  const SizedBox(height: 20),
-                  _buildPresetSection(),
-                  const SizedBox(height: 12),
-                  _buildSectionHeader(
+              slivers: [
+                const SliverToBoxAdapter(child: SizedBox(height: 16)),
+                SliverToBoxAdapter(child: _buildQuickButtonsGrid()),
+                const SliverToBoxAdapter(child: SizedBox(height: 20)),
+                const SliverToBoxAdapter(child: FeaturedCarousel()),
+                const SliverToBoxAdapter(child: SizedBox(height: 20)),
+                SliverToBoxAdapter(child: _buildPresetSection()),
+                const SliverToBoxAdapter(child: SizedBox(height: 12)),
+                SliverToBoxAdapter(
+                  child: _buildSectionHeader(
                     AppLocalizations.of(context).mangaSources,
                     actionLabel: AppLocalizations.of(context).exploreManage,
                     actionColor: Theme.of(context).colorScheme.primary,
@@ -108,12 +111,15 @@ class _ExploreScreenState extends ConsumerState<ExploreScreen> {
                       );
                     },
                   ),
-                  const SizedBox(height: 8),
-                  showInGrid
-                      ? _buildSourcesGrid(enabledSources)
-                      : _buildSourcesList(enabledSources),
-                ],
-              ),
+                ),
+                const SliverToBoxAdapter(child: SizedBox(height: 8)),
+                showInGrid
+                    ? _buildSourcesGrid(enabledSources)
+                    : _buildSourcesList(enabledSources),
+                SliverToBoxAdapter(
+                  child: SizedBox(height: bottomBarClearance(context)),
+                ),
+              ],
             ),
           ),
         ),
@@ -486,85 +492,82 @@ class _ExploreScreenState extends ConsumerState<ExploreScreen> {
 
   Widget _buildSourcesList(List<Map<String, dynamic>> sources) {
     final dark = Theme.of(context).brightness == Brightness.dark;
-    return ListView.builder(
-      shrinkWrap: true,
-      physics: const NeverScrollableScrollPhysics(),
-      padding: EdgeInsets.symmetric(
-        horizontal: 16,
-        vertical: 2,
-      ),
-      itemCount: sources.length,
-      itemBuilder: (context, index) {
-        final source = sources[index];
-        final name = source['name'] as String;
-        final language = source['language'] as String? ?? '';
-        final iconUrl = source['iconUrl'] as String? ?? '';
+    return SliverPadding(
+      padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 2),
+      sliver: SliverList.builder(
+        itemCount: sources.length,
+        itemBuilder: (context, index) {
+          final source = sources[index];
+          final name = source['name'] as String;
+          final language = source['language'] as String? ?? '';
+          final iconUrl = source['iconUrl'] as String? ?? '';
 
-        return InkWell(
-          borderRadius: BorderRadius.circular(14),
-          onTap: () {
-            Navigator.push(
-              context,
-              MaterialPageRoute(
-                builder: (context) => MangaGridScreen(sourceName: name),
-              ),
-            );
-          },
-          child: Padding(
-            padding: const EdgeInsets.symmetric(vertical: 4),
-            child: Row(
-              children: [
-                SourceIcon(name: name, iconUrl: iconUrl),
-                const SizedBox(width: 16),
-                Expanded(
-                  child: Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
-                      Text(
-                        name,
-                        maxLines: 1,
-                        overflow: TextOverflow.ellipsis,
-                        style: TextStyle(
-                          color: dark
-                              ? Colors.white
-                              : const Color(0xFF212121),
-                          fontSize: 15,
-                          fontWeight: FontWeight.w700,
-                        ),
-                      ),
-                      if (language.isNotEmpty) ...[
-                        const SizedBox(height: 3),
+          return InkWell(
+            borderRadius: BorderRadius.circular(14),
+            onTap: () {
+              Navigator.push(
+                context,
+                MaterialPageRoute(
+                  builder: (context) => MangaGridScreen(sourceName: name),
+                ),
+              );
+            },
+            child: Padding(
+              padding: const EdgeInsets.symmetric(vertical: 4),
+              child: Row(
+                children: [
+                  SourceIcon(name: name, iconUrl: iconUrl),
+                  const SizedBox(width: 16),
+                  Expanded(
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
                         Text(
-                          language,
+                          name,
                           maxLines: 1,
                           overflow: TextOverflow.ellipsis,
                           style: TextStyle(
                             color: dark
-                                ? Colors.white54
-                                : const Color(0xFF9E9E9E),
-                            fontSize: 12,
+                                ? Colors.white
+                                : const Color(0xFF212121),
+                            fontSize: 15,
+                            fontWeight: FontWeight.w700,
                           ),
                         ),
+                        if (language.isNotEmpty) ...[
+                          const SizedBox(height: 3),
+                          Text(
+                            language,
+                            maxLines: 1,
+                            overflow: TextOverflow.ellipsis,
+                            style: TextStyle(
+                              color: dark
+                                  ? Colors.white54
+                                  : const Color(0xFF9E9E9E),
+                              fontSize: 12,
+                            ),
+                          ),
+                        ],
                       ],
-                    ],
+                    ),
                   ),
-                ),
-                Icon(
-                  RemixIcons.arrow_right_s_line,
-                  size: 20,
-                  color: dark ? Colors.white30 : Colors.black26,
-                ),
-              ],
+                  Icon(
+                    RemixIcons.arrow_right_s_line,
+                    size: 20,
+                    color: dark ? Colors.white30 : Colors.black26,
+                  ),
+                ],
+              ),
             ),
-          ),
-        );
-      },
+          );
+        },
+      ),
     );
   }
 
   Widget _buildSourcesGrid(List<Map<String, dynamic>> sources) {
     final dark = Theme.of(context).brightness == Brightness.dark;
-    return Padding(
+    return SliverPadding(
       padding: const EdgeInsets.symmetric(
         horizontal: _sourceGridPadding,
         vertical: 8,
@@ -573,15 +576,13 @@ class _ExploreScreenState extends ConsumerState<ExploreScreen> {
       // beside this screen on a wide layout and takes 80px off it, and
       // MediaQuery still reports the window width down here, so columns derived
       // from it would size cells for space this grid does not have.
-      child: LayoutBuilder(
+      sliver: SliverLayoutBuilder(
         builder: (context, constraints) {
           final layout = _SourceCardLayout.resolve(
             context,
-            constraints.maxWidth,
+            constraints.crossAxisExtent,
           );
-          return GridView.builder(
-            shrinkWrap: true,
-            physics: const NeverScrollableScrollPhysics(),
+          return SliverGrid.builder(
             gridDelegate: SliverGridDelegateWithFixedCrossAxisCount(
               crossAxisCount: layout.columns,
               // Measured from the same icon and label sizes the card paints with,

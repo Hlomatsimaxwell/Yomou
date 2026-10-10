@@ -563,6 +563,13 @@ class AppLocalizationsEs extends AppLocalizations {
       'Desenfoque esmerilado en la barra de navegación, controles del lector y botones flotantes';
 
   @override
+  String get appearanceReduceMotion => 'Reducir movimiento';
+
+  @override
+  String get appearanceReduceMotionSubtitle =>
+      'Omitir animaciones decorativas, como el brillo del destacado y la animación de carga';
+
+  @override
   String get languageFollowSystem => 'Seguir el sistema';
 
   @override

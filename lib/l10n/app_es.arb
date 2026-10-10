@@ -86,6 +86,8 @@
   "appearanceLanguageTitle": "Idioma",
   "appearanceFrostedGlass": "Vidrio esmerilado",
   "appearanceFrostedGlassSubtitle": "Desenfoque esmerilado en la barra de navegación, controles del lector y botones flotantes",
+  "appearanceReduceMotion": "Reducir movimiento",
+  "appearanceReduceMotionSubtitle": "Omitir animaciones decorativas, como el brillo del destacado y la animación de carga",
   "languageFollowSystem": "Seguir el sistema",
   "languageEn": "Inglés",
   "languageEs": "Español",

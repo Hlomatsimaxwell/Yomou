@@ -1076,6 +1076,18 @@ abstract class AppLocalizations {
   /// **'Frosted blur on the nav bar, reader controls and floating buttons'**
   String get appearanceFrostedGlassSubtitle;
 
+  /// No description provided for @appearanceReduceMotion.
+  ///
+  /// In en, this message translates to:
+  /// **'Reduce motion'**
+  String get appearanceReduceMotion;
+
+  /// No description provided for @appearanceReduceMotionSubtitle.
+  ///
+  /// In en, this message translates to:
+  /// **'Skip decorative animation, like the hero sheen and the loading shimmer'**
+  String get appearanceReduceMotionSubtitle;
+
   /// No description provided for @languageFollowSystem.
   ///
   /// In en, this message translates to:

@@ -1456,7 +1456,7 @@ class _ReaderScreenState extends ConsumerState<ReaderScreen>
                           // fresh open: the [DraggableScrollableController] is
                           // persistent and would otherwise inherit the size
                           // left over from a previous long-press fullscreen.
-                          _trayExtentController.animateTo(
+                          sheetController.animateTo(
                             0.5,
                             duration: const Duration(milliseconds: 250),
                             curve: Curves.easeOut,
@@ -3918,12 +3918,14 @@ class _ReaderScreenState extends ConsumerState<ReaderScreen>
     // re-triggers the network request.
     final key = ValueKey('$url#${_pageRetryTokens[index] ?? 0}');
     final fit = _pageFit;
+    final decodeWidth = _pageDecodeWidth(context);
     final Widget image;
     if (localPath != null && File(localPath).existsSync()) {
       image = SafeFileImage(
         key: key,
         file: File(localPath),
         fit: fit,
+        decodeWidth: decodeWidth,
         gaplessPlayback: true,
         errorWidget: (context, path, error) =>
             _buildPageError(index: index, localPath: localPath),
@@ -3933,6 +3935,7 @@ class _ReaderScreenState extends ConsumerState<ReaderScreen>
         key: key,
         imageUrl: url,
         fit: fit,
+        decodeWidth: decodeWidth,
         httpHeaders: headers,
         placeholder: (context, url) => SizedBox(
           height: MediaQuery.sizeOf(context).height,
@@ -3947,6 +3950,25 @@ class _ReaderScreenState extends ConsumerState<ReaderScreen>
       );
     }
     return _wrapKeepAtStart(_applyColorFilter(image));
+  }
+
+  /// The width, in physical pixels, that a page image is decoded at.
+  ///
+  /// Pages are declared at the size they are actually drawn: the viewport, or
+  /// the viewport height in the fit-height mode, where a portrait page can be
+  /// wider than the screen. Source scans are routinely larger than the phone
+  /// (a 1798x2560 page is ~18 MB decoded, drawn into 1080px), so this discards
+  /// pixels the screen never shows -- on every page turn and every webtoon
+  /// panel. Pinch-zoom still scales the canvas, so a page is soft past 1x; that
+  /// is the trade this reader makes to hold a chapter in memory on a small
+  /// device. "Keep at start" draws at natural size, so it keeps full
+  /// resolution.
+  int? _pageDecodeWidth(BuildContext context) {
+    if (_pageNeedsPan) return null;
+    final size = MediaQuery.sizeOf(context);
+    final dpr = MediaQuery.devicePixelRatioOf(context);
+    final fitHeight = _isHorizontal && _scaleMode == kScaleFitHeight;
+    return ((fitHeight ? size.height : size.width) * dpr).round();
   }
 
   /// "Numbered pages" stamps the page counter onto the artwork itself, in the

@@ -101,6 +101,7 @@ class AppearanceSettings {
     required this.protectApp,
     required this.screenshotPolicy,
     required this.useFrostedGlass,
+    required this.reduceMotion,
   });
 
   // All requested defaults from spec
@@ -139,6 +140,7 @@ class AppearanceSettings {
         protectApp: false,
         screenshotPolicy: 'Allow',
         useFrostedGlass: true,
+        reduceMotion: false,
       );
 
   final String colorScheme;
@@ -165,6 +167,11 @@ class AppearanceSettings {
   final String screenshotPolicy;
   final bool useFrostedGlass;
 
+  /// When true, decorative and looping animations (the Explore hero sheen and
+  /// the loading shimmer) are skipped. Also follows the platform's "remove
+  /// animations" accessibility setting at the point of use.
+  final bool reduceMotion;
+
   AppearanceSettings copyWith({
     String? colorScheme,
     ThemeMode? themeMode,
@@ -189,6 +196,7 @@ class AppearanceSettings {
     bool? protectApp,
     String? screenshotPolicy,
     bool? useFrostedGlass,
+    bool? reduceMotion,
   }) =>
       AppearanceSettings(
         colorScheme: colorScheme ?? this.colorScheme,
@@ -220,6 +228,7 @@ class AppearanceSettings {
         protectApp: protectApp ?? this.protectApp,
         screenshotPolicy: screenshotPolicy ?? this.screenshotPolicy,
         useFrostedGlass: useFrostedGlass ?? this.useFrostedGlass,
+        reduceMotion: reduceMotion ?? this.reduceMotion,
       );
 }
 
@@ -252,6 +261,7 @@ class _AppearancePersistence {
   static const _protectApp = '${_prefix}protectApp';
   static const _screenshotPolicy = '${_prefix}screenshotPolicy';
   static const _frostedGlass = '${_prefix}frostedGlass';
+  static const _reduceMotion = '${_prefix}reduceMotion';
 
   static Future<AppearanceSettings> load() async {
     final p = await SharedPreferences.getInstance();
@@ -284,6 +294,7 @@ class _AppearancePersistence {
       protectApp: p.getBool(_protectApp) ?? false,
       screenshotPolicy: p.getString(_screenshotPolicy) ?? 'Allow',
       useFrostedGlass: p.getBool(_frostedGlass) ?? true,
+      reduceMotion: p.getBool(_reduceMotion) ?? false,
     );
   }
 
@@ -312,6 +323,7 @@ class _AppearancePersistence {
     await p.setBool(_protectApp, s.protectApp);
     await p.setString(_screenshotPolicy, s.screenshotPolicy);
     await p.setBool(_frostedGlass, s.useFrostedGlass);
+    await p.setBool(_reduceMotion, s.reduceMotion);
   }
 
   static Map<String, bool>? _decodeMap(String? json) {
@@ -384,6 +396,8 @@ class AppearanceSettingsNotifier extends StateNotifier<AppearanceSettings> {
             (s) => s.copyWith(hideNsfwFromShortcuts: !s.hideNsfwFromShortcuts));
       case 'useFrostedGlass':
         set((s) => s.copyWith(useFrostedGlass: !s.useFrostedGlass));
+      case 'reduceMotion':
+        set((s) => s.copyWith(reduceMotion: !s.reduceMotion));
     }
   }
 
@@ -419,6 +433,18 @@ class AppearanceSettingsNotifier extends StateNotifier<AppearanceSettings> {
 final appearanceSettingsProvider =
     StateNotifierProvider<AppearanceSettingsNotifier, AppearanceSettings>(
         (ref) => AppearanceSettingsNotifier());
+
+/// Whether decorative motion should be suppressed: the reader turned on
+/// "Reduce motion", or the system's remove-animations accessibility setting is
+/// on. Used by the handful of purely-cosmetic animations (the Explore hero
+/// sheen, the loading shimmer) so a budget device can skip them.
+///
+/// Watches [appearanceSettingsProvider], so call it from `build`; the widgets
+/// that gate on it wrap their animation in a `TickerMode` driven by this.
+bool reduceMotionEnabled(WidgetRef ref) =>
+    ref.watch(appearanceSettingsProvider).reduceMotion ||
+    WidgetsBinding.instance.platformDispatcher.accessibilityFeatures
+        .disableAnimations;
 
 /// Resolves whether the app is effectively showing dark mode, honoring the
 /// chosen [ThemeMode] and falling back to system brightness for "system".

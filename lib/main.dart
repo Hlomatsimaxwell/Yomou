@@ -357,7 +357,12 @@ class _HomeScreenState extends ConsumerState<HomeScreen>
       children: List.generate(
         _screens.length,
         (i) => _visitedTabs.contains(i)
-            ? _screens[i]
+            // A tab that is kept alive but not shown must not keep animating:
+            // the Explore hero's sheen is an endless controller, and without
+            // this it ticked (and repainted the whole page) on every other tab
+            // too. Muting tickers per tab costs nothing and leaves the hidden
+            // tab's state (scroll offsets, controllers) intact.
+            ? TickerMode(enabled: i == _currentIndex, child: _screens[i])
             : const SizedBox.shrink(),
       ),
     );

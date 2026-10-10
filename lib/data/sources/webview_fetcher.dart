@@ -58,6 +58,25 @@ class WebViewFetcher {
   /// A trivial evaluation every few seconds stops it parking.
   Timer? _keepAlive;
 
+  /// How long the WebView may go unused before it is released.
+  ///
+  /// The keep-alive exists because a parked renderer takes 15-44s to unfreeze.
+  /// That cuts both ways: tearing the view down buys back its memory, but the
+  /// next fetch pays the unfreeze again. So this is minutes, not seconds --
+  /// long enough that a reader moving chapter to chapter (pages load over plain
+  /// HTTP, so the WebView can sit unused between chapter lists) never trips it
+  /// mid-session, short enough that a forgotten renderer is not held all day.
+  static const Duration _idleTeardown = Duration(minutes: 15);
+
+  /// Counts down [_idleTeardown]; reset after every request.
+  Timer? _idleTeardownTimer;
+
+  /// Watches the app lifecycle so the keep-alive ping stops while the app is
+  /// off screen. Off screen there is nobody waiting on a fetch, so the ping is
+  /// pure battery; it resumes -- with an immediate wake -- the moment the app
+  /// comes back.
+  AppLifecycleListener? _lifecycle;
+
   /// Marks the current async call tree as background work, so its WebView
   /// requests queue behind anything the user is waiting on.
   ///
@@ -113,6 +132,9 @@ class WebViewFetcher {
         } finally {
           _busy = false;
         }
+        // A request just finished: keep the renderer warm for a while longer,
+        // and arm the countdown that eventually releases it.
+        _noteActivity();
         final took = DateTime.now().difference(t0);
         if (took > const Duration(seconds: 8)) {
           diagSoon('webview: task took ${took.inSeconds}s');
@@ -658,10 +680,13 @@ class WebViewFetcher {
     }
   }
 
-  /// Releases the hidden WebView (used on sign-out and in tests).
+  /// Releases the hidden WebView (used on sign-out, on idle, and in tests).
   void dispose() {
-    _keepAlive?.cancel();
-    _keepAlive = null;
+    _stopKeepAlive();
+    _idleTeardownTimer?.cancel();
+    _idleTeardownTimer = null;
+    _lifecycle?.dispose();
+    _lifecycle = null;
     _entry?.remove();
     _entry = null;
     _controller = null;
@@ -669,11 +694,43 @@ class WebViewFetcher {
 
   /// Starts (or restarts) the periodic ping that stops the renderer parking.
   void _startKeepAlive() {
+    _lifecycle ??= AppLifecycleListener(onStateChange: _onLifecycleChange);
+    // Off screen there is nothing to keep warm; the listener restarts this on
+    // return.
+    final state = WidgetsBinding.instance.lifecycleState;
+    if (state != null && state != AppLifecycleState.resumed) return;
     _keepAlive?.cancel();
     _keepAlive = Timer.periodic(
       const Duration(seconds: 8),
       (_) => unawaited(_ping()),
     );
+  }
+
+  void _stopKeepAlive() {
+    _keepAlive?.cancel();
+    _keepAlive = null;
+  }
+
+  /// Suspends the ping while the app is off screen and, on return, wakes the
+  /// renderer immediately rather than waiting out the first 8-second tick.
+  void _onLifecycleChange(AppLifecycleState state) {
+    if (state == AppLifecycleState.resumed) {
+      _startKeepAlive();
+      unawaited(_ping());
+    } else {
+      _stopKeepAlive();
+    }
+  }
+
+  /// Restarts the idle countdown after a request. When it elapses with the
+  /// queue empty, the hidden WebView is released; [_ensureWebView] rebuilds it
+  /// on the next call.
+  void _noteActivity() {
+    _idleTeardownTimer?.cancel();
+    _idleTeardownTimer = Timer(_idleTeardown, () {
+      if (_busy || _queue.isNotEmpty) return;
+      if (_controller != null) dispose();
+    });
   }
 
   /// A trivial main-frame evaluation: cheap, and exactly the kind of touch
@@ -682,6 +739,10 @@ class WebViewFetcher {
   Future<void> _ping() async {
     final c = _controller;
     if (c == null || _busy) return;
+    // A ping already in flight when the app is backgrounded should not keep
+    // going either.
+    final state = WidgetsBinding.instance.lifecycleState;
+    if (state != null && state != AppLifecycleState.resumed) return;
     try {
       await c.evaluateJavascript(source: '1');
     } catch (_) {

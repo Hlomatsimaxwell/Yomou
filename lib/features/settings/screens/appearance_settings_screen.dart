@@ -83,6 +83,12 @@ class AppearanceSettingsScreen extends ConsumerWidget {
             value: settings.useFrostedGlass,
             onChanged: (_) => notifier.toggleBool('useFrostedGlass'),
           ),
+          SwitchListTile(
+            title: Text(l.appearanceReduceMotion),
+            subtitle: Text(l.appearanceReduceMotionSubtitle),
+            value: settings.reduceMotion,
+            onChanged: (_) => notifier.toggleBool('reduceMotion'),
+          ),
 
           // Manga List Section
           M3SectionHeader(title: l.appearanceSectionMangaList),

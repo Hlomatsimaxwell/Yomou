@@ -63,6 +63,16 @@ class SourceIcon extends StatelessWidget {
                 .firstOrNull ??
             '');
 
+    // The plate is at most [size] logical pixels, so that is all the bitmap
+    // that can ever be shown. The plate itself paints at `double.infinity` to
+    // fill whatever box it is given, which is exactly the case
+    // [SafeNetworkImage.decodeWidth] cannot infer -- so it is passed explicitly
+    // here. Without it every tile in the sources wall decoded its remote logo
+    // at full resolution (these are app icons, routinely 256-512px), and a wall
+    // of a hundred of them filled the image cache and evicted the icons the
+    // list was about to redraw.
+    final decodeWidth = (size * MediaQuery.of(context).devicePixelRatio).round();
+
     Widget logo() {
       if (bundled.isNotEmpty) {
         return Image.asset(
@@ -70,6 +80,7 @@ class SourceIcon extends StatelessWidget {
           fit: BoxFit.cover,
           width: double.infinity,
           height: double.infinity,
+          cacheWidth: decodeWidth,
           errorBuilder: (context, error, stack) => fallback(),
         );
       }
@@ -78,6 +89,7 @@ class SourceIcon extends StatelessWidget {
         fit: BoxFit.cover,
         width: double.infinity,
         height: double.infinity,
+        decodeWidth: decodeWidth,
         errorWidget: (context, url, error) => fallback(),
       );
     }

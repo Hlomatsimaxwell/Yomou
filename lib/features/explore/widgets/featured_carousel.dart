@@ -102,11 +102,20 @@ class _FeaturedCarouselState extends ConsumerState<FeaturedCarousel> {
           _featuredCount,
         );
 
+        // Gate the two looping animations in the hero (the card sheen and the
+        // loading shimmer) on the motion preference. TickerMode, not a check
+        // inside each widget: it mutes the tickers wherever they are, and it
+        // re-evaluates when the persisted preference finishes loading.
+        final reduceMotion = reduceMotionEnabled(ref);
+
         return Column(
           crossAxisAlignment: CrossAxisAlignment.stretch,
           children: [
             if (suggestions.isLoading)
-              _CarouselSkeleton(layout: layout)
+              TickerMode(
+                enabled: !reduceMotion,
+                child: _CarouselSkeleton(layout: layout),
+              )
             else if (suggestions.hasError)
               _CarouselError(
                 layout: layout,
@@ -122,10 +131,13 @@ class _FeaturedCarouselState extends ConsumerState<FeaturedCarousel> {
                     if (featured.isEmpty) return;
                     setState(() => _current = index % featured.length);
                   },
-                  itemBuilder: (context, index) => _FeaturedCard(
-                    manga: featured[index % featured.length],
-                    index: index % featured.length,
-                    layout: layout,
+                  itemBuilder: (context, index) => TickerMode(
+                    enabled: !reduceMotion,
+                    child: _FeaturedCard(
+                      manga: featured[index % featured.length],
+                      index: index % featured.length,
+                      layout: layout,
+                    ),
                   ),
                 ),
               ),
@@ -182,10 +194,16 @@ class _FeaturedCard extends ConsumerStatefulWidget {
 
 class _FeaturedCardState extends ConsumerState<_FeaturedCard>
     with SingleTickerProviderStateMixin {
+  // Two sweeps, then it settles. This used to be `..repeat()` -- an endless
+  // controller. Because the carousel stays mounted even when it is scrolled
+  // off-screen, that kept the whole Explore page re-rasterizing every frame
+  // forever: ~27 fps and >100% CPU while the app sat completely idle, on the
+  // one screen the app opens to. A finite flourish keeps the printed-object
+  // sheen on first appearance and costs nothing afterwards.
   late final AnimationController _sheen = AnimationController(
     vsync: this,
     duration: const Duration(milliseconds: 3800),
-  )..repeat();
+  )..repeat(count: 2);
 
   @override
   void dispose() {
@@ -438,34 +456,42 @@ class _FeaturedCardState extends ConsumerState<_FeaturedCard>
               Positioned.fill(
                 child: IgnorePointer(
                   child: ClipRect(
-                    child: AnimatedBuilder(
-                      animation: _sheen,
-                      builder: (context, _) {
-                        return Transform.translate(
-                          offset: Offset(
-                            (_sheen.value * 2 - 1) * layout.cardWidth * 0.5,
-                            0,
-                          ),
-                          child: FractionallySizedBox(
-                            widthFactor: 0.22,
-                            heightFactor: 1.6,
-                            child: Transform.rotate(
-                              angle: -0.45,
-                              child: DecoratedBox(
-                                decoration: BoxDecoration(
-                                  gradient: LinearGradient(
-                                    colors: [
-                                      Colors.transparent,
-                                      sheenColor,
-                                      Colors.transparent,
-                                    ],
+                    // Isolates the sheen into its own layer. Without this the
+                    // controller marked the card -- and, because the page has no
+                    // repaint boundary of its own, the whole scrolling Explore
+                    // page -- dirty on every frame it animated, so the sweep
+                    // re-rasterised every visible row underneath it. The
+                    // boundary keeps the repaint to the moving band.
+                    child: RepaintBoundary(
+                      child: AnimatedBuilder(
+                        animation: _sheen,
+                        builder: (context, _) {
+                          return Transform.translate(
+                            offset: Offset(
+                              (_sheen.value * 2 - 1) * layout.cardWidth * 0.5,
+                              0,
+                            ),
+                            child: FractionallySizedBox(
+                              widthFactor: 0.22,
+                              heightFactor: 1.6,
+                              child: Transform.rotate(
+                                angle: -0.45,
+                                child: DecoratedBox(
+                                  decoration: BoxDecoration(
+                                    gradient: LinearGradient(
+                                      colors: [
+                                        Colors.transparent,
+                                        sheenColor,
+                                        Colors.transparent,
+                                      ],
+                                    ),
                                   ),
                                 ),
                               ),
                             ),
-                          ),
-                        );
-                      },
+                          );
+                        },
+                      ),
                     ),
                   ),
                 ),

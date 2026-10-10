@@ -272,6 +272,8 @@
   "appearanceLanguageTitle": "Language",
   "appearanceFrostedGlass": "Frosted glass",
   "appearanceFrostedGlassSubtitle": "Frosted blur on the nav bar, reader controls and floating buttons",
+  "appearanceReduceMotion": "Reduce motion",
+  "appearanceReduceMotionSubtitle": "Skip decorative animation, like the hero sheen and the loading shimmer",
   "languageFollowSystem": "Follow system",
   "languageEn": "English",
   "languageEs": "Español",
