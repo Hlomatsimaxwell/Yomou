@@ -1,6 +1,7 @@
 import 'dart:async';
 import 'package:yomou/widgets/cached_manga_image.dart';
 import 'package:yomou/widgets/manga_hero.dart';
+import 'package:yomou/widgets/cover_viewer.dart';
 import 'package:remixicon/remixicon.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
@@ -209,6 +210,16 @@ class _MangaDetailScreenState extends ConsumerState<MangaDetailScreen> {
       : (_details?.coverUrl.isNotEmpty == true
             ? _details!.coverUrl
             : widget.imageUrl);
+
+  /// The [Hero] tag the header cover carries.
+  ///
+  /// It is the tag handed in by the grid when this screen was opened from a
+  /// cover, or a screen-local fallback for a deep link. Either way there is
+  /// always one, so tapping the cover can fly it out into the full-screen
+  /// viewer along the same path a grid cell would have used.
+  String get _coverHeroTag =>
+      widget.heroTag ??
+      'manga-cover-detail:${widget.sourceId ?? ''}:${widget.mangaId}';
 
   @override
   void initState() {
@@ -2646,20 +2657,33 @@ class _MangaDetailScreenState extends ConsumerState<MangaDetailScreen> {
       children: [
         Stack(
           children: [
-            MangaCoverHero(
-              tag: widget.heroTag,
-              child: Container(
-                decoration: BoxDecoration(
-                  borderRadius: BorderRadius.circular(16),
-                  border: dark ? null : Border.all(color: Colors.black12),
-                ),
-                child: ClipRRect(
-                  borderRadius: BorderRadius.circular(16),
-                  child: CachedMangaImage(
-                    imageUrl: _coverUrl,
-                    width: coverWidth,
-                    height: coverHeight,
-                    fit: BoxFit.cover,
+            GestureDetector(
+              // Deliberate: expanding the art is worth a tap back, matching
+              // the feel of the cover flight that landed here.
+              onTap: () {
+                appHaptic(ref, AppHaptic.selection);
+                showCoverViewer(
+                  context,
+                  imageUrl: _coverUrl,
+                  title: widget.title,
+                  heroTag: _coverHeroTag,
+                );
+              },
+              child: MangaCoverHero(
+                tag: _coverHeroTag,
+                child: Container(
+                  decoration: BoxDecoration(
+                    borderRadius: BorderRadius.circular(16),
+                    border: dark ? null : Border.all(color: Colors.black12),
+                  ),
+                  child: ClipRRect(
+                    borderRadius: BorderRadius.circular(16),
+                    child: CachedMangaImage(
+                      imageUrl: _coverUrl,
+                      width: coverWidth,
+                      height: coverHeight,
+                      fit: BoxFit.cover,
+                    ),
                   ),
                 ),
               ),
