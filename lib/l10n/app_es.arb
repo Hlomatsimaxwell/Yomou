@@ -717,6 +717,14 @@
   "altSameType": "Mismo tipo de contenido que el actual",
   "altReplace": "Reemplazar",
   "openInBrowser": "Abrir en el navegador web",
+  "shareLinkInYomou": "Enlace al manga en Yomou",
+  "shareLinkOnSource": "Enlace al manga en {source}",
+  "@shareLinkOnSource": {
+    "placeholders": {
+      "source": {}
+    }
+  },
+  "copiedToClipboard": "Copiado al portapapeles",
   "urlUnavailable": "La dirección web de este manga no está disponible.",
   "replaceSource": "Reemplazar fuente",
   "shortcutCreated": "Acceso directo de inicio creado",

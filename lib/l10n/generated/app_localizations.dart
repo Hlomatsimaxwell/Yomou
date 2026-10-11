@@ -3427,6 +3427,24 @@ abstract class AppLocalizations {
   /// **'Open in web browser'**
   String get openInBrowser;
 
+  /// No description provided for @shareLinkInYomou.
+  ///
+  /// In en, this message translates to:
+  /// **'Link to manga in Yomou'**
+  String get shareLinkInYomou;
+
+  /// No description provided for @shareLinkOnSource.
+  ///
+  /// In en, this message translates to:
+  /// **'Link to manga on {source}'**
+  String shareLinkOnSource(Object source);
+
+  /// No description provided for @copiedToClipboard.
+  ///
+  /// In en, this message translates to:
+  /// **'Copied to clipboard'**
+  String get copiedToClipboard;
+
   /// No description provided for @urlUnavailable.
   ///
   /// In en, this message translates to:

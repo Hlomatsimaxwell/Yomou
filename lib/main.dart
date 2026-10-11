@@ -28,6 +28,7 @@ import 'package:yomou/data/providers/sources_provider.dart';
 import 'package:yomou/features/settings/providers/appearance_provider.dart';
 import 'package:yomou/core/security/app_lock.dart';
 import 'package:yomou/core/security/pin_lock_screen.dart';
+import 'package:yomou/core/deep_links.dart';
 import 'package:yomou/core/diagnostics/source_selftest.dart';
 import 'package:yomou/core/haptics.dart';
 import 'package:yomou/core/providers/incognito_provider.dart';
@@ -79,6 +80,15 @@ void main() async {
 
   // 2. Run the app.
   restartApp();
+
+  // 2a. Open yomou:// links shared from the app that launched it (the launch
+  // intent carries the link). The listener stays registered so links tapped
+  // while the app is already running reach Dart through onNewIntent.
+  if (Platform.isAndroid) {
+    try {
+      await attachDeepLinkListener();
+    } catch (_) {}
+  }
 
   // 2b. Opt-in bring-up check for browser-rendered sources.
   SourceSelfTest.schedule();
@@ -182,6 +192,61 @@ Future<void> _openSeriesFromNotification(
   final row = await DatabaseHelper.instance.getManga(target.mangaId);
   if (row == null || !navigator.mounted) return;
   _openMangaDetail(navigator, target);
+}
+
+/// Platform channel that delivers `yomou://` links shared from the app.
+/// Cold-start links (the launch intent) come back from `getInitialUri`;
+/// links tapped while the app is already open arrive through `onNewIntent`.
+const MethodChannel _linksChannel = MethodChannel('com.hlomatsi.yomou/links');
+
+/// Starts receiving `yomou://` links and opens the manga they name, mirroring
+/// the notification deep-link path. Called once after runApp; [restartApp]
+/// keeps this listener (same isolate), and routing reads the current navigator
+/// each time, so a rebuilt tree still receives links.
+Future<void> attachDeepLinkListener() async {
+  _linksChannel.setMethodCallHandler((call) async {
+    if (call.method != 'onNewIntent') return null;
+    final args = call.arguments;
+    if (args is String && args.isNotEmpty) {
+      final raw = args;
+      WidgetsBinding.instance.addPostFrameCallback((_) => _handleLink(raw));
+    }
+    return null;
+  });
+  final String? initial;
+  try {
+    initial = await _linksChannel.invokeMethod<String>('getInitialUri');
+  } catch (_) {
+    return; // Platform without the channel (e.g. desktop) — nothing to do.
+  }
+  // Rebound to a non-nullable local so the post-frame closure keeps the type:
+  // captured nullable locals don't carry their promotion into closures.
+  final url = initial ?? '';
+  if (url.isNotEmpty) {
+    WidgetsBinding.instance.addPostFrameCallback((_) => _handleLink(url));
+  }
+}
+
+/// Opens the manga a `yomou://manga` link refers to: the same detail page a
+/// notification tap opens. Links only name sources the app knows, so an
+/// unknown source id is ignored.
+void _handleLink(String raw) {
+  final link = YomouMangaLink.tryParse(raw);
+  if (link == null) return;
+  final navigator = appNavigatorKey.currentState;
+  if (navigator == null || !navigator.mounted) return;
+  if (getSourceBySourceId(link.sourceId) == null) return;
+  navigator.push(
+    MaterialPageRoute(
+      builder: (_) => MangaDetailScreen(
+        mangaId: link.mangaId,
+        title: link.title,
+        // Shared links carry no cover; the screen falls back to placeholders.
+        imageUrl: '',
+        sourceId: link.sourceId,
+      ),
+    ),
+  );
 }
 
 class YomouApp extends ConsumerWidget {

@@ -4,12 +4,14 @@ import 'package:yomou/widgets/manga_hero.dart';
 import 'package:yomou/widgets/cover_viewer.dart';
 import 'package:remixicon/remixicon.dart';
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:url_launcher/url_launcher.dart';
 import 'package:yomou/core/database/database_helper.dart';
 import 'package:yomou/core/haptics.dart';
 import 'package:yomou/core/widgets/ios/ios_press.dart';
 import 'package:yomou/core/database/source_cache.dart';
+import 'package:yomou/core/deep_links.dart';
 import 'package:yomou/core/widgets/responsive.dart' show usesWideLayout;
 import 'package:yomou/features/library/providers/favorites_provider.dart';
 import 'package:yomou/features/library/providers/downloads_provider.dart';
@@ -2003,7 +2005,7 @@ class _MangaDetailScreenState extends ConsumerState<MangaDetailScreen> {
           ),
           IconButton(
             icon: Icon(RemixIcons.share_line, color: iconColor),
-            onPressed: () {},
+            onPressed: () => _showShareSheet(context),
           ),
           IconButton(
             icon: Icon(RemixIcons.download_line, color: iconColor),
@@ -2114,6 +2116,96 @@ class _MangaDetailScreenState extends ConsumerState<MangaDetailScreen> {
       case 'replace':
         _openAlternativesSearch();
     }
+  }
+
+  /// The share entry (the icon next to "open in web browser"): a Kotatsu-style
+  /// sheet with two rows that each copy a link and confirm on the pill toast —
+  /// the manga's page on the source's website, and a `yomou://manga` link that
+  /// opens the manga back inside Yomou wherever it is tapped.
+  Future<void> _showShareSheet(BuildContext context) async {
+    final l = AppLocalizations.of(context);
+    final source = _source;
+    if (source == null) return;
+    // The same page "Open in web browser" opens: the API's canonical URL when
+    // it reported one (Asura Scans' public_url), else the source's best link
+    // for this manga id.
+    final knownPage = _details?.publicUrl ?? '';
+    final siteUrl =
+        knownPage.isNotEmpty ? knownPage : source.websiteMangaUrl(widget.mangaId);
+    final yomouLink = buildYomouMangaLink(
+      sourceId: source.id,
+      mangaId: widget.mangaId,
+      title: _title,
+      websiteUrl: siteUrl,
+    );
+
+    Future<void> copy(String text) async {
+      await Clipboard.setData(ClipboardData(text: text));
+      if (!context.mounted) return;
+      showIosToast(context, message: l.copiedToClipboard);
+    }
+
+    final dark = Theme.of(context).brightness == Brightness.dark;
+    final scheme = Theme.of(context).colorScheme;
+    final textColor = dark
+        ? Colors.white
+        : Theme.of(context).colorScheme.onSurface;
+
+    showModalBottomSheet<void>(
+      context: context,
+      isScrollControlled: true,
+      useSafeArea: true,
+      backgroundColor: scheme.surfaceContainer,
+      shape: const RoundedRectangleBorder(
+        borderRadius: BorderRadius.vertical(top: Radius.circular(16)),
+      ),
+      builder: (ctx) => SafeArea(
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          crossAxisAlignment: CrossAxisAlignment.stretch,
+          children: [
+            Center(
+              child: Container(
+                margin: const EdgeInsets.only(top: 10),
+                width: 36,
+                height: 4,
+                decoration: BoxDecoration(
+                  color: textColor.withValues(alpha: 0.4),
+                  borderRadius: BorderRadius.circular(2),
+                ),
+              ),
+            ),
+            ListTile(
+              leading: Icon(RemixIcons.link, color: scheme.primary),
+              title: Text(
+                l.shareLinkInYomou,
+                style: TextStyle(color: textColor, fontWeight: FontWeight.bold),
+              ),
+              contentPadding:
+                  const EdgeInsets.symmetric(vertical: 12, horizontal: 16),
+              onTap: () async {
+                await copy(yomouLink);
+                if (ctx.mounted) Navigator.pop(ctx);
+              },
+            ),
+            ListTile(
+              leading: Icon(RemixIcons.globe_line, color: scheme.primary),
+              title: Text(
+                l.shareLinkOnSource(source.name),
+                style: TextStyle(color: textColor, fontWeight: FontWeight.bold),
+              ),
+              contentPadding:
+                  const EdgeInsets.symmetric(vertical: 12, horizontal: 16),
+              onTap: () async {
+                await copy(siteUrl);
+                if (ctx.mounted) Navigator.pop(ctx);
+              },
+            ),
+            const SizedBox(height: 8),
+          ],
+        ),
+      ),
+    );
   }
 
   Widget _buildOverflowRow(

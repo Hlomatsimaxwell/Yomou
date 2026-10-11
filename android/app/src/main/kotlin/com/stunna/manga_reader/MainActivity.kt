@@ -36,6 +36,9 @@ class MainActivity : FlutterActivity() {
     /** A save waiting on that permission; invoked with whether it was granted. */
     private var pendingSave: ((Boolean) -> Unit)? = null
 
+    /** Lets Dart receive yomou:// links; see [onNewIntent]. */
+    private var linksChannel: MethodChannel? = null
+
     override fun configureFlutterEngine(flutterEngine: FlutterEngine) {
         super.configureFlutterEngine(flutterEngine)
         MethodChannel(
@@ -233,6 +236,18 @@ class MainActivity : FlutterActivity() {
                 else -> result.notImplemented()
             }
         }
+        MethodChannel(
+            flutterEngine.dartExecutor.binaryMessenger,
+            "com.hlomatsi.yomou/links"
+        ).also { linksChannel = it }.setMethodCallHandler { call, result ->
+            when (call.method) {
+                // A yomou:// link shared from the manga share sheet launched
+                // the app: hand back the launch intent's data so Dart can open
+                // the manga it names.
+                "getInitialUri" -> result.success(intent?.data?.toString())
+                else -> result.notImplemented()
+            }
+        }
     }
 
     /**
@@ -371,6 +386,23 @@ class MainActivity : FlutterActivity() {
         return super.dispatchKeyEvent(event)
     }
 
+    /**
+     * A yomou:// link tapped while the app is already open lands here: the
+     * activity is singleTop, so a second launch becomes a new intent instead
+     * of a fresh activity. Forward it to Dart, which is already listening.
+     */
+    override fun onNewIntent(intent: Intent) {
+        super.onNewIntent(intent)
+        setIntent(intent)
+        linksChannel?.let { channel ->
+            try {
+                channel.invokeMethod("onNewIntent", intent.data?.toString())
+            } catch (_: Exception) {
+                // Dart wasn't registered yet (shouldn't happen with singleTop);
+                // the cold-start launch-intent path covers that case.
+            }
+        }
+    }
 
     override fun onActivityResult(requestCode: Int, resultCode: Int, data: Intent?) {
         super.onActivityResult(requestCode, resultCode, data)

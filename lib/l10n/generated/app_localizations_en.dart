@@ -1845,6 +1845,17 @@ class AppLocalizationsEn extends AppLocalizations {
   String get openInBrowser => 'Open in web browser';
 
   @override
+  String get shareLinkInYomou => 'Link to manga in Yomou';
+
+  @override
+  String shareLinkOnSource(Object source) {
+    return 'Link to manga on $source';
+  }
+
+  @override
+  String get copiedToClipboard => 'Copied to clipboard';
+
+  @override
   String get urlUnavailable => 'The web address for this manga is unavailable.';
 
   @override
