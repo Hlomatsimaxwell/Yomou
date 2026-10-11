@@ -234,14 +234,33 @@ jobs:
           ( cd build/ios/ipa && zip -qry unsigned.ipa Payload )
           ls -la build/ios/ipa
 
+      - name: Name the IPA
+        id: ipa
+        run: |
+          set -euo pipefail
+          version=$(grep -E '^version:' pubspec.yaml | head -1 \
+            | sed 's/version:[[:space:]]*//; s/+.*//')
+          mkdir -p dist
+          if [ "${{ inputs.build_kind }}" = "signed" ]; then
+            src=$(find build/ios/ipa -maxdepth 1 -name '*.ipa' -print -quit)
+            dest="dist/Yomou-${version}.ipa"
+          else
+            src=build/ios/ipa/unsigned.ipa
+            dest="dist/Yomou-${version}-unsigned.ipa"
+          fi
+          cp "$src" "$dest"
+          echo "path=$dest" >> "$GITHUB_OUTPUT"
+
       - name: Upload IPA Artifact
-        uses: actions/upload-artifact@v4
+        # upload-artifact@v7 with archive:false uploads the file as-is (no zip),
+        # and the file name becomes the artifact name -- so the download is just
+        # "Yomou-<version>.ipa" (or "...-unsigned.ipa"). v4 always zips, and an
+        # artifact named plainly "ipa" is indistinguishable from an installable
+        # one anyway.
+        uses: actions/upload-artifact@v7
         with:
-          # Suffixed with the build kind on purpose: an artifact named plainly
-          # "ipa" is indistinguishable from an installable one, and the
-          # unsigned one is not installable.
-          name: manga-reader-ios-ipa-${{ inputs.build_kind }}
-          path: build/ios/ipa/*.ipa
+          path: ${{ steps.ipa.outputs.path }}
+          archive: false
           if-no-files-found: error
 
       - name: Remove temporary keychain

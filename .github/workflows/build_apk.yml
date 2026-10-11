@@ -33,8 +33,22 @@ jobs:
       - name: Build Release APK
         run: flutter build apk --release
 
+      - name: Name the APK
+        id: apk
+        run: |
+          set -euo pipefail
+          version=$(grep -E '^version:' pubspec.yaml | head -1 \
+            | sed 's/version:[[:space:]]*//; s/+.*//')
+          mkdir -p dist
+          cp build/app/outputs/flutter-apk/app-release.apk "dist/Yomou-${version}.apk"
+          echo "path=dist/Yomou-${version}.apk" >> "$GITHUB_OUTPUT"
+
       - name: Upload APK Artifact
-        uses: actions/upload-artifact@v4
+        # upload-artifact@v7 with archive:false uploads the file as-is (no zip),
+        # and the file name becomes the artifact name -- so the download is just
+        # "Yomou-<version>.apk". v4 cannot do this; it always zips.
+        uses: actions/upload-artifact@v7
         with:
-          name: manga-reader-android-apk
-          path: build/app/outputs/flutter-apk/app-release.apk
+          path: ${{ steps.apk.outputs.path }}
+          archive: false
+          if-no-files-found: error
