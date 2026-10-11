@@ -1,0 +1,57 @@
+# Builds an unsigned release IPA of Yomou for on-device sideloading
+# (FlareStore/ESign/SigningTools sign it on the phone with a free Apple ID
+# certificate — no Mac or paid developer account required anywhere).
+#
+# Why unsigned + release:
+#  - `--no-codesign` leaves signatures off so the on-device signer can apply
+#    its own certificate to every nested framework.
+#  - `--release` produces an AOT build. Debug builds need JIT and crash
+#    instantly when sideloaded ("app just opens and closes").
+#
+# Yomou declares no entitlements (no push/app groups), so on-device signing
+# has nothing it can fail on.
+
+name: build-ios
+
+on:
+  # Manual: Actions -> build-ios -> "Run workflow" -> download the IPA artifact.
+  workflow_dispatch:
+  # Automatic: `git push --tags` with a tag like v1.1.2 also builds an IPA.
+  push:
+    tags:
+      - 'v*'
+
+jobs:
+  build:
+    # Apple-Silicon macOS runner: this is the "Mac" that builds the IPA.
+    runs-on: macos-15
+    timeout-minutes: 45
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Set up Flutter
+        uses: subosito/flutter-action@v2
+        with:
+          channel: stable
+          cache: true
+
+      - name: Install dependencies
+        run: flutter pub get
+
+      - name: Pre-cache iOS engine artifacts
+        run: flutter precache --ios
+
+      - name: Build unsigned release IPA
+        # An unsigned archive at build/ios/ipa/<AppName>.ipa, ready to be
+        # signed on-device. No codesign identity or provisioning profile
+        # involved.
+        run: flutter build ipa --release --no-codesign
+
+      - name: Upload IPA
+        uses: actions/upload-artifact@v4
+        with:
+          name: yomou-unsigned-ipa
+          path: build/ios/ipa/*.ipa
+          if-no-files-found: error
