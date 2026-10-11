@@ -12,6 +12,7 @@ import 'package:yomou/features/content_preferences/widgets/content_preferences_e
 import 'package:yomou/features/content_preferences/providers/content_preferences_provider.dart';
 import 'package:yomou/features/settings/providers/appearance_provider.dart';
 import 'package:yomou/features/settings/screens/import_results_screen.dart';
+import 'package:yomou/features/settings/widgets/tachiyomi_scan_dialog.dart';
 import 'package:yomou/features/settings/screens/manga_directories_screen.dart';
 import 'package:yomou/l10n/generated/app_localizations.dart';
 
@@ -176,7 +177,13 @@ class WelcomeSheetContent extends ConsumerWidget {
     try {
       final picked = file.files.single;
       final bytes = picked.bytes ?? await File(picked.path!).readAsBytes();
-      final result = await BackupRestore.restore(bytes);
+      final result = await BackupRestore.restore(
+        bytes,
+        // Titles from sources we don't carry are searched across the sources we
+        // do have before the result is written (see the scan dialog).
+        resolveTachiyomi: (parsed) =>
+            scanTachiyomiMissingWithProgress(context, ref, parsed),
+      );
 
       if (!context.mounted) return;
       bumpHistoryRevision(ref);
@@ -200,7 +207,7 @@ class WelcomeSheetContent extends ConsumerWidget {
           );
         case BackupFormat.tachiyomi:
           final parsed = result.tachiyomi!;
-          if (parsed.mangas.isEmpty && parsed.skipped == 0) {
+          if (parsed.isEmpty) {
             messenger.showSnackBar(
               SnackBar(content: Text(l.tachiyomiImportNone)),
             );

@@ -1146,6 +1146,24 @@
   "importResultsSkippedReasonSourceFallback": "Yomou doesn't have this source",
   "importResultsSkippedReasonId": "Couldn't match a manga url",
   "importResultsReadTo": "Read to chapter {chapter}",
+  "importResultsRecoveredSection": "Found on another source",
+  "importResultsRecoveredOn": "Found on {source}",
+  "@importResultsRecoveredOn": {
+    "placeholders": {
+      "source": {
+        "type": "String"
+      }
+    }
+  },
+  "importScanTitle": "Looking for missing titles across your sources...",
+  "importScanProgress": "{done}/{total} scanned",
+  "@importScanProgress": {
+    "placeholders": {
+      "done": {"type": "int"},
+      "total": {"type": "int"}
+    }
+  },
+
   "@importResultsReadTo": {
     "placeholders": {
       "chapter": {

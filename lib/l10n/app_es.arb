@@ -904,6 +904,24 @@
   "importResultsSkippedReasonSourceFallback": "Yomou no tiene esta fuente",
   "importResultsSkippedReasonId": "No se pudo identificar la URL del manga",
   "importResultsReadTo": "Leído hasta el capítulo {chapter}",
+  "importResultsRecoveredSection": "Encontrados en otra fuente",
+  "importResultsRecoveredOn": "Encontrado en {source}",
+  "@importResultsRecoveredOn": {
+    "placeholders": {
+      "source": {
+        "type": "String"
+      }
+    }
+  },
+  "importScanTitle": "Buscando títulos faltantes en tus fuentes...",
+  "importScanProgress": "{done}/{total} buscados",
+  "@importScanProgress": {
+    "placeholders": {
+      "done": {"type": "int"},
+      "total": {"type": "int"}
+    }
+  },
+
   "@importResultsReadTo": {
     "placeholders": {
       "chapter": {

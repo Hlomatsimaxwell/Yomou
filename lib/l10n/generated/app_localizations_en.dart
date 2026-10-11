@@ -2197,6 +2197,23 @@ class AppLocalizationsEn extends AppLocalizations {
   }
 
   @override
+  String get importResultsRecoveredSection => 'Found on another source';
+
+  @override
+  String importResultsRecoveredOn(String source) {
+    return 'Found on $source';
+  }
+
+  @override
+  String get importScanTitle =>
+      'Looking for missing titles across your sources...';
+
+  @override
+  String importScanProgress(int done, int total) {
+    return '$done/$total scanned';
+  }
+
+  @override
   String get tachiyomiExportNone => 'No compatible manga found to export';
 
   @override

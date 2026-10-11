@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:remixicon/remixicon.dart';
 import 'package:yomou/core/backup/tachiyomi_backup.dart';
 import 'package:yomou/core/widgets/responsive.dart';
+import 'package:yomou/data/providers/sources_provider.dart';
 import 'package:yomou/l10n/generated/app_localizations.dart';
 import 'package:yomou/widgets/m3_components.dart';
 
@@ -35,6 +36,15 @@ class ImportResultsScreen extends StatelessWidget {
             for (final m in result.mangas) _ImportedTile(manga: m),
             const SizedBox(height: 20),
           ],
+          if (result.recoveredMangas.isNotEmpty) ...[
+            _SectionHeader(
+              icon: RemixIcons.check_line,
+              title: l.importResultsRecoveredSection,
+              count: result.recoveredMangas.length,
+              color: color.tertiary,
+            ),
+            for (final m in result.recoveredMangas) _RecoveredTile(manga: m),
+          ],
           if (result.skippedMangas.isNotEmpty) ...[
             _SectionHeader(
               icon: RemixIcons.error_warning_line,
@@ -61,7 +71,8 @@ class _SummaryHeader extends StatelessWidget {
     final l = AppLocalizations.of(context);
     final color = Theme.of(context).colorScheme;
     final dark = Theme.of(context).brightness == Brightness.dark;
-    final allImported = result.skippedMangas.isEmpty;
+    final allImported =
+        result.skippedMangas.isEmpty && result.missingMangas.isEmpty;
 
     return Container(
       padding: const EdgeInsets.all(16),
@@ -99,7 +110,7 @@ class _SummaryHeader extends StatelessWidget {
                     TextSpan(
                       children: [
                         TextSpan(
-                          text: l.importResultsImported(result.mangas.length),
+                          text: l.importResultsImported(result.imported),
                           style: const TextStyle(
                             fontWeight: FontWeight.w700,
                           ),
@@ -162,10 +173,11 @@ class _ImportedTile extends StatelessWidget {
   Widget build(BuildContext context) {
     final l = AppLocalizations.of(context);
     final color = Theme.of(context).colorScheme;
+    final source = getSourceBySourceId(manga.sourceId)?.name ??
+        TachiyomiBackupCodec.sourceDisplayName(manga.sourceId);
     final subtitle = manga.lastReadChapter > 0
-        ? '${TachiyomiBackupCodec.sourceDisplayName(manga.sourceId)} · '
-            '${l.importResultsReadTo(manga.lastReadChapter)}'
-        : TachiyomiBackupCodec.sourceDisplayName(manga.sourceId);
+        ? '$source · ${l.importResultsReadTo(manga.lastReadChapter)}'
+        : source;
 
     return ListTile(
       contentPadding: const EdgeInsets.symmetric(horizontal: 4, vertical: 2),
@@ -187,6 +199,48 @@ class _ImportedTile extends StatelessWidget {
         padding: const EdgeInsets.only(top: 2),
         child: Text(
           subtitle,
+          style: TextStyle(fontSize: 12.5, color: color.onSurfaceVariant),
+        ),
+      ),
+    );
+  }
+}
+
+class _RecoveredTile extends StatelessWidget {
+  const _RecoveredTile({required this.manga});
+
+  final TachiyomiImportedManga manga;
+
+  @override
+  Widget build(BuildContext context) {
+    final l = AppLocalizations.of(context);
+    final color = Theme.of(context).colorScheme;
+    final source = getSourceBySourceId(manga.sourceId)?.name ??
+        TachiyomiBackupCodec.sourceDisplayName(manga.sourceId);
+    final subtitle = manga.lastReadChapter > 0
+        ? '$source · ${l.importResultsReadTo(manga.lastReadChapter)}'
+        : source;
+
+    return ListTile(
+      contentPadding: const EdgeInsets.symmetric(horizontal: 4, vertical: 2),
+      leading: Padding(
+        padding: const EdgeInsets.only(right: 8),
+        child: Icon(
+          RemixIcons.find_replace_line,
+          size: 22,
+          color: color.tertiary,
+        ),
+      ),
+      title: Text(
+        manga.title,
+        maxLines: 1,
+        overflow: TextOverflow.ellipsis,
+        style: const TextStyle(fontSize: 15, fontWeight: FontWeight.w600),
+      ),
+      subtitle: Padding(
+        padding: const EdgeInsets.only(top: 2),
+        child: Text(
+          l.importResultsRecoveredOn(subtitle),
           style: TextStyle(fontSize: 12.5, color: color.onSurfaceVariant),
         ),
       ),

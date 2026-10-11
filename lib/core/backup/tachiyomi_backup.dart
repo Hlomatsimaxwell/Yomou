@@ -390,6 +390,7 @@ class TachiyomiBackupCodec {
 
     final mangas = <TachiyomiImportedManga>[];
     final skippedMangas = <TachiyomiSkippedManga>[];
+    final missingMangas = <TachiyomiMissingManga>[];
 
     for (final raw in rawMangas) {
       final manga = TachiyomiProtoCodec.asMessage(raw);
@@ -407,29 +408,6 @@ class TachiyomiBackupCodec {
       );
       final sourceInt = (manga[1] ?? const <Object?>[]).firstOrNull;
       final intSource = sourceInt is int ? sourceInt : null;
-      final sourceId = _yomouSourceFor(intSource, url);
-      if (sourceId == null) {
-        skippedMangas.add(TachiyomiSkippedManga(
-          title: title,
-          url: url,
-          sourceName: sourceNameFor(intSource),
-          reason: TachiyomiSkippedReason.unsupportedSource,
-        ));
-        continue;
-      }
-      final mangaId = _mangaIdFor(sourceId, url);
-      if (mangaId == null || mangaId.isEmpty) {
-        skippedMangas.add(TachiyomiSkippedManga(
-          title: title,
-          url: url,
-          sourceName: sourceNameFor(intSource),
-          reason: TachiyomiSkippedReason.missingMangaId,
-        ));
-        continue;
-      }
-      if (title.isEmpty) {
-        // fall through; TachiyomiImportedManga falls back to the manga id.
-      }
 
       final coverUrl = TachiyomiProtoCodec.asString(
         (manga[9] ?? const <Object?>[]).firstOrNull,
@@ -494,6 +472,39 @@ class TachiyomiBackupCodec {
         }
       }
 
+      final favFields = manga[100];
+      final isFavorite = favFields == null
+          ? true // Mihon omits the default-true favorite flag in library backups.
+          : TachiyomiProtoCodec.asBool(favFields.firstOrNull);
+
+      final sourceId = _yomouSourceFor(intSource, url);
+      if (sourceId == null) {
+        // The backup's source is not one Yomou carries. Keep the entry, with
+        // the read position parsed above, so the import can search the sources
+        // we do have for the same work and re-bind it; anything still unmatched
+        // is reported as skipped after the scan.
+        missingMangas.add(TachiyomiMissingManga(
+          title: title,
+          url: url,
+          sourceName: sourceNameFor(intSource),
+          coverUrl: coverUrl,
+          lastReadChapter: lastChapter,
+          lastReadAt: lastReadAt,
+          isFavorite: isFavorite,
+        ));
+        continue;
+      }
+      final mangaId = _mangaIdFor(sourceId, url);
+      if (mangaId == null || mangaId.isEmpty) {
+        skippedMangas.add(TachiyomiSkippedManga(
+          title: title,
+          url: url,
+          sourceName: sourceNameFor(intSource),
+          reason: TachiyomiSkippedReason.missingMangaId,
+        ));
+        continue;
+      }
+
       if (lastChapter > 0) {
         final chapterId = _chapterIdFor(sourceId, mangaId, lastChapterUrl ?? '');
         if (chapterId != null && chapterId.isNotEmpty) {
@@ -504,11 +515,6 @@ class TachiyomiBackupCodec {
           });
         }
       }
-
-      final favFields = manga[100];
-      final isFavorite = favFields == null
-          ? true // Mihon omits the default-true favorite flag in library backups.
-          : TachiyomiProtoCodec.asBool(favFields.firstOrNull);
 
       mangas.add(TachiyomiImportedManga(
         mangaId: mangaId,
@@ -526,6 +532,7 @@ class TachiyomiBackupCodec {
     return TachiyomiImportResult(
       mangas: mangas,
       skippedMangas: skippedMangas,
+      missingMangas: missingMangas,
     );
   }
 
@@ -550,6 +557,7 @@ class TachiyomiBackupCodec {
 
     final mangas = <TachiyomiImportedManga>[];
     final skippedMangas = <TachiyomiSkippedManga>[];
+    final missingMangas = <TachiyomiMissingManga>[];
 
     for (final raw in rawLibrary) {
       if (raw is! Map<String, dynamic>) {
@@ -563,27 +571,6 @@ class TachiyomiBackupCodec {
       final sourceInt = raw['source'] is int
           ? (raw['source'] as int)
           : int.tryParse('${raw['source']}');
-      final sourceId = _yomouSourceFor(sourceInt, url);
-      if (sourceId == null) {
-        skippedMangas.add(TachiyomiSkippedManga(
-          title: title,
-          url: url,
-          sourceName: sourceInt == null
-              ? null
-              : 'source $sourceInt',
-          reason: TachiyomiSkippedReason.unsupportedSource,
-        ));
-        continue;
-      }
-      final mangaId = _mangaIdFor(sourceId, url);
-      if (mangaId == null || mangaId.isEmpty) {
-        skippedMangas.add(TachiyomiSkippedManga(
-          title: title,
-          url: url,
-          reason: TachiyomiSkippedReason.missingMangaId,
-        ));
-        continue;
-      }
       final coverUrl = (raw['thumbnailUrl'] as String?) ?? '';
       final isFavorite = raw['isFavorite'] != false;
 
@@ -632,6 +619,29 @@ class TachiyomiBackupCodec {
         }
       }
 
+      final sourceId = _yomouSourceFor(sourceInt, url);
+      if (sourceId == null) {
+        missingMangas.add(TachiyomiMissingManga(
+          title: title,
+          url: url,
+          sourceName: sourceInt == null ? null : 'source $sourceInt',
+          coverUrl: coverUrl,
+          lastReadChapter: lastChapter,
+          lastReadAt: lastReadAt,
+          isFavorite: isFavorite,
+        ));
+        continue;
+      }
+      final mangaId = _mangaIdFor(sourceId, url);
+      if (mangaId == null || mangaId.isEmpty) {
+        skippedMangas.add(TachiyomiSkippedManga(
+          title: title,
+          url: url,
+          reason: TachiyomiSkippedReason.missingMangaId,
+        ));
+        continue;
+      }
+
       if (lastChapter > 0) {
         final chapterId = _chapterIdFor(sourceId, mangaId, lastChapterUrl ?? '');
         if (chapterId != null && chapterId.isNotEmpty) {
@@ -659,6 +669,7 @@ class TachiyomiBackupCodec {
     return TachiyomiImportResult(
       mangas: mangas,
       skippedMangas: skippedMangas,
+      missingMangas: missingMangas,
     );
   }
 }
@@ -706,12 +717,56 @@ class TachiyomiImportResult {
   const TachiyomiImportResult({
     required this.mangas,
     required this.skippedMangas,
+    this.recoveredMangas = const <TachiyomiImportedManga>[],
+    this.missingMangas = const <TachiyomiMissingManga>[],
   });
 
+  /// Entries whose backup source maps directly onto a Yomou source.
   final List<TachiyomiImportedManga> mangas;
+
+  /// Entries the import re-bound to a different source by searching for the
+  /// same title, filled in by the resolver ([resolveTachiyomiMissing]).
+  final List<TachiyomiImportedManga> recoveredMangas;
+
+  /// Entries that could not be imported at all (bad url, unreadable id, or a
+  /// source we could not find the title on).
   final List<TachiyomiSkippedManga> skippedMangas;
 
+  /// Entries whose backup source Yomou does not carry, kept with their title
+  /// and read position so the import can search the sources we *do* have for
+  /// the same work before giving up. Emptied once the scan has run.
+  final List<TachiyomiMissingManga> missingMangas;
+
   int get skipped => skippedMangas.length;
+  int get recovered => recoveredMangas.length;
+  int get imported => mangas.length + recoveredMangas.length;
+  bool get isEmpty => imported == 0 && skipped == 0 && missingMangas.isEmpty;
+}
+
+/// An entry whose backup source Yomou does not have. Carries enough metadata to
+/// search the sources we do have by title and, on a hit, re-bind the entry to
+/// that source's copy of the work (keeping favorite status and last-read
+/// chapter number). See [resolveTachiyomiMissing].
+class TachiyomiMissingManga {
+  const TachiyomiMissingManga({
+    required this.title,
+    required this.url,
+    this.sourceName,
+    this.coverUrl = '',
+    this.lastReadChapter = 0,
+    this.lastReadAt,
+    this.isFavorite = true,
+  });
+
+  final String title;
+  final String url;
+
+  /// Human-readable source name from the backup (e.g. "Comick (Unoriginal)").
+  final String? sourceName;
+  final String coverUrl;
+  final double lastReadChapter;
+  final DateTime? lastReadAt;
+  final bool isFavorite;
 }
 
 /// Why an entry from the backup was not imported. Rendered as l10n keys is

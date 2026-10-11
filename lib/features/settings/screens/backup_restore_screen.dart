@@ -15,6 +15,7 @@ import 'package:yomou/features/library/providers/favorites_provider.dart';
 import 'package:yomou/features/settings/providers/cache_settings_provider.dart';
 import 'package:yomou/features/settings/screens/import_results_screen.dart';
 import 'package:yomou/features/settings/screens/periodic_backups_screen.dart';
+import 'package:yomou/features/settings/widgets/tachiyomi_scan_dialog.dart';
 import 'package:yomou/l10n/generated/app_localizations.dart';
 import 'package:yomou/widgets/m3_components.dart';
 
@@ -90,7 +91,11 @@ class _BackupRestoreScreenState extends ConsumerState<BackupRestoreScreen> {
             .setBackupsOutputDirectory(dir);
       }
 
-      final result = await BackupRestore.restore(bytes);
+      final result = await BackupRestore.restore(
+        bytes,
+        resolveTachiyomi: (parsed) =>
+            scanTachiyomiMissingWithProgress(context, ref, parsed),
+      );
       if (!mounted) return;
       bumpHistoryRevision(ref);
       bumpFavoritesRevision(ref);
@@ -98,7 +103,7 @@ class _BackupRestoreScreenState extends ConsumerState<BackupRestoreScreen> {
       switch (result.format) {
         case BackupFormat.tachiyomi:
           final parsed = result.tachiyomi!;
-          if (parsed.mangas.isEmpty && parsed.skipped == 0) {
+          if (parsed.isEmpty) {
             ScaffoldMessenger.of(context).showSnackBar(
               SnackBar(content: Text(l.tachiyomiImportNone)),
             );
@@ -197,13 +202,18 @@ class _BackupRestoreScreenState extends ConsumerState<BackupRestoreScreen> {
           await File(file.files.single.path!).readAsBytes();
 
       final parsed = TachiyomiBackupCodec.import(bytes);
-
-      await BackupRestore.applyTachiyomi(parsed);
+      if (!mounted) return;
+      final resolved = await scanTachiyomiMissingWithProgress(
+        context,
+        ref,
+        parsed,
+      );
+      await BackupRestore.applyTachiyomi(resolved);
 
       if (!mounted) return;
       bumpHistoryRevision(ref);
       bumpFavoritesRevision(ref);
-      if (parsed.mangas.isEmpty && parsed.skipped == 0) {
+      if (resolved.isEmpty) {
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(content: Text(l.tachiyomiImportNone)),
         );
@@ -212,7 +222,7 @@ class _BackupRestoreScreenState extends ConsumerState<BackupRestoreScreen> {
       Navigator.push(
         context,
         MaterialPageRoute(
-          builder: (context) => ImportResultsScreen(result: parsed),
+          builder: (context) => ImportResultsScreen(result: resolved),
         ),
       );
     } catch (e) {

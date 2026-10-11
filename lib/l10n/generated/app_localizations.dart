@@ -4021,6 +4021,30 @@ abstract class AppLocalizations {
   /// **'Read to chapter {chapter}'**
   String importResultsReadTo(num chapter);
 
+  /// No description provided for @importResultsRecoveredSection.
+  ///
+  /// In en, this message translates to:
+  /// **'Found on another source'**
+  String get importResultsRecoveredSection;
+
+  /// No description provided for @importResultsRecoveredOn.
+  ///
+  /// In en, this message translates to:
+  /// **'Found on {source}'**
+  String importResultsRecoveredOn(String source);
+
+  /// No description provided for @importScanTitle.
+  ///
+  /// In en, this message translates to:
+  /// **'Looking for missing titles across your sources...'**
+  String get importScanTitle;
+
+  /// No description provided for @importScanProgress.
+  ///
+  /// In en, this message translates to:
+  /// **'{done}/{total} scanned'**
+  String importScanProgress(int done, int total);
+
   /// No description provided for @tachiyomiExportNone.
   ///
   /// In en, this message translates to:

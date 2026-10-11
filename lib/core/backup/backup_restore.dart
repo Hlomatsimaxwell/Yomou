@@ -97,7 +97,18 @@ class BackupRestore {
   /// Reads [bytes] and writes it into the database.
   ///
   /// Throws [FormatException] when the file is not a backup at all.
-  static Future<BackupRestoreResult> restore(Uint8List bytes) async {
+  ///
+  /// For a Tachiyomi backup, [resolveTachiyomi] (when supplied) gets the parsed
+  /// result before it is written: that is where the import searches the
+  /// reader's sources for entries whose original source Yomou does not carry,
+  /// and returns the enriched result. It is a callback rather than logic here
+  /// so the UI can show the scan's progress; omitting it keeps the old
+  /// import-directly behaviour.
+  static Future<BackupRestoreResult> restore(
+    Uint8List bytes, {
+    Future<TachiyomiImportResult> Function(TachiyomiImportResult parsed)?
+        resolveTachiyomi,
+  }) async {
     switch (detect(bytes)) {
       case BackupFormat.yomou:
         final decoded = jsonDecode(
@@ -105,9 +116,11 @@ class BackupRestore {
         ) as Map<String, dynamic>;
         return BackupRestoreResult.yomou(await restoreYomou(decoded));
       case BackupFormat.tachiyomi:
-        return BackupRestoreResult.tachiyomi(
-          await applyTachiyomi(TachiyomiBackupCodec.import(bytes)),
-        );
+        var parsed = TachiyomiBackupCodec.import(bytes);
+        if (resolveTachiyomi != null) {
+          parsed = await resolveTachiyomi(parsed);
+        }
+        return BackupRestoreResult.tachiyomi(await applyTachiyomi(parsed));
     }
   }
 
@@ -213,14 +226,15 @@ class BackupRestore {
   /// Writes a parsed Tachiyomi/Mihon backup into the database.
   ///
   /// Moved out of the settings screen so the welcome sheet can restore one
-  /// without duplicating the row-by-row application.
+  /// without duplicating the row-by-row application. Both the directly-mapped
+  /// entries and any recovered by the title scan are written.
   static Future<TachiyomiImportResult> applyTachiyomi(
     TachiyomiImportResult parsed, {
     DatabaseHelper? dbOverride,
   }) async {
     final db = dbOverride ?? DatabaseHelper.instance;
 
-    for (final m in parsed.mangas) {
+    for (final m in [...parsed.mangas, ...parsed.recoveredMangas]) {
       await db.saveMangaProgress(
         mangaId: m.mangaId,
         title: m.title,
