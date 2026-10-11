@@ -12,12 +12,18 @@ import 'package:yomou/data/models/manga_source.dart';
 /// Minimal source that returns canned search results and can be told to fail,
 /// so the resolver's fan-out and matching can be exercised without a network.
 class _FakeSource extends MangaSource {
-  _FakeSource(this.id, {this.results = const [], this.error = false});
+  _FakeSource(
+    this.id, {
+    this.results = const [],
+    this.error = false,
+    this.lang = 'en',
+  });
 
   @override
   final String id;
   final List<Manga> results;
   final bool error;
+  final String lang;
   var searches = 0;
 
   @override
@@ -26,6 +32,8 @@ class _FakeSource extends MangaSource {
   String get baseUrl => 'https://$id.test';
   @override
   String get readerBaseUrl => baseUrl;
+  @override
+  String get languageCode => lang;
 
   @override
   Future<List<Manga>> searchByTitle(String query, {int page = 1}) async {
@@ -209,6 +217,75 @@ void main() {
         out.skippedMangas.single.reason,
         TachiyomiSkippedReason.unsupportedSource,
       );
+    });
+
+    test('prefers a source in the reader content language', () async {
+      // The non-preferred source is listed first so an early fan-out stop on it
+      // still has to give way to the English source in the extra window.
+      final spanish = _FakeSource(
+        'es-src',
+        lang: 'es',
+        results: [_manga('es-src', 'es-1', 'Solo Leveling')],
+      );
+      final english = _FakeSource(
+        'en-src',
+        lang: 'en',
+        results: [_manga('en-src', 'en-1', 'Solo Leveling')],
+      );
+      final parsed = _result([
+        const TachiyomiMissingManga(title: 'Solo Leveling', url: ''),
+      ]);
+
+      final out = await resolveTachiyomiMissing(
+        parsed,
+        [spanish, english],
+        preferredLanguages: const {'English'},
+      );
+
+      expect(out.recoveredMangas.single.sourceId, 'en-src');
+    });
+
+    test('falls back to another language when none matches', () async {
+      final spanish = _FakeSource(
+        'es-src',
+        lang: 'es',
+        results: [_manga('es-src', 'es-1', 'Solo Leveling')],
+      );
+      final parsed = _result([
+        const TachiyomiMissingManga(title: 'Solo Leveling', url: ''),
+      ]);
+
+      final out = await resolveTachiyomiMissing(
+        parsed,
+        [spanish],
+        preferredLanguages: const {'English'},
+      );
+
+      expect(out.recoveredMangas.single.sourceId, 'es-src');
+    });
+
+    test('treats a regional code as its base language', () async {
+      final portuguese = _FakeSource(
+        'pt-src',
+        lang: 'pt-br',
+        results: [_manga('pt-src', 'pt-1', 'Solo Leveling')],
+      );
+      final english = _FakeSource(
+        'en-src',
+        lang: 'en',
+        results: [_manga('en-src', 'en-1', 'Solo Leveling')],
+      );
+      final parsed = _result([
+        const TachiyomiMissingManga(title: 'Solo Leveling', url: ''),
+      ]);
+
+      final out = await resolveTachiyomiMissing(
+        parsed,
+        [english, portuguese],
+        preferredLanguages: const {'Portuguese'},
+      );
+
+      expect(out.recoveredMangas.single.sourceId, 'pt-src');
     });
   });
 }

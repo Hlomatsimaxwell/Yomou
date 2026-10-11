@@ -198,10 +198,17 @@ Future<void> markWelcomeCompleted() async {
 
 class ContentPreferencesNotifier extends StateNotifier<ContentPreferences> {
   ContentPreferencesNotifier(this._ref) : super(const ContentPreferences()) {
-    _load();
+    loaded = _load();
   }
 
   final Ref _ref;
+
+  /// Completes once the saved selection has been read from prefs.
+  ///
+  /// The state starts empty and fills in asynchronously; a caller that needs
+  /// the real selection rather than "not loaded yet" (the Tachiyomi rescue,
+  /// which must not fall back to every language) waits on this first.
+  late final Future<void> loaded;
 
   Future<void> _load() async {
     final p = await SharedPreferences.getInstance();

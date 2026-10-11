@@ -7,6 +7,9 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Changed
+- The Tachiyomi/Mihon import rescue now prefers re-binding a title to a source in one of your content languages, and only falls back to another language when none of your languages carries it.
+
 ## [1.1.0] - 2026-10-11
 
 ### Added

@@ -4,6 +4,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:yomou/core/backup/tachiyomi_backup.dart';
 import 'package:yomou/core/backup/tachiyomi_import_resolver.dart';
 import 'package:yomou/data/providers/sources_provider.dart';
+import 'package:yomou/features/content_preferences/providers/content_preferences_provider.dart';
 import 'package:yomou/l10n/generated/app_localizations.dart';
 
 /// Scans the reader's enabled sources for the Tachiyomi entries whose original
@@ -20,9 +21,14 @@ Future<TachiyomiImportResult> scanTachiyomiMissingWithProgress(
   TachiyomiImportResult parsed,
 ) async {
   if (parsed.missingMangas.isEmpty) return parsed;
+  // The selection loads from prefs asynchronously; wait so the rescue knows the
+  // reader's languages (and the source rows reflect them) before searching.
+  await ref.read(contentPreferencesProvider.notifier).loaded;
+  if (!context.mounted) return parsed;
   final sources = boundVariantFamilies(
     resolveActiveSources(ref.read(visibleSourceRowsProvider)),
   );
+  final preferredLanguages = ref.read(contentPreferencesProvider).languages;
 
   final progress = ValueNotifier<({int done, int total})>(
     (done: 0, total: parsed.missingMangas.length),
@@ -36,6 +42,7 @@ Future<TachiyomiImportResult> scanTachiyomiMissingWithProgress(
     return await resolveTachiyomiMissing(
       parsed,
       sources,
+      preferredLanguages: preferredLanguages,
       onProgress: (done, total) => progress.value = (done: done, total: total),
     );
   } finally {
