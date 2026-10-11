@@ -24,6 +24,12 @@ import 'package:yomou/data/models/manga_translation.dart';
 /// pick is only used when nothing in their languages has the title, so a rescue
 /// never loses an entry it could otherwise have kept. An empty set means the
 /// reader has no language preference and the best title match wins outright.
+///
+/// When several sources carry the same title, the one publishing the most
+/// chapters wins: the last-read chapter carries over from the backup, and
+/// rebinding progress to a shorter copy of the series ("256 of 100") is worse
+/// than picking the longest one. A single match is used without counting its
+/// chapters — there is nothing to prefer it over.
 Future<TachiyomiImportResult> resolveTachiyomiMissing(
   TachiyomiImportResult parsed,
   List<MangaSource> sources, {
@@ -143,22 +149,53 @@ Future<Manga?> _findMatch(
   if (matches.isEmpty) return null;
 
   final preferred = matches.where((c) => c.preferred).toList();
-  final pool = preferred.isNotEmpty ? preferred : matches;
+  var pool = preferred.isNotEmpty ? preferred : matches;
+
+  // Sources can carry the same title at very different lengths (a scan that
+  // stopped at 100 chapters, another site's copy that runs to 256). When
+  // several compete, learn each one's chapter count and prefer the fullest, so
+  // the backup's carried-over progress isn't bound to a short copy of the
+  // series. A single candidate needs no count: there is nothing to prefer it
+  // over, and counting costs an extra request.
+  if (pool.length > 1) {
+    await Future.wait([for (final candidate in pool) _countChapters(candidate)]);
+  }
+
   var best = pool.first;
   for (final candidate in pool) {
-    if (candidate.rank < best.rank) best = candidate;
+    if (candidate.rank < best.rank ||
+        (candidate.rank == best.rank && candidate.chapters > best.chapters)) {
+      best = candidate;
+    }
   }
   return best.manga;
+}
+
+/// Fills in [candidate]'s chapter count from its source's authoritative
+/// [MangaSource.getTotalChapters] (0 stays 0 when the source doesn't know).
+Future<void> _countChapters(_Candidate candidate) async {
+  try {
+    candidate.chapters = await candidate.source
+        .getTotalChapters(candidate.manga.id)
+        .timeout(const Duration(seconds: 5));
+  } catch (_) {
+    candidate.chapters = 0;
+  }
 }
 
 /// One source's best acceptable answer for a query, tagged with whether the
 /// source publishes in one of the reader's languages.
 class _Candidate {
-  const _Candidate(this.manga, this.rank, this.preferred);
+  _Candidate(this.manga, this.rank, this.preferred, this.source);
 
   final Manga manga;
   final int rank;
   final bool preferred;
+  final MangaSource source;
+
+  /// How many chapters [manga] carries on [source]; 0 when unknown. Only filled
+  /// in by [_countChapters] when competing candidates make it worth asking.
+  int chapters = 0;
 }
 
 _Candidate? _bestIn(
@@ -177,7 +214,7 @@ _Candidate? _bestIn(
     }
   }
   if (best == null || bestRank > 2) return null;
-  return _Candidate(best, bestRank, _languageWanted(source, preferredLanguages));
+  return _Candidate(best, bestRank, _languageWanted(source, preferredLanguages), source);
 }
 
 /// Whether [source] publishes in one of the reader's [preferredLanguages]

@@ -12,7 +12,7 @@ import 'package:yomou/features/content_preferences/widgets/content_preferences_e
 import 'package:yomou/features/content_preferences/providers/content_preferences_provider.dart';
 import 'package:yomou/features/settings/providers/appearance_provider.dart';
 import 'package:yomou/features/settings/screens/import_results_screen.dart';
-import 'package:yomou/features/settings/widgets/tachiyomi_scan_dialog.dart';
+import 'package:yomou/features/settings/widgets/tachiyomi_scan_progress.dart';
 import 'package:yomou/features/settings/screens/manga_directories_screen.dart';
 import 'package:yomou/l10n/generated/app_localizations.dart';
 

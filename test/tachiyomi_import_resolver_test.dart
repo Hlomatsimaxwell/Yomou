@@ -17,6 +17,7 @@ class _FakeSource extends MangaSource {
     this.results = const [],
     this.error = false,
     this.lang = 'en',
+    this.chaptersById = const {},
   });
 
   @override
@@ -24,7 +25,12 @@ class _FakeSource extends MangaSource {
   final List<Manga> results;
   final bool error;
   final String lang;
+
+  /// Chapter totals returned for a manga id by [getTotalChapters]; a missing
+  /// id reads as 0, matching a source that doesn't know its own length.
+  final Map<String, int> chaptersById;
   var searches = 0;
+  var totalCalls = 0;
 
   @override
   String get name => id;
@@ -40,6 +46,12 @@ class _FakeSource extends MangaSource {
     searches++;
     if (error) throw Exception('source down');
     return results;
+  }
+
+  @override
+  Future<int> getTotalChapters(String mangaId) async {
+    totalCalls++;
+    return chaptersById[mangaId] ?? 0;
   }
 
   @override
@@ -217,6 +229,69 @@ void main() {
         out.skippedMangas.single.reason,
         TachiyomiSkippedReason.unsupportedSource,
       );
+    });
+
+    test('prefers the source carrying the most chapters', () async {
+      // Both carry the same title at rank 0, but one scan stopped at chapter
+      // 100 while the other runs to 256. A backup carrying "read up to 256"
+      // must land on the fuller copy.
+      final thin = _FakeSource(
+        'thin',
+        results: [_manga('thin', 't-1', 'Solo Leveling')],
+        chaptersById: const {'t-1': 100},
+      );
+      final full = _FakeSource(
+        'full',
+        results: [_manga('full', 'f-1', 'Solo Leveling')],
+        chaptersById: const {'f-1': 256},
+      );
+      final parsed = _result([
+        const TachiyomiMissingManga(
+          title: 'Solo Leveling',
+          url: 'https://unknown.test/solo-leveling',
+          lastReadChapter: 256,
+        ),
+      ]);
+
+      final out = await resolveTachiyomiMissing(parsed, [thin, full]);
+
+      expect(out.recoveredMangas.single.sourceId, 'full');
+      expect(out.recoveredMangas.single.lastReadChapter, 256);
+    });
+
+    test('an unknown chapter count does not beat a known one', () async {
+      final unknown = _FakeSource(
+        'unknown',
+        results: [_manga('unknown', 'u-1', 'Solo Leveling')],
+      );
+      final known = _FakeSource(
+        'known',
+        results: [_manga('known', 'k-1', 'Solo Leveling')],
+        chaptersById: const {'k-1': 512},
+      );
+      final parsed = _result([
+        const TachiyomiMissingManga(title: 'Solo Leveling', url: ''),
+      ]);
+
+      final out = await resolveTachiyomiMissing(parsed, [unknown, known]);
+
+      expect(out.recoveredMangas.single.sourceId, 'known');
+    });
+
+    test('a single match does not ask the source for its chapter count',
+        () async {
+      final source = _FakeSource(
+        'mangapill',
+        results: [_manga('mangapill', '5163', 'Solo Leveling')],
+        chaptersById: const {'5163': 100},
+      );
+      final parsed = _result([
+        const TachiyomiMissingManga(title: 'Solo Leveling', url: ''),
+      ]);
+
+      await resolveTachiyomiMissing(parsed, [source]);
+
+      expect(source.totalCalls, 0);
     });
 
     test('prefers a source in the reader content language', () async {
