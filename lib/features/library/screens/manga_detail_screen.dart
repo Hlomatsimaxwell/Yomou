@@ -4,7 +4,6 @@ import 'package:yomou/widgets/manga_hero.dart';
 import 'package:yomou/widgets/cover_viewer.dart';
 import 'package:remixicon/remixicon.dart';
 import 'package:flutter/material.dart';
-import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:url_launcher/url_launcher.dart';
 import 'package:yomou/core/database/database_helper.dart';
@@ -12,6 +11,7 @@ import 'package:yomou/core/haptics.dart';
 import 'package:yomou/core/widgets/ios/ios_press.dart';
 import 'package:yomou/core/database/source_cache.dart';
 import 'package:yomou/core/deep_links.dart';
+import 'package:yomou/core/share.dart';
 import 'package:yomou/core/widgets/responsive.dart' show usesWideLayout;
 import 'package:yomou/features/library/providers/favorites_provider.dart';
 import 'package:yomou/features/library/providers/downloads_provider.dart';
@@ -2119,9 +2119,10 @@ class _MangaDetailScreenState extends ConsumerState<MangaDetailScreen> {
   }
 
   /// The share entry (the icon next to "open in web browser"): a Kotatsu-style
-  /// sheet with two rows that each copy a link and confirm on the pill toast —
-  /// the manga's page on the source's website, and a `yomou://manga` link that
-  /// opens the manga back inside Yomou wherever it is tapped.
+  /// sheet with two rows — the manga's page on the source's website, and the
+  /// https link that opens the manga back inside Yomou. Each row hands its
+  /// link to the Android system share sheet, so it can be sent to WhatsApp,
+  /// email, or anywhere else in one tap.
   Future<void> _showShareSheet(BuildContext context) async {
     final l = AppLocalizations.of(context);
     final source = _source;
@@ -2138,12 +2139,6 @@ class _MangaDetailScreenState extends ConsumerState<MangaDetailScreen> {
       title: _title,
       websiteUrl: siteUrl,
     );
-
-    Future<void> copy(String text) async {
-      await Clipboard.setData(ClipboardData(text: text));
-      if (!context.mounted) return;
-      showIosToast(context, message: l.copiedToClipboard);
-    }
 
     final dark = Theme.of(context).brightness == Brightness.dark;
     final scheme = Theme.of(context).colorScheme;
@@ -2184,7 +2179,7 @@ class _MangaDetailScreenState extends ConsumerState<MangaDetailScreen> {
               contentPadding:
                   const EdgeInsets.symmetric(vertical: 12, horizontal: 16),
               onTap: () async {
-                await copy(yomouLink);
+                await shareText(yomouLink);
                 if (ctx.mounted) Navigator.pop(ctx);
               },
             ),
@@ -2197,7 +2192,7 @@ class _MangaDetailScreenState extends ConsumerState<MangaDetailScreen> {
               contentPadding:
                   const EdgeInsets.symmetric(vertical: 12, horizontal: 16),
               onTap: () async {
-                await copy(siteUrl);
+                await shareText(siteUrl);
                 if (ctx.mounted) Navigator.pop(ctx);
               },
             ),

@@ -248,6 +248,34 @@ class MainActivity : FlutterActivity() {
                 else -> result.notImplemented()
             }
         }
+        MethodChannel(
+            flutterEngine.dartExecutor.binaryMessenger,
+            "com.hlomatsi.yomou/share"
+        ).setMethodCallHandler { call, result ->
+            when (call.method) {
+                // A share row was tapped: hand the chosen link to the system
+                // share sheet (ACTION_SEND) so the user can send it to
+                // WhatsApp, email, or anywhere else in one tap.
+                "shareText" -> {
+                    val text = call.argument<String>("text")
+                    if (text.isNullOrEmpty()) {
+                        result.success(false)
+                        return@setMethodCallHandler
+                    }
+                    try {
+                        val send = Intent(Intent.ACTION_SEND).apply {
+                            type = "text/plain"
+                            putExtra(Intent.EXTRA_TEXT, text)
+                        }
+                        startActivity(Intent.createChooser(send, null))
+                        result.success(true)
+                    } catch (e: Exception) {
+                        result.error("share", e.message, null)
+                    }
+                }
+                else -> result.notImplemented()
+            }
+        }
     }
 
     /**

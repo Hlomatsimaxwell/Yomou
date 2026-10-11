@@ -8,7 +8,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ## [Unreleased]
 
 ### Added
-- **Share sheet on the manga detail screen** — the share icon now offers two links: "Link to manga in Yomou" and "Link to manga on <source>" (the manga's page on the source's website, e.g. `asurascans.com/comics/…`). Tapping a row copies the link to the clipboard and confirms on a pill toast.
+- **Share sheet on the manga detail screen** — the share icon now offers two links: "Link to manga in Yomou" and "Link to manga on <source>" (the manga's page on the source's website, e.g. `asurascans.com/comics/…`). Tapping a row opens the Android system share sheet with that link pre-filled, so it can be sent straight to WhatsApp, email, or anywhere else.
 - **`yomou://` deep links** — Android now listens for `yomou://` links and opens the named manga directly, both when the app is cold-started by the link and when it is tapped while the app is already running.
 - **Tappable share links** — chat apps (WhatsApp, SMS, Gmail) only linkify http(s), so "Link to manga in Yomou" shares an https URL rather than the raw `yomou://` string. It lands on a tiny landing page (`docs/yomou.html`) with an "Open in Yomou" button that hands the link back to Android, plus a fallback that opens the manga on the source website when Yomou isn't installed.
 

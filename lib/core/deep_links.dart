@@ -70,9 +70,9 @@ String buildYomouMangaLink({
 const String yomouShareBaseUrl =
     'https://hlomatsimaxwell.github.io/Yomou/yomou.html';
 
-/// The string the share sheet copies for "Link to manga in Yomou": an https
-/// URL that renders as a tappable link everywhere, and opens the manga in the
-/// app when tapped (through the landing page above).
+/// The string the "Link to manga in Yomou" row hands to the system share
+/// sheet: an https URL that renders as a tappable link everywhere, and opens
+/// the manga in the app when tapped (through the landing page above).
 String buildYomouShareLink({
   required String sourceId,
   required String mangaId,
