@@ -67,6 +67,9 @@
       text-decoration: none;
       padding: 12px 6px 0;
     }
+    /* The `hidden` attribute must win over the display rules above, or a
+       button that was meant to stay hidden renders as a dead link. */
+    [hidden] { display: none !important; }
   </style>
 </head>
 <body>
@@ -83,8 +86,14 @@
       var website = null;       // the manga's page on the source website
       var params = new URLSearchParams(location.search);
       var encoded = params.get("u");
-      if (encoded && /^yomou%3A%2F%2Fmanga/i.test(encoded)) {
-        deep = decodeURIComponent(encoded);
+      if (encoded) {
+        try {
+          deep = decodeURIComponent(encoded);
+        } catch (_) {
+          deep = null;
+        }
+        if (deep && !/^yomou:\/\/manga/i.test(deep)) deep = null;
+      }
         // Pull the `url` query param out of the yomou link for the web fallback.
         var query = deep.split("?")[1] || "";
         var q = new URLSearchParams(query);
@@ -94,13 +103,16 @@
       var open = document.getElementById("open");
       var webLink = document.getElementById("web");
       if (!deep) {
-        document.getElementById("heading").textContent = "No manga to open";
+        document.title = "No manga — Open in Yomou";
+        document.getElementById("heading").textContent = "Can't open that manga";
         document.getElementById("blurb").textContent =
-          "This Yomou link is missing the manga it should open.";
+          "This is Yomou's share-link page, and it was opened without a manga " +
+          "link. Open the link that was shared to you, or share again from the app.";
         return;
       }
       // Show the manga's title in the tab/preview when the link carries one.
-      var name = new URLSearchParams(deep.split("?")[1] || "").get("name");
+      var name = (new URLSearchParams(deep.split("?")[1] || "").get("name") || "")
+        .replace(/\+/g, " ");
       if (name) {
         document.title = name + " — Open in Yomou";
         document.getElementById("blurb").textContent =
