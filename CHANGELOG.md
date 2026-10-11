@@ -20,6 +20,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ### Fixed
 - Sources that talk to a dedicated API host (Asura Scans, MangaDex) now open their real website for "Open in browser" and "Sign in" instead of the API host, which answered 404 at its root (e.g. `asurascans.com`, not `api.asurascans.com`). Requests still go to the API host, so nothing about fetching changes.
 - "Open in browser" on a manga's detail screen now opens that manga's own page on the source's website (e.g. MangaDex → `mangadex.org/title/…`, MangaBat → `…/manga/<slug>`) instead of the website root. Sources whose per-manga URLs cannot be reconstructed (Asura Scans' site appends a changing slug hash) fall back to the website root.
+- Asura Scans' "Open in browser" now opens the manga's real page (`asurascans.com/comics/<slug>-<hash>`) using the canonical `public_url` its API reports per series, instead of the website root.
 - Restoring from a backup on the first-run welcome sheet now finishes onboarding and closes the sheet instead of leaving it sitting over the app.
 - On iOS, `.tachibk` backups no longer appear greyed out and unselectable in the backup/restore and Tachiyomi import pickers (the extension filter was resolved through UTIs and dropped unrecognized extensions).
 - The Tachiyomi/Mihon import rescue now prefers the source publishing the most chapters, so reading progress from a backup no longer lands past a shorter copy of the series (e.g. "chapter 256 of 100").

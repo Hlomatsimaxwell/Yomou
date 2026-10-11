@@ -30,13 +30,25 @@ void main() {
 
   test('manga website links fall back to the site root, not a deep link', () {
     // The site addresses manga as /comics/<slug>-<hash> with a changing
-    // suffix, so a deep link cannot be reconstructed from the API slug; the
-    // user is handed the website root, never the API host.
+    // suffix, so the *builder* cannot reconstruct a deep link from the API
+    // slug; the API's public_url (see below) is the source of real links.
     final source = AsuraScansSource();
     expect(
       source.websiteMangaUrl('the-s-classes-that-i-raised'),
       'https://asurascans.com',
     );
     expect(source.websiteMangaUrl('x'), isNot(contains('api.asurascans')));
+  });
+
+  test('the API public_url becomes the absolute website page link', () {
+    expect(
+      AsuraScansSource.websitePageUrl('/comics/nano-machine-9a7a1ac5'),
+      'https://asurascans.com/comics/nano-machine-9a7a1ac5',
+    );
+    expect(
+      AsuraScansSource.websitePageUrl('http://cdn.example.com/x'),
+      'http://cdn.example.com/x',
+    );
+    expect(AsuraScansSource.websitePageUrl(null), '');
   });
 }

@@ -22,6 +22,13 @@ class MangaDetails {
   /// one. Empty for single-language sources.
   final List<MangaTranslation> translations;
 
+  /// Canonical website URL of this manga, when the source's own API reports
+  /// one (e.g. Asura Scans' `public_url`, which carries the site's volatile
+  /// slug hash and therefore can only come from the API, not be guessed).
+  /// Empty when unknown; "Open in browser" then falls back to the source's
+  /// [MangaSource.websiteMangaUrl].
+  final String publicUrl;
+
   const MangaDetails({
     required this.id,
     required this.title,
@@ -36,6 +43,7 @@ class MangaDetails {
     this.totalChapters = 0,
     this.language = '',
     this.translations = const [],
+    this.publicUrl = '',
   });
 
   factory MangaDetails.fromJson(Map<String, dynamic> json) {
@@ -58,6 +66,7 @@ class MangaDetails {
                   ))
               .toList() ??
           const [],
+      publicUrl: json['publicUrl'] ?? '',
     );
   }
 
@@ -76,6 +85,7 @@ class MangaDetails {
       'totalChapters': totalChapters,
       'language': language,
       'translations': translations.map((t) => t.toJson()).toList(),
+      'publicUrl': publicUrl,
     };
   }
 }

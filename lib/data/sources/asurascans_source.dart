@@ -27,8 +27,10 @@ class AsuraScansSource extends DioSource implements MangaSource {
   String get websiteUrl => 'https://asurascans.com';
   // The site's manga pages carry a volatile slug hash
   // (`/comics/<slug>-<hash>`, where the suffix changes over time), so a
-  // per-manga website link cannot be reconstructed from the API slug. "Open
-  // in browser" therefore falls back to the website root.
+  // per-manga link cannot be reconstructed from the API slug alone. The API
+  // reports the canonical `public_url` per series; [getMangaDetails] captures
+  // it into [MangaDetails.publicUrl], and "Open in browser" deep-links with it
+  // whenever the details are known.
 
   /// The API root itself answers 404, so the default connectivity check would
   /// report a healthy source as an HTTP error. Point it at a real endpoint.
@@ -46,6 +48,16 @@ class AsuraScansSource extends DioSource implements MangaSource {
 
   static const int _chaptersPerPage = 100;
   static const int _maxChapters = 1000;
+
+  /// Turns the API's canonical website link for a series (a relative
+  /// `/comics/<slug>-<hash>` path) into an absolute site URL. Empty when the
+  /// API did not report one. The hash suffix is volatile, so the link must
+  /// come from the API rather than be guessed from the slug.
+  static String websitePageUrl(String? path) {
+    if (path == null || path.isEmpty) return '';
+    if (path.startsWith('http')) return path;
+    return 'https://asurascans.com$path';
+  }
 
   Future<Map<String, dynamic>?> _getJson(String url) async {
     final body = await grabText(url);
@@ -117,6 +129,7 @@ class AsuraScansSource extends DioSource implements MangaSource {
         tags: tags,
         followers: (series['bookmark_count'] as num?)?.toInt() ?? 0,
         totalChapters: (series['chapter_count'] as num?)?.toInt() ?? 0,
+        publicUrl: websitePageUrl(series['public_url']?.toString()),
       );
     } catch (e) {
       debugPrint('AsuraScans Details Error: $e');

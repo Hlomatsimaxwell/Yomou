@@ -2185,7 +2185,13 @@ class _MangaDetailScreenState extends ConsumerState<MangaDetailScreen> {
       _showMessage(l.urlUnavailable);
       return;
     }
-    final uri = Uri.parse(source.websiteMangaUrl(widget.mangaId));
+    // When the source's API reported a canonical page (Asura Scans'
+    // `public_url`, which carries the site's volatile slug hash), open that;
+    // otherwise let the source build its best link for the manga id.
+    final knownPage = _details?.publicUrl ?? '';
+    final url =
+        knownPage.isNotEmpty ? knownPage : source.websiteMangaUrl(widget.mangaId);
+    final uri = Uri.parse(url);
     try {
       final launched = await launchUrl(
         uri,
