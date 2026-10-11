@@ -10,6 +10,13 @@ abstract class MangaSource {
   String get baseUrl;
   String get readerBaseUrl;
 
+  /// The source's public website, used for user-facing links ("Open in
+  /// browser", the sign-in page). Most sources serve both the site and their
+  /// requests from one host, so this is [baseUrl] by default. A source that
+  /// talks to a dedicated API host overrides it, so a link opens the real
+  /// website instead of an `api.` root that answers 404.
+  String get websiteUrl => baseUrl;
+
   /// The language this source's manga are published in (e.g. `en`). Shown on
   /// the manga detail screen's "Translation" row when the details lookup does
   /// not report a more specific one.

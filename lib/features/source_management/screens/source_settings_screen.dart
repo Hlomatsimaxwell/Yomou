@@ -118,7 +118,7 @@ class _SourceSettingsScreenState extends ConsumerState<SourceSettingsScreen> {
   }
 
   Future<void> _startSignIn() async {
-    final url = _config?.baseUrlOverride ?? _domainForFallback();
+    final url = _config?.baseUrlOverride ?? _websiteForFallback();
     final header = await Navigator.push<String>(
       context,
       MaterialPageRoute(
@@ -140,8 +140,16 @@ class _SourceSettingsScreenState extends ConsumerState<SourceSettingsScreen> {
     return source.baseUrl;
   }
 
+  /// The request host drives the "Domain" override row; the website the user
+  /// is handed ("Open in browser", sign-in) can differ from it (Asura Scans
+  /// talks to `api.asurascans.com` but its site is `asurascans.com`).
+  String _websiteForFallback() {
+    final source = getSourceByName(widget.sourceName);
+    return source.websiteUrl;
+  }
+
   Future<void> _openInBrowser() async {
-    final url = _config?.baseUrlOverride ?? _domainForFallback();
+    final url = _config?.baseUrlOverride ?? _websiteForFallback();
     await launchUrl(Uri.parse(url), mode: LaunchMode.externalApplication);
   }
 
@@ -366,6 +374,7 @@ class _SourceSettingsScreenState extends ConsumerState<SourceSettingsScreen> {
     }
 
     final defaultDomain = _domainForFallback();
+    final websiteDomain = _websiteForFallback();
     final cookiesPresent =
         config.cookies != null && config.cookies!.isNotEmpty;
     final source = getSourceByName(widget.sourceName);
@@ -524,7 +533,7 @@ class _SourceSettingsScreenState extends ConsumerState<SourceSettingsScreen> {
           _row(
             icon: RemixIcons.external_link_line,
             title: _l.sourceOpenInBrowser,
-            subtitle: config.baseUrlOverride ?? defaultDomain,
+            subtitle: config.baseUrlOverride ?? websiteDomain,
             trailing: _chevron(),
             onTap: _openInBrowser,
           ),

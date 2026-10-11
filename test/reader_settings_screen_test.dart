@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_test/flutter_test.dart';
+import 'package:shared_preferences/shared_preferences.dart';
 import 'package:yomou/features/settings/screens/reader_settings_screen.dart';
 import 'package:yomou/l10n/generated/app_localizations.dart';
 
@@ -74,5 +75,22 @@ void main() {
       find.text('Only used in the standard and right-to-left modes'),
       findsOneWidget,
     );
+  });
+
+  testWidgets('fresh install defaults page preloading to Only on Wi-Fi', (
+    tester,
+  ) async {
+    useTallSurface(tester);
+    // No stored settings yet: the in-memory store starts empty, exactly like a
+    // first launch after a clean install.
+    SharedPreferences.setMockInitialValues({});
+    await tester.pumpWidget(host());
+    await tester.pumpAndSettle();
+
+    // The "Preload pages" row trails its current value, which must be the
+    // data-conscious default rather than Always.
+    expect(find.text('Only on Wi-Fi'), findsOneWidget);
+
+    expect(tester.takeException(), isNull);
   });
 }

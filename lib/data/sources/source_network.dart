@@ -292,6 +292,12 @@ abstract class DioSource {
 
   String get baseUrl;
 
+  /// The source's public website for user-facing links ("Open in browser",
+  /// sign-in). Most Dio sources serve the site and their requests from one
+  /// host, so it defaults to [baseUrl]; a source that talks to a dedicated
+  /// API host overrides it so a link opens the real website.
+  String get websiteUrl => baseUrl;
+
   Map<String, String>? get headers;
 
   Duration? get timeout => const Duration(seconds: 20);

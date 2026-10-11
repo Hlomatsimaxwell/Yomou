@@ -270,7 +270,7 @@ class _ReaderScreenState extends ConsumerState<ReaderScreen>
   bool _numberedPages = false;
   bool _invertNavigation = false;
   String _background = kBgDefault;
-  String _preload = kPreloadAlways;
+  String _preload = kPreloadWifiOnly;
   bool _preloadAllowed = true;
 
   // Zone tap bookkeeping, so a press can only ever run one of the two actions.

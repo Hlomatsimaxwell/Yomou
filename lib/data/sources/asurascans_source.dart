@@ -21,6 +21,10 @@ class AsuraScansSource extends DioSource implements MangaSource {
   String get readerBaseUrl => 'https://api.asurascans.com';
   @override
   String get iconUrl => 'https://asurascans.com/favicon.ico';
+  // The API host answers 404 at its root (see [testUrl]), so the website link
+  // the app hands the user must point at the real site, not the API host.
+  @override
+  String get websiteUrl => 'https://asurascans.com';
 
   /// The API root itself answers 404, so the default connectivity check would
   /// report a healthy source as an HTTP error. Point it at a real endpoint.

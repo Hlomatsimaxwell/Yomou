@@ -15,8 +15,10 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Every remaining in-app message now uses the same floating toast (reader, library, explore, sources, storage, notifications and settings screens), so no snackbar ever lands under or on top of the bottom bar.
 - Toasts are now compact pills styled like the floating navigation pill (content-width, rounded 28, subtle border + soft shadow, fade-and-scale entrance) instead of full-width bars with an outline.
 - The import scan pill now just says "Looking for missing titles" — the longer title overflowed the pill on smaller screens.
+- A fresh install now pre-loads reader pages only on Wi-Fi by default instead of always (a stored choice or an in-app reset wins over the default).
 
 ### Fixed
+- Sources that talk to a dedicated API host (Asura Scans, MangaDex) now open their real website for "Open in browser" and "Sign in" instead of the API host, which answered 404 at its root (e.g. `asurascans.com`, not `api.asurascans.com`). Requests still go to the API host, so nothing about fetching changes.
 - Restoring from a backup on the first-run welcome sheet now finishes onboarding and closes the sheet instead of leaving it sitting over the app.
 - On iOS, `.tachibk` backups no longer appear greyed out and unselectable in the backup/restore and Tachiyomi import pickers (the extension filter was resolved through UTIs and dropped unrecognized extensions).
 - The Tachiyomi/Mihon import rescue now prefers the source publishing the most chapters, so reading progress from a backup no longer lands past a shorter copy of the series (e.g. "chapter 256 of 100").
