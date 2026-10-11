@@ -1280,5 +1280,57 @@
   "presetsCancel": "Cancelar",
   "presetsSave": "Guardar",
   "presetsDeleteAction": "Eliminar",
-  "presetsDefaultName": "Mis fuentes"
+  "presetsDefaultName": "Mis fuentes",
+  "whatsNewTitle": "Novedades",
+  "whatsNewVersionTitle": "Novedades en {version}",
+  "@whatsNewVersionTitle": {
+    "placeholders": {
+      "version": {
+        "type": "String"
+      }
+    }
+  },
+  "whatsNewGotIt": "Entendido",
+  "changelogAdded": "Añadido",
+  "changelogChanged": "Cambios",
+  "changelogFixed": "Corregido",
+  "changelogRemoved": "Eliminado",
+  "changelogDeprecated": "Obsoleto",
+  "changelogSecurity": "Seguridad",
+  "changelogPerformance": "Rendimiento",
+  "settingsReset": "Restablecer",
+  "settingsResetSubtitle": "Restablecer ajustes o borrar todo",
+  "settingsResetSettingsSection": "Restablecer ajustes",
+  "settingsResetSettingsSubtitle": "Restaura a sus valores predeterminados las áreas que elijas. Tu biblioteca, historial y descargas se conservan.",
+  "settingsGroupAppearance": "Apariencia",
+  "settingsGroupContent": "Preferencias de contenido y presets",
+  "settingsGroupReader": "Lector",
+  "settingsGroupNotifications": "Notificaciones",
+  "settingsGroupStorage": "Almacenamiento y descargas",
+  "settingsGroupSources": "Fuentes",
+  "settingsResetSelected": "Restablecer seleccionados",
+  "settingsResetCancel": "Cancelar",
+  "settingsResetConfirmTitle": "¿Restablecer los ajustes seleccionados?",
+  "settingsResetConfirmBody": "Estos ajustes volverán a sus valores predeterminados. No se puede deshacer.",
+  "settingsEraseSection": "Borrar todos los datos",
+  "settingsEraseSubtitle": "Elimina tu biblioteca, historial, descargas y todos los ajustes. La app volverá como una instalación nueva.",
+  "settingsEraseTitle": "Borrar todos los datos",
+  "settingsEraseConfirmTitle": "¿Borrar todos los datos?",
+  "settingsEraseConfirmBody": "Esto elimina permanentemente tus favoritos, historial, descargas y ajustes. Escribe {word} para confirmar.",
+  "@settingsEraseConfirmBody": {
+    "placeholders": {
+      "word": {
+        "type": "String"
+      }
+    }
+  },
+  "settingsEraseConfirmHint": "Escribe {word}",
+  "@settingsEraseConfirmHint": {
+    "placeholders": {
+      "word": {
+        "type": "String"
+      }
+    }
+  },
+  "settingsEraseButton": "Borrar todo"
 }

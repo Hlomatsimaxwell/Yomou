@@ -2956,4 +2956,106 @@ class AppLocalizationsEn extends AppLocalizations {
 
   @override
   String get presetsDefaultName => 'My sources';
+
+  @override
+  String get whatsNewTitle => 'What\'s new';
+
+  @override
+  String whatsNewVersionTitle(String version) {
+    return 'What\'s new in $version';
+  }
+
+  @override
+  String get whatsNewGotIt => 'Got it';
+
+  @override
+  String get changelogAdded => 'Added';
+
+  @override
+  String get changelogChanged => 'Changed';
+
+  @override
+  String get changelogFixed => 'Fixed';
+
+  @override
+  String get changelogRemoved => 'Removed';
+
+  @override
+  String get changelogDeprecated => 'Deprecated';
+
+  @override
+  String get changelogSecurity => 'Security';
+
+  @override
+  String get changelogPerformance => 'Performance';
+
+  @override
+  String get settingsReset => 'Reset';
+
+  @override
+  String get settingsResetSubtitle => 'Reset settings or erase everything';
+
+  @override
+  String get settingsResetSettingsSection => 'Reset settings';
+
+  @override
+  String get settingsResetSettingsSubtitle =>
+      'Restore the areas you pick to their defaults. Your library, history and downloads are kept.';
+
+  @override
+  String get settingsGroupAppearance => 'Appearance';
+
+  @override
+  String get settingsGroupContent => 'Content preferences & presets';
+
+  @override
+  String get settingsGroupReader => 'Reader';
+
+  @override
+  String get settingsGroupNotifications => 'Notifications';
+
+  @override
+  String get settingsGroupStorage => 'Storage & downloads';
+
+  @override
+  String get settingsGroupSources => 'Sources';
+
+  @override
+  String get settingsResetSelected => 'Reset selected';
+
+  @override
+  String get settingsResetCancel => 'Cancel';
+
+  @override
+  String get settingsResetConfirmTitle => 'Reset selected settings?';
+
+  @override
+  String get settingsResetConfirmBody =>
+      'These settings go back to their defaults. This can\'t be undone.';
+
+  @override
+  String get settingsEraseSection => 'Erase all data';
+
+  @override
+  String get settingsEraseSubtitle =>
+      'Delete your library, history, downloads and every setting. The app comes back exactly like a fresh install.';
+
+  @override
+  String get settingsEraseTitle => 'Erase all data';
+
+  @override
+  String get settingsEraseConfirmTitle => 'Erase all data?';
+
+  @override
+  String settingsEraseConfirmBody(String word) {
+    return 'This permanently deletes your favorites, history, downloads and settings. Type $word to confirm.';
+  }
+
+  @override
+  String settingsEraseConfirmHint(String word) {
+    return 'Type $word';
+  }
+
+  @override
+  String get settingsEraseButton => 'Erase everything';
 }

@@ -141,7 +141,11 @@ class NotificationService {
 
   Future<bool> isEnabled() async {
     final prefs = await SharedPreferences.getInstance();
-    return prefs.getBool(enabledPrefsKey) ?? false;
+    // Default on: new-chapter notifications are part of the setup a new reader
+    // gets, and the welcome flow asks for the OS permission right away. The
+    // switch is turned off only if that permission is refused (or by the reader
+    // in settings), so the value stored here still wins once set.
+    return prefs.getBool(enabledPrefsKey) ?? true;
   }
 
   Future<void> setEnabled(bool value) async {

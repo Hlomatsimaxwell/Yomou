@@ -816,6 +816,33 @@ class DatabaseHelper {
     await db.delete('reading_progress');
   }
 
+  /// Every table that holds user data. Used by "Erase all data" so the wipe
+  /// clears them all without dropping the schema out from under the open
+  /// connection.
+  static const List<String> userDataTables = [
+    'reading_progress',
+    'reading_time',
+    'download_jobs',
+    'notification_log',
+    'source_cache',
+    'bookmarks',
+    'downloads',
+    'manga',
+  ];
+
+  /// Deletes every row from every user table, leaving the schema in place.
+  ///
+  /// The database connection stays open and valid, so the caller can rebuild
+  /// the widget tree without reopening the database.
+  Future<void> wipeAllData() async {
+    final db = await instance.database;
+    await db.transaction((txn) async {
+      for (final table in userDataTables) {
+        await txn.delete(table);
+      }
+    });
+  }
+
   // Removes the given manga from history (manga row + per-chapter progress),
   // snapshotting the deleted rows so they can be restored via undo.
   Future<

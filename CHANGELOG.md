@@ -18,9 +18,12 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - **More sources** — ManhuaPlus, Mangago, Atsumaru and SeiManga.
 - **Haptics**, with an on/off setting.
 - **Re-tap the active tab to scroll back to the top.**
+- **"What's new" sheet** — the release notes appear once after an update, and can be reopened any time from Settings → About.
 
 ### Changed
 - A tapped cover flies into the detail header and the viewer with a Hero transition; the viewer decodes the full-size artwork while grids keep the light thumbnail.
+- New-chapter notifications are on by default; setup asks for the notification permission right after the welcome sheet, so the switch in settings always matches what the OS allows.
+- Explore opens with sources in a grid.
 - Removed unused `liquid_glass_bar` / `liquid_glass_renderer` dependencies.
 
 ### Fixed

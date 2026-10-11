@@ -5340,6 +5340,192 @@ abstract class AppLocalizations {
   /// In en, this message translates to:
   /// **'My sources'**
   String get presetsDefaultName;
+
+  /// No description provided for @whatsNewTitle.
+  ///
+  /// In en, this message translates to:
+  /// **'What\'s new'**
+  String get whatsNewTitle;
+
+  /// No description provided for @whatsNewVersionTitle.
+  ///
+  /// In en, this message translates to:
+  /// **'What\'s new in {version}'**
+  String whatsNewVersionTitle(String version);
+
+  /// No description provided for @whatsNewGotIt.
+  ///
+  /// In en, this message translates to:
+  /// **'Got it'**
+  String get whatsNewGotIt;
+
+  /// No description provided for @changelogAdded.
+  ///
+  /// In en, this message translates to:
+  /// **'Added'**
+  String get changelogAdded;
+
+  /// No description provided for @changelogChanged.
+  ///
+  /// In en, this message translates to:
+  /// **'Changed'**
+  String get changelogChanged;
+
+  /// No description provided for @changelogFixed.
+  ///
+  /// In en, this message translates to:
+  /// **'Fixed'**
+  String get changelogFixed;
+
+  /// No description provided for @changelogRemoved.
+  ///
+  /// In en, this message translates to:
+  /// **'Removed'**
+  String get changelogRemoved;
+
+  /// No description provided for @changelogDeprecated.
+  ///
+  /// In en, this message translates to:
+  /// **'Deprecated'**
+  String get changelogDeprecated;
+
+  /// No description provided for @changelogSecurity.
+  ///
+  /// In en, this message translates to:
+  /// **'Security'**
+  String get changelogSecurity;
+
+  /// No description provided for @changelogPerformance.
+  ///
+  /// In en, this message translates to:
+  /// **'Performance'**
+  String get changelogPerformance;
+
+  /// No description provided for @settingsReset.
+  ///
+  /// In en, this message translates to:
+  /// **'Reset'**
+  String get settingsReset;
+
+  /// No description provided for @settingsResetSubtitle.
+  ///
+  /// In en, this message translates to:
+  /// **'Reset settings or erase everything'**
+  String get settingsResetSubtitle;
+
+  /// No description provided for @settingsResetSettingsSection.
+  ///
+  /// In en, this message translates to:
+  /// **'Reset settings'**
+  String get settingsResetSettingsSection;
+
+  /// No description provided for @settingsResetSettingsSubtitle.
+  ///
+  /// In en, this message translates to:
+  /// **'Restore the areas you pick to their defaults. Your library, history and downloads are kept.'**
+  String get settingsResetSettingsSubtitle;
+
+  /// No description provided for @settingsGroupAppearance.
+  ///
+  /// In en, this message translates to:
+  /// **'Appearance'**
+  String get settingsGroupAppearance;
+
+  /// No description provided for @settingsGroupContent.
+  ///
+  /// In en, this message translates to:
+  /// **'Content preferences & presets'**
+  String get settingsGroupContent;
+
+  /// No description provided for @settingsGroupReader.
+  ///
+  /// In en, this message translates to:
+  /// **'Reader'**
+  String get settingsGroupReader;
+
+  /// No description provided for @settingsGroupNotifications.
+  ///
+  /// In en, this message translates to:
+  /// **'Notifications'**
+  String get settingsGroupNotifications;
+
+  /// No description provided for @settingsGroupStorage.
+  ///
+  /// In en, this message translates to:
+  /// **'Storage & downloads'**
+  String get settingsGroupStorage;
+
+  /// No description provided for @settingsGroupSources.
+  ///
+  /// In en, this message translates to:
+  /// **'Sources'**
+  String get settingsGroupSources;
+
+  /// No description provided for @settingsResetSelected.
+  ///
+  /// In en, this message translates to:
+  /// **'Reset selected'**
+  String get settingsResetSelected;
+
+  /// No description provided for @settingsResetCancel.
+  ///
+  /// In en, this message translates to:
+  /// **'Cancel'**
+  String get settingsResetCancel;
+
+  /// No description provided for @settingsResetConfirmTitle.
+  ///
+  /// In en, this message translates to:
+  /// **'Reset selected settings?'**
+  String get settingsResetConfirmTitle;
+
+  /// No description provided for @settingsResetConfirmBody.
+  ///
+  /// In en, this message translates to:
+  /// **'These settings go back to their defaults. This can\'t be undone.'**
+  String get settingsResetConfirmBody;
+
+  /// No description provided for @settingsEraseSection.
+  ///
+  /// In en, this message translates to:
+  /// **'Erase all data'**
+  String get settingsEraseSection;
+
+  /// No description provided for @settingsEraseSubtitle.
+  ///
+  /// In en, this message translates to:
+  /// **'Delete your library, history, downloads and every setting. The app comes back exactly like a fresh install.'**
+  String get settingsEraseSubtitle;
+
+  /// No description provided for @settingsEraseTitle.
+  ///
+  /// In en, this message translates to:
+  /// **'Erase all data'**
+  String get settingsEraseTitle;
+
+  /// No description provided for @settingsEraseConfirmTitle.
+  ///
+  /// In en, this message translates to:
+  /// **'Erase all data?'**
+  String get settingsEraseConfirmTitle;
+
+  /// No description provided for @settingsEraseConfirmBody.
+  ///
+  /// In en, this message translates to:
+  /// **'This permanently deletes your favorites, history, downloads and settings. Type {word} to confirm.'**
+  String settingsEraseConfirmBody(String word);
+
+  /// No description provided for @settingsEraseConfirmHint.
+  ///
+  /// In en, this message translates to:
+  /// **'Type {word}'**
+  String settingsEraseConfirmHint(String word);
+
+  /// No description provided for @settingsEraseButton.
+  ///
+  /// In en, this message translates to:
+  /// **'Erase everything'**
+  String get settingsEraseButton;
 }
 
 class _AppLocalizationsDelegate

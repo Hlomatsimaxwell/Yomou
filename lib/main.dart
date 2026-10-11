@@ -32,12 +32,18 @@ import 'package:yomou/core/haptics.dart';
 import 'package:yomou/core/providers/incognito_provider.dart';
 import 'package:yomou/features/content_preferences/providers/content_preferences_provider.dart';
 import 'package:yomou/features/onboarding/welcome_sheet.dart';
+import 'package:yomou/features/whats_new/whats_new_sheet.dart';
+import 'package:yomou/core/changelog/changelog.dart';
+import 'package:package_info_plus/package_info_plus.dart';
 import 'package:yomou/l10n/generated/app_localizations.dart';
 import 'package:remixicon/remixicon.dart';
 
 /// Navigator handle used to route notification taps (deep link) after the
 /// widget tree is built.
-final GlobalKey<NavigatorState> appNavigatorKey = GlobalKey<NavigatorState>();
+/// The active navigator key. Reassigned by [restartApp] so each rebuilt tree
+/// gets a key Flutter has never seen: reusing one across the swap would let it
+/// reparent the old Navigator and keep the route stack we are trying to drop.
+GlobalKey<NavigatorState> appNavigatorKey = GlobalKey<NavigatorState>();
 
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();
@@ -71,7 +77,7 @@ void main() async {
   }
 
   // 2. Run the app.
-  runApp(const ProviderScope(child: YomouApp()));
+  restartApp();
 
   // 2b. Opt-in bring-up check for browser-rendered sources.
   SourceSelfTest.schedule();
@@ -92,6 +98,26 @@ void main() async {
     }
   }
 }
+
+/// Builds the app from scratch: a fresh `ProviderScope` (so every provider
+/// re-reads its store) and a fresh widget tree, used by "Erase all data" and
+/// "Reset settings" so a reset takes effect immediately without a process kill.
+///
+/// The generation key is what makes this a rebuild rather than an update: with
+/// the same key Flutter would keep the existing `ProviderScope` element -- and
+/// its container -- alive. Safe to call repeatedly.
+void restartApp() {
+  _appGeneration++;
+  appNavigatorKey = GlobalKey<NavigatorState>();
+  runApp(
+    ProviderScope(
+      key: ValueKey(_appGeneration),
+      child: const YomouApp(),
+    ),
+  );
+}
+
+int _appGeneration = 0;
 
 /// Routes taps and action button presses on notifications:
 /// - tap on the group summary / feed payload → updates feed,
@@ -247,10 +273,7 @@ class _HomeScreenState extends ConsumerState<HomeScreen>
   void initState() {
     super.initState();
     WidgetsBinding.instance.addObserver(this);
-    WidgetsBinding.instance.addPostFrameCallback((_) {
-      _initTab();
-      _maybeShowWelcome();
-    });
+    WidgetsBinding.instance.addPostFrameCallback((_) => _bootstrap());
   }
 
   @override
@@ -336,6 +359,64 @@ class _HomeScreenState extends ConsumerState<HomeScreen>
     if (await isWelcomeCompleted()) return;
     if (!mounted) return;
     await showWelcomeSheet(context, isDismissible: false);
+  }
+
+  /// Post-first-frame startup work, in the order a reader should experience it:
+  /// restore their tab, then the introduction on a fresh install (with the
+  /// notification ask while the intent is fresh), or the changelog after an
+  /// update.
+  ///
+  /// [firstRun] is captured before the welcome sheet because completing it
+  /// flips the stored flag.
+  Future<void> _bootstrap() async {
+    final firstRun = !(await isWelcomeCompleted());
+    _initTab();
+    await _maybeShowWelcome();
+    final version = (await PackageInfo.fromPlatform()).version;
+    if (firstRun) {
+      await _enableNotificationsOnFirstRun();
+      await markVersionSeen(version);
+      return;
+    }
+    await _maybeShowWhatsNew(version);
+  }
+
+  /// New-chapter notifications default to on, so ask for the OS permission
+  /// right after the welcome sheet. Granting it schedules the check; denying it
+  /// switches the setting off rather than leaving it on with notifications
+  /// silently blocked, so the switch the reader sees stays honest.
+  Future<void> _enableNotificationsOnFirstRun() async {
+    final service = NotificationService.instance;
+    final granted = await service.requestPermission();
+    if (!granted) {
+      await service.setEnabled(false);
+      return;
+    }
+    await service.setEnabled(true);
+    try {
+      await registerUpdateCheckTask();
+      // Establish a baseline now so enabling never dumps the whole back
+      // catalogue as "new".
+      unawaited(runUpdateCheck());
+    } catch (_) {}
+  }
+
+  /// Update notes: shown once when the app's version name changes, so a
+  /// returning reader sees what is new after an update.
+  ///
+  /// Keyed on the name (1.1.0), not the build number, so reinstalling the same
+  /// release while developing stays quiet. A fresh install is handled in
+  /// [_bootstrap] instead -- the welcome sheet is its introduction, not a
+  /// changelog.
+  Future<void> _maybeShowWhatsNew(String version) async {
+    if (await readSeenVersion() == version) return;
+    final release = await changelogReleaseFor(version);
+    // Recorded before presenting so a dismissed sheet (or one with no notes)
+    // does not reappear on the next launch.
+    await markVersionSeen(version);
+    if (release == null || release.isEmpty) return;
+    if (!mounted) return;
+    await showWhatsNewSheet(context, release);
   }
 
   // Which bottom-nav tabs are shown, honoring the "Main screen sections"

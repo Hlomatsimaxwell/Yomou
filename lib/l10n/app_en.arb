@@ -1514,5 +1514,57 @@
   "presetsCancel": "Cancel",
   "presetsSave": "Save",
   "presetsDeleteAction": "Delete",
-  "presetsDefaultName": "My sources"
+  "presetsDefaultName": "My sources",
+  "whatsNewTitle": "What's new",
+  "whatsNewVersionTitle": "What's new in {version}",
+  "@whatsNewVersionTitle": {
+    "placeholders": {
+      "version": {
+        "type": "String"
+      }
+    }
+  },
+  "whatsNewGotIt": "Got it",
+  "changelogAdded": "Added",
+  "changelogChanged": "Changed",
+  "changelogFixed": "Fixed",
+  "changelogRemoved": "Removed",
+  "changelogDeprecated": "Deprecated",
+  "changelogSecurity": "Security",
+  "changelogPerformance": "Performance",
+  "settingsReset": "Reset",
+  "settingsResetSubtitle": "Reset settings or erase everything",
+  "settingsResetSettingsSection": "Reset settings",
+  "settingsResetSettingsSubtitle": "Restore the areas you pick to their defaults. Your library, history and downloads are kept.",
+  "settingsGroupAppearance": "Appearance",
+  "settingsGroupContent": "Content preferences & presets",
+  "settingsGroupReader": "Reader",
+  "settingsGroupNotifications": "Notifications",
+  "settingsGroupStorage": "Storage & downloads",
+  "settingsGroupSources": "Sources",
+  "settingsResetSelected": "Reset selected",
+  "settingsResetCancel": "Cancel",
+  "settingsResetConfirmTitle": "Reset selected settings?",
+  "settingsResetConfirmBody": "These settings go back to their defaults. This can't be undone.",
+  "settingsEraseSection": "Erase all data",
+  "settingsEraseSubtitle": "Delete your library, history, downloads and every setting. The app comes back exactly like a fresh install.",
+  "settingsEraseTitle": "Erase all data",
+  "settingsEraseConfirmTitle": "Erase all data?",
+  "settingsEraseConfirmBody": "This permanently deletes your favorites, history, downloads and settings. Type {word} to confirm.",
+  "@settingsEraseConfirmBody": {
+    "placeholders": {
+      "word": {
+        "type": "String"
+      }
+    }
+  },
+  "settingsEraseConfirmHint": "Type {word}",
+  "@settingsEraseConfirmHint": {
+    "placeholders": {
+      "word": {
+        "type": "String"
+      }
+    }
+  },
+  "settingsEraseButton": "Erase everything"
 }

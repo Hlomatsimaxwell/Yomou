@@ -2982,4 +2982,107 @@ class AppLocalizationsEs extends AppLocalizations {
 
   @override
   String get presetsDefaultName => 'Mis fuentes';
+
+  @override
+  String get whatsNewTitle => 'Novedades';
+
+  @override
+  String whatsNewVersionTitle(String version) {
+    return 'Novedades en $version';
+  }
+
+  @override
+  String get whatsNewGotIt => 'Entendido';
+
+  @override
+  String get changelogAdded => 'Añadido';
+
+  @override
+  String get changelogChanged => 'Cambios';
+
+  @override
+  String get changelogFixed => 'Corregido';
+
+  @override
+  String get changelogRemoved => 'Eliminado';
+
+  @override
+  String get changelogDeprecated => 'Obsoleto';
+
+  @override
+  String get changelogSecurity => 'Seguridad';
+
+  @override
+  String get changelogPerformance => 'Rendimiento';
+
+  @override
+  String get settingsReset => 'Restablecer';
+
+  @override
+  String get settingsResetSubtitle => 'Restablecer ajustes o borrar todo';
+
+  @override
+  String get settingsResetSettingsSection => 'Restablecer ajustes';
+
+  @override
+  String get settingsResetSettingsSubtitle =>
+      'Restaura a sus valores predeterminados las áreas que elijas. Tu biblioteca, historial y descargas se conservan.';
+
+  @override
+  String get settingsGroupAppearance => 'Apariencia';
+
+  @override
+  String get settingsGroupContent => 'Preferencias de contenido y presets';
+
+  @override
+  String get settingsGroupReader => 'Lector';
+
+  @override
+  String get settingsGroupNotifications => 'Notificaciones';
+
+  @override
+  String get settingsGroupStorage => 'Almacenamiento y descargas';
+
+  @override
+  String get settingsGroupSources => 'Fuentes';
+
+  @override
+  String get settingsResetSelected => 'Restablecer seleccionados';
+
+  @override
+  String get settingsResetCancel => 'Cancelar';
+
+  @override
+  String get settingsResetConfirmTitle =>
+      '¿Restablecer los ajustes seleccionados?';
+
+  @override
+  String get settingsResetConfirmBody =>
+      'Estos ajustes volverán a sus valores predeterminados. No se puede deshacer.';
+
+  @override
+  String get settingsEraseSection => 'Borrar todos los datos';
+
+  @override
+  String get settingsEraseSubtitle =>
+      'Elimina tu biblioteca, historial, descargas y todos los ajustes. La app volverá como una instalación nueva.';
+
+  @override
+  String get settingsEraseTitle => 'Borrar todos los datos';
+
+  @override
+  String get settingsEraseConfirmTitle => '¿Borrar todos los datos?';
+
+  @override
+  String settingsEraseConfirmBody(String word) {
+    return 'Esto elimina permanentemente tus favoritos, historial, descargas y ajustes. Escribe $word para confirmar.';
+  }
+
+  @override
+  String settingsEraseConfirmHint(String word) {
+    return 'Escribe $word';
+  }
+
+  @override
+  String get settingsEraseButton => 'Borrar todo';
 }

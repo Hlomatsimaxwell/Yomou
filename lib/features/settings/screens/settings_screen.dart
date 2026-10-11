@@ -3,8 +3,10 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:package_info_plus/package_info_plus.dart';
 import 'package:remixicon/remixicon.dart';
 import 'package:yomou/core/theme/layout.dart';
+import 'package:yomou/core/changelog/changelog.dart';
 import 'package:yomou/core/widgets/responsive.dart';
 import 'package:yomou/l10n/generated/app_localizations.dart';
+import 'package:yomou/features/whats_new/whats_new_sheet.dart';
 import 'package:yomou/features/settings/screens/appearance_settings_screen.dart';
 import 'package:yomou/features/settings/screens/manga_sources_settings_screen.dart';
 import 'package:yomou/features/settings/screens/backup_restore_screen.dart';
@@ -13,6 +15,7 @@ import 'package:yomou/features/settings/screens/storage_settings_screen.dart';
 import 'package:yomou/features/settings/screens/downloads_settings_screen.dart';
 import 'package:yomou/features/settings/screens/reader_settings_screen.dart';
 import 'package:yomou/features/settings/screens/content_preferences_screen.dart';
+import 'package:yomou/features/settings/screens/reset_settings_screen.dart';
 import 'package:yomou/features/settings/widgets/settings_surfaces.dart';
 import 'package:yomou/data/providers/sources_provider.dart';
 import 'package:yomou/widgets/m3_components.dart';
@@ -140,6 +143,12 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
         title: l.settingsBackup,
         subtitle: l.settingsBackupSubtitle,
         screen: const BackupRestoreScreen(),
+      ),
+      _Category(
+        icon: RemixIcons.restart_line,
+        title: l.settingsReset,
+        subtitle: l.settingsResetSubtitle,
+        screen: const ResetSettingsScreen(),
       ),
     ];
 
@@ -308,6 +317,18 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
           ),
           actions: [
             TextButton(
+              onPressed: () {
+                Navigator.pop(dialogContext);
+                _openWhatsNew();
+              },
+              child: Text(
+                l.whatsNewTitle,
+                style: TextStyle(
+                  color: dark ? Colors.white70 : const Color(0xFF49454F),
+                ),
+              ),
+            ),
+            TextButton(
               onPressed: () => Navigator.pop(dialogContext),
               child: Text(
                 l.filterCancel,
@@ -320,6 +341,15 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
         );
       },
     );
+  }
+
+  /// Opens the release notes on demand, matching the sheet shown automatically
+  /// after an update.
+  Future<void> _openWhatsNew() async {
+    final info = await PackageInfo.fromPlatform();
+    final release = await changelogReleaseFor(info.version);
+    if (!mounted || release == null || release.isEmpty) return;
+    await showWhatsNewSheet(context, release);
   }
 
   Widget _buildAboutTile({required BuildContext context}) {
