@@ -180,10 +180,10 @@ class _StorageSettingsScreenState extends ConsumerState<StorageSettingsScreen> {
       ),
     );
     if (confirmed != true || !context.mounted) return;
-    final messenger = ScaffoldMessenger.of(context);
+    final overlay = Overlay.of(context, rootOverlay: true);
     await clearAppCache();
     if (!mounted) return;
-    showIosToastWithMessenger(messenger, message: l.storageClearDone);
+    showIosToastOnOverlay(overlay, message: l.storageClearDone);
     _usageFuture = _usageLabel();
     setState(() {});
   }

@@ -70,12 +70,12 @@ class _BackupRestoreScreenState extends ConsumerState<BackupRestoreScreen> {
   Future<void> _restoreBackup() async {
     final l = AppLocalizations.of(context);
     // Captured before any await: the scan is non-blocking, so the reader may
-    // leave this screen while it runs. The navigator, messenger and provider
+    // leave this screen while it runs. The navigator, overlay and provider
     // container survive the route, so the summary still shows and the library
     // still refreshes when the scan finishes.
     final container = ProviderScope.containerOf(context, listen: false);
     final navigator = Navigator.of(context);
-    final messenger = ScaffoldMessenger.of(context);
+    final overlay = Overlay.of(context, rootOverlay: true);
     final file = await pickBackupFile();
 
     if (file == null) return;
@@ -106,8 +106,8 @@ class _BackupRestoreScreenState extends ConsumerState<BackupRestoreScreen> {
         case BackupFormat.tachiyomi:
           final parsed = result.tachiyomi!;
           if (parsed.isEmpty) {
-            showIosToastWithMessenger(
-              messenger,
+            showIosToastOnOverlay(
+              overlay,
               message: l.tachiyomiImportNone,
             );
             return;
@@ -122,8 +122,8 @@ class _BackupRestoreScreenState extends ConsumerState<BackupRestoreScreen> {
           );
         case BackupFormat.yomou:
           final restored = result.yomou!;
-          showIosToastWithMessenger(
-            messenger,
+          showIosToastOnOverlay(
+            overlay,
             message: restored.isEmpty
                 ? l.backupRestoreNone
                 : restored.skippedNewer > 0
