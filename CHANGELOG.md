@@ -12,6 +12,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Fixed
 - Restoring from a backup on the first-run welcome sheet now finishes onboarding and closes the sheet instead of leaving it sitting over the app.
+- On iOS, `.tachibk` backups no longer appear greyed out and unselectable in the backup/restore and Tachiyomi import pickers (the extension filter was resolved through UTIs and dropped unrecognized extensions).
 
 ## [1.1.0] - 2026-10-11
 

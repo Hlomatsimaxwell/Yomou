@@ -5,6 +5,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:file_picker/file_picker.dart';
 import 'package:remixicon/remixicon.dart';
+import 'package:yomou/core/backup/backup_picker.dart';
 import 'package:yomou/core/backup/backup_restore.dart';
 import 'package:yomou/core/backup/tachiyomi_backup.dart';
 import 'package:yomou/core/database/database_helper.dart';
@@ -69,13 +70,7 @@ class _BackupRestoreScreenState extends ConsumerState<BackupRestoreScreen> {
 
   Future<void> _restoreBackup() async {
     final l = AppLocalizations.of(context);
-    final file = await FilePicker.platform.pickFiles(
-      type: FileType.custom,
-      // `.gz` and `.tachibk` are both Tachiyomi backups; `.json` is either
-      // format, which is why the file is sniffed rather than chosen here.
-      allowedExtensions: ['json', 'tachibk', 'gz'],
-      withData: true,
-    );
+    final file = await pickBackupFile();
 
     if (file == null) return;
 
@@ -188,11 +183,7 @@ class _BackupRestoreScreenState extends ConsumerState<BackupRestoreScreen> {
 
   Future<void> _importTachiyomi() async {
     final l = AppLocalizations.of(context);
-    final file = await FilePicker.platform.pickFiles(
-      type: FileType.custom,
-      allowedExtensions: ['tachibk', 'json'],
-      withData: true,
-    );
+    final file = await pickBackupFile(extensions: ['tachibk', 'json']);
 
     if (file == null) return;
 

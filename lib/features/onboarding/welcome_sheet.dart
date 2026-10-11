@@ -1,8 +1,8 @@
 import 'dart:io';
-import 'package:file_picker/file_picker.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:remixicon/remixicon.dart';
+import 'package:yomou/core/backup/backup_picker.dart';
 import 'package:yomou/core/backup/backup_restore.dart';
 import 'package:yomou/core/widgets/ios/ios_sheet.dart';
 import 'package:yomou/core/widgets/responsive.dart';
@@ -167,11 +167,7 @@ class WelcomeSheetContent extends ConsumerWidget {
   /// it, so [BackupRestore] sniffs the contents instead.
   Future<void> _restoreFromBackup(BuildContext context, WidgetRef ref) async {
     final l = AppLocalizations.of(context);
-    final file = await FilePicker.platform.pickFiles(
-      type: FileType.custom,
-      allowedExtensions: ['json', 'tachibk', 'gz'],
-      withData: true,
-    );
+    final file = await pickBackupFile();
     if (file == null) return;
 
     try {
