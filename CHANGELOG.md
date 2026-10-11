@@ -7,8 +7,37 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [1.1.0] - 2026-10-11
+
+### Added
+- **Full-screen cover viewer** — tap a cover in the detail screen to open it; pinch to zoom, tap anywhere to dismiss, and save the cover straight to your gallery (`Pictures/Yomou`).
+- **Backup restore** — restore history, favorites and bookmarks from a Yomou backup or a Tachiyomi/Mihon `.tachibk`/`.json` file. The format is sniffed from the file, and restoring never rewinds progress that is already further along.
+- **Tachiyomi/Mihon import rescue** — entries from sources Yomou doesn't carry are no longer dropped: the import searches the sources you *do* have for the same title and re-binds them (keeping favorite status and last-read chapter). Anything it can't find is listed on the import-results screen.
+- **Source presets** — save and switch between source/language presets from the Explore screen.
+- **First-run welcome sheet** — choose content filters on first launch; shown as a right-side panel on wide windows.
+- **More sources** — ManhuaPlus, Mangago, Atsumaru and SeiManga.
+- **Haptics**, with an on/off setting.
+- **Re-tap the active tab to scroll back to the top.**
+
 ### Changed
+- A tapped cover flies into the detail header and the viewer with a Hero transition; the viewer decodes the full-size artwork while grids keep the light thumbnail.
 - Removed unused `liquid_glass_bar` / `liquid_glass_renderer` dependencies.
+
+### Fixed
+- SeiManga covers not loading (the CDN requires a referer).
+- MangaBat titles reporting no chapters because every URL was doubled.
+- MangaPill listing titles without covers.
+- Notification action buttons being dropped instead of routed.
+- Madara sources showing the wrong detail cover and status.
+- Settings icons staying black in dark mode.
+- Eight parsers stamping a manga's slug into its `sourceId`, which made library entries look like they came from a source that was never installed.
+- Repairing the library table leaving the grids reporting slugs.
+
+### Performance
+- Lower idle drain, bounded image decodes, a lazily-built Explore screen, and reduced-motion support.
+
+### Removed
+- The dead Reaper Scans and the dev-only Mock source.
 
 ## [1.0.0+1] - 2026-09-06
 
