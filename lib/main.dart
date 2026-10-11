@@ -14,6 +14,7 @@ import 'package:yomou/features/explore/screens/explore_screen.dart';
 import 'package:yomou/features/feed/screens/feed_screen.dart';
 import 'package:yomou/features/feed/providers/updates_provider.dart';
 import 'package:yomou/core/theme/layout.dart';
+import 'package:yomou/core/widgets/ios/ios_toast.dart';
 import 'package:yomou/core/widgets/responsive.dart';
 import 'package:yomou/features/reader/screens/reader_screen.dart';
 import 'package:yomou/core/database/database_helper.dart';
@@ -500,11 +501,12 @@ class _HomeScreenState extends ConsumerState<HomeScreen>
         }
         _lastBackPress = now;
         final l = AppLocalizations.of(context);
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(
-            content: Text(l.pressBackToExit),
-            duration: const Duration(seconds: 2),
-          ),
+        // Same floating pill toast the rest of the app uses, so the hint never
+        // sits on top of the bottom navigation.
+        showIosToast(
+          context,
+          message: l.pressBackToExit,
+          duration: const Duration(seconds: 2),
         );
       },
       child: Scaffold(

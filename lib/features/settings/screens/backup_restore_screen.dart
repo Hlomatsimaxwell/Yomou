@@ -10,6 +10,7 @@ import 'package:yomou/core/backup/backup_restore.dart';
 import 'package:yomou/core/backup/tachiyomi_backup.dart';
 import 'package:yomou/core/database/database_helper.dart';
 import 'package:yomou/core/widgets/responsive.dart';
+import 'package:yomou/core/widgets/ios/ios_toast.dart';
 import 'package:yomou/features/history/providers/history_provider.dart';
 import 'package:yomou/features/library/providers/downloads_provider.dart';
 import 'package:yomou/features/library/providers/favorites_provider.dart';
@@ -70,6 +71,13 @@ class _BackupRestoreScreenState extends ConsumerState<BackupRestoreScreen> {
 
   Future<void> _restoreBackup() async {
     final l = AppLocalizations.of(context);
+    // Captured before any await: the scan is non-blocking, so the reader may
+    // leave this screen while it runs. The navigator, messenger and provider
+    // container survive the route, so the summary still shows and the library
+    // still refreshes when the scan finishes.
+    final container = ProviderScope.containerOf(context, listen: false);
+    final navigator = Navigator.of(context);
+    final messenger = ScaffoldMessenger.of(context);
     final file = await pickBackupFile();
 
     if (file == null) return;
@@ -86,33 +94,36 @@ class _BackupRestoreScreenState extends ConsumerState<BackupRestoreScreen> {
             .setBackupsOutputDirectory(dir);
       }
 
+      // The scan is non-blocking, so the reader may have left this screen
+      // while it ran; the completion UI works off the captured values above.
       final result = await BackupRestore.restore(
         bytes,
         resolveTachiyomi: (parsed) =>
             scanTachiyomiMissingWithProgress(context, ref, parsed),
       );
-      if (!mounted) return;
-      bumpHistoryRevision(ref);
-      bumpFavoritesRevision(ref);
+      bumpHistoryRevision(container);
+      bumpFavoritesRevision(container);
 
       switch (result.format) {
         case BackupFormat.tachiyomi:
           final parsed = result.tachiyomi!;
           if (parsed.isEmpty) {
-            ScaffoldMessenger.of(context).showSnackBar(
+            messenger.showSnackBar(
               SnackBar(content: Text(l.tachiyomiImportNone)),
             );
             return;
           }
-          Navigator.push(
-            context,
+          if (mounted) {
+            showIosToast(context, message: importFinishedMessage(l, parsed));
+          }
+          navigator.push(
             MaterialPageRoute(
               builder: (context) => ImportResultsScreen(result: parsed),
             ),
           );
         case BackupFormat.yomou:
           final restored = result.yomou!;
-          ScaffoldMessenger.of(context).showSnackBar(
+          messenger.showSnackBar(
             SnackBar(
               content: Text(
                 restored.isEmpty
@@ -183,6 +194,12 @@ class _BackupRestoreScreenState extends ConsumerState<BackupRestoreScreen> {
 
   Future<void> _importTachiyomi() async {
     final l = AppLocalizations.of(context);
+    // Captured before any await: the scan is non-blocking, so the reader may
+    // leave this screen while it runs. The navigator and provider container
+    // survive the route, so the summary still shows and the library still
+    // refreshes whenever the scan finishes.
+    final container = ProviderScope.containerOf(context, listen: false);
+    final navigator = Navigator.of(context);
     final file = await pickBackupFile(extensions: ['tachibk', 'json']);
 
     if (file == null) return;
@@ -194,6 +211,8 @@ class _BackupRestoreScreenState extends ConsumerState<BackupRestoreScreen> {
 
       final parsed = TachiyomiBackupCodec.import(bytes);
       if (!mounted) return;
+      // The scan is non-blocking, so this screen may be gone by the time it
+      // finishes; the completion UI works off the captured values above.
       final resolved = await scanTachiyomiMissingWithProgress(
         context,
         ref,
@@ -201,17 +220,17 @@ class _BackupRestoreScreenState extends ConsumerState<BackupRestoreScreen> {
       );
       await BackupRestore.applyTachiyomi(resolved);
 
-      if (!mounted) return;
-      bumpHistoryRevision(ref);
-      bumpFavoritesRevision(ref);
+      bumpHistoryRevision(container);
+      bumpFavoritesRevision(container);
       if (resolved.isEmpty) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(content: Text(l.tachiyomiImportNone)),
-        );
+        if (!mounted) return;
+        showIosToast(context, message: l.tachiyomiImportNone);
         return;
       }
-      Navigator.push(
-        context,
+      if (mounted) {
+        showIosToast(context, message: importFinishedMessage(l, resolved));
+      }
+      navigator.push(
         MaterialPageRoute(
           builder: (context) => ImportResultsScreen(result: resolved),
         ),

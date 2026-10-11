@@ -5,6 +5,7 @@ import 'package:remixicon/remixicon.dart';
 import 'package:yomou/core/backup/backup_picker.dart';
 import 'package:yomou/core/backup/backup_restore.dart';
 import 'package:yomou/core/widgets/ios/ios_sheet.dart';
+import 'package:yomou/core/widgets/ios/ios_toast.dart';
 import 'package:yomou/core/widgets/responsive.dart';
 import 'package:yomou/features/history/providers/history_provider.dart';
 import 'package:yomou/features/library/providers/favorites_provider.dart';
@@ -167,56 +168,64 @@ class WelcomeSheetContent extends ConsumerWidget {
   /// it, so [BackupRestore] sniffs the contents instead.
   Future<void> _restoreFromBackup(BuildContext context, WidgetRef ref) async {
     final l = AppLocalizations.of(context);
+    // Captured before any await: the scan is non-blocking, so the sheet may be
+    // dismissed while it runs. The app's navigator, messenger and provider
+    // container survive it, so the summary still shows and the library still
+    // refreshes once the scan finishes.
+    final container = ProviderScope.containerOf(context, listen: false);
+    final navigator = Navigator.of(context);
+    final messenger = ScaffoldMessenger.of(context);
     final file = await pickBackupFile();
     if (file == null) return;
 
     try {
       final picked = file.files.single;
       final bytes = picked.bytes ?? await File(picked.path!).readAsBytes();
+
+      // The sheet may have been dismissed while the scan ran; the
+      // completion UI works off the captured values above.
       final result = await BackupRestore.restore(
         bytes,
         // Titles from sources we don't carry are searched across the sources we
-        // do have before the result is written (see the scan dialog).
+        // do have before the result is written (see the scan pill).
         resolveTachiyomi: (parsed) =>
             scanTachiyomiMissingWithProgress(context, ref, parsed),
       );
-
-      if (!context.mounted) return;
-      bumpHistoryRevision(ref);
-      bumpFavoritesRevision(ref);
+      bumpHistoryRevision(container);
+      bumpFavoritesRevision(container);
 
       // A restore stands in for onboarding: whatever the file carries is the
-      // reader's real state, so complete the welcome and close the sheet rather
-      // than leaving it sitting over the app. The navigator and messenger are
-      // captured first because the sheet's own context is gone once it pops.
-      final navigator = Navigator.of(context);
-      final messenger = ScaffoldMessenger.of(context);
+      // reader's real state, so complete the welcome and close the sheet -- but
+      // only if it is still up, since it may have been swiped away mid-scan.
       await markWelcomeCompleted();
-      if (!context.mounted) return;
-      navigator.pop();
+      if (context.mounted) navigator.pop();
 
       switch (result.format) {
         case BackupFormat.yomou:
-          final restored = result.yomou!;
-          messenger.showSnackBar(
-            SnackBar(
-              content: Text(
-                restored.isEmpty
-                    ? l.backupRestoreNone
-                    : restored.skippedNewer > 0
-                    ? '${l.backupRestoreDone(restored.restored)} · '
-                          '${l.backupRestoreKeptNewer(restored.skippedNewer)}'
-                    : l.backupRestoreDone(restored.restored),
-              ),
-            ),
-          );
+          if (context.mounted) {
+            final restored = result.yomou!;
+            showIosToast(
+              context,
+              message: restored.isEmpty
+                  ? l.backupRestoreNone
+                  : restored.skippedNewer > 0
+                  ? '${l.backupRestoreDone(restored.restored)} · '
+                        '${l.backupRestoreKeptNewer(restored.skippedNewer)}'
+                  : l.backupRestoreDone(restored.restored),
+            );
+          }
         case BackupFormat.tachiyomi:
           final parsed = result.tachiyomi!;
           if (parsed.isEmpty) {
-            messenger.showSnackBar(
-              SnackBar(content: Text(l.tachiyomiImportNone)),
-            );
+            if (context.mounted) {
+              messenger.showSnackBar(
+                SnackBar(content: Text(l.tachiyomiImportNone)),
+              );
+            }
             return;
+          }
+          if (context.mounted) {
+            showIosToast(context, message: importFinishedMessage(l, parsed));
           }
           navigator.push(
             MaterialPageRoute(

@@ -9,12 +9,15 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Changed
 - The Tachiyomi/Mihon import rescue now prefers re-binding a title to a source in one of your content languages, and only falls back to another language when none of your languages carries it.
-- The import scan progress now shows as a small floating pill with a circular progress ring instead of a blocking dialog, so the app stays usable while sources are searched.
+- The import scan progress now shows as a small floating pill with a circular progress ring instead of a blocking dialog, so the app stays usable while sources are searched. The pill matches the app's theme (same surface and radius as the bottom navigation pill, accent-colored ring), floats above the bottom bar, and never swallows taps.
+- A toast now confirms when an import finishes ("N manga imported from Tachiyomi/Mihon · M not imported"), in addition to the per-manga results screen.
+- App toasts (e.g. exit confirmation and "refreshed") now float above the bottom navigation bar instead of sitting on top of it and blocking the tabs.
 
 ### Fixed
 - Restoring from a backup on the first-run welcome sheet now finishes onboarding and closes the sheet instead of leaving it sitting over the app.
 - On iOS, `.tachibk` backups no longer appear greyed out and unselectable in the backup/restore and Tachiyomi import pickers (the extension filter was resolved through UTIs and dropped unrecognized extensions).
 - The Tachiyomi/Mihon import rescue now prefers the source publishing the most chapters, so reading progress from a backup no longer lands past a shorter copy of the series (e.g. "chapter 256 of 100").
+- Leaving the import or restore screen while the scan runs no longer swallows the rest of the flow: the import summary still appears and the library/history still refresh right away, instead of showing nothing until the app is restarted.
 
 ## [1.1.0] - 2026-10-11
 

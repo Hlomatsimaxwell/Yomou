@@ -67,7 +67,10 @@ void showIosToast(
           20,
           0,
           20,
-          16 + bottomBarClearance(context),
+          // Clear the floating/solid bottom bar like the scan pill does, so a
+          // toast never sits on top of the navigation (it used to land in the
+          // middle of it and blocked the tabs it covered).
+          bottomBarTopEdge(context) + 12,
         ),
         duration: duration,
       ),
