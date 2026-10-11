@@ -5,7 +5,7 @@ All notable changes to Yomou are documented here.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
-## [Unreleased]
+## [1.1.2] - 2026-10-11
 
 ### Added
 - **Share sheet on the manga detail screen** — the share icon now offers two links: "Link to manga in Yomou" and "Link to manga on <source>" (the manga's page on the source's website, e.g. `asurascans.com/comics/…`). Tapping a row opens the Android system share sheet with that link pre-filled, so it can be sent straight to WhatsApp, email, or anywhere else.
@@ -23,6 +23,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - A fresh install now pre-loads reader pages only on Wi-Fi by default instead of always (a stored choice or an in-app reset wins over the default).
 
 ### Fixed
+- Content on the settings screens and the manga detail screen no longer passes behind the device's swipe/gesture bar. Settings lists now reserve the bottom safe-area inset (plus a floor on skins like EMUI that draw the strip without reporting an inset), and the detail screen's tray, jump button and chapter lists hold the same minimum clearance, so nothing scrolls or sits under the gesture bar when it is shown.
 - Sources that talk to a dedicated API host (Asura Scans, MangaDex) now open their real website for "Open in browser" and "Sign in" instead of the API host, which answered 404 at its root (e.g. `asurascans.com`, not `api.asurascans.com`). Requests still go to the API host, so nothing about fetching changes.
 - "Open in browser" on a manga's detail screen now opens that manga's own page on the source's website (e.g. MangaDex → `mangadex.org/title/…`, MangaBat → `…/manga/<slug>`) instead of the website root. Sources whose per-manga URLs cannot be reconstructed (Asura Scans' site appends a changing slug hash) fall back to the website root.
 - Asura Scans' "Open in browser" now opens the manga's real page (`asurascans.com/comics/<slug>-<hash>`) using the canonical `public_url` its API reports per series, instead of the website root.

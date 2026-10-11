@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:remixicon/remixicon.dart';
 import 'package:yomou/core/backup/saf_directory_picker.dart';
+import 'package:yomou/core/theme/layout.dart';
 import 'package:yomou/core/utils/relative_time.dart';
 import 'package:yomou/core/widgets/responsive.dart';
 import 'package:yomou/features/settings/providers/cache_settings_provider.dart';
@@ -45,7 +46,10 @@ class _PeriodicBackupsScreenState extends ConsumerState<PeriodicBackupsScreen> {
 
     return Scaffold(
       appBar: SettingsAppBar(title: l.periodicBackups),
-      body: CappedContentWidth(child: ListView(
+      body: SafeArea(
+        top: false,
+        minimum: const EdgeInsets.only(bottom: kBottomChromeClearance),
+        child: CappedContentWidth(child: ListView(
         padding: const EdgeInsets.symmetric(vertical: 8, horizontal: 20),
         children: [
           _ToggleCard(
@@ -151,6 +155,7 @@ class _PeriodicBackupsScreenState extends ConsumerState<PeriodicBackupsScreen> {
           ),
         ],
       )),
+      ),
     );
   }
 }

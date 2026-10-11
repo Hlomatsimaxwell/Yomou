@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:remixicon/remixicon.dart';
 import 'package:yomou/core/settings/settings_reset.dart';
+import 'package:yomou/core/theme/layout.dart';
 import 'package:yomou/core/widgets/responsive.dart';
 import 'package:yomou/l10n/generated/app_localizations.dart';
 import 'package:yomou/main.dart' show restartApp;
@@ -55,7 +56,10 @@ class _ResetSettingsScreenState extends State<ResetSettingsScreen> {
 
     return Scaffold(
       appBar: SettingsAppBar(title: l.settingsReset),
-      body: CappedContentWidth(
+      body: SafeArea(
+        top: false,
+        minimum: const EdgeInsets.only(bottom: kBottomChromeClearance),
+        child: CappedContentWidth(
         child: ListView(
           padding: const EdgeInsets.only(bottom: 24),
           children: [
@@ -106,6 +110,7 @@ class _ResetSettingsScreenState extends State<ResetSettingsScreen> {
             ),
           ],
         ),
+      ),
       ),
     );
   }

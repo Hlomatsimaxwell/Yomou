@@ -22,6 +22,16 @@ const double kBottomBarSideMargin = 16;
 
 const double kBottomBarBottomMargin = 8;
 
+/// Least distance bottom-anchored chrome (the detail tray, settings lists)
+/// keeps above the screen's physical bottom edge.
+///
+/// Some gesture-nav skins -- notably EMUI -- paint a translucent swipe strip
+/// over the app without reporting a navigation-bar inset, so MediaQuery
+/// padding.bottom stays 0 there and chrome would sit flush under the strip.
+/// The floor keeps a comfortable gap on every device; a reported inset always
+/// wins because callers take the larger of the two.
+const double kBottomChromeClearance = 24;
+
 /// Cap on the floating pill's width so spacing stays tight and consistent on
 /// wide screens (and on all tabs, with or without the Continue FAB beside it).
 const double kFloatingPillMaxWidth = 330;

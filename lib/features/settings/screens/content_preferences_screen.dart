@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:yomou/core/theme/layout.dart';
 import 'package:yomou/core/widgets/responsive.dart';
 import 'package:yomou/features/content_preferences/widgets/content_preferences_editor.dart';
 import 'package:yomou/l10n/generated/app_localizations.dart';
@@ -19,10 +20,14 @@ class ContentPreferencesScreen extends ConsumerWidget {
 
     return Scaffold(
       appBar: SettingsAppBar(title: l.settingsContentPreferences),
-      body: CappedContentWidth(
-        child: Padding(
-          padding: const EdgeInsets.fromLTRB(20, 16, 20, 32),
-          child: ContentPreferencesEditor(introText: l.welcomeIntro),
+      body: SafeArea(
+        top: false,
+        minimum: const EdgeInsets.only(bottom: kBottomChromeClearance),
+        child: CappedContentWidth(
+          child: Padding(
+            padding: const EdgeInsets.fromLTRB(20, 16, 20, 32),
+            child: ContentPreferencesEditor(introText: l.welcomeIntro),
+          ),
         ),
       ),
     );

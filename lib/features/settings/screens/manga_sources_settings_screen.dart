@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:remixicon/remixicon.dart';
+import 'package:yomou/core/theme/layout.dart';
 import 'package:yomou/core/widgets/responsive.dart';
 import 'package:yomou/l10n/generated/app_localizations.dart';
 import 'package:yomou/data/providers/sources_provider.dart';
@@ -221,7 +222,10 @@ class _MangaSourcesSettingsScreenState
           ),
         ),
       ),
-      body: CappedContentWidth(child: ListView(
+      body: SafeArea(
+        top: false,
+        minimum: const EdgeInsets.only(bottom: kBottomChromeClearance),
+        child: CappedContentWidth(child: ListView(
         padding: const EdgeInsets.symmetric(vertical: 8),
         children: [
           _row(
@@ -313,6 +317,7 @@ class _MangaSourcesSettingsScreenState
           ),
         ],
       )),
+      ),
     );
   }
 

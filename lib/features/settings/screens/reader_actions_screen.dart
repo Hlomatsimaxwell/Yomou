@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:remixicon/remixicon.dart';
 import 'package:yomou/core/theme/colors.dart';
+import 'package:yomou/core/theme/layout.dart';
 import 'package:yomou/core/widgets/ios/ios_toast.dart';
 import 'package:yomou/features/settings/providers/reader_actions_provider.dart';
 import 'package:yomou/l10n/generated/app_localizations.dart';
@@ -37,7 +38,10 @@ class ReaderActionsScreen extends ConsumerWidget {
       // the app bar is the only chrome above it and nothing is inset from the
       // edges, which keeps each cell's proportions tied to the zones it stands
       // for.
-      body: Column(
+      body: SafeArea(
+        top: false,
+        minimum: const EdgeInsets.only(bottom: kBottomChromeClearance),
+        child: Column(
         crossAxisAlignment: CrossAxisAlignment.stretch,
         children: [
           Padding(
@@ -75,6 +79,7 @@ class ReaderActionsScreen extends ConsumerWidget {
             ),
           ),
         ],
+      ),
       ),
     );
   }

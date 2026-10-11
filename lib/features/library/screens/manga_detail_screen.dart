@@ -12,6 +12,7 @@ import 'package:yomou/core/widgets/ios/ios_press.dart';
 import 'package:yomou/core/database/source_cache.dart';
 import 'package:yomou/core/deep_links.dart';
 import 'package:yomou/core/share.dart';
+import 'package:yomou/core/theme/layout.dart';
 import 'package:yomou/core/widgets/responsive.dart' show usesWideLayout;
 import 'package:yomou/features/library/providers/favorites_provider.dart';
 import 'package:yomou/features/library/providers/downloads_provider.dart';
@@ -43,6 +44,19 @@ import 'package:yomou/features/settings/providers/appearance_provider.dart';
 import 'package:yomou/l10n/generated/app_localizations.dart';
 import 'package:yomou/widgets/source_icon.dart';
 import 'package:yomou/core/diagnostics/diag_log.dart';
+
+/// The bottom safe-area inset, raised to at least [kBottomChromeClearance].
+///
+/// Some gesture-nav skins (notably EMUI) paint a translucent swipe strip over
+/// the app without reporting a navigation-bar inset, so MediaQuery
+/// padding.bottom stays 0 there and bottom-anchored UI would sit flush under
+/// the strip. The floor keeps the tray and chapter lists clear on every
+/// device; a device that reports a real inset keeps it, since the higher of
+/// the two always wins.
+double _bottomClearance(BuildContext context) {
+  final inset = MediaQuery.of(context).padding.bottom;
+  return inset >= kBottomChromeClearance ? inset : kBottomChromeClearance;
+}
 
 /// The line shown under "No chapters available" when the list could not load.
 ///
@@ -677,6 +691,16 @@ class _MangaDetailScreenState extends ConsumerState<MangaDetailScreen> {
     );
   }
 
+  /// The collapsed tray, as a fraction of the screen: the tray bar plus the
+  /// bottom clearance, so collapsing never clips the bar's own gesture-area
+  /// lip. On a phone-height screen this lands just above the old 8% peek;
+  /// on a taller window the bar costs less of the height, so the ratio
+  /// shrinks back toward it.
+  double get _trayCollapsedSize {
+    final height = MediaQuery.sizeOf(context).height;
+    return ((72 + _bottomClearance(context)) / height).clamp(0.08, 0.5);
+  }
+
   // Scroll the chapter list to the chapter you were last reading (or the
   // first chapter for a fresh manga).
   void _scrollToResumeChapter() {
@@ -745,7 +769,7 @@ class _MangaDetailScreenState extends ConsumerState<MangaDetailScreen> {
 
   // Collapse the sheet back to its small bar.
   void _dismissSheet() {
-    _animateSheetTo(0.08);
+    _animateSheetTo(_trayCollapsedSize);
   }
 
   // Navigate to Reader Screen
@@ -978,7 +1002,7 @@ class _MangaDetailScreenState extends ConsumerState<MangaDetailScreen> {
               child: SafeArea(
                 child: SingleChildScrollView(
                   padding: EdgeInsets.only(
-                    bottom: 90 + MediaQuery.of(context).padding.bottom,
+                    bottom: 90 + _bottomClearance(context),
                   ),
                   child: Column(
                     crossAxisAlignment: CrossAxisAlignment.start,
@@ -1002,11 +1026,11 @@ class _MangaDetailScreenState extends ConsumerState<MangaDetailScreen> {
           SizedBox.expand(
             child: DraggableScrollableSheet(
               controller: _sheetController,
-              initialChildSize: 0.08,
-              minChildSize: 0.08,
+              initialChildSize: _trayCollapsedSize,
+              minChildSize: _trayCollapsedSize,
               maxChildSize: 1.0,
               snap: true,
-              snapSizes: const [0.08, 0.5, 1.0],
+              snapSizes: [_trayCollapsedSize, 0.5, 1.0],
               builder: (context, scrollController) {
                 _sheetContentController = scrollController;
                 if (!_trayScrollListening) {
@@ -1068,7 +1092,7 @@ class _MangaDetailScreenState extends ConsumerState<MangaDetailScreen> {
           if (_showSheetContent && _trayCanScroll && !_selectionMode)
             Positioned(
               right: 14,
-              bottom: 90 + MediaQuery.of(context).padding.bottom,
+              bottom: 90 + _bottomClearance(context),
               child: IgnorePointer(
                 ignoring: !_isExpanded,
                 child: AnimatedOpacity(
@@ -1101,7 +1125,7 @@ class _MangaDetailScreenState extends ConsumerState<MangaDetailScreen> {
       isExpanded: docked || _isExpanded,
       activeTab: _activeTab,
       topPadding: docked ? 0 : MediaQuery.of(context).padding.top,
-      bottomPadding: docked ? 0 : MediaQuery.of(context).padding.bottom,
+      bottomPadding: docked ? 0 : _bottomClearance(context),
       unreadCount: _unreadCount,
       showContinueButton: _activeTab == 0 && _chapters.isNotEmpty,
       hasRead: _lastReadChapter >= 0,
@@ -1136,7 +1160,7 @@ class _MangaDetailScreenState extends ConsumerState<MangaDetailScreen> {
           // Fullscreen: collapse back to the half state.
           _animateSheetTo(0.5);
         } else {
-          _animateSheetTo(0.08);
+          _animateSheetTo(_trayCollapsedSize);
         }
       },
       reverseOrder: _reverseOrder,
@@ -1175,7 +1199,7 @@ class _MangaDetailScreenState extends ConsumerState<MangaDetailScreen> {
             // Distinct from the tray: the bottom inset here is only the safe
             // area, because there is no bar to clear.
             padding: EdgeInsets.only(
-              bottom: 24 + MediaQuery.of(context).padding.bottom,
+              bottom: 24 + _bottomClearance(context),
             ),
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
@@ -1237,7 +1261,7 @@ class _MangaDetailScreenState extends ConsumerState<MangaDetailScreen> {
               if (_trayCanScroll && !_selectionMode)
                 Positioned(
                   right: 14,
-                  bottom: 16 + MediaQuery.of(context).padding.bottom,
+                  bottom: 16 + _bottomClearance(context),
                   child: _TrayJumpButton(
                     atBottom: _trayAtBottom,
                     onTap: _trayAtBottom ? _jumpTrayToTop : _jumpTrayToBottom,
@@ -1326,7 +1350,7 @@ class _MangaDetailScreenState extends ConsumerState<MangaDetailScreen> {
         16,
         0,
         16,
-        16 + MediaQuery.of(context).padding.bottom,
+        16 + _bottomClearance(context),
       ),
       sliver: SliverList(
         delegate: SliverChildBuilderDelegate((context, index) {
@@ -1825,7 +1849,7 @@ class _MangaDetailScreenState extends ConsumerState<MangaDetailScreen> {
         16,
         16,
         16,
-        16 + MediaQuery.of(context).padding.bottom,
+        16 + _bottomClearance(context),
       ),
       sliver: SliverGrid(
         gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
@@ -1902,7 +1926,7 @@ class _MangaDetailScreenState extends ConsumerState<MangaDetailScreen> {
         16,
         0,
         16,
-        16 + MediaQuery.of(context).padding.bottom,
+        16 + _bottomClearance(context),
       ),
       sliver: SliverList(
         delegate: SliverChildBuilderDelegate((context, index) {
