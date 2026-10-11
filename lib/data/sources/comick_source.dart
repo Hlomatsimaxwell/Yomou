@@ -17,6 +17,9 @@ class ComickSource extends DioSource implements MangaSource {
   String get name => 'ComicK';
   @override
   String get baseUrl => 'https://comick.live';
+
+  @override
+  String websiteMangaUrl(String mangaId) => '$websiteUrl/comic/$mangaId';
   @override
   String get readerBaseUrl => 'https://comick.live';
   @override

@@ -171,6 +171,10 @@ class MangaFireSource extends DioSource implements MangaSource {
   /// domain (which 404s and leaves the page without chapters).
   String _mangaUrl(String mangaId) => '$baseUrl/title/${_baseId(mangaId)}';
 
+  @override
+  String websiteMangaUrl(String mangaId) =>
+      '$websiteUrl/title/${_baseId(mangaId)}';
+
   /// Listings come from the `/filter` page. The current site is a React SPA
   /// whose rendered grid is a list of `a.title-grid__link` cards:
   ///

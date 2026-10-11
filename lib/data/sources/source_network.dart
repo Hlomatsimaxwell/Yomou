@@ -298,6 +298,11 @@ abstract class DioSource {
   /// API host overrides it so a link opens the real website.
   String get websiteUrl => baseUrl;
 
+  /// The website page of the manga [mangaId]; defaults to the website root.
+  /// Sources whose site addresses manga with stable URLs override this so
+  /// "Open in browser" on the manga detail screen deep-links to the title.
+  String websiteMangaUrl(String mangaId) => websiteUrl;
+
   Map<String, String>? get headers;
 
   Duration? get timeout => const Duration(seconds: 20);

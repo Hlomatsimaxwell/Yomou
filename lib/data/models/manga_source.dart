@@ -17,6 +17,13 @@ abstract class MangaSource {
   /// website instead of an `api.` root that answers 404.
   String get websiteUrl => baseUrl;
 
+  /// The website page of the manga [mangaId], used by "Open in browser" on
+  /// the manga detail screen so the link lands on the manga itself. Defaults
+  /// to [websiteUrl] when the source cannot address individual manga pages
+  /// (e.g. a site whose per-manga slugs are volatile, or the API host of a
+  /// source that is otherwise scraped).
+  String websiteMangaUrl(String mangaId) => websiteUrl;
+
   /// The language this source's manga are published in (e.g. `en`). Shown on
   /// the manga detail screen's "Translation" row when the details lookup does
   /// not report a more specific one.

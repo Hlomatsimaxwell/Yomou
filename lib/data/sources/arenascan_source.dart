@@ -19,6 +19,9 @@ class ArenascanSource extends DioSource implements MangaSource {
   String get name => 'Arenascan';
   @override
   String get baseUrl => 'https://arenascan.com';
+
+  @override
+  String websiteMangaUrl(String mangaId) => '$websiteUrl/manga/$mangaId/';
   @override
   String get readerBaseUrl => 'https://arenascan.com';
   @override

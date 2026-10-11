@@ -2180,12 +2180,12 @@ class _MangaDetailScreenState extends ConsumerState<MangaDetailScreen> {
 
   Future<void> _openInBrowser() async {
     final l = AppLocalizations.of(context);
-    final base = _source?.baseUrl ?? '';
-    if (base.isEmpty) {
+    final source = _source;
+    if (source == null) {
       _showMessage(l.urlUnavailable);
       return;
     }
-    final uri = Uri.parse(base);
+    final uri = Uri.parse(source.websiteMangaUrl(widget.mangaId));
     try {
       final launched = await launchUrl(
         uri,

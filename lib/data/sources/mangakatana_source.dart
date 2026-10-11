@@ -23,6 +23,9 @@ class MangakatanaSource extends DioSource implements MangaSource {
 
   @override
   String get baseUrl => 'https://mangakatana.com';
+
+  @override
+  String websiteMangaUrl(String mangaId) => '$websiteUrl/$mangaId';
   @override
   String get iconUrl => 'https://mangakatana.com/favicon.ico';
 

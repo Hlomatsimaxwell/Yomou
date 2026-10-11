@@ -41,6 +41,10 @@ class MangagoSource extends DioSource implements MangaSource {
   String get name => 'Mangago';
   @override
   String get baseUrl => 'https://www.mangago.me';
+
+  @override
+  String websiteMangaUrl(String mangaId) =>
+      '$websiteUrl/read-manga/$mangaId/';
   @override
   String get readerBaseUrl => 'https://www.mangago.me';
   @override

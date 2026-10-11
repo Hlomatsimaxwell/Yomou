@@ -27,4 +27,16 @@ void main() {
     expect(source.websiteUrl, 'https://asurascans.com');
     expect(source.websiteUrl, isNot(source.baseUrl));
   });
+
+  test('manga website links fall back to the site root, not a deep link', () {
+    // The site addresses manga as /comics/<slug>-<hash> with a changing
+    // suffix, so a deep link cannot be reconstructed from the API slug; the
+    // user is handed the website root, never the API host.
+    final source = AsuraScansSource();
+    expect(
+      source.websiteMangaUrl('the-s-classes-that-i-raised'),
+      'https://asurascans.com',
+    );
+    expect(source.websiteMangaUrl('x'), isNot(contains('api.asurascans')));
+  });
 }

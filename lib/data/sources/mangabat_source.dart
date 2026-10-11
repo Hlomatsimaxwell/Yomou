@@ -155,6 +155,10 @@ class MangaBatSource extends DioSource implements MangaSource {
   static String slugFromId(String id) => _stripMangaSegment(id);
 
   @override
+  String websiteMangaUrl(String mangaId) =>
+      '$websiteUrl/manga/${slugFromId(mangaId)}';
+
+  @override
   Future<List<Manga>> getPopularManga({int page = 1}) async {
     try {
       final html = await grabText('$baseUrl/manga-list/hot-manga?page=$page');

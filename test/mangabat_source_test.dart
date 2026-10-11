@@ -113,4 +113,20 @@ void main() {
       expect(MangaBatSource.slugFromId('my-manga-odyssey'), 'my-manga-odyssey');
     });
   });
+
+  group('websiteMangaUrl', () {
+    test('deep-links to the manga page on the real site', () {
+      expect(
+        source.websiteMangaUrl('martial-peak'),
+        'https://www.mangabats.com/manga/martial-peak',
+      );
+    });
+
+    test('strips a redundant manga/ prefix old ids carry', () {
+      expect(
+        source.websiteMangaUrl('manga/martial-peak'),
+        'https://www.mangabats.com/manga/martial-peak',
+      );
+    });
+  });
 }

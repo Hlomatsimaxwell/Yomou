@@ -32,6 +32,10 @@ class MangaDexSource implements MangaSource {
   String get baseUrl => 'https://api.mangadex.org';
   @override
   String get websiteUrl => 'https://mangadex.org';
+
+  @override
+  String websiteMangaUrl(String mangaId) =>
+      '$websiteUrl/title/${_baseId(mangaId)}';
   @override
   String get iconUrl => 'https://mangadex.org/favicon.ico';
 

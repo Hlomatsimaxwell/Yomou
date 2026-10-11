@@ -74,6 +74,9 @@ class WeebCentralSource extends DioSource implements MangaSource {
 
   @override
   String get baseUrl => 'https://weebcentral.com';
+
+  @override
+  String websiteMangaUrl(String mangaId) => '$websiteUrl/series/$mangaId';
   @override
   String get iconUrl => 'https://weebcentral.com/favicon.ico';
 

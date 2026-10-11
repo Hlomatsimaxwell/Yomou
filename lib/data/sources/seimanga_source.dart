@@ -40,6 +40,9 @@ class SeiMangaSource extends DioSource implements MangaSource {
   String get baseUrl => 'https://1.seimanga.me';
 
   @override
+  String websiteMangaUrl(String mangaId) => '$websiteUrl/$mangaId';
+
+  @override
   String get readerBaseUrl => 'https://1.seimanga.me';
 
   @override

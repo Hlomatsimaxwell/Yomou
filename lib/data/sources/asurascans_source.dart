@@ -25,6 +25,10 @@ class AsuraScansSource extends DioSource implements MangaSource {
   // the app hands the user must point at the real site, not the API host.
   @override
   String get websiteUrl => 'https://asurascans.com';
+  // The site's manga pages carry a volatile slug hash
+  // (`/comics/<slug>-<hash>`, where the suffix changes over time), so a
+  // per-manga website link cannot be reconstructed from the API slug. "Open
+  // in browser" therefore falls back to the website root.
 
   /// The API root itself answers 404, so the default connectivity check would
   /// report a healthy source as an HTTP error. Point it at a real endpoint.

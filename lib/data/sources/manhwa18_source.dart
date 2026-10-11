@@ -20,6 +20,9 @@ class Manhwa18Source extends DioSource implements MangaSource {
   String get name => 'Manhwa18';
   @override
   String get baseUrl => 'https://manhwa18.com';
+
+  @override
+  String websiteMangaUrl(String mangaId) => '$websiteUrl/$mangaId';
   @override
   String get readerBaseUrl => 'https://manhwa18.com';
   @override

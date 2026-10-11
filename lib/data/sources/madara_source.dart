@@ -29,6 +29,9 @@ class MadaraSource extends DioSource implements MangaSource {
   String get baseUrl => config.baseUrl;
 
   @override
+  String websiteMangaUrl(String mangaId) => '$websiteUrl/$mangaId';
+
+  @override
   String get readerBaseUrl => config.baseUrl;
 
   @override
