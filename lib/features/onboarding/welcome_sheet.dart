@@ -189,7 +189,16 @@ class WelcomeSheetContent extends ConsumerWidget {
       bumpHistoryRevision(ref);
       bumpFavoritesRevision(ref);
 
+      // A restore stands in for onboarding: whatever the file carries is the
+      // reader's real state, so complete the welcome and close the sheet rather
+      // than leaving it sitting over the app. The navigator and messenger are
+      // captured first because the sheet's own context is gone once it pops.
+      final navigator = Navigator.of(context);
       final messenger = ScaffoldMessenger.of(context);
+      await markWelcomeCompleted();
+      if (!context.mounted) return;
+      navigator.pop();
+
       switch (result.format) {
         case BackupFormat.yomou:
           final restored = result.yomou!;
@@ -213,7 +222,7 @@ class WelcomeSheetContent extends ConsumerWidget {
             );
             return;
           }
-          Navigator.of(context).push(
+          navigator.push(
             MaterialPageRoute(
               builder: (_) => ImportResultsScreen(result: parsed),
             ),

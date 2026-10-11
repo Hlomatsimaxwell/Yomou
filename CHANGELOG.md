@@ -10,6 +10,9 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ### Changed
 - The Tachiyomi/Mihon import rescue now prefers re-binding a title to a source in one of your content languages, and only falls back to another language when none of your languages carries it.
 
+### Fixed
+- Restoring from a backup on the first-run welcome sheet now finishes onboarding and closes the sheet instead of leaving it sitting over the app.
+
 ## [1.1.0] - 2026-10-11
 
 ### Added
