@@ -1,5 +1,6 @@
 import 'dart:async';
 import 'dart:convert';
+import 'dart:io';
 
 import 'package:shared_preferences/shared_preferences.dart';
 import 'package:workmanager/workmanager.dart';
@@ -526,15 +527,21 @@ Future<void> registerUpdateCheckTask() async {
   }
 
   final wifiOnly = await NotificationSettings.isWifiOnly();
-  await Workmanager().registerPeriodicTask(
-    updateCheckTaskName,
-    _androidTaskName,
-    frequency: interval,
-    constraints: Constraints(
-      networkType: wifiOnly ? NetworkType.unmetered : NetworkType.connected,
-    ),
-    existingWorkPolicy: ExistingPeriodicWorkPolicy.replace,
-  );
+  try {
+    await Workmanager().registerPeriodicTask(
+      updateCheckTaskName,
+      _androidTaskName,
+      frequency: interval,
+      constraints: Constraints(
+        networkType: wifiOnly ? NetworkType.unmetered : NetworkType.connected,
+      ),
+      existingWorkPolicy: ExistingPeriodicWorkPolicy.replace,
+    );
+  } catch (e) {
+    // Don't crash the app on iOS if BGTaskScheduler registration fails.
+    if (Platform.isIOS) return;
+    rethrow;
+  }
 }
 
 /// Cancels the scheduled periodic check (used when the user disables

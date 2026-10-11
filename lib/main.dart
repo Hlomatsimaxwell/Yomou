@@ -460,10 +460,12 @@ class _HomeScreenState extends ConsumerState<HomeScreen>
     }
     await service.setEnabled(true);
     try {
-      await registerUpdateCheckTask();
-      // Establish a baseline now so enabling never dumps the whole back
-      // catalogue as "new".
-      unawaited(runUpdateCheck());
+      if (!Platform.isIOS) {
+        await registerUpdateCheckTask();
+        // Establish a baseline now so enabling never dumps the whole back
+        // catalogue as "new".
+        unawaited(runUpdateCheck());
+      }
     } catch (_) {}
   }
 
