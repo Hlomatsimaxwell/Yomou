@@ -4036,7 +4036,7 @@ abstract class AppLocalizations {
   /// No description provided for @importScanTitle.
   ///
   /// In en, this message translates to:
-  /// **'Looking for missing titles across your sources...'**
+  /// **'Looking for missing titles'**
   String get importScanTitle;
 
   /// No description provided for @importScanProgress.

@@ -5,6 +5,7 @@ import 'package:remixicon/remixicon.dart';
 import 'package:yomou/core/database/source_cache.dart';
 import 'package:yomou/core/widgets/ios/ios_menu.dart';
 import 'package:yomou/core/widgets/ios/ios_press.dart';
+import 'package:yomou/core/widgets/ios/ios_toast.dart';
 import 'package:yomou/core/widgets/tab_header.dart';
 import 'package:yomou/core/widgets/responsive.dart' show usesWideLayout;
 import 'package:yomou/core/widgets/manga_grid_metrics.dart';
@@ -331,11 +332,10 @@ class _ExploreScreenState extends ConsumerState<ExploreScreen> {
       final sources = resolveActiveSources(ref.read(visibleSourceRowsProvider));
       if (sources.isEmpty) {
         if (mounted) {
-          ScaffoldMessenger.of(context).showSnackBar(
-            SnackBar(
-              content: Text(AppLocalizations.of(context).noRandomRightNow),
-              duration: const Duration(seconds: 2),
-            ),
+          showIosToast(
+            context,
+            message: AppLocalizations.of(context).noRandomRightNow,
+            duration: const Duration(seconds: 2),
           );
         }
         return;
@@ -365,11 +365,10 @@ class _ExploreScreenState extends ConsumerState<ExploreScreen> {
 
       if (pick == null || !mounted) {
         if (mounted) {
-          ScaffoldMessenger.of(context).showSnackBar(
-            SnackBar(
-              content: Text(AppLocalizations.of(context).noRandomRightNow),
-              duration: const Duration(seconds: 2),
-            ),
+          showIosToast(
+            context,
+            message: AppLocalizations.of(context).noRandomRightNow,
+            duration: const Duration(seconds: 2),
           );
         }
         return;
@@ -389,11 +388,10 @@ class _ExploreScreenState extends ConsumerState<ExploreScreen> {
       );
     } catch (_) {
       if (mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(
-            content: Text(AppLocalizations.of(context).couldNotFindRandom),
-            duration: const Duration(seconds: 2),
-          ),
+        showIosToast(
+          context,
+          message: AppLocalizations.of(context).couldNotFindRandom,
+          duration: const Duration(seconds: 2),
         );
       }
     } finally {

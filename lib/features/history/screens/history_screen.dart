@@ -425,12 +425,9 @@ class _HistoryScreenState extends ConsumerState<HistoryScreen> {
                   onPressed: () {
                     Navigator.pop(context);
                     _clearHistory(selectedOption);
-                    ScaffoldMessenger.of(context).showSnackBar(
-                      SnackBar(
-                        content: Text(
-                          AppLocalizations.of(context).historyUpdated,
-                        ),
-                      ),
+                    showIosToast(
+                      context,
+                      message: AppLocalizations.of(context).historyUpdated,
                     );
                   },
                   child: Text(

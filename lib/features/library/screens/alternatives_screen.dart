@@ -5,6 +5,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:remixicon/remixicon.dart';
 import 'package:yomou/core/database/source_cache.dart';
 import 'package:yomou/core/widgets/empty_state.dart';
+import 'package:yomou/core/widgets/ios/ios_toast.dart';
 import 'package:yomou/data/providers/sources_provider.dart';
 import 'package:yomou/data/services/manga_migration.dart';
 import 'package:yomou/features/history/providers/history_provider.dart';
@@ -701,9 +702,7 @@ class _AlternativesScreenState extends ConsumerState<AlternativesScreen> {
     } catch (_) {
       if (mounted) {
         nav.pop();
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(content: Text(l.altMigrateFailed)),
-        );
+        showIosToast(context, message: l.altMigrateFailed);
       }
       return;
     }

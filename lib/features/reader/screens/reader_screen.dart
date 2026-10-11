@@ -19,6 +19,7 @@ import 'package:yomou/core/diagnostics/diag_log.dart';
 import 'package:yomou/core/storage/storage_stats.dart';
 import '../../../core/database/database_helper.dart';
 import '../../../core/database/source_cache.dart';
+import 'package:yomou/core/widgets/ios/ios_toast.dart';
 import 'package:yomou/core/widgets/reader_side_panel.dart';
 import 'package:yomou/core/widgets/responsive.dart';
 import 'package:yomou/data/providers/sources_provider.dart';
@@ -1302,21 +1303,17 @@ class _ReaderScreenState extends ConsumerState<ReaderScreen>
       await file.writeAsBytes(response.bodyBytes);
 
       if (mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(
-            content: Text(
-              AppLocalizations.of(context).readerPageSavedTo(file.path),
-            ),
-            duration: const Duration(seconds: 2),
-          ),
+        showIosToast(
+          context,
+          message: AppLocalizations.of(context).readerPageSavedTo(file.path),
+          duration: const Duration(seconds: 2),
         );
       }
     } catch (e) {
       if (mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(
-            content: Text(AppLocalizations.of(context).readerFailedToSavePage),
-          ),
+        showIosToast(
+          context,
+          message: AppLocalizations.of(context).readerFailedToSavePage,
         );
       }
     }
@@ -2200,10 +2197,9 @@ class _ReaderScreenState extends ConsumerState<ReaderScreen>
       _pendingJumpPage = pageIndex;
       _changeChapterExplicitly(index);
     } else {
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(
-          content: Text(AppLocalizations.of(context).readerChapterNotFound),
-        ),
+      showIosToast(
+        context,
+        message: AppLocalizations.of(context).readerChapterNotFound,
       );
     }
   }
@@ -3361,24 +3357,18 @@ class _ReaderScreenState extends ConsumerState<ReaderScreen>
 
     final l = AppLocalizations.of(context);
     if (result.blocked) {
-      ScaffoldMessenger.of(
-        context,
-      ).showSnackBar(SnackBar(content: Text(l.dlsCellularBlocked)));
+      showIosToast(context, message: l.dlsCellularBlocked);
       return;
     }
     if (result.isEmpty) {
-      ScaffoldMessenger.of(
-        context,
-      ).showSnackBar(SnackBar(content: Text(l.dlgDownloadNothingQueued)));
+      showIosToast(context, message: l.dlgDownloadNothingQueued);
       return;
     }
 
     // Queued as one job, so the selection doesn't become N notifications and
     // N foreground services. Track the first chapter inline as a hint of
     // activity, then let the notification and Downloads screen carry it.
-    ScaffoldMessenger.of(
-      context,
-    ).showSnackBar(SnackBar(content: Text(l.dlgQueuedDownload(result.queued))));
+    showIosToast(context, message: l.dlgQueuedDownload(result.queued));
     _awaitJob(result.jobId, chapters.first.id);
   }
 
@@ -3398,10 +3388,9 @@ class _ReaderScreenState extends ConsumerState<ReaderScreen>
     });
     bumpDownloadsRevision(ref);
     _refreshTray();
-    ScaffoldMessenger.of(context).showSnackBar(
-      SnackBar(
-        content: Text(AppLocalizations.of(context).deletedSelectedDownloads),
-      ),
+    showIosToast(
+      context,
+      message: AppLocalizations.of(context).deletedSelectedDownloads,
     );
   }
 
@@ -3468,15 +3457,12 @@ class _ReaderScreenState extends ConsumerState<ReaderScreen>
         setState(() {
           _bookmarkedKeys.remove(_bookmarkKey(chapter.id, pageIndex));
         });
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(
-            content: Text(
-              AppLocalizations.of(
-                context,
-              ).readerBookmarkRemovedNice(chapter.title, pageIndex + 1),
-            ),
-            duration: const Duration(seconds: 2),
-          ),
+        showIosToast(
+          context,
+          message: AppLocalizations.of(
+            context,
+          ).readerBookmarkRemovedNice(chapter.title, pageIndex + 1),
+          duration: const Duration(seconds: 2),
         );
       }
       return;
@@ -3494,15 +3480,12 @@ class _ReaderScreenState extends ConsumerState<ReaderScreen>
       setState(() {
         _bookmarkedKeys.add(_bookmarkKey(chapter.id, pageIndex));
       });
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(
-          content: Text(
-            AppLocalizations.of(
-              context,
-            ).readerBookmarked(chapter.title, pageIndex + 1),
-          ),
-          duration: const Duration(seconds: 2),
-        ),
+      showIosToast(
+        context,
+        message: AppLocalizations.of(
+          context,
+        ).readerBookmarked(chapter.title, pageIndex + 1),
+        duration: const Duration(seconds: 2),
       );
     }
   }

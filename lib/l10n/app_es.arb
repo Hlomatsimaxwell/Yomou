@@ -913,7 +913,7 @@
       }
     }
   },
-  "importScanTitle": "Buscando títulos faltantes en tus fuentes...",
+  "importScanTitle": "Buscando títulos faltantes",
   "importScanProgress": "{done}/{total} buscados",
   "@importScanProgress": {
     "placeholders": {

@@ -10,6 +10,7 @@ import 'package:yomou/core/notifications/background_tasks.dart';
 import 'package:yomou/core/notifications/notification_service.dart';
 import 'package:yomou/core/notifications/notification_settings.dart';
 import 'package:yomou/core/widgets/responsive.dart';
+import 'package:yomou/core/widgets/ios/ios_toast.dart';
 import 'package:yomou/features/settings/screens/notification_log_screen.dart';
 import 'package:yomou/l10n/generated/app_localizations.dart';
 import 'package:yomou/widgets/m3_components.dart';
@@ -88,11 +89,10 @@ class _NotificationSettingsScreenState
       final granted = await service.requestPermission();
       if (!granted) {
         if (mounted) {
-          ScaffoldMessenger.of(context).showSnackBar(
-            SnackBar(
-              content: Text(l.notificationPermissionDenied),
-              duration: const Duration(seconds: 3),
-            ),
+          showIosToast(
+            context,
+            message: l.notificationPermissionDenied,
+            duration: const Duration(seconds: 3),
           );
         }
       } else {
@@ -178,9 +178,7 @@ class _NotificationSettingsScreenState
     } catch (_) {}
     if (!mounted) return;
     setState(() => _checking = false);
-    ScaffoldMessenger.of(
-      context,
-    ).showSnackBar(SnackBar(content: Text(l.notificationCheckDone)));
+    showIosToast(context, message: l.notificationCheckDone);
   }
 
   void _openBatterySettings() {

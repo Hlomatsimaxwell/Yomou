@@ -2205,8 +2205,7 @@ class AppLocalizationsEn extends AppLocalizations {
   }
 
   @override
-  String get importScanTitle =>
-      'Looking for missing titles across your sources...';
+  String get importScanTitle => 'Looking for missing titles';
 
   @override
   String importScanProgress(int done, int total) {

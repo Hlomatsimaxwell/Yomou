@@ -3,6 +3,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:remixicon/remixicon.dart';
 import 'package:yomou/core/cache/app_cache.dart';
 import 'package:yomou/core/widgets/responsive.dart';
+import 'package:yomou/core/widgets/ios/ios_toast.dart';
 import 'package:yomou/features/settings/providers/cache_settings_provider.dart';
 import 'package:yomou/l10n/generated/app_localizations.dart';
 import 'package:yomou/widgets/m3_components.dart';
@@ -182,10 +183,8 @@ class _StorageSettingsScreenState extends ConsumerState<StorageSettingsScreen> {
     final messenger = ScaffoldMessenger.of(context);
     await clearAppCache();
     if (!mounted) return;
+    showIosToastWithMessenger(messenger, message: l.storageClearDone);
     _usageFuture = _usageLabel();
     setState(() {});
-    messenger.showSnackBar(
-      SnackBar(content: Text(l.storageClearDone)),
-    );
   }
 }

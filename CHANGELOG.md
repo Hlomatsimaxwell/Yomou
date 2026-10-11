@@ -12,6 +12,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - The import scan progress now shows as a small floating pill with a circular progress ring instead of a blocking dialog, so the app stays usable while sources are searched. The pill matches the app's theme (same surface and radius as the bottom navigation pill, accent-colored ring), floats above the bottom bar, and never swallows taps.
 - A toast now confirms when an import finishes ("N manga imported from Tachiyomi/Mihon · M not imported"), in addition to the per-manga results screen.
 - App toasts (e.g. exit confirmation and "refreshed") now float above the bottom navigation bar instead of sitting on top of it and blocking the tabs.
+- Every remaining in-app message now uses the same floating toast (reader, library, explore, sources, storage, notifications and settings screens), so no snackbar ever lands under or on top of the bottom bar.
+- The import scan pill now just says "Looking for missing titles" — the longer title overflowed the pill on smaller screens.
 
 ### Fixed
 - Restoring from a backup on the first-run welcome sheet now finishes onboarding and closes the sheet instead of leaving it sitting over the app.

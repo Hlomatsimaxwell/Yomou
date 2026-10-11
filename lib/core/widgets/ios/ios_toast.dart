@@ -12,8 +12,29 @@ void showIosToast(
   VoidCallback? onAction,
   Duration duration = const Duration(seconds: 4),
 }) {
-  final messenger = ScaffoldMessenger.of(context);
-  final dark = Theme.of(context).brightness == Brightness.dark;
+  showIosToastWithMessenger(
+    ScaffoldMessenger.of(context),
+    message: message,
+    actionLabel: actionLabel,
+    onAction: onAction,
+    duration: duration,
+  );
+}
+
+/// Same floating toast, driven purely by a previously-captured messenger.
+///
+/// For callers that must show a toast after an `await` without relying on a
+/// (possibly unmounted) context: no BuildContext crosses the gap, and the theme
+/// and safe-area come from the messenger's own, always-alive context, so the
+/// toast still appears even if the originating route is gone.
+void showIosToastWithMessenger(
+  ScaffoldMessengerState messenger, {
+  required String message,
+  String? actionLabel,
+  VoidCallback? onAction,
+  Duration duration = const Duration(seconds: 4),
+}) {
+  final dark = Theme.of(messenger.context).brightness == Brightness.dark;
   final background = dark ? const Color(0xFF1C1C1E) : Colors.white;
   final textColor = dark ? Colors.white : const Color(0xFF1C1B1F);
   // Reuse the accent blue for the action in both modes (Kotatsu-tinted).
@@ -70,7 +91,7 @@ void showIosToast(
           // Clear the floating/solid bottom bar like the scan pill does, so a
           // toast never sits on top of the navigation (it used to land in the
           // middle of it and blocked the tabs it covered).
-          bottomBarTopEdge(context) + 12,
+          bottomBarTopEdge(messenger.context) + 12,
         ),
         duration: duration,
       ),

@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:remixicon/remixicon.dart';
 import 'package:yomou/core/theme/colors.dart';
+import 'package:yomou/core/widgets/ios/ios_toast.dart';
 import 'package:yomou/features/settings/providers/reader_actions_provider.dart';
 import 'package:yomou/l10n/generated/app_localizations.dart';
 import 'package:yomou/widgets/m3_components.dart';
@@ -81,7 +82,6 @@ class ReaderActionsScreen extends ConsumerWidget {
   /// The kebab menu: Reset back to the defaults, or Disable all outright.
   static Future<void> _showOverflow(BuildContext context, WidgetRef ref) async {
     final l = AppLocalizations.of(context);
-    final messenger = ScaffoldMessenger.of(context);
     final notifier = ref.read(readerActionsProvider.notifier);
 
     final choice = await showM3ModalSheet<String>(
@@ -109,13 +109,15 @@ class ReaderActionsScreen extends ConsumerWidget {
     if (choice == null) return;
     if (choice == 'reset') {
       await notifier.reset();
-      messenger.showSnackBar(
-        SnackBar(content: Text(l.ractResetDone), duration: _snackDuration),
-      );
+      if (!context.mounted) return;
+      showIosToast(context, message: l.ractResetDone, duration: _snackDuration);
     } else {
       await notifier.disableAll();
-      messenger.showSnackBar(
-        SnackBar(content: Text(l.ractDisabledAll), duration: _snackDuration),
+      if (!context.mounted) return;
+      showIosToast(
+        context,
+        message: l.ractDisabledAll,
+        duration: _snackDuration,
       );
     }
   }

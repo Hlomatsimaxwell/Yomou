@@ -5,6 +5,7 @@ import 'package:path_provider/path_provider.dart';
 import 'package:remixicon/remixicon.dart';
 import 'package:yomou/core/backup/saf_directory_picker.dart';
 import 'package:yomou/core/storage/storage_stats.dart';
+import 'package:yomou/core/widgets/ios/ios_toast.dart';
 import 'package:yomou/features/settings/providers/download_settings_provider.dart';
 import 'package:yomou/l10n/generated/app_localizations.dart';
 import 'package:yomou/widgets/m3_components.dart';
@@ -146,9 +147,7 @@ class _MangaDirectoriesScreenState extends ConsumerState<MangaDirectoriesScreen>
         .read(downloadSettingsProvider.notifier)
         .addCustomDir(uri, title);
     if (!mounted) return;
-    ScaffoldMessenger.of(context).showSnackBar(
-      SnackBar(content: Text(l.dlsDirAdded(title))),
-    );
+    showIosToast(context, message: l.dlsDirAdded(title));
     await _load();
   }
 

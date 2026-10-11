@@ -4,6 +4,7 @@ import 'package:remixicon/remixicon.dart';
 import 'package:yomou/data/providers/sources_provider.dart';
 import 'package:yomou/features/settings/providers/cache_settings_provider.dart';
 import 'package:yomou/core/widgets/ios/ios_menu.dart';
+import 'package:yomou/core/widgets/ios/ios_toast.dart';
 import 'package:yomou/features/source_management/screens/manga_grid_screen.dart';
 import 'package:yomou/features/source_management/screens/source_settings_screen.dart';
 import 'package:yomou/l10n/generated/app_localizations.dart';
@@ -146,11 +147,10 @@ class _ManageSourcesScreenState extends ConsumerState<ManageSourcesScreen> {
             // --- ADDED ONTAP LOGIC HERE ---
             onTap: () {
               if (!isEnabled) {
-                ScaffoldMessenger.of(context).showSnackBar(
-                  SnackBar(
-                    content: Text(l.cannotSelectDisabledSource),
-                    duration: const Duration(seconds: 2),
-                  ),
+                showIosToast(
+                  context,
+                  message: l.cannotSelectDisabledSource,
+                  duration: const Duration(seconds: 2),
                 );
                 return;
               }
@@ -254,11 +254,10 @@ class _ManageSourcesScreenState extends ConsumerState<ManageSourcesScreen> {
                   ref.read(sourcesProvider.notifier).togglePin(sourceName);
                 } else if (value == 'enabled') {
                   if (isEnabled && isActive) {
-                    ScaffoldMessenger.of(context).showSnackBar(
-                      SnackBar(
-                        content: Text(l.cannotDisableActiveSource),
-                        duration: const Duration(seconds: 2),
-                      ),
+                    showIosToast(
+                      context,
+                      message: l.cannotDisableActiveSource,
+                      duration: const Duration(seconds: 2),
                     );
                   } else {
                     ref

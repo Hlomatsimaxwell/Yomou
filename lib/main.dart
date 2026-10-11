@@ -1154,11 +1154,10 @@ class _HomeScreenState extends ConsumerState<HomeScreen>
       if (rows.isEmpty) {
         if (mounted) {
           final l = AppLocalizations.of(context);
-          ScaffoldMessenger.of(context).showSnackBar(
-            SnackBar(
-              content: Text(l.noReadingHistoryYet),
-              duration: const Duration(seconds: 2),
-            ),
+          showIosToast(
+            context,
+            message: l.noReadingHistoryYet,
+            duration: const Duration(seconds: 2),
           );
         }
         return;
@@ -1180,11 +1179,10 @@ class _HomeScreenState extends ConsumerState<HomeScreen>
       if (source == null) {
         if (mounted) {
           final l = AppLocalizations.of(context);
-          ScaffoldMessenger.of(context).showSnackBar(
-            SnackBar(
-              content: Text(l.noSourceAvailable),
-              duration: const Duration(seconds: 2),
-            ),
+          showIosToast(
+            context,
+            message: l.noSourceAvailable,
+            duration: const Duration(seconds: 2),
           );
         }
         return;
@@ -1198,11 +1196,10 @@ class _HomeScreenState extends ConsumerState<HomeScreen>
       if (chapters.isEmpty) {
         if (mounted) {
           final l = AppLocalizations.of(context);
-          ScaffoldMessenger.of(context).showSnackBar(
-            SnackBar(
-              content: Text(l.noChaptersAvailable),
-              duration: const Duration(seconds: 2),
-            ),
+          showIosToast(
+            context,
+            message: l.noChaptersAvailable,
+            duration: const Duration(seconds: 2),
           );
         }
         return;
@@ -1249,11 +1246,10 @@ class _HomeScreenState extends ConsumerState<HomeScreen>
       debugPrint('Continue reading error: $e');
       if (mounted) {
         final l = AppLocalizations.of(context);
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(
-            content: Text(l.failedToContinueReading(e)),
-            duration: const Duration(seconds: 2),
-          ),
+        showIosToast(
+          context,
+          message: l.failedToContinueReading(e),
+          duration: const Duration(seconds: 2),
         );
       }
     } finally {

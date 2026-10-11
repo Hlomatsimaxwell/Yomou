@@ -64,9 +64,7 @@ class _BackupRestoreScreenState extends ConsumerState<BackupRestoreScreen> {
         .setLastBackupAt(DateTime.now().millisecondsSinceEpoch);
 
     if (!mounted) return;
-    ScaffoldMessenger.of(context).showSnackBar(
-      SnackBar(content: Text('Backup saved')),
-    );
+    showIosToast(context, message: 'Backup saved');
   }
 
   Future<void> _restoreBackup() async {
@@ -108,8 +106,9 @@ class _BackupRestoreScreenState extends ConsumerState<BackupRestoreScreen> {
         case BackupFormat.tachiyomi:
           final parsed = result.tachiyomi!;
           if (parsed.isEmpty) {
-            messenger.showSnackBar(
-              SnackBar(content: Text(l.tachiyomiImportNone)),
+            showIosToastWithMessenger(
+              messenger,
+              message: l.tachiyomiImportNone,
             );
             return;
           }
@@ -123,24 +122,19 @@ class _BackupRestoreScreenState extends ConsumerState<BackupRestoreScreen> {
           );
         case BackupFormat.yomou:
           final restored = result.yomou!;
-          messenger.showSnackBar(
-            SnackBar(
-              content: Text(
-                restored.isEmpty
-                    ? l.backupRestoreNone
-                    : restored.skippedNewer > 0
-                    ? '${l.backupRestoreDone(restored.restored)} · '
-                          '${l.backupRestoreKeptNewer(restored.skippedNewer)}'
-                    : l.backupRestoreDone(restored.restored),
-              ),
-            ),
+          showIosToastWithMessenger(
+            messenger,
+            message: restored.isEmpty
+                ? l.backupRestoreNone
+                : restored.skippedNewer > 0
+                ? '${l.backupRestoreDone(restored.restored)} · '
+                      '${l.backupRestoreKeptNewer(restored.skippedNewer)}'
+                : l.backupRestoreDone(restored.restored),
           );
       }
     } on FormatException {
       if (!mounted) return;
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text(l.tachiyomiImportInvalid)),
-      );
+      showIosToast(context, message: l.tachiyomiImportInvalid);
     }
   }
 
@@ -158,9 +152,7 @@ class _BackupRestoreScreenState extends ConsumerState<BackupRestoreScreen> {
 
     if (result.exported == 0) {
       if (!mounted) return;
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text(l.tachiyomiExportNone)),
-      );
+      showIosToast(context, message: l.tachiyomiExportNone);
       return;
     }
 
@@ -185,10 +177,9 @@ class _BackupRestoreScreenState extends ConsumerState<BackupRestoreScreen> {
     if (!mounted) return;
     final skipped =
         result.skipped > 0 ? ' (${l.backupSkipped(result.skipped)})' : '';
-    ScaffoldMessenger.of(context).showSnackBar(
-      SnackBar(
-        content: Text('${l.tachiyomiExportDone(result.exported)}$skipped'),
-      ),
+    showIosToast(
+      context,
+      message: '${l.tachiyomiExportDone(result.exported)}$skipped',
     );
   }
 
@@ -237,9 +228,7 @@ class _BackupRestoreScreenState extends ConsumerState<BackupRestoreScreen> {
       );
     } catch (e) {
       if (!mounted) return;
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text(l.tachiyomiImportInvalid)),
-      );
+      showIosToast(context, message: l.tachiyomiImportInvalid);
     }
   }
 
@@ -251,9 +240,7 @@ class _BackupRestoreScreenState extends ConsumerState<BackupRestoreScreen> {
     );
     if (!mounted) return;
     if (invalid.isEmpty) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text(l.backupFixLibraryNone)),
-      );
+      showIosToast(context, message: l.backupFixLibraryNone);
       return;
     }
 
@@ -319,9 +306,7 @@ class _BackupRestoreScreenState extends ConsumerState<BackupRestoreScreen> {
     bumpFavoritesRevision(ref);
     bumpDownloadsRevision(ref);
     if (!mounted) return;
-    ScaffoldMessenger.of(context).showSnackBar(
-      SnackBar(content: Text(l.backupFixLibraryDone(removed.length))),
-    );
+    showIosToast(context, message: l.backupFixLibraryDone(removed.length));
   }
 
   @override

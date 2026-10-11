@@ -169,12 +169,11 @@ class WelcomeSheetContent extends ConsumerWidget {
   Future<void> _restoreFromBackup(BuildContext context, WidgetRef ref) async {
     final l = AppLocalizations.of(context);
     // Captured before any await: the scan is non-blocking, so the sheet may be
-    // dismissed while it runs. The app's navigator, messenger and provider
-    // container survive it, so the summary still shows and the library still
-    // refreshes once the scan finishes.
+    // dismissed while it runs. The app's navigator and provider container
+    // survive it, so the summary still shows and the library still refreshes
+    // once the scan finishes.
     final container = ProviderScope.containerOf(context, listen: false);
     final navigator = Navigator.of(context);
-    final messenger = ScaffoldMessenger.of(context);
     final file = await pickBackupFile();
     if (file == null) return;
 
@@ -218,9 +217,7 @@ class WelcomeSheetContent extends ConsumerWidget {
           final parsed = result.tachiyomi!;
           if (parsed.isEmpty) {
             if (context.mounted) {
-              messenger.showSnackBar(
-                SnackBar(content: Text(l.tachiyomiImportNone)),
-              );
+              showIosToast(context, message: l.tachiyomiImportNone);
             }
             return;
           }
@@ -235,9 +232,7 @@ class WelcomeSheetContent extends ConsumerWidget {
       }
     } on FormatException {
       if (!context.mounted) return;
-      ScaffoldMessenger.of(
-        context,
-      ).showSnackBar(SnackBar(content: Text(l.tachiyomiImportInvalid)));
+      showIosToast(context, message: l.tachiyomiImportInvalid);
     }
   }
 }

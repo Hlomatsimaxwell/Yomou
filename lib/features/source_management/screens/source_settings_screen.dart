@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:remixicon/remixicon.dart';
 import 'package:url_launcher/url_launcher.dart';
+import 'package:yomou/core/widgets/ios/ios_toast.dart';
 import 'package:yomou/data/providers/sources_provider.dart';
 import 'package:yomou/data/sources/source_network.dart';
 import 'package:yomou/features/source_management/screens/source_sign_in_screen.dart';
@@ -52,8 +53,10 @@ class _SourceSettingsScreenState extends ConsumerState<SourceSettingsScreen> {
 
   void _toast(String message) {
     if (!mounted) return;
-    ScaffoldMessenger.of(context).showSnackBar(
-      SnackBar(content: Text(message), duration: const Duration(seconds: 2)),
+    showIosToast(
+      context,
+      message: message,
+      duration: const Duration(seconds: 2),
     );
   }
 

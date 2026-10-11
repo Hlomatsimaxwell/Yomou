@@ -1155,7 +1155,7 @@
       }
     }
   },
-  "importScanTitle": "Looking for missing titles across your sources...",
+  "importScanTitle": "Looking for missing titles",
   "importScanProgress": "{done}/{total} scanned",
   "@importScanProgress": {
     "placeholders": {

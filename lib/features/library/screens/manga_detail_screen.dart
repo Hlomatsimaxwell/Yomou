@@ -867,14 +867,11 @@ class _MangaDetailScreenState extends ConsumerState<MangaDetailScreen> {
                     Navigator.pop(context);
                     final source = _source;
                     if (source == null) {
-                      ScaffoldMessenger.of(context).showSnackBar(
-                        SnackBar(
-                          content: Text(
-                            AppLocalizations.of(
-                              context,
-                            ).searchEverywhereBusy(tagName),
-                          ),
-                        ),
+                      showIosToast(
+                        context,
+                        message: AppLocalizations.of(
+                          context,
+                        ).searchEverywhereBusy(tagName),
                       );
                       return;
                     }
@@ -1711,20 +1708,15 @@ class _MangaDetailScreenState extends ConsumerState<MangaDetailScreen> {
     setState(() => _batchQueued = 0);
     final l = AppLocalizations.of(context);
     if (result.blocked) {
-      ScaffoldMessenger.of(
-        context,
-      ).showSnackBar(SnackBar(content: Text(l.dlsCellularBlocked)));
+      showIosToast(context, message: l.dlsCellularBlocked);
       return;
     }
     if (result.isEmpty) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(
-          content: Text(
-            result.alreadyDownloaded > 0 && result.unavailable == 0
-                ? l.dlgAlreadyDownloaded
-                : l.dlgDownloadNothingQueued,
-          ),
-        ),
+      showIosToast(
+        context,
+        message: result.alreadyDownloaded > 0 && result.unavailable == 0
+            ? l.dlgAlreadyDownloaded
+            : l.dlgDownloadNothingQueued,
       );
       return;
     }
@@ -1733,10 +1725,7 @@ class _MangaDetailScreenState extends ConsumerState<MangaDetailScreen> {
     // it. It only mirrors progress while visible; the authoritative view is the
     // notification, and the Downloads screen tracks the same job.
     _watchJob(result.jobId);
-    final messenger = ScaffoldMessenger.of(context);
-    messenger.showSnackBar(
-      SnackBar(content: Text(l.dlgQueuedDownload(result.queued))),
-    );
+    showIosToast(context, message: l.dlgQueuedDownload(result.queued));
   }
 
   /// Polls the job row so the banner and per-chapter rings stay live while this
@@ -1787,10 +1776,9 @@ class _MangaDetailScreenState extends ConsumerState<MangaDetailScreen> {
     }
     if (!mounted) return;
     bumpDownloadsRevision(ref);
-    ScaffoldMessenger.of(context).showSnackBar(
-      SnackBar(
-        content: Text(AppLocalizations.of(context).deletedSelectedDownloads),
-      ),
+    showIosToast(
+      context,
+      message: AppLocalizations.of(context).deletedSelectedDownloads,
     );
   }
 
@@ -2604,9 +2592,7 @@ class _MangaDetailScreenState extends ConsumerState<MangaDetailScreen> {
 
     if (config == null || !context.mounted) return;
     if (!config.startNow) {
-      ScaffoldMessenger.of(
-        context,
-      ).showSnackBar(SnackBar(content: Text(l.downloadsQueued)));
+      showIosToast(context, message: l.downloadsQueued);
       return;
     }
     final List<Chapter> targets;
@@ -2619,9 +2605,7 @@ class _MangaDetailScreenState extends ConsumerState<MangaDetailScreen> {
         targets = _chapters.toList();
     }
     if (targets.isEmpty) {
-      ScaffoldMessenger.of(
-        context,
-      ).showSnackBar(SnackBar(content: Text(l.downloadNotReady)));
+      showIosToast(context, message: l.downloadNotReady);
       return;
     }
     await _downloadChapters(targets);
@@ -2629,9 +2613,7 @@ class _MangaDetailScreenState extends ConsumerState<MangaDetailScreen> {
 
   void _showMessage(String message) {
     if (!mounted) return;
-    ScaffoldMessenger.of(
-      context,
-    ).showSnackBar(SnackBar(content: Text(message)));
+    showIosToast(context, message: message);
   }
 
   Widget _buildHeaderSection() {
