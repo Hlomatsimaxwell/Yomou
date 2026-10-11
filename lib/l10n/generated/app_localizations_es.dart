@@ -24,6 +24,19 @@ class AppLocalizationsEs extends AppLocalizations {
   String get close => 'Cerrar';
 
   @override
+  String get coverSaveImage => 'Guardar imagen';
+
+  @override
+  String get coverSaved => 'Portada guardada en tu galería';
+
+  @override
+  String get coverSaveFailed => 'No se pudo guardar la portada';
+
+  @override
+  String get coverSavePermission =>
+      'Permite el acceso al almacenamiento para guardar portadas';
+
+  @override
   String get confirm => 'Confirmar';
 
   @override

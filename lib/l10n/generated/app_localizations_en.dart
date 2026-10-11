@@ -24,6 +24,18 @@ class AppLocalizationsEn extends AppLocalizations {
   String get close => 'Close';
 
   @override
+  String get coverSaveImage => 'Save image';
+
+  @override
+  String get coverSaved => 'Cover saved to your gallery';
+
+  @override
+  String get coverSaveFailed => 'Couldn\'t save the cover';
+
+  @override
+  String get coverSavePermission => 'Allow storage access to save covers';
+
+  @override
   String get confirm => 'Confirm';
 
   @override

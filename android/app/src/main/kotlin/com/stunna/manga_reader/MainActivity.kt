@@ -1,8 +1,11 @@
 package com.stunna.manga_reader
 
 import android.app.Activity
+import android.content.ContentValues
 import android.content.Context
 import android.content.Intent
+import android.content.pm.PackageManager
+import android.media.MediaScannerConnection
 import android.net.ConnectivityManager
 import android.net.NetworkCapabilities
 import android.net.Uri
@@ -10,6 +13,7 @@ import android.os.Build
 import android.os.Environment
 import android.os.StatFs
 import android.provider.DocumentsContract
+import android.provider.MediaStore
 import android.provider.Settings
 import android.view.KeyEvent
 import android.view.WindowManager
@@ -25,6 +29,12 @@ class MainActivity : FlutterActivity() {
     /** Set by the reader while a chapter is open; see [dispatchKeyEvent]. */
     private lateinit var volumeChannel: MethodChannel
     private var volumeKeysEnabled = false
+
+    /** Request code for the storage permission a pre-Q gallery save needs. */
+    private val galleryPermissionCode = 0x6A11
+
+    /** A save waiting on that permission; invoked with whether it was granted. */
+    private var pendingSave: ((Boolean) -> Unit)? = null
 
     override fun configureFlutterEngine(flutterEngine: FlutterEngine) {
         super.configureFlutterEngine(flutterEngine)
@@ -201,6 +211,143 @@ class MainActivity : FlutterActivity() {
                 else -> result.notImplemented()
             }
         }
+        MethodChannel(
+            flutterEngine.dartExecutor.binaryMessenger,
+            "com.hlomatsi.yomou/gallery"
+        ).setMethodCallHandler { call, result ->
+            when (call.method) {
+                // A cover was expanded and the reader asked to keep it. The
+                // bytes arrive from Dart, which already fetched them through
+                // the cache with the source's referer, so this only has to
+                // land them in the system gallery.
+                "saveImage" -> {
+                    val bytes = call.argument<ByteArray>("bytes")
+                    val name = call.argument<String>("name") ?: "cover.jpg"
+                    val mime = call.argument<String>("mime") ?: "image/jpeg"
+                    if (bytes == null || bytes.isEmpty()) {
+                        result.error("bytes", "no image data", null)
+                        return@setMethodCallHandler
+                    }
+                    saveImageToGallery(bytes, name, mime, result)
+                }
+                else -> result.notImplemented()
+            }
+        }
+    }
+
+    /**
+     * Lands [bytes] in the shared gallery. Android 10 and up go through
+     * MediaStore, which needs no permission; older releases (this app still
+     * targets 9) write to the public Pictures folder and ask for
+     * WRITE_EXTERNAL_STORAGE first, resuming here once the reader answers.
+     */
+    private fun saveImageToGallery(
+        bytes: ByteArray,
+        name: String,
+        mime: String,
+        result: MethodChannel.Result
+    ) {
+        if (Build.VERSION.SDK_INT < Build.VERSION_CODES.Q &&
+            checkSelfPermission(android.Manifest.permission.WRITE_EXTERNAL_STORAGE) !=
+                PackageManager.PERMISSION_GRANTED
+        ) {
+            pendingSave = { granted ->
+                if (granted) {
+                    performSave(bytes, name, mime, result)
+                } else {
+                    result.error("permission", "storage permission denied", null)
+                }
+            }
+            requestPermissions(
+                arrayOf(android.Manifest.permission.WRITE_EXTERNAL_STORAGE),
+                galleryPermissionCode
+            )
+            return
+        }
+        performSave(bytes, name, mime, result)
+    }
+
+    private fun performSave(
+        bytes: ByteArray,
+        name: String,
+        mime: String,
+        result: MethodChannel.Result
+    ) {
+        try {
+            result.success(writeImage(bytes, name, mime)?.toString())
+        } catch (e: Exception) {
+            result.error("save", e.message, null)
+        }
+    }
+
+    private fun writeImage(bytes: ByteArray, name: String, mime: String): Uri? {
+        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.Q) {
+            val values = ContentValues().apply {
+                put(MediaStore.Images.Media.DISPLAY_NAME, name)
+                put(MediaStore.Images.Media.MIME_TYPE, mime)
+                put(
+                    MediaStore.Images.Media.RELATIVE_PATH,
+                    Environment.DIRECTORY_PICTURES + "/Yomou"
+                )
+                put(MediaStore.Images.Media.IS_PENDING, 1)
+            }
+            val uri = contentResolver.insert(
+                MediaStore.Images.Media.EXTERNAL_CONTENT_URI,
+                values
+            ) ?: return null
+            contentResolver.openOutputStream(uri)?.use { it.write(bytes) }
+            values.clear()
+            values.put(MediaStore.Images.Media.IS_PENDING, 0)
+            contentResolver.update(uri, values, null, null)
+            return uri
+        }
+        val dir = File(
+            Environment.getExternalStoragePublicDirectory(
+                Environment.DIRECTORY_PICTURES
+            ),
+            "Yomou"
+        )
+        if (!dir.exists()) dir.mkdirs()
+        val file = uniqueFile(dir, name)
+        file.writeBytes(bytes)
+        MediaScannerConnection.scanFile(
+            this,
+            arrayOf(file.absolutePath),
+            arrayOf(mime),
+            null
+        )
+        return Uri.fromFile(file)
+    }
+
+    /** `<name>.jpg`, then `<name> (1).jpg`, ... so a repeat never clobbers. */
+    private fun uniqueFile(dir: File, name: String): File {
+        var file = File(dir, name)
+        if (!file.exists()) return file
+        val dot = name.lastIndexOf('.')
+        val base = if (dot > 0) name.substring(0, dot) else name
+        val ext = if (dot > 0) name.substring(dot) else ""
+        var i = 1
+        while (file.exists()) {
+            file = File(dir, "$base ($i)$ext")
+            i++
+        }
+        return file
+    }
+
+    @Deprecated("Deprecated in Java")
+    override fun onRequestPermissionsResult(
+        requestCode: Int,
+        permissions: Array<out String>,
+        grantResults: IntArray
+    ) {
+        super.onRequestPermissionsResult(requestCode, permissions, grantResults)
+        if (requestCode != galleryPermissionCode) return
+        val pending = pendingSave
+        pendingSave = null
+        pending?.invoke(
+            grantResults.isNotEmpty() &&
+                grantResults[0] == PackageManager.PERMISSION_GRANTED
+        )
     }
 
     /**

@@ -128,6 +128,30 @@ abstract class AppLocalizations {
   /// **'Close'**
   String get close;
 
+  /// No description provided for @coverSaveImage.
+  ///
+  /// In en, this message translates to:
+  /// **'Save image'**
+  String get coverSaveImage;
+
+  /// No description provided for @coverSaved.
+  ///
+  /// In en, this message translates to:
+  /// **'Cover saved to your gallery'**
+  String get coverSaved;
+
+  /// No description provided for @coverSaveFailed.
+  ///
+  /// In en, this message translates to:
+  /// **'Couldn\'t save the cover'**
+  String get coverSaveFailed;
+
+  /// No description provided for @coverSavePermission.
+  ///
+  /// In en, this message translates to:
+  /// **'Allow storage access to save covers'**
+  String get coverSavePermission;
+
   /// No description provided for @confirm.
   ///
   /// In en, this message translates to:

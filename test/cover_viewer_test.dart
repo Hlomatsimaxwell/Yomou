@@ -3,9 +3,10 @@ import 'package:flutter_test/flutter_test.dart';
 import 'package:yomou/l10n/generated/app_localizations.dart';
 import 'package:yomou/widgets/cover_viewer.dart';
 
-/// The detail screen's cover opens a full-screen viewer. These pin the three
-/// ways out of it -- the close button, a tap on the art, and the back gesture
-/// a plain route push already gives -- plus the hero tag that lets the art fly.
+/// The detail screen's cover opens a full-screen viewer. These pin the ways out
+/// of it -- the close button, a tap on the art, and the back gesture a plain
+/// route push already gives -- plus the hero tag that lets the art fly and the
+/// save affordance the viewer offers.
 void main() {
   Widget host({String? heroTag}) {
     return MaterialApp(
@@ -44,6 +45,8 @@ void main() {
     expect(find.text('The Title'), findsOneWidget);
     // A tag means the art flies out of the cover it was tapped on.
     expect(find.byType(Hero), findsOneWidget);
+    // The viewer offers a save action alongside the close button.
+    expect(find.byTooltip('Save image'), findsOneWidget);
 
     await tester.tap(find.byTooltip('Close'));
     await tester.pumpAndSettle();

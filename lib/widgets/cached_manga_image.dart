@@ -23,6 +23,7 @@ class CachedMangaImage extends StatelessWidget {
     this.errorWidget,
     this.placeholderFadeInDuration,
     this.fadeInDuration = const Duration(milliseconds: 500),
+    this.decodeWidth,
   });
 
   final String imageUrl;
@@ -33,6 +34,14 @@ class CachedMangaImage extends StatelessWidget {
   final Widget Function(BuildContext, String, dynamic)? errorWidget;
   final Duration? placeholderFadeInDuration;
   final Duration fadeInDuration;
+
+  /// Physical-pixel decode cap that overrides the one derived from [width].
+  ///
+  /// The full-screen viewer draws far larger than a grid cell and knows the
+  /// screen size, so it caps the decode itself rather than decoding a
+  /// multi-thousand-pixel original only to shrink it back down. Null keeps the
+  /// [width]-derived behaviour.
+  final int? decodeWidth;
 
   /// Prefix for covers that live in the app's own storage rather than on a
   /// remote host. The value is a filesystem path.
@@ -137,7 +146,7 @@ class CachedMangaImage extends StatelessWidget {
       width: width,
       height: height,
       fit: fit,
-      decodeWidth: _decodeWidth(context),
+      decodeWidth: decodeWidth ?? _decodeWidth(context),
       httpHeaders: _headers,
       placeholder: placeholder,
       errorWidget:
