@@ -45,10 +45,25 @@ dart run build_runner build --delete-conflicting-outputs
 
 ### Android
 
+`pubspec.yaml` is the single source of truth: `version: 1.1.0+18` is
+`versionName + build`. Bump `+N` on every build/install; bump the semver part
+only for a user-facing release — the in-app **What's new** sheet is keyed on it
+(see `CHANGELOG.md`).
+
 ```bash
-flutter build apk --release
-flutter build apk --debug          # quick local test builds
+# build + install on the connected device (clean versionCode, one ABI)
+tool/install.sh
+tool/install.sh --bump                 # increment +N in pubspec.yaml first
+
+# or by hand
+flutter build apk --release            # universal
+flutter build apk --release --target-platform android-arm64
+flutter build apk --debug              # quick local test builds
 ```
+
+> Avoid `--split-per-abi` for phone installs: it adds an ABI offset to the
+> versionCode (arm64 `+2000`), so a `+18` build reports as `2018` and no longer
+> updates over the universal APK without an uninstall.
 
 ### iOS (sideloading)
 
