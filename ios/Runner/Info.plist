@@ -81,5 +81,25 @@
 		<string>UIInterfaceOrientationLandscapeLeft</string>
 		<string>UIInterfaceOrientationLandscapeRight</string>
 	</array>
+	<key>UTImportedTypeDeclarations</key>
+	<array>
+		<dict>
+			<key>UTTypeIdentifier</key>
+			<string>com.hlomatsi.yomou.tachibk</string>
+			<key>UTTypeDescription</key>
+			<string>Mihon/Tachiyomi backup</string>
+			<key>UTTypeConformsTo</key>
+			<array>
+				<string>public.data</string>
+			</array>
+			<key>UTTypeTagSpecification</key>
+			<dict>
+				<key>public.filename-extension</key>
+				<array>
+					<string>tachibk</string>
+				</array>
+			</dict>
+		</dict>
+	</array>
 </dict>
 </plist>
