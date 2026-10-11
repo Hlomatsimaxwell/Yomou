@@ -71,7 +71,7 @@ void main() async {
     try {
       await ensureWorkManagerInitialized();
     } catch (_) {}
-    if (await NotificationService.instance.isEnabled()) {
+    if (!Platform.isIOS && await NotificationService.instance.isEnabled()) {
       try {
         await registerUpdateCheckTask();
       } catch (_) {}
