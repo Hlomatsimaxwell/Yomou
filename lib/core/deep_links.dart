@@ -60,3 +60,30 @@ String buildYomouMangaLink({
   });
   return 'yomou://manga$query';
 }
+
+/// The https landing page that forwards into the app (see docs/yomou.html).
+///
+/// Chat apps only linkify http(s) URLs, so the raw `yomou://` link is dead
+/// text on WhatsApp/SMS/Gmail. This page is the tappable front door: it is
+/// hosted (any static host; the default is GitHub Pages from this repo's
+/// /docs folder) and carries the real link, encoded, in its `u` query param.
+const String yomouShareBaseUrl =
+    'https://hlomatsimaxwell.github.io/Yomou/yomou.html';
+
+/// The string the share sheet copies for "Link to manga in Yomou": an https
+/// URL that renders as a tappable link everywhere, and opens the manga in the
+/// app when tapped (through the landing page above).
+String buildYomouShareLink({
+  required String sourceId,
+  required String mangaId,
+  String title = '',
+  String websiteUrl = '',
+}) {
+  final deep = buildYomouMangaLink(
+    sourceId: sourceId,
+    mangaId: mangaId,
+    title: title,
+    websiteUrl: websiteUrl,
+  );
+  return '$yomouShareBaseUrl?u=${Uri.encodeComponent(deep)}';
+}

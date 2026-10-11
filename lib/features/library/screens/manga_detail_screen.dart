@@ -2132,7 +2132,7 @@ class _MangaDetailScreenState extends ConsumerState<MangaDetailScreen> {
     final knownPage = _details?.publicUrl ?? '';
     final siteUrl =
         knownPage.isNotEmpty ? knownPage : source.websiteMangaUrl(widget.mangaId);
-    final yomouLink = buildYomouMangaLink(
+    final yomouLink = buildYomouShareLink(
       sourceId: source.id,
       mangaId: widget.mangaId,
       title: _title,

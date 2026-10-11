@@ -8,8 +8,9 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ## [Unreleased]
 
 ### Added
-- **Share sheet on the manga detail screen** — the share icon now offers two links: "Link to manga in Yomou" (a `yomou://manga` link that opens the manga back inside the app, so Yomou shows up in the system "open with" chooser wherever the link is tapped) and "Link to manga on <source>" (the manga's page on the source's website, e.g. `asurascans.com/comics/…`). Tapping a row copies the link to the clipboard and confirms on a pill toast.
+- **Share sheet on the manga detail screen** — the share icon now offers two links: "Link to manga in Yomou" and "Link to manga on <source>" (the manga's page on the source's website, e.g. `asurascans.com/comics/…`). Tapping a row copies the link to the clipboard and confirms on a pill toast.
 - **`yomou://` deep links** — Android now listens for `yomou://` links and opens the named manga directly, both when the app is cold-started by the link and when it is tapped while the app is already running.
+- **Tappable share links** — chat apps (WhatsApp, SMS, Gmail) only linkify http(s), so "Link to manga in Yomou" shares an https URL rather than the raw `yomou://` string. It lands on a tiny landing page (`docs/yomou.html`) with an "Open in Yomou" button that hands the link back to Android, plus a fallback that opens the manga on the source website when Yomou isn't installed.
 
 ### Changed
 - The Tachiyomi/Mihon import rescue now prefers re-binding a title to a source in one of your content languages, and only falls back to another language when none of your languages carries it.

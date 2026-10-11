@@ -1,0 +1,121 @@
+<!DOCTYPE html>
+<!--
+  Yomou deep-link landing page.
+
+  Chat apps only linkify http(s), so the "Link to manga in Yomou" entry in the
+  app shares an https URL that lands here, carrying the real yomou://manga link
+  in the `u` query parameter (URL-encoded). Tapping "Open in Yomou" hands that
+  link back to Android, which asks which app should open it; Yomou is one of
+  the choices. When Yomou isn't installed, the page falls back to the manga's
+  own page on the source's website.
+
+  Publish this file anywhere static (GitHub Pages from /docs is the default
+  that the app's yomouShareBaseUrl points at). It has no dependencies.
+-->
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta name="robots" content="noindex">
+  <meta name="theme-color" content="#141416">
+  <meta property="og:title" content="Open in Yomou">
+  <meta property="og:description" content="A manga shared from Yomou — open it in the app.">
+  <title>Open in Yomou</title>
+  <style>
+    :root { color-scheme: dark; }
+    body {
+      margin: 0;
+      font-family: system-ui, -apple-system, "Segoe UI", Roboto, sans-serif;
+      background: #141416;
+      color: #ececec;
+      min-height: 100vh;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+    }
+    .card {
+      max-width: 340px;
+      width: 100%;
+      margin: 24px;
+      padding: 32px 24px 24px;
+      background: #1f1f23;
+      border: 1px solid #2c2c30;
+      border-radius: 20px;
+      box-shadow: 0 8px 30px rgba(0, 0, 0, .4);
+      text-align: center;
+    }
+    h1 { font-size: 20px; margin: 0 0 6px; }
+    p  { font-size: 14px; line-height: 1.55; color: #b9b9bf; margin: 0 0 24px; }
+    a.button, .button {
+      display: block;
+      background: #2f81f7;
+      color: #fff;
+      text-decoration: none;
+      padding: 14px;
+      border-radius: 14px;
+      font-weight: 600;
+      font-size: 16px;
+      border: 0;
+      width: 100%;
+      box-sizing: border-box;
+      cursor: pointer;
+    }
+    a.web {
+      display: block;
+      color: #8ab4f8;
+      font-size: 14px;
+      text-decoration: none;
+      padding: 12px 6px 0;
+    }
+  </style>
+</head>
+<body>
+  <main class="card">
+    <h1 id="heading">Open in Yomou</h1>
+    <p id="blurb">This manga was shared from Yomou. Tap below to open it in the app.</p>
+    <a class="button" id="open" hidden>Open in Yomou</a>
+    <a class="web" id="web" hidden></a>
+  </main>
+
+  <script>
+    (function () {
+      var deep = null;          // the yomou://manga link, if valid
+      var website = null;       // the manga's page on the source website
+      var params = new URLSearchParams(location.search);
+      var encoded = params.get("u");
+      if (encoded && /^yomou%3A%2F%2Fmanga/i.test(encoded)) {
+        deep = decodeURIComponent(encoded);
+        // Pull the `url` query param out of the yomou link for the web fallback.
+        var query = deep.split("?")[1] || "";
+        var q = new URLSearchParams(query);
+        var web = q.get("url");
+        if (web && /^https?:/i.test(web)) website = web;
+      }
+      var open = document.getElementById("open");
+      var webLink = document.getElementById("web");
+      if (!deep) {
+        document.getElementById("heading").textContent = "No manga to open";
+        document.getElementById("blurb").textContent =
+          "This Yomou link is missing the manga it should open.";
+        return;
+      }
+      // Show the manga's title in the tab/preview when the link carries one.
+      var name = new URLSearchParams(deep.split("?")[1] || "").get("name");
+      if (name) {
+        document.title = name + " — Open in Yomou";
+        document.getElementById("blurb").textContent =
+          "“" + name + "” was shared from Yomou. Tap below to open it in the app.";
+      }
+      // A plain anchor is the most reliable way to hand a custom scheme to
+      // Android from a user-gesture click; it also keeps long-press/copy.
+      open.href = deep;
+      open.hidden = false;
+      if (website) {
+        webLink.href = website;
+        webLink.textContent = "Open on the website instead";
+        webLink.hidden = false;
+      }
+    })();
+  </script>
+</body>
+</html>
