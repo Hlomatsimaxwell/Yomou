@@ -94,7 +94,8 @@
         }
         if (deep && !/^yomou:\/\/manga/i.test(deep)) deep = null;
       }
-        // Pull the `url` query param out of the yomou link for the web fallback.
+      // Pull the `url` query param out of the yomou link for the web fallback.
+      if (deep) {
         var query = deep.split("?")[1] || "";
         var q = new URLSearchParams(query);
         var web = q.get("url");
