@@ -1,7 +1,5 @@
 import 'dart:async';
-import 'dart:convert';
 import 'dart:io';
-import 'dart:typed_data';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:file_picker/file_picker.dart';
@@ -34,53 +32,6 @@ class BackupRestoreScreen extends ConsumerStatefulWidget {
 }
 
 class _BackupRestoreScreenState extends ConsumerState<BackupRestoreScreen> {
-  Future<void> _createBackup() async {
-    final l = AppLocalizations.of(context);
-    final history = await DatabaseHelper.instance.getHistory();
-    final favorites = await DatabaseHelper.instance.getFavorites();
-    final bookmarks = await DatabaseHelper.instance.getAllBookmarks();
-
-    final backup = <String, dynamic>{
-      'version': 1,
-      'createdAt': DateTime.now().toIso8601String(),
-      'history': history,
-      'favorites': favorites,
-      'bookmarks': bookmarks,
-    };
-
-    final fileName =
-        'yomou-backup-${DateTime.now().millisecondsSinceEpoch}.json';
-    final result = await FilePicker.platform.saveFile(
-      type: FileType.custom,
-      allowedExtensions: ['json'],
-      fileName: fileName,
-      bytes: Uint8List.fromList(utf8.encode(jsonEncode(backup))),
-    );
-
-    if (result == null) return;
-
-    final dir = result.replaceAll(RegExp(r'[^/]*$'), '');
-
-    await ref
-        .read(cacheSettingsProvider.notifier)
-        .setBackupsOutputDirectory(dir);
-    await ref
-        .read(cacheSettingsProvider.notifier)
-        .setLastBackupAt(DateTime.now().millisecondsSinceEpoch);
-
-    if (!mounted) return;
-    showIosToast(context, message: l.backupSaved);
-    // A system notification that survives leaving the app: same channel and
-    // spirit as Kotatsu's "Backup saved" result notification.
-    unawaited(
-      NotificationService.instance.showBackupResultNotification(
-        id: NotificationService.exportResultNotificationId,
-        title: l.backupSaved,
-        body: fileName,
-      ),
-    );
-  }
-
   /// Mirrors the missing-title scan into the notification shade as a
   /// Kotatsu-style ongoing progress bar, so the scan stays visible (and keeps
   /// updating) even after the reader leaves the app.
@@ -119,109 +70,6 @@ class _BackupRestoreScreenState extends ConsumerState<BackupRestoreScreen> {
         id: NotificationService.importResultNotificationId,
       ),
     );
-  }
-
-  Future<void> _restoreBackup() async {
-    final l = AppLocalizations.of(context);
-    // Captured before any await: the scan is non-blocking, so the reader may
-    // leave this screen while it runs. The navigator, overlay and provider
-    // container survive the route, so the summary still shows and the library
-    // still refreshes when the scan finishes.
-    final container = ProviderScope.containerOf(context, listen: false);
-    final navigator = Navigator.of(context);
-    final overlay = Overlay.of(context, rootOverlay: true);
-    final file = await pickBackupFile();
-
-    if (file == null) return;
-
-    try {
-      final picked = file.files.single;
-      final bytes =
-          picked.bytes ?? await File(picked.path!).readAsBytes();
-
-      if (picked.path != null) {
-        final dir = picked.path!.replaceAll(RegExp(r'[^/]*$'), '');
-        await ref
-            .read(cacheSettingsProvider.notifier)
-            .setBackupsOutputDirectory(dir);
-      }
-
-      // The scan is non-blocking, so the reader may have left this screen
-      // while it ran; the completion UI works off the captured values above.
-      final result = await BackupRestore.restore(
-        bytes,
-        resolveTachiyomi: (parsed) {
-          _startScanShadeProgress(l, parsed);
-          return scanTachiyomiMissingWithProgress(
-            context,
-            ref,
-            parsed,
-            onProgress: (done, total) =>
-                _updateScanShadeProgress(l, done, total),
-          );
-        },
-      );
-      bumpHistoryRevision(container);
-      bumpFavoritesRevision(container);
-
-      switch (result.format) {
-        case BackupFormat.tachiyomi:
-        case BackupFormat.kotatsu:
-          final parsed = result.tachiyomi!;
-          final isKotatsu = result.format == BackupFormat.kotatsu;
-          if (parsed.isEmpty) {
-            _dismissScanShadeProgress();
-            showIosToastOnOverlay(
-              overlay,
-              message: isKotatsu ? l.kotatsuImportNone : l.tachiyomiImportNone,
-            );
-            return;
-          }
-          final finished = isKotatsu
-              ? parsed.skipped > 0
-                    ? '${l.kotatsuImportDone(parsed.imported)} · '
-                          '${l.importResultsNotImported(parsed.skipped)}'
-                    : l.kotatsuImportDone(parsed.imported)
-              : importFinishedMessage(l, parsed);
-          if (mounted) {
-            showIosToast(context, message: finished);
-          }
-          // The missing-title scan can outlive this screen; the notification
-          // is what reports the result once the user has left.
-          unawaited(
-            NotificationService.instance.showBackupResultNotification(
-              id: NotificationService.importResultNotificationId,
-              title: l.importComplete,
-              body: finished,
-            ),
-          );
-          navigator.push(
-            MaterialPageRoute(
-              builder: (context) => ImportResultsScreen(result: parsed),
-            ),
-          );
-        case BackupFormat.yomou:
-          final restored = result.yomou!;
-          final message = restored.isEmpty
-              ? l.backupRestoreNone
-              : restored.skippedNewer > 0
-              ? '${l.backupRestoreDone(restored.restored)} · '
-                    '${l.backupRestoreKeptNewer(restored.skippedNewer)}'
-              : l.backupRestoreDone(restored.restored);
-          showIosToastOnOverlay(overlay, message: message);
-          unawaited(
-            NotificationService.instance.showBackupResultNotification(
-              id: NotificationService.importResultNotificationId,
-              title: l.restoreComplete,
-              body: message,
-            ),
-          );
-      }
-    } on FormatException {
-      _dismissScanShadeProgress();
-      if (!mounted) return;
-      showIosToast(context, message: l.tachiyomiImportInvalid);
-    }
   }
 
   Future<void> _exportTachiyomi() async {
@@ -545,19 +393,6 @@ class _BackupRestoreScreenState extends ConsumerState<BackupRestoreScreen> {
         child: CappedContentWidth(child: ListView(
         padding: const EdgeInsets.symmetric(vertical: 8),
         children: [
-          _BuildButton(
-            icon: RemixIcons.hard_drive_line,
-            title: l.createDataBackup,
-            subtitle: l.backupSubtitle,
-            onTap: _createBackup,
-          ),
-          _BuildButton(
-            icon: RemixIcons.refresh_line,
-            title: l.restoreFromBackup,
-            subtitle: l.restoreSubtitle,
-            onTap: _restoreBackup,
-          ),
-          const SizedBox(height: 8),
           _AppSectionHeader(title: l.kotatsuSectionTitle),
           _BuildButton(
             icon: RemixIcons.stack_line,
