@@ -47,34 +47,70 @@ jobs:
             "$ANDROID_KEYSTORE_PASSWORD" "$ANDROID_KEY_PASSWORD" "$ANDROID_KEY_ALIAS" \
             "$GITHUB_WORKSPACE/android/app/release-keystore.jks" > android/key.properties
           echo "Android release signing configured"
-      - name: Build Release APK
+      - name: Build Release APK (universal)
+        # The "works on everything" APK: arm64 + armeabi-v7a + x86_64 in one
+        # file, native libs stored uncompressed, hence ~78 MB.
         run: flutter build apk --release
 
-      - name: Verify release signing
-        run: |
-          set -euo pipefail
-          SDK="${ANDROID_HOME:-${ANDROID_SDK_ROOT:-/usr/local/lib/android/sdk}}"
-          SIGNER=$(ls "$SDK"/build-tools/*/apksigner 2>/dev/null | sort -V | tail -1)
-          APK=build/app/outputs/flutter-apk/app-release.apk
-          DN=$("$SIGNER" verify --print-certs "$APK" | grep -i 'certificate DN' | head -1)
-          echo "$DN"
-          echo "$DN" | grep -q "CN=Yomou" || { echo "::error::APK is not signed with the release key"; exit 1; }
-      - name: Name the APK
+      - name: Build Release APKs (per-ABI)
+        # One APK per CPU architecture, for smaller downloads. The universal
+        # fat APK above survives alongside these in the outputs dir.
+        run: flutter build apk --release --split-per-abi
+
+      - name: Name the APKs
         id: apk
         run: |
           set -euo pipefail
           version=$(grep -E '^version:' pubspec.yaml | head -1 \
             | sed 's/version:[[:space:]]*//; s/+.*//')
           mkdir -p dist
-          cp build/app/outputs/flutter-apk/app-release.apk "dist/Yomou-${version}.apk"
-          echo "path=dist/Yomou-${version}.apk" >> "$GITHUB_OUTPUT"
+          cp build/app/outputs/flutter-apk/app-release.apk "dist/Yomou-${version}-universal.apk"
+          cp build/app/outputs/flutter-apk/app-arm64-v8a-release.apk "dist/Yomou-${version}-arm64-v8a.apk"
+          cp build/app/outputs/flutter-apk/app-armeabi-v7a-release.apk "dist/Yomou-${version}-armeabi-v7a.apk"
+          cp build/app/outputs/flutter-apk/app-x86_64-release.apk "dist/Yomou-${version}-x86_64.apk"
+          echo "universal=dist/Yomou-${version}-universal.apk" >> "$GITHUB_OUTPUT"
+          echo "arm64=dist/Yomou-${version}-arm64-v8a.apk" >> "$GITHUB_OUTPUT"
+          echo "armv7=dist/Yomou-${version}-armeabi-v7a.apk" >> "$GITHUB_OUTPUT"
+          echo "x64=dist/Yomou-${version}-x86_64.apk" >> "$GITHUB_OUTPUT"
 
-      - name: Upload APK Artifact
+      - name: Verify release signing
+        run: |
+          set -euo pipefail
+          SDK="${ANDROID_HOME:-${ANDROID_SDK_ROOT:-/usr/local/lib/android/sdk}}"
+          SIGNER=$(ls "$SDK"/build-tools/*/apksigner 2>/dev/null | sort -V | tail -1)
+          for apk in dist/Yomou-*.apk; do
+            DN=$("$SIGNER" verify --print-certs "$apk" | grep -i 'certificate DN' | head -1)
+            echo "$apk -> $DN"
+            echo "$DN" | grep -q "CN=Yomou" || { echo "::error::$apk is not signed with the release key"; exit 1; }
+          done
+
+      - name: Upload Universal APK Artifact
         # upload-artifact@v7 with archive:false uploads the file as-is (no zip),
         # and the file name becomes the artifact name -- so the download is just
-        # "Yomou-<version>.apk". v4 cannot do this; it always zips.
+        # "Yomou-<version>-universal.apk". v4 cannot do this; it always zips.
         uses: actions/upload-artifact@v7
         with:
-          path: ${{ steps.apk.outputs.path }}
+          path: ${{ steps.apk.outputs.universal }}
+          archive: false
+          if-no-files-found: error
+
+      - name: Upload arm64 APK Artifact
+        uses: actions/upload-artifact@v7
+        with:
+          path: ${{ steps.apk.outputs.arm64 }}
+          archive: false
+          if-no-files-found: error
+
+      - name: Upload armeabi-v7a APK Artifact
+        uses: actions/upload-artifact@v7
+        with:
+          path: ${{ steps.apk.outputs.armv7 }}
+          archive: false
+          if-no-files-found: error
+
+      - name: Upload x86_64 APK Artifact
+        uses: actions/upload-artifact@v7
+        with:
+          path: ${{ steps.apk.outputs.x64 }}
           archive: false
           if-no-files-found: error
