@@ -4105,6 +4105,18 @@ abstract class AppLocalizations {
   /// **'Import favorites from a Kotatsu backup (.bk.zip)'**
   String get importKotatsuSubtitle;
 
+  /// No description provided for @kotatsuSectionTitle.
+  ///
+  /// In en, this message translates to:
+  /// **'Kotatsu'**
+  String get kotatsuSectionTitle;
+
+  /// No description provided for @tachiyomiSectionTitle.
+  ///
+  /// In en, this message translates to:
+  /// **'Tachiyomi / Mihon'**
+  String get tachiyomiSectionTitle;
+
   /// No description provided for @kotatsuExportDone.
   ///
   /// In en, this message translates to:

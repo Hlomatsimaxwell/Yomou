@@ -1186,6 +1186,8 @@
   "exportKotatsuSubtitle": "Export favorites and history as a Kotatsu backup (.bk.zip)",
   "importKotatsu": "Import from Kotatsu",
   "importKotatsuSubtitle": "Import favorites from a Kotatsu backup (.bk.zip)",
+  "kotatsuSectionTitle": "Kotatsu",
+  "tachiyomiSectionTitle": "Tachiyomi / Mihon",
   "kotatsuExportDone": "{count} manga exported to Kotatsu",
   "@kotatsuExportDone": {
     "placeholders": {

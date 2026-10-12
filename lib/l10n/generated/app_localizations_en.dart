@@ -2247,6 +2247,12 @@ class AppLocalizationsEn extends AppLocalizations {
       'Import favorites from a Kotatsu backup (.bk.zip)';
 
   @override
+  String get kotatsuSectionTitle => 'Kotatsu';
+
+  @override
+  String get tachiyomiSectionTitle => 'Tachiyomi / Mihon';
+
+  @override
   String kotatsuExportDone(int count) {
     return '$count manga exported to Kotatsu';
   }

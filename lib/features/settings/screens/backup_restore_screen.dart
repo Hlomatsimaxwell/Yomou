@@ -441,18 +441,7 @@ class _BackupRestoreScreenState extends ConsumerState<BackupRestoreScreen> {
             onTap: _restoreBackup,
           ),
           const SizedBox(height: 8),
-          _BuildButton(
-            icon: RemixIcons.upload_2_line,
-            title: l.exportTachiyomi,
-            subtitle: l.exportTachiyomiSubtitle,
-            onTap: _exportTachiyomi,
-          ),
-          _BuildButton(
-            icon: RemixIcons.download_2_line,
-            title: l.importTachiyomi,
-            subtitle: l.importTachiyomiSubtitle,
-            onTap: _importTachiyomi,
-          ),
+          _AppSectionHeader(title: l.kotatsuSectionTitle),
           _BuildButton(
             icon: RemixIcons.stack_line,
             title: l.exportKotatsu,
@@ -464,6 +453,20 @@ class _BackupRestoreScreenState extends ConsumerState<BackupRestoreScreen> {
             title: l.importKotatsu,
             subtitle: l.importKotatsuSubtitle,
             onTap: _importKotatsu,
+          ),
+          const SizedBox(height: 8),
+          _AppSectionHeader(title: l.tachiyomiSectionTitle),
+          _BuildButton(
+            icon: RemixIcons.upload_2_line,
+            title: l.exportTachiyomi,
+            subtitle: l.exportTachiyomiSubtitle,
+            onTap: _exportTachiyomi,
+          ),
+          _BuildButton(
+            icon: RemixIcons.download_2_line,
+            title: l.importTachiyomi,
+            subtitle: l.importTachiyomiSubtitle,
+            onTap: _importTachiyomi,
           ),
           _BuildButton(
             icon: RemixIcons.scissors_cut_line,
@@ -487,6 +490,29 @@ class _BackupRestoreScreenState extends ConsumerState<BackupRestoreScreen> {
           const SizedBox(height: 24),
         ],
       )),
+      ),
+    );
+  }
+}
+
+class _AppSectionHeader extends StatelessWidget {
+  const _AppSectionHeader({required this.title});
+
+  final String title;
+
+  @override
+  Widget build(BuildContext context) {
+    final color = Theme.of(context).colorScheme;
+    return Padding(
+      padding: const EdgeInsets.fromLTRB(16, 8, 16, 6),
+      child: Text(
+        title,
+        style: TextStyle(
+          fontSize: 13,
+          fontWeight: FontWeight.w700,
+          letterSpacing: 0.4,
+          color: color.primary,
+        ),
       ),
     );
   }
