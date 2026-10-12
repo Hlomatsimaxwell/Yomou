@@ -81,6 +81,46 @@ class _BackupRestoreScreenState extends ConsumerState<BackupRestoreScreen> {
     );
   }
 
+  /// Mirrors the missing-title scan into the notification shade as a
+  /// Kotatsu-style ongoing progress bar, so the scan stays visible (and keeps
+  /// updating) even after the reader leaves the app.
+  void _startScanShadeProgress(
+    AppLocalizations l,
+    TachiyomiImportResult parsed,
+  ) {
+    final total = parsed.missingMangas.length;
+    if (total == 0) return;
+    unawaited(
+      NotificationService.instance.showBackupProgress(
+        id: NotificationService.importResultNotificationId,
+        title: l.importScanTitle,
+        body: l.importScanProgress(0, total),
+        current: 0,
+        total: total,
+      ),
+    );
+  }
+
+  void _updateScanShadeProgress(AppLocalizations l, int done, int total) {
+    unawaited(
+      NotificationService.instance.showBackupProgress(
+        id: NotificationService.importResultNotificationId,
+        title: l.importScanTitle,
+        body: l.importScanProgress(done, total),
+        current: done,
+        total: total,
+      ),
+    );
+  }
+
+  void _dismissScanShadeProgress() {
+    unawaited(
+      NotificationService.instance.cancelBackupProgress(
+        id: NotificationService.importResultNotificationId,
+      ),
+    );
+  }
+
   Future<void> _restoreBackup() async {
     final l = AppLocalizations.of(context);
     // Captured before any await: the scan is non-blocking, so the reader may
@@ -110,8 +150,16 @@ class _BackupRestoreScreenState extends ConsumerState<BackupRestoreScreen> {
       // while it ran; the completion UI works off the captured values above.
       final result = await BackupRestore.restore(
         bytes,
-        resolveTachiyomi: (parsed) =>
-            scanTachiyomiMissingWithProgress(context, ref, parsed),
+        resolveTachiyomi: (parsed) {
+          _startScanShadeProgress(l, parsed);
+          return scanTachiyomiMissingWithProgress(
+            context,
+            ref,
+            parsed,
+            onProgress: (done, total) =>
+                _updateScanShadeProgress(l, done, total),
+          );
+        },
       );
       bumpHistoryRevision(container);
       bumpFavoritesRevision(container);
@@ -122,6 +170,7 @@ class _BackupRestoreScreenState extends ConsumerState<BackupRestoreScreen> {
           final parsed = result.tachiyomi!;
           final isKotatsu = result.format == BackupFormat.kotatsu;
           if (parsed.isEmpty) {
+            _dismissScanShadeProgress();
             showIosToastOnOverlay(
               overlay,
               message: isKotatsu ? l.kotatsuImportNone : l.tachiyomiImportNone,
@@ -169,6 +218,7 @@ class _BackupRestoreScreenState extends ConsumerState<BackupRestoreScreen> {
           );
       }
     } on FormatException {
+      _dismissScanShadeProgress();
       if (!mounted) return;
       showIosToast(context, message: l.tachiyomiImportInvalid);
     }
@@ -300,16 +350,20 @@ class _BackupRestoreScreenState extends ConsumerState<BackupRestoreScreen> {
 
       final parsed = KotatsuBackupCodec.import(bytes);
       if (!mounted) return;
+      _startScanShadeProgress(l, parsed);
       final resolved = await scanTachiyomiMissingWithProgress(
         context,
         ref,
         parsed,
+        onProgress: (done, total) =>
+            _updateScanShadeProgress(l, done, total),
       );
       await BackupRestore.applyTachiyomi(resolved);
 
       bumpHistoryRevision(container);
       bumpFavoritesRevision(container);
       if (resolved.isEmpty) {
+        _dismissScanShadeProgress();
         if (!mounted) return;
         showIosToast(context, message: l.kotatsuImportNone);
         return;
@@ -334,6 +388,7 @@ class _BackupRestoreScreenState extends ConsumerState<BackupRestoreScreen> {
         ),
       );
     } on FormatException {
+      _dismissScanShadeProgress();
       if (!mounted) return;
       showIosToast(context, message: l.kotatsuImportInvalid);
     }
@@ -358,18 +413,22 @@ class _BackupRestoreScreenState extends ConsumerState<BackupRestoreScreen> {
 
       final parsed = TachiyomiBackupCodec.import(bytes);
       if (!mounted) return;
+      _startScanShadeProgress(l, parsed);
       // The scan is non-blocking, so this screen may be gone by the time it
       // finishes; the completion UI works off the captured values above.
       final resolved = await scanTachiyomiMissingWithProgress(
         context,
         ref,
         parsed,
+        onProgress: (done, total) =>
+            _updateScanShadeProgress(l, done, total),
       );
       await BackupRestore.applyTachiyomi(resolved);
 
       bumpHistoryRevision(container);
       bumpFavoritesRevision(container);
       if (resolved.isEmpty) {
+        _dismissScanShadeProgress();
         if (!mounted) return;
         showIosToast(context, message: l.tachiyomiImportNone);
         return;
@@ -391,6 +450,7 @@ class _BackupRestoreScreenState extends ConsumerState<BackupRestoreScreen> {
         ),
       );
     } catch (e) {
+      _dismissScanShadeProgress();
       if (!mounted) return;
       showIosToast(context, message: l.tachiyomiImportInvalid);
     }

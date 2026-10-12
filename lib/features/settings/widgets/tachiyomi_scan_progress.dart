@@ -30,11 +30,15 @@ String importFinishedMessage(
 /// rather than a modal dialog: it floats above the bottom navigation and never
 /// swallows taps, so the reader can keep using the app while the sources are
 /// searched. When there is nothing to scan the parsed result is returned as-is.
+///
+/// [onProgress] receives the same (done, total) updates the pill shows, so a
+/// caller can mirror the scan into the notification shade as well.
 Future<TachiyomiImportResult> scanTachiyomiMissingWithProgress(
   BuildContext context,
   WidgetRef ref,
-  TachiyomiImportResult parsed,
-) async {
+  TachiyomiImportResult parsed, {
+  void Function(int done, int total)? onProgress,
+}) async {
   if (parsed.missingMangas.isEmpty) return parsed;
   // The selection loads from prefs asynchronously; wait so the rescue knows the
   // reader's languages (and the source rows reflect them) before searching.
@@ -62,7 +66,10 @@ Future<TachiyomiImportResult> scanTachiyomiMissingWithProgress(
       parsed,
       sources,
       preferredLanguages: preferredLanguages,
-      onProgress: (done, total) => progress.value = (done: done, total: total),
+      onProgress: (done, total) {
+        progress.value = (done: done, total: total);
+        onProgress?.call(done, total);
+      },
     );
   } finally {
     entry.remove();

@@ -439,6 +439,58 @@ class NotificationService {
     } catch (_) {}
   }
 
+  /// Shows (or updates, by [id]) the Kotatsu-style ongoing progress
+  /// notification that mirrors a running import scan in the shade. Calling it
+  /// again with the same [id] replaces the previous one; [total] of zero (or a
+  /// negative [current]) renders an indeterminate bar. Posting the final result
+  /// with [showBackupResultNotification] on the same [id] swaps this out.
+  Future<void> showBackupProgress({
+    required int id,
+    required String title,
+    required String body,
+    required int current,
+    required int total,
+  }) async {
+    try {
+      await init();
+      final indeterminate = total <= 0 || current < 0;
+      await _plugin.show(
+        id: id,
+        title: title,
+        body: body,
+        notificationDetails: NotificationDetails(
+          android: AndroidNotificationDetails(
+            _backupChannelId,
+            _backupChannelName,
+            channelDescription: _backupChannelDescription,
+            importance: Importance.high,
+            priority: Priority.high,
+            playSound: false,
+            enableVibration: false,
+            category: AndroidNotificationCategory.status,
+            ongoing: true,
+            autoCancel: false,
+            onlyAlertOnce: true,
+            showProgress: true,
+            maxProgress: total < 1 ? 1 : total,
+            progress: current < 0 ? 0 : current.clamp(0, total),
+            indeterminate: indeterminate,
+          ),
+          iOS: const DarwinNotificationDetails(),
+        ),
+      );
+    } catch (_) {}
+  }
+
+  /// Removes the ongoing progress notification so nothing lingers when an
+  /// import finishes without posting a result (e.g. nothing was importable).
+  Future<void> cancelBackupProgress({required int id}) async {
+    try {
+      await init();
+      await _plugin.cancel(id: id);
+    } catch (_) {}
+  }
+
   /// Dev/demo: shows a realistic "suggested manga" card with a cover image for
   /// previewing its look and layout.
   Future<void> showTestSuggested() async {
