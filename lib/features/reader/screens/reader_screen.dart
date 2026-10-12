@@ -3763,50 +3763,38 @@ class _ReaderScreenState extends ConsumerState<ReaderScreen>
     final zoomFraction = (100 - _webtoonZoomOut) / 100;
     return ScrollConfiguration(
       behavior: ScrollConfiguration.of(context).copyWith(scrollbars: false),
-      // Rebuilds on every zoom change so the strip's physics can follow the
-      // canvas: while zoomed the strip stops scrolling and the single-finger
-      // pan moves the magnified page instead; unzoom to scroll again.
-      child: ValueListenableBuilder<Matrix4>(
-        valueListenable: _screenZoom,
-        builder: (context, value, _) {
-          final zoomed = value.getMaxScaleOnAxis() > 1.02;
-          return ListView.builder(
-            controller: _scrollController,
-            physics: zoomed
-                ? const NeverScrollableScrollPhysics()
-                : const BouncingScrollPhysics(),
-            itemCount: _pages.length + 1,
-            itemBuilder: (context, index) {
-              if (index < _pages.length) {
-                final page = _buildPageImage(
-                  _pages[index],
-                  headers,
-                  index: index,
-                  localPath: _pageFiles[index],
-                );
-                if (zoomFraction >= 1 && !_webtoonGaps) return page;
-                // "Gaps in webtoon mode" separates panels so the eye can find
-                // the seam between two images, which otherwise run together on
-                // a long strip. The gap is drawn in the canvas colour, never
-                // over a page.
-                return Container(
-                  margin: _webtoonGaps
-                      ? const EdgeInsets.symmetric(vertical: 4, horizontal: 2)
-                      : EdgeInsets.zero,
-                  color: _webtoonGaps ? _canvasBackground : null,
-                  child: zoomFraction >= 1
-                      ? page
-                      : Center(
-                          child: FractionallySizedBox(
-                            widthFactor: zoomFraction,
-                            child: page,
-                          ),
-                        ),
-                );
-              }
-              return _buildLoadingIndicator();
-            },
-          );
+      child: ListView.builder(
+        controller: _scrollController,
+        physics: const BouncingScrollPhysics(),
+        itemCount: _pages.length + 1,
+        itemBuilder: (context, index) {
+          if (index < _pages.length) {
+            final page = _buildPageImage(
+              _pages[index],
+              headers,
+              index: index,
+              localPath: _pageFiles[index],
+            );
+            if (zoomFraction >= 1 && !_webtoonGaps) return page;
+            // "Gaps in webtoon mode" separates panels so the eye can find the
+            // seam between two images, which otherwise run together on a long
+            // strip. The gap is drawn in the canvas colour, never over a page.
+            return Container(
+              margin: _webtoonGaps
+                  ? const EdgeInsets.symmetric(vertical: 4, horizontal: 2)
+                  : EdgeInsets.zero,
+              color: _webtoonGaps ? _canvasBackground : null,
+              child: zoomFraction >= 1
+                  ? page
+                  : Center(
+                      child: FractionallySizedBox(
+                        widthFactor: zoomFraction,
+                        child: page,
+                      ),
+                    ),
+            );
+          }
+          return _buildLoadingIndicator();
         },
       ),
     );
@@ -3816,53 +3804,45 @@ class _ReaderScreenState extends ConsumerState<ReaderScreen>
   Widget _buildHorizontalReader(Map<String, String>? headers) {
     final isRtl = _readingMode == ReadingMode.rightToLeft;
 
-    // Rebuilds on every zoom change so the pager's physics can follow the
-    // canvas: while zoomed the pager stops taking swipes and the single-finger
-    // pan moves the magnified page instead; unzoom (pinch out or double-tap)
-    // to start flipping again.
-    Widget pageView = ValueListenableBuilder<Matrix4>(
-      valueListenable: _screenZoom,
-      builder: (context, value, _) {
-        final zoomed = value.getMaxScaleOnAxis() > 1.02;
-        return PageView.builder(
-          key: ValueKey(
-            'pager-${_readingMode.name}-$_useTwoPagesLayout',
-          ),
-          controller: _pageController,
-          // "Invert navigation control" flips which way a swipe moves, so a
-          // left-handed reader can page the other way. The page indices are
-          // untouched: only the direction of travel changes.
-          reverse: _invertNavigation,
-          itemCount: _pages.length,
-          onPageChanged: (index) {
-            _maybeShowToast();
-            _flashOnPage(index);
-            // Warm the on-disk cache for pages ahead of where the reader sits.
-            _prefetchNearbyPages();
-            // Once the reader moves off the landing page, re-arm the adjacent
-            // chapter loaders so real backward swipes still work.
-            if (_suppressAdjacentAutoLoad && index > 0) {
-              _suppressAdjacentAutoLoad = false;
-            }
-            // Swiping back into page 0 -> load the previous chapter so the
-            // pager can keep going backward across the chapter boundary.
-            if (!_suppressAdjacentAutoLoad && _lastPageIndex > 0 && index == 0) {
-              _loadPreviousChapter();
-            }
-            _lastPageIndex = index;
-          },
-          physics: zoomed ? const NeverScrollableScrollPhysics() : null,
-          itemBuilder: (context, index) {
-            final page = _buildPageImage(
-              _pages[index],
-              headers,
-              index: index,
-              localPath: _pageFiles[index],
-            );
-            // Un-mirror each page when the reader itself is mirrored for RTL.
-            return isRtl ? Transform.scale(scaleX: -1, child: page) : page;
-          },
+    Widget pageView = PageView.builder(
+      key: ValueKey(
+        'pager-${_readingMode.name}-$_useTwoPagesLayout',
+      ),
+      controller: _pageController,
+      // "Invert navigation control" flips which way a swipe moves, so a
+      // left-handed reader can page the other way. The page indices are
+      // untouched: only the direction of travel changes.
+      reverse: _invertNavigation,
+      itemCount: _pages.length,
+      onPageChanged: (index) {
+        _maybeShowToast();
+        _flashOnPage(index);
+        // Warm the on-disk cache for pages ahead of where the reader sits.
+        _prefetchNearbyPages();
+        // Once the reader moves off the landing page, re-arm the adjacent
+        // chapter loaders so real backward swipes still work.
+        if (_suppressAdjacentAutoLoad && index > 0) {
+          _suppressAdjacentAutoLoad = false;
+        }
+        // Swiping back into page 0 -> load the previous chapter so the pager
+        // can keep going backward across the chapter boundary.
+        if (!_suppressAdjacentAutoLoad && _lastPageIndex > 0 && index == 0) {
+          _loadPreviousChapter();
+        }
+        _lastPageIndex = index;
+      },
+      // Scrolling (flipping pages) is always allowed, whether the canvas is
+      // zoomed or not, so the user can read on at any zoom level.
+      physics: null,
+      itemBuilder: (context, index) {
+        final page = _buildPageImage(
+          _pages[index],
+          headers,
+          index: index,
+          localPath: _pageFiles[index],
         );
+        // Un-mirror each page when the reader itself is mirrored for RTL.
+        return isRtl ? Transform.scale(scaleX: -1, child: page) : page;
       },
     );
 
@@ -4075,12 +4055,11 @@ class _ReaderScreenState extends ConsumerState<ReaderScreen>
     );
   }
 
-  // Single-finger drags belong to the zoom transform only once the canvas is
-  // actually magnified: pinch can still start from any state, but an unzoomed
-  // drag stays with the pager/list so swipes, webtoon scrolling and taps keep
-  // working. While zoomed the pager/list scroll physics are disabled above, so
-  // the one-finger pan (and any pinch) lands on the zoom, photo-viewer style.
-  bool _shouldOwnZoomGesture() => _screenZoom.value.getMaxScaleOnAxis() > 1.02;
+  // Single-finger drags are never taken over by the zoom transform: the inner
+  // pager/list keeps every un-zoomed drag so page flipping and webtoon
+  // scrolling work identically at any zoom level. Panning within a zoomed
+  // canvas is done with a two-finger drag.
+  bool _shouldOwnZoomGesture() => false;
 
   void _onZoomStart(ScaleStartDetails details) {
     if (!mounted) return;
@@ -4107,8 +4086,7 @@ class _ReaderScreenState extends ConsumerState<ReaderScreen>
       return;
     }
 
-    // Drag while already zoomed (the focal point moves with one or two
-    // fingers): pan the magnified canvas.
+    // Two-finger drag while already zoomed (focal point moves): pan.
     if (baseScale > 1.0 && details.focalPointDelta != Offset.zero) {
       final delta = details.focalPointDelta;
       _screenZoom.value = _zoomClampTranslation(
@@ -4539,57 +4517,37 @@ class _ChapterDownloadTask {
 
 // --- READER PAGE ZOOM GESTURE RECOGNIZER ---
 //
-// A scale recognizer that owns a drag only when it should zoom or pan: as
-// soon as two fingers are down (pinch on any page), when the page is already
-// zoomed (single-finger pan), or any time the pager/list physics are disabled.
-// A lone unzoomed pointer is held until it travels past the touch slop and
-// only then rejected, so the pager / webtoon list keeps owning real swipes
-// while a slow first finger still leaves room for a pinch's second finger.
+// A scale recognizer that only claims a drag when it should zoom or pan:
+// either two fingers are down (pinch on any page) or the page is already
+// zoomed (single-finger pan). In every other case it rejects immediately so
+// the pager / webtoon list keeps owning the scroll gesture.
 class _ReaderZoomRecognizer extends ScaleGestureRecognizer {
   _ReaderZoomRecognizer({required this.shouldOwnGesture});
 
   final bool Function() shouldOwnGesture;
-  final Set<int> _activePointers = {};
-  Offset? _firstPointerDown;
+  int _pointers = 0;
 
   @override
   void addAllowedPointer(PointerDownEvent event) {
-    if (_activePointers.isEmpty) _firstPointerDown = event.position;
-    _activePointers.add(event.pointer);
+    _pointers++;
     super.addAllowedPointer(event);
   }
 
   @override
   void didStopTrackingLastPointer(int pointer) {
-    _activePointers.clear();
-    _firstPointerDown = null;
+    _pointers--;
     super.didStopTrackingLastPointer(pointer);
   }
 
   @override
   void handleEvent(PointerEvent event) {
-    if (event is PointerUpEvent || event is PointerCancelEvent) {
-      _activePointers.remove(event.pointer);
-    }
-    // A second finger down is a pinch (or a two-finger pan while zoomed):
-    // accept the arena right away so the pager/list swipe recognizers racing
-    // us on the first finger can never steal the gesture.
-    if (event is PointerDownEvent && _activePointers.length >= 2) {
-      resolve(GestureDisposition.accepted);
-    }
-    // A lone, unzoomed pointer is a page swipe / scroll. Don't reject on mere
-    // movement (the second finger of a pinch may land at any moment) — only
-    // once it has clearly travelled past the touch slop. While zoomed a
-    // single finger is the pan, so it is never rejected; pointer-ups are
-    // left to the superclass so a pinch that loses a finger can keep panning.
-    else if (event is PointerMoveEvent &&
-        !shouldOwnGesture() &&
-        _activePointers.length < 2) {
-      final down = _firstPointerDown;
-      if (down != null && (event.position - down).distance > kTouchSlop) {
-        resolve(GestureDisposition.rejected);
-        return;
-      }
+    // Never reject on the DOWN event: the first finger of a fresh pinch lands
+    // alone and is not zoomed yet, but the second finger follows immediately.
+    // Reject only once a move shows it is a lone unzoomed drag, so normal
+    // swipes still pass to the pager/list.
+    if (event is! PointerDownEvent && !shouldOwnGesture() && _pointers < 2) {
+      resolve(GestureDisposition.rejected);
+      return;
     }
     super.handleEvent(event);
   }
