@@ -1,0 +1,223 @@
+name: Release
+
+# There are two ways to get binaries out of this project, on purpose:
+#
+#   1. This workflow (release.yml) runs automatically when a "v*" tag is pushed
+#      (or manually via the "tag" input) and publishes a GitHub Release with the
+#      APK and the unsigned IPA attached. It writes contents, so it is the one
+#      that owns releases.
+#   2. build_apk.yml / build_ios.yml are the manual "(testing)" builds:
+#      workflow_dispatch only, no release, no tag trigger. They are for poking at
+#      a build without publishing anything. Keeping the build steps here in sync
+#      with those two keeps a release build and a testing build from diverging.
+on:
+  push:
+    tags:
+      - 'v*'
+  workflow_dispatch:
+    inputs:
+      tag:
+        description: 'Tag to release, e.g. v1.1.4. Leave blank to use the version in pubspec.yaml.'
+        required: false
+        type: string
+
+# contents: write is what lets the release job create the Release and its tag.
+permissions:
+  contents: write
+
+jobs:
+  build-android:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout Code
+        uses: actions/checkout@v4
+
+      - name: Set up Java
+        uses: actions/setup-java@v4
+        with:
+          distribution: 'temurin'
+          java-version: '17'
+          cache: 'gradle'
+
+      - name: Set up Flutter
+        uses: subosito/flutter-action@v2
+        with:
+          # Matches build_ios.yml. The two workflows building the same project
+          # with different Flutter versions is how a CI-only failure starts.
+          flutter-version: '3.47.5'
+          channel: 'stable'
+          cache: true
+
+      - name: Install Dependencies
+        run: flutter pub get
+
+      - name: Build Release APK
+        run: flutter build apk --release
+
+      - name: Name the APK
+        id: apk
+        run: |
+          set -euo pipefail
+          version=$(grep -E '^version:' pubspec.yaml | head -1 \
+            | sed 's/version:[[:space:]]*//; s/+.*//')
+          mkdir -p dist
+          cp build/app/outputs/flutter-apk/app-release.apk "dist/Yomou-${version}.apk"
+          echo "path=dist/Yomou-${version}.apk" >> "$GITHUB_OUTPUT"
+
+      - name: Upload APK Artifact
+        # upload-artifact@v7 with archive:false uploads the file as-is (no zip),
+        # and the file name becomes the artifact name -- so the download is just
+        # "Yomou-<version>.apk". v4 cannot do this; it always zips.
+        uses: actions/upload-artifact@v7
+        with:
+          path: ${{ steps.apk.outputs.path }}
+          archive: false
+          if-no-files-found: error
+
+  build-ios:
+    runs-on: macos-latest
+
+    steps:
+      - name: Checkout Code
+        uses: actions/checkout@v4
+
+      - name: Set up Java
+        uses: actions/setup-java@v4
+        with:
+          distribution: 'temurin'
+          java-version: '17'
+
+      - name: Set up Flutter
+        uses: subosito/flutter-action@v2
+        with:
+          # Kept in step with build_apk.yml. The two workflows disagreeing about
+          # the Flutter version is how you end up debugging a build failure
+          # that only exists in CI.
+          flutter-version: '3.47.5'
+          channel: 'stable'
+          cache: true
+
+      - name: Install Dependencies
+        run: flutter pub get
+
+      - name: Ensure xcbeautify is available
+        # It ships on GitHub's macOS images, but piping a build into a command
+        # that might not exist turns a normal build failure into "command not
+        # found", which tells you nothing about the actual problem.
+        run: |
+          if ! command -v xcbeautify >/dev/null 2>&1; then
+            brew install xcbeautify
+          fi
+
+      - name: Package an unsigned IPA
+        # Release builds always take the unsigned path: it needs no Apple
+        # account and no secrets, and it is enough to publish a build artifact.
+        # In build_ios.yml this same step is gated on inputs.build_kind.
+        run: |
+          set -euo pipefail
+          # Deliberately not the signed path: this only proves the project
+          # compiles for iOS. The result carries no signature, so it will not
+          # install on a device, which is exactly why it is a separate choice
+          # rather than a silent fallback when secrets are absent.
+          flutter build ios --release --no-codesign
+          mkdir -p build/ios/ipa/Payload
+          mv build/ios/iphoneos/Runner.app build/ios/ipa/Payload/
+          # zipped from inside the folder so the archive contains "Payload/",
+          # which is the layout an .ipa is required to have.
+          ( cd build/ios/ipa && zip -qry unsigned.ipa Payload )
+          ls -la build/ios/ipa
+
+      - name: Name the IPA
+        id: ipa
+        run: |
+          set -euo pipefail
+          version=$(grep -E '^version:' pubspec.yaml | head -1 \
+            | sed 's/version:[[:space:]]*//; s/+.*//')
+          mkdir -p dist
+          src=build/ios/ipa/unsigned.ipa
+          dest="dist/Yomou-${version}-unsigned.ipa"
+          cp "$src" "$dest"
+          echo "path=$dest" >> "$GITHUB_OUTPUT"
+
+      - name: Upload IPA Artifact
+        # upload-artifact@v7 with archive:false uploads the file as-is (no zip),
+        # and the file name becomes the artifact name -- so the download is just
+        # "Yomou-<version>-unsigned.ipa". v4 always zips, and an artifact named
+        # plainly "ipa" is indistinguishable from an installable one anyway.
+        uses: actions/upload-artifact@v7
+        with:
+          path: ${{ steps.ipa.outputs.path }}
+          archive: false
+          if-no-files-found: error
+
+  release:
+    runs-on: ubuntu-latest
+    needs: [build-android, build-ios]
+
+    steps:
+      - name: Checkout Code
+        # Needed to read pubspec.yaml (version) and CHANGELOG.md (release notes).
+        uses: actions/checkout@v4
+
+      - name: Download Artifacts
+        # merge-multiple puts both the APK and the IPA straight into dist/.
+        uses: actions/download-artifact@v7
+        with:
+          path: dist
+          merge-multiple: true
+
+      - name: Resolve Tag
+        id: tag
+        env:
+          EVENT_NAME: ${{ github.event_name }}
+          INPUT_TAG: ${{ inputs.tag }}
+          REF_NAME: ${{ github.ref_name }}
+        run: |
+          set -euo pipefail
+          if [ "$EVENT_NAME" = "push" ]; then
+            # Automatic path: the tag that triggered this run.
+            tag="$REF_NAME"
+          elif [ -n "$INPUT_TAG" ]; then
+            # Manual path with an explicit tag.
+            tag="$INPUT_TAG"
+          else
+            # Manual path with no tag: derive v<version> from pubspec.yaml,
+            # stripping the "+build" suffix.
+            version=$(grep -E '^version:' pubspec.yaml | head -1 \
+              | sed 's/version:[[:space:]]*//; s/+.*//')
+            tag="v${version}"
+          fi
+          echo "tag=$tag" >> "$GITHUB_OUTPUT"
+          echo "version=${tag#v}" >> "$GITHUB_OUTPUT"
+
+      - name: Extract Release Notes
+        id: notes
+        env:
+          VERSION: ${{ steps.tag.outputs.version }}
+        run: |
+          set -euo pipefail
+          notes=release-notes.md
+          : > "$notes"
+          if [ -f CHANGELOG.md ]; then
+            # From "## [<version>]" up to (not including) the next "## [".
+            awk -v ver="$VERSION" '
+              $0 ~ "^## \\[" ver "\\]" { found=1; print; next }
+              found && /^## \[/ { exit }
+              found { print }
+            ' CHANGELOG.md > "$notes"
+          fi
+          if [ ! -s "$notes" ]; then
+            # No matching section, or no CHANGELOG: fall back to a simple line
+            # rather than failing the release.
+            echo "Release ${VERSION}" > "$notes"
+          fi
+          echo "path=$notes" >> "$GITHUB_OUTPUT"
+
+      - name: Create Release
+        uses: softprops/action-gh-release@v2
+        with:
+          tag_name: ${{ steps.tag.outputs.tag }}
+          files: dist/*
+          body_path: ${{ steps.notes.outputs.path }}
+          draft: false

@@ -1,4 +1,4 @@
-name: Build iOS IPA
+name: Build iOS IPA (testing)
 
 # The default produces a *signed* IPA that installs on a real device. The
 # previous version of this workflow produced an *unsigned* IPA, which iOS
