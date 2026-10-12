@@ -161,11 +161,29 @@ jobs:
         uses: actions/checkout@v4
 
       - name: Download Artifacts
-        # merge-multiple puts both the APK and the IPA straight into dist/.
-        uses: actions/download-artifact@v7
-        with:
-          path: dist
-          merge-multiple: true
+        # The build jobs upload with archive:false, so the artifact endpoint
+        # serves the raw .apk / .ipa bytes. actions/download-artifact tries to
+        # unzip them (they are already zips) and chokes on the 78 MB APK, so we
+        # pull the raw files straight from the API instead.
+        env:
+          GH_TOKEN: ${{ github.token }}
+          RUN_ID: ${{ github.run_id }}
+        run: |
+          set -euo pipefail
+          mkdir -p dist
+          api="${GITHUB_API_URL}/repos/${GITHUB_REPOSITORY}/actions/runs/${RUN_ID}/artifacts"
+          mapfile -t rows < <(gh api "$api" --paginate --jq '.artifacts[] | "\(.id)\t\(.name)"')
+          for row in "${rows[@]}"; do
+            IFS=$'\t' read -r id name <<< "$row"
+            echo "Downloading ${name}"
+            curl -sSL --retry 5 --retry-all-errors \
+              -H "Authorization: token ${GH_TOKEN}" \
+              -H "Accept: application/vnd.github+json" \
+              "${GITHUB_API_URL}/repos/${GITHUB_REPOSITORY}/actions/artifacts/${id}/zip" \
+              -o "dist/${name}"
+          done
+          echo "--- dist ---"
+          ls -l dist
 
       - name: Resolve Tag
         id: tag
