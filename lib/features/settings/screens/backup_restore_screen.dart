@@ -1,3 +1,4 @@
+import 'dart:async';
 import 'dart:convert';
 import 'dart:io';
 import 'dart:typed_data';
@@ -10,6 +11,7 @@ import 'package:yomou/core/backup/backup_restore.dart';
 import 'package:yomou/core/backup/kotatsu_backup.dart';
 import 'package:yomou/core/backup/tachiyomi_backup.dart';
 import 'package:yomou/core/database/database_helper.dart';
+import 'package:yomou/core/notifications/notification_service.dart';
 import 'package:yomou/core/theme/layout.dart';
 import 'package:yomou/core/widgets/responsive.dart';
 import 'package:yomou/core/widgets/ios/ios_toast.dart';
@@ -33,6 +35,7 @@ class BackupRestoreScreen extends ConsumerStatefulWidget {
 
 class _BackupRestoreScreenState extends ConsumerState<BackupRestoreScreen> {
   Future<void> _createBackup() async {
+    final l = AppLocalizations.of(context);
     final history = await DatabaseHelper.instance.getHistory();
     final favorites = await DatabaseHelper.instance.getFavorites();
     final bookmarks = await DatabaseHelper.instance.getAllBookmarks();
@@ -66,7 +69,16 @@ class _BackupRestoreScreenState extends ConsumerState<BackupRestoreScreen> {
         .setLastBackupAt(DateTime.now().millisecondsSinceEpoch);
 
     if (!mounted) return;
-    showIosToast(context, message: 'Backup saved');
+    showIosToast(context, message: l.backupSaved);
+    // A system notification that survives leaving the app: same channel and
+    // spirit as Kotatsu's "Backup saved" result notification.
+    unawaited(
+      NotificationService.instance.showBackupResultNotification(
+        id: NotificationService.exportResultNotificationId,
+        title: l.backupSaved,
+        body: fileName,
+      ),
+    );
   }
 
   Future<void> _restoreBackup() async {
@@ -116,15 +128,24 @@ class _BackupRestoreScreenState extends ConsumerState<BackupRestoreScreen> {
             );
             return;
           }
+          final finished = isKotatsu
+              ? parsed.skipped > 0
+                    ? '${l.kotatsuImportDone(parsed.imported)} · '
+                          '${l.importResultsNotImported(parsed.skipped)}'
+                    : l.kotatsuImportDone(parsed.imported)
+              : importFinishedMessage(l, parsed);
           if (mounted) {
-            final finished = isKotatsu
-                ? parsed.skipped > 0
-                      ? '${l.kotatsuImportDone(parsed.imported)} · '
-                            '${l.importResultsNotImported(parsed.skipped)}'
-                      : l.kotatsuImportDone(parsed.imported)
-                : importFinishedMessage(l, parsed);
             showIosToast(context, message: finished);
           }
+          // The missing-title scan can outlive this screen; the notification
+          // is what reports the result once the user has left.
+          unawaited(
+            NotificationService.instance.showBackupResultNotification(
+              id: NotificationService.importResultNotificationId,
+              title: l.importComplete,
+              body: finished,
+            ),
+          );
           navigator.push(
             MaterialPageRoute(
               builder: (context) => ImportResultsScreen(result: parsed),
@@ -132,14 +153,19 @@ class _BackupRestoreScreenState extends ConsumerState<BackupRestoreScreen> {
           );
         case BackupFormat.yomou:
           final restored = result.yomou!;
-          showIosToastOnOverlay(
-            overlay,
-            message: restored.isEmpty
-                ? l.backupRestoreNone
-                : restored.skippedNewer > 0
-                ? '${l.backupRestoreDone(restored.restored)} · '
-                      '${l.backupRestoreKeptNewer(restored.skippedNewer)}'
-                : l.backupRestoreDone(restored.restored),
+          final message = restored.isEmpty
+              ? l.backupRestoreNone
+              : restored.skippedNewer > 0
+              ? '${l.backupRestoreDone(restored.restored)} · '
+                    '${l.backupRestoreKeptNewer(restored.skippedNewer)}'
+              : l.backupRestoreDone(restored.restored);
+          showIosToastOnOverlay(overlay, message: message);
+          unawaited(
+            NotificationService.instance.showBackupResultNotification(
+              id: NotificationService.importResultNotificationId,
+              title: l.restoreComplete,
+              body: message,
+            ),
           );
       }
     } on FormatException {
@@ -187,9 +213,17 @@ class _BackupRestoreScreenState extends ConsumerState<BackupRestoreScreen> {
     if (!mounted) return;
     final skipped =
         result.skipped > 0 ? ' (${l.backupSkipped(result.skipped)})' : '';
+    final message = '${l.tachiyomiExportDone(result.exported)}$skipped';
     showIosToast(
       context,
-      message: '${l.tachiyomiExportDone(result.exported)}$skipped',
+      message: message,
+    );
+    unawaited(
+      NotificationService.instance.showBackupResultNotification(
+        id: NotificationService.exportResultNotificationId,
+        title: l.backupSaved,
+        body: message,
+      ),
     );
   }
 
@@ -233,9 +267,17 @@ class _BackupRestoreScreenState extends ConsumerState<BackupRestoreScreen> {
     if (!mounted) return;
     final skipped =
         result.skipped > 0 ? ' (${l.backupSkipped(result.skipped)})' : '';
+    final message = '${l.kotatsuExportDone(result.exported)}$skipped';
     showIosToast(
       context,
-      message: '${l.kotatsuExportDone(result.exported)}$skipped',
+      message: message,
+    );
+    unawaited(
+      NotificationService.instance.showBackupResultNotification(
+        id: NotificationService.exportResultNotificationId,
+        title: l.backupSaved,
+        body: message,
+      ),
     );
   }
 
@@ -272,13 +314,20 @@ class _BackupRestoreScreenState extends ConsumerState<BackupRestoreScreen> {
         showIosToast(context, message: l.kotatsuImportNone);
         return;
       }
+      final message = resolved.skipped > 0
+          ? '${l.kotatsuImportDone(resolved.imported)} · '
+                '${l.importResultsNotImported(resolved.skipped)}'
+          : l.kotatsuImportDone(resolved.imported);
       if (mounted) {
-        final message = resolved.skipped > 0
-            ? '${l.kotatsuImportDone(resolved.imported)} · '
-                  '${l.importResultsNotImported(resolved.skipped)}'
-            : l.kotatsuImportDone(resolved.imported);
         showIosToast(context, message: message);
       }
+      unawaited(
+        NotificationService.instance.showBackupResultNotification(
+          id: NotificationService.importResultNotificationId,
+          title: l.importComplete,
+          body: message,
+        ),
+      );
       navigator.push(
         MaterialPageRoute(
           builder: (context) => ImportResultsScreen(result: resolved),
@@ -325,9 +374,17 @@ class _BackupRestoreScreenState extends ConsumerState<BackupRestoreScreen> {
         showIosToast(context, message: l.tachiyomiImportNone);
         return;
       }
+      final message = importFinishedMessage(l, resolved);
       if (mounted) {
-        showIosToast(context, message: importFinishedMessage(l, resolved));
+        showIosToast(context, message: message);
       }
+      unawaited(
+        NotificationService.instance.showBackupResultNotification(
+          id: NotificationService.importResultNotificationId,
+          title: l.importComplete,
+          body: message,
+        ),
+      );
       navigator.push(
         MaterialPageRoute(
           builder: (context) => ImportResultsScreen(result: resolved),

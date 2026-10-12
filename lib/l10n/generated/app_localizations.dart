@@ -3901,6 +3901,24 @@ abstract class AppLocalizations {
   /// **'Backup and restore'**
   String get backupRestore;
 
+  /// No description provided for @backupSaved.
+  ///
+  /// In en, this message translates to:
+  /// **'Backup saved'**
+  String get backupSaved;
+
+  /// No description provided for @importComplete.
+  ///
+  /// In en, this message translates to:
+  /// **'Import complete'**
+  String get importComplete;
+
+  /// No description provided for @restoreComplete.
+  ///
+  /// In en, this message translates to:
+  /// **'Restore complete'**
+  String get restoreComplete;
+
   /// No description provided for @createDataBackup.
   ///
   /// In en, this message translates to:

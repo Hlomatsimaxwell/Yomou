@@ -2136,6 +2136,15 @@ class AppLocalizationsEs extends AppLocalizations {
   String get backupRestore => 'Copia de seguridad y restauración';
 
   @override
+  String get backupSaved => 'Copia de seguridad guardada';
+
+  @override
+  String get importComplete => 'Importación completada';
+
+  @override
+  String get restoreComplete => 'Restauración completada';
+
+  @override
   String get createDataBackup => 'Crear copia de seguridad';
 
   @override

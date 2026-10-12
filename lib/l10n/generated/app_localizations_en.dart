@@ -2118,6 +2118,15 @@ class AppLocalizationsEn extends AppLocalizations {
   String get backupRestore => 'Backup and restore';
 
   @override
+  String get backupSaved => 'Backup saved';
+
+  @override
+  String get importComplete => 'Import complete';
+
+  @override
+  String get restoreComplete => 'Restore complete';
+
+  @override
   String get createDataBackup => 'Create data backup';
 
   @override

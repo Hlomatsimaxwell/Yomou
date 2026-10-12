@@ -73,6 +73,13 @@ class NotificationService {
   static const String payloadFeed = 'feed';
   static const String payloadSuggested = 'suggested';
 
+  static const String _backupChannelId = 'backup_restore';
+  static const String _backupChannelName = 'Backup & restore';
+  static const String _backupChannelDescription =
+      'Results of backup, export and import';
+  static const int _exportResultNotificationId = 484010;
+  static const int _importResultNotificationId = 484011;
+
   static const String _newChapterGroupKey = 'yomou_new_chapters';
   static const int _newChapterSummaryId = 482003;
   static const int _newChapterChildIdBase = 0x100000;
@@ -82,6 +89,10 @@ class NotificationService {
 
   static String get readActionId => _readActionId;
   static String get moreActionId => _moreActionId;
+
+  /// Notification ids for the backup/restore result notifications.
+  static int get exportResultNotificationId => _exportResultNotificationId;
+  static int get importResultNotificationId => _importResultNotificationId;
 
   int _newChapterChildId(String mangaId) =>
       _newChapterChildIdBase + (mangaId.hashCode & 0xFFFFF);
@@ -390,6 +401,42 @@ class NotificationService {
         sourceId: manga.sourceId,
       ),
     );
+  }
+
+  /// Posts a single final "export/import finished" notification on a silent
+  /// high-priority channel, mirroring the result notification Kotatsu shows
+  /// after a backup or restore finishes.
+  ///
+  /// Import runs can outlive the screen that started them (the missing-title
+  /// scan is non-blocking), so this is posted without needing a context or an
+  /// active route. Failures are swallowed: a notification is a nice-to-have,
+  /// and the in-app toast still reports the result.
+  Future<void> showBackupResultNotification({
+    required int id,
+    required String title,
+    required String body,
+  }) async {
+    try {
+      await init();
+      await _plugin.show(
+        id: id,
+        title: title,
+        body: body,
+        notificationDetails: NotificationDetails(
+          android: AndroidNotificationDetails(
+            _backupChannelId,
+            _backupChannelName,
+            channelDescription: _backupChannelDescription,
+            importance: Importance.high,
+            priority: Priority.high,
+            playSound: false,
+            enableVibration: false,
+            category: AndroidNotificationCategory.status,
+          ),
+          iOS: const DarwinNotificationDetails(),
+        ),
+      );
+    } catch (_) {}
   }
 
   /// Dev/demo: shows a realistic "suggested manga" card with a cover image for

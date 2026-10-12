@@ -10,6 +10,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ### Added
 - **Import from Kotatsu** — Settings → Backup and restore now restores a Kotatsu `.bk.zip` (the backup format Kotatsu itself writes: a zip of one JSON array per table). Favorites, reading history and bookmarks come across; land the whole library from a Kotatsu backup without re-adding titles one by one.
 - **Export to Kotatsu** — Settings → Backup and restore now exports favorites and history as a real Kotatsu `.bk.zip`, so a Yomou library can be restored *into* Kotatsu. Only sources Kotatsu carries are written; the rest are counted in the done toast.
+- **Result notifications** — exporting or importing a backup now posts a system notification ("Backup saved", "Import complete" / "Restore complete") on a silent channel, the same pattern as Kotatsu's own backup-restore notification. The import scan can outlive the screen that started it, so the notification is what reports the result once you've left the app.
 - Restoration keeps working no matter what a picked file actually is: a `.json` Yomou backup, a Tachiyomi/Mihon `.tachibk`, or a Kotatsu `.bk.zip` are sniffed from the contents, never the extension.
 
 ### Notes
