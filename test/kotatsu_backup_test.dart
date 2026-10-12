@@ -367,6 +367,16 @@ void main() {
       expect(sources, hasLength(1));
       expect(sources.single['source'], 'ASURASCANS');
       expect(sources.single['added_in'], 1010);
+      // redo reads reader_grid as JSONArray(...).getJSONObject(0); an empty
+      // array fails restore with "Index 0 out of range [0..0)".
+      final readerGrid = jsonDecode(
+        utf8.decode(archive.files
+                .firstWhere((f) => f.name == 'reader_grid')
+                .readBytes() ??
+            Uint8List(0)),
+      ) as List;
+      expect(readerGrid, hasLength(1));
+      expect(readerGrid.single, isA<Map<String, dynamic>>());
     });
 
     test('a source Kotatsu does not carry is skipped', () {

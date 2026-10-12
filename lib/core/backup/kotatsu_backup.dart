@@ -424,7 +424,11 @@ class KotatsuBackupCodec {
           }
       ],
       'statistics': <Object>[],
-      'reader_grid': <Object>[],
+      // kotatsu-redo reads this as JSONArray(...).getJSONObject(0), so an
+      // empty array dies with "Index 0 out of range [0..0)". One empty object
+      // restores no tap-grid overrides, which is the honest answer for a
+      // Yomou export.
+      'reader_grid': [<String, dynamic>{}],
       'saved_filters': <Object>[],
       'scrobbling': <Object>[],
     };
