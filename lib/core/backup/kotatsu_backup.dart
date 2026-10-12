@@ -376,7 +376,9 @@ class KotatsuBackupCodec {
             'page_id': _stableId('$mangaId:p:$chapterId:$pageIndex'),
             'chapter_id': _stableId('$mangaId:c:$chapterId'),
             'page': pageIndex,
-            'scroll': 0.0,
+            // Kotatsu stores bookmarks scroll as an integer and its JSON
+            // parser rejects "0.0" (restore would fail on the whole file).
+            'scroll': 0,
             'image_url': b['pageUrl']?.toString() ?? '',
             'created_at': _msOf(b['createdAt']) ?? nowMs,
             'percent': 1.0,
@@ -490,19 +492,24 @@ class KotatsuBackupCodec {
       case 'seimanga':
         return '/$mangaId';
       case 'weebcentral':
-        return '/series/$mangaId';
+        // Kotatsu stores WeebCentral's id bare; its parser builds the
+        // /series/ path itself, so a prefixed url doubles it and the chapter
+        // list comes back empty.
+        return mangaId;
       case 'atsu':
         return mangaId.startsWith('/') ? mangaId : '/$mangaId';
       case 'arenascan':
         return '/manga/$mangaId/';
       case 'mangafire-en':
-      case 'mangafire-es':
       case 'mangafire-esla':
       case 'mangafire-fr':
       case 'mangafire-ja':
       case 'mangafire-pt':
       case 'mangafire-ptbr':
         return '/manga/$mangaId';
+      case 'mangafire-es':
+        // Kotatsu's Spanish mirror stores the /title/ form (EN uses /manga/).
+        return '/title/$mangaId';
       default:
         return '/$mangaId';
     }

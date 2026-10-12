@@ -406,6 +406,66 @@ void main() {
       expect(dex['url'], '/title/287f20cd-df67-4f09-bca8-112431d87fda');
     });
 
+    test('bookmarks write an integer scroll and export urls mirror Kotatsu', () {
+      final result = KotatsuBackupCodec.export(
+        favorites: [
+          row(
+            mangaId: 'nano-machine-9a7a1ac5',
+            sourceId: 'asurascans',
+            title: 'Nano Machine',
+          ),
+          row(
+            mangaId: '01JGBZ1ETAKPZ8A73ZT5MY70SW',
+            sourceId: 'weebcentral',
+            title: 'Enrolling in the Transcendent Academy',
+          ),
+          row(
+            mangaId: 'dkw-one-piece',
+            sourceId: 'mangafire-es',
+            title: 'One Piece',
+          ),
+        ],
+        bookmarks: [
+          {
+            'mangaId': 'nano-machine-9a7a1ac5',
+            'chapterId': 'api/series/nano-machine-9a7a1ac5/chapters/121',
+            'pageIndex': 3,
+            'pageUrl': 'https://asurascans.com/pages/nano-003.jpg',
+            'createdAt': '2026-10-08T17:44:42.000',
+          }
+        ],
+        readingProgress: const [],
+      );
+
+      final archive = ZipDecoder().decodeBytes(result.bytes);
+
+      final bookmarks = jsonDecode(
+        utf8.decode(archive.files
+                .firstWhere((f) => f.name == 'bookmarks')
+                .readBytes() ??
+            Uint8List(0)),
+      ) as List;
+      final entry = (bookmarks.single as Map)['bookmarks'];
+      expect((entry as List).single['scroll'], 0);
+      // Kotatsu's parser rejects the float form, so this must stay an int.
+      expect(jsonEncode(entry.single).contains('"scroll":0.0'), isFalse);
+
+      final favourites = jsonDecode(
+        utf8.decode(archive.files
+                .firstWhere((f) => f.name == 'favourites')
+                .readBytes() ??
+            Uint8List(0)),
+      ) as List;
+      final byTitle = {
+        for (final f in favourites) (f as Map)['manga']['title'] as String: f['manga'],
+      };
+      // WeebCentral is stored bare -- the parser builds /series/ itself.
+      expect(byTitle['Enrolling in the Transcendent Academy']!['url'],
+          '01JGBZ1ETAKPZ8A73ZT5MY70SW');
+      // The Spanish mangafire mirror uses the /title/ form.
+      expect(byTitle['One Piece']!['url'], '/title/dkw-one-piece');
+    });
+
     test('reading progress becomes a history entry', () {
       final result = KotatsuBackupCodec.export(
         favorites: [
