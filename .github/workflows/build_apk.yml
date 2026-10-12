@@ -64,21 +64,21 @@ jobs:
           version=$(grep -E '^version:' pubspec.yaml | head -1 \
             | sed 's/version:[[:space:]]*//; s/+.*//')
           mkdir -p dist
-          cp build/app/outputs/flutter-apk/app-release.apk "dist/Yomou-${version}-universal.apk"
-          cp build/app/outputs/flutter-apk/app-arm64-v8a-release.apk "dist/Yomou-${version}-arm64-v8a.apk"
-          cp build/app/outputs/flutter-apk/app-armeabi-v7a-release.apk "dist/Yomou-${version}-armeabi-v7a.apk"
-          cp build/app/outputs/flutter-apk/app-x86_64-release.apk "dist/Yomou-${version}-x86_64.apk"
-          echo "universal=dist/Yomou-${version}-universal.apk" >> "$GITHUB_OUTPUT"
-          echo "arm64=dist/Yomou-${version}-arm64-v8a.apk" >> "$GITHUB_OUTPUT"
-          echo "armv7=dist/Yomou-${version}-armeabi-v7a.apk" >> "$GITHUB_OUTPUT"
-          echo "x64=dist/Yomou-${version}-x86_64.apk" >> "$GITHUB_OUTPUT"
+          cp build/app/outputs/flutter-apk/app-release.apk "dist/1-Yomou-${version}-universal.apk"
+          cp build/app/outputs/flutter-apk/app-arm64-v8a-release.apk "dist/2-Yomou-${version}-arm64-v8a.apk"
+          cp build/app/outputs/flutter-apk/app-armeabi-v7a-release.apk "dist/3-Yomou-${version}-armeabi-v7a.apk"
+          cp build/app/outputs/flutter-apk/app-x86_64-release.apk "dist/4-Yomou-${version}-x86_64.apk"
+          echo "universal=dist/1-Yomou-${version}-universal.apk" >> "$GITHUB_OUTPUT"
+          echo "arm64=dist/2-Yomou-${version}-arm64-v8a.apk" >> "$GITHUB_OUTPUT"
+          echo "armv7=dist/3-Yomou-${version}-armeabi-v7a.apk" >> "$GITHUB_OUTPUT"
+          echo "x64=dist/4-Yomou-${version}-x86_64.apk" >> "$GITHUB_OUTPUT"
 
       - name: Verify release signing
         run: |
           set -euo pipefail
           SDK="${ANDROID_HOME:-${ANDROID_SDK_ROOT:-/usr/local/lib/android/sdk}}"
           SIGNER=$(ls "$SDK"/build-tools/*/apksigner 2>/dev/null | sort -V | tail -1)
-          for apk in dist/Yomou-*.apk; do
+          for apk in dist/[1-9]-Yomou-*.apk; do
             DN=$("$SIGNER" verify --print-certs "$apk" | grep -i 'certificate DN' | head -1)
             echo "$apk -> $DN"
             echo "$DN" | grep -q "CN=Yomou" || { echo "::error::$apk is not signed with the release key"; exit 1; }
