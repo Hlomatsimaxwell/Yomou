@@ -416,6 +416,9 @@ class KotatsuBackupCodec {
             'source': sourcesSeen[i],
             'sort_key': i,
             'used_at': nowMs,
+            // kotatsu-redo's SourceBackup requires it; its own backups write
+            // the catalog version the source arrived in.
+            'added_in': 1010,
             'pinned': false,
             'enabled': true,
           }

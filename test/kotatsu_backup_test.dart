@@ -356,6 +356,17 @@ void main() {
           'scrobbling',
         ]),
       );
+      // kotatsu-redo's SourceBackup requires added_in; an export without it is
+      // rejected mid-restore with "Field 'added_in' is required ...".
+      final sources = jsonDecode(
+        utf8.decode(archive.files
+                .firstWhere((f) => f.name == 'sources')
+                .readBytes() ??
+            Uint8List(0)),
+      ) as List;
+      expect(sources, hasLength(1));
+      expect(sources.single['source'], 'ASURASCANS');
+      expect(sources.single['added_in'], 1010);
     });
 
     test('a source Kotatsu does not carry is skipped', () {
