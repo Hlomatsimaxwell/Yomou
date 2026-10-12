@@ -19,6 +19,7 @@ import 'package:yomou/features/library/providers/downloads_provider.dart';
 import 'package:yomou/features/history/providers/history_provider.dart';
 import 'package:yomou/features/library/widgets/downloaded_badge.dart';
 import 'package:yomou/features/library/widgets/chapter_job_indicator.dart';
+import 'package:yomou/features/library/widgets/content_unavailable_dialog.dart';
 import 'package:yomou/features/library/widgets/download_batch_banner.dart';
 import 'package:yomou/features/library/screens/related_manga_screen.dart';
 import 'package:yomou/features/library/screens/edit_manga_screen.dart';
@@ -307,6 +308,11 @@ class _MangaDetailScreenState extends ConsumerState<MangaDetailScreen> {
           _chapters = [];
           _isLoadingChapters = false;
         });
+        // The source is genuinely absent (an import leftover), so no fetch is
+        // going to succeed: offer the Alternatives search up front instead of
+        // a dead-end failure line. Only this case gets the dialog -- a source
+        // that resolved and then failed reports its own error.
+        _promptFindOnOtherSources();
         return;
       }
       diagSoon('detail: source ${source.id} for ${widget.mangaId}');
@@ -2258,6 +2264,20 @@ class _MangaDetailScreenState extends ConsumerState<MangaDetailScreen> {
         builder: (context) => GlobalSearchResultsScreen(searchQuery: query),
       ),
     );
+  }
+
+  /// Kotatsu-style "Content unavailable" sheet for a manga whose source is
+  /// not installed. "Find on other sources" hands off to the Alternatives
+  /// search; Close or dismissing leaves the failure line on screen.
+  Future<void> _promptFindOnOtherSources() async {
+    if (!mounted) return;
+    final go = await showContentUnavailableDialog(
+      context,
+      imageUrl: _coverUrl,
+    );
+    if (go == true && mounted) {
+      _openAlternativesSearch();
+    }
   }
 
   void _openAlternativesSearch() {

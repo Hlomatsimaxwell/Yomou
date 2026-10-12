@@ -1077,6 +1077,20 @@ class AppLocalizationsEn extends AppLocalizations {
   String get sourceNotSupported => 'This source is not supported from here.';
 
   @override
+  String get contentUnavailable => 'Content unavailable';
+
+  @override
+  String get contentUnavailableBody1 =>
+      'This manga\'s source is not installed on this device.';
+
+  @override
+  String get contentUnavailableBody2 =>
+      'Alternatives searches the other enabled sources for the same title, so you can carry on reading where you left off.';
+
+  @override
+  String get findOnOtherSources => 'Find on other sources';
+
+  @override
   String get chapterStatusReadDownloaded => 'Read • Downloaded';
 
   @override

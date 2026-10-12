@@ -1089,6 +1089,20 @@ class AppLocalizationsEs extends AppLocalizations {
   String get sourceNotSupported => 'Esta fuente no es compatible desde aquí.';
 
   @override
+  String get contentUnavailable => 'Contenido no disponible';
+
+  @override
+  String get contentUnavailableBody1 =>
+      'La fuente de este manga no está instalada en este dispositivo.';
+
+  @override
+  String get contentUnavailableBody2 =>
+      'Alternativas busca el mismo título en las otras fuentes habilitadas, para que puedas continuar leyendo donde lo dejaste.';
+
+  @override
+  String get findOnOtherSources => 'Buscar en otras fuentes';
+
+  @override
   String get chapterStatusReadDownloaded => 'Leído • Descargado';
 
   @override

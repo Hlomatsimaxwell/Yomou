@@ -2030,6 +2030,30 @@ abstract class AppLocalizations {
   /// **'This source is not supported from here.'**
   String get sourceNotSupported;
 
+  /// No description provided for @contentUnavailable.
+  ///
+  /// In en, this message translates to:
+  /// **'Content unavailable'**
+  String get contentUnavailable;
+
+  /// No description provided for @contentUnavailableBody1.
+  ///
+  /// In en, this message translates to:
+  /// **'This manga\'s source is not installed on this device.'**
+  String get contentUnavailableBody1;
+
+  /// No description provided for @contentUnavailableBody2.
+  ///
+  /// In en, this message translates to:
+  /// **'Alternatives searches the other enabled sources for the same title, so you can carry on reading where you left off.'**
+  String get contentUnavailableBody2;
+
+  /// No description provided for @findOnOtherSources.
+  ///
+  /// In en, this message translates to:
+  /// **'Find on other sources'**
+  String get findOnOtherSources;
+
   /// No description provided for @chapterStatusReadDownloaded.
   ///
   /// In en, this message translates to:
