@@ -7,6 +7,7 @@ import 'package:file_picker/file_picker.dart';
 import 'package:remixicon/remixicon.dart';
 import 'package:yomou/core/backup/backup_picker.dart';
 import 'package:yomou/core/backup/backup_restore.dart';
+import 'package:yomou/core/backup/kotatsu_backup.dart';
 import 'package:yomou/core/backup/tachiyomi_backup.dart';
 import 'package:yomou/core/database/database_helper.dart';
 import 'package:yomou/core/theme/layout.dart';
@@ -105,16 +106,24 @@ class _BackupRestoreScreenState extends ConsumerState<BackupRestoreScreen> {
 
       switch (result.format) {
         case BackupFormat.tachiyomi:
+        case BackupFormat.kotatsu:
           final parsed = result.tachiyomi!;
+          final isKotatsu = result.format == BackupFormat.kotatsu;
           if (parsed.isEmpty) {
             showIosToastOnOverlay(
               overlay,
-              message: l.tachiyomiImportNone,
+              message: isKotatsu ? l.kotatsuImportNone : l.tachiyomiImportNone,
             );
             return;
           }
           if (mounted) {
-            showIosToast(context, message: importFinishedMessage(l, parsed));
+            final finished = isKotatsu
+                ? parsed.skipped > 0
+                      ? '${l.kotatsuImportDone(parsed.imported)} · '
+                            '${l.importResultsNotImported(parsed.skipped)}'
+                      : l.kotatsuImportDone(parsed.imported)
+                : importFinishedMessage(l, parsed);
+            showIosToast(context, message: finished);
           }
           navigator.push(
             MaterialPageRoute(
@@ -182,6 +191,103 @@ class _BackupRestoreScreenState extends ConsumerState<BackupRestoreScreen> {
       context,
       message: '${l.tachiyomiExportDone(result.exported)}$skipped',
     );
+  }
+
+  Future<void> _exportKotatsu() async {
+    final l = AppLocalizations.of(context);
+    final favorites = await DatabaseHelper.instance.getFavorites();
+    final bookmarks = await DatabaseHelper.instance.getAllBookmarks();
+    final readingProgress =
+        await DatabaseHelper.instance.getAllReadingProgress();
+
+    final result = KotatsuBackupCodec.export(
+      favorites: favorites,
+      bookmarks: bookmarks,
+      readingProgress: readingProgress,
+    );
+
+    if (result.exported == 0) {
+      if (!mounted) return;
+      showIosToast(context, message: l.kotatsuExportNone);
+      return;
+    }
+
+    final fileName = 'yomou-${DateTime.now().millisecondsSinceEpoch}.bk.zip';
+    final saved = await FilePicker.platform.saveFile(
+      type: FileType.custom,
+      allowedExtensions: ['zip'],
+      fileName: fileName,
+      bytes: result.bytes,
+    );
+
+    if (saved == null) return;
+
+    final dir = saved.replaceAll(RegExp(r'[^/]*$'), '');
+    await ref
+        .read(cacheSettingsProvider.notifier)
+        .setBackupsOutputDirectory(dir);
+    await ref
+        .read(cacheSettingsProvider.notifier)
+        .setLastBackupAt(DateTime.now().millisecondsSinceEpoch);
+
+    if (!mounted) return;
+    final skipped =
+        result.skipped > 0 ? ' (${l.backupSkipped(result.skipped)})' : '';
+    showIosToast(
+      context,
+      message: '${l.kotatsuExportDone(result.exported)}$skipped',
+    );
+  }
+
+  Future<void> _importKotatsu() async {
+    final l = AppLocalizations.of(context);
+    // Captured before any await: the scan is non-blocking, so the reader may
+    // leave this screen while it runs. The navigator and provider container
+    // survive the route, so the summary still shows and the library still
+    // refreshes whenever the scan finishes.
+    final container = ProviderScope.containerOf(context, listen: false);
+    final navigator = Navigator.of(context);
+    final file = await pickBackupFile(extensions: ['zip']);
+
+    if (file == null) return;
+
+    try {
+      final pickedBytes = file.files.single.bytes;
+      final bytes = pickedBytes ??
+          await File(file.files.single.path!).readAsBytes();
+
+      final parsed = KotatsuBackupCodec.import(bytes);
+      if (!mounted) return;
+      final resolved = await scanTachiyomiMissingWithProgress(
+        context,
+        ref,
+        parsed,
+      );
+      await BackupRestore.applyTachiyomi(resolved);
+
+      bumpHistoryRevision(container);
+      bumpFavoritesRevision(container);
+      if (resolved.isEmpty) {
+        if (!mounted) return;
+        showIosToast(context, message: l.kotatsuImportNone);
+        return;
+      }
+      if (mounted) {
+        final message = resolved.skipped > 0
+            ? '${l.kotatsuImportDone(resolved.imported)} · '
+                  '${l.importResultsNotImported(resolved.skipped)}'
+            : l.kotatsuImportDone(resolved.imported);
+        showIosToast(context, message: message);
+      }
+      navigator.push(
+        MaterialPageRoute(
+          builder: (context) => ImportResultsScreen(result: resolved),
+        ),
+      );
+    } on FormatException {
+      if (!mounted) return;
+      showIosToast(context, message: l.kotatsuImportInvalid);
+    }
   }
 
   Future<void> _importTachiyomi() async {
@@ -346,6 +452,18 @@ class _BackupRestoreScreenState extends ConsumerState<BackupRestoreScreen> {
             title: l.importTachiyomi,
             subtitle: l.importTachiyomiSubtitle,
             onTap: _importTachiyomi,
+          ),
+          _BuildButton(
+            icon: RemixIcons.stack_line,
+            title: l.exportKotatsu,
+            subtitle: l.exportKotatsuSubtitle,
+            onTap: _exportKotatsu,
+          ),
+          _BuildButton(
+            icon: RemixIcons.archive_drawer_line,
+            title: l.importKotatsu,
+            subtitle: l.importKotatsuSubtitle,
+            onTap: _importKotatsu,
           ),
           _BuildButton(
             icon: RemixIcons.scissors_cut_line,

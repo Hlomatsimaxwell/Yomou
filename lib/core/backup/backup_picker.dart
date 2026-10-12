@@ -5,9 +5,10 @@ import 'package:file_picker/file_picker.dart';
 /// Extensions a restorable backup can carry.
 ///
 /// `.json` is a Yomou backup or a legacy Tachiyomi export, `.tachibk` is a
-/// Mihon/Tachiyomi backup, and `.gz` is a gzipped Tachiyomi backup. The format
-/// is sniffed from the contents, never the extension, so all three are offered.
-const backupExtensions = ['json', 'tachibk', 'gz'];
+/// Mihon/Tachiyomi backup, `.gz` is a gzipped Tachiyomi backup, and `.zip` is
+/// a Kotatsu backup. The format is sniffed from the contents, never the
+/// extension, so all of them are offered.
+const backupExtensions = ['json', 'tachibk', 'gz', 'zip'];
 
 /// Picks a backup file, working around iOS's UTI-based filtering.
 ///

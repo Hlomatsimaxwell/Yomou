@@ -5,6 +5,16 @@ All notable changes to Yomou are documented here.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [1.1.5] - 2026-10-12
+
+### Added
+- **Import from Kotatsu** — Settings → Backup and restore now restores a Kotatsu `.bk.zip` (the backup format Kotatsu itself writes: a zip of one JSON array per table). Favorites, reading history and bookmarks come across; land the whole library from a Kotatsu backup without re-adding titles one by one.
+- **Export to Kotatsu** — Settings → Backup and restore now exports favorites and history as a real Kotatsu `.bk.zip`, so a Yomou library can be restored *into* Kotatsu. Only sources Kotatsu carries are written; the rest are counted in the done toast.
+- Restoration keeps working no matter what a picked file actually is: a `.json` Yomou backup, a Tachiyomi/Mihon `.tachibk`, or a Kotatsu `.bk.zip` are sniffed from the contents, never the extension.
+
+### Notes
+- Kotatsu backups carry no chapter *numbers*, so imported reading history keeps its real last-read timestamp but seeds progress at chapter 0, and exported progress becomes a chapter placeholder Kotatsu can show without a number.
+
 ## [1.1.4] - 2026-10-12
 
 ### Changed

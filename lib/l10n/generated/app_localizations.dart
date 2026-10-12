@@ -4081,6 +4081,60 @@ abstract class AppLocalizations {
   /// **'No compatible manga found to import'**
   String get tachiyomiImportNone;
 
+  /// No description provided for @exportKotatsu.
+  ///
+  /// In en, this message translates to:
+  /// **'Export to Kotatsu'**
+  String get exportKotatsu;
+
+  /// No description provided for @exportKotatsuSubtitle.
+  ///
+  /// In en, this message translates to:
+  /// **'Export favorites and history as a Kotatsu backup (.bk.zip)'**
+  String get exportKotatsuSubtitle;
+
+  /// No description provided for @importKotatsu.
+  ///
+  /// In en, this message translates to:
+  /// **'Import from Kotatsu'**
+  String get importKotatsu;
+
+  /// No description provided for @importKotatsuSubtitle.
+  ///
+  /// In en, this message translates to:
+  /// **'Import favorites from a Kotatsu backup (.bk.zip)'**
+  String get importKotatsuSubtitle;
+
+  /// No description provided for @kotatsuExportDone.
+  ///
+  /// In en, this message translates to:
+  /// **'{count} manga exported to Kotatsu'**
+  String kotatsuExportDone(int count);
+
+  /// No description provided for @kotatsuExportNone.
+  ///
+  /// In en, this message translates to:
+  /// **'No compatible manga found to export'**
+  String get kotatsuExportNone;
+
+  /// No description provided for @kotatsuImportDone.
+  ///
+  /// In en, this message translates to:
+  /// **'{count} manga imported from Kotatsu'**
+  String kotatsuImportDone(int count);
+
+  /// No description provided for @kotatsuImportNone.
+  ///
+  /// In en, this message translates to:
+  /// **'No compatible manga found to import'**
+  String get kotatsuImportNone;
+
+  /// No description provided for @kotatsuImportInvalid.
+  ///
+  /// In en, this message translates to:
+  /// **'Invalid Kotatsu backup file'**
+  String get kotatsuImportInvalid;
+
   /// No description provided for @periodicBackups.
   ///
   /// In en, this message translates to:

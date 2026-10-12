@@ -2256,6 +2256,41 @@ class AppLocalizationsEs extends AppLocalizations {
       'No se encontró manga compatible para importar';
 
   @override
+  String get exportKotatsu => 'Exportar a Kotatsu';
+
+  @override
+  String get exportKotatsuSubtitle =>
+      'Exportar favoritos e historial como copia de Kotatsu (.bk.zip)';
+
+  @override
+  String get importKotatsu => 'Importar desde Kotatsu';
+
+  @override
+  String get importKotatsuSubtitle =>
+      'Importar favoritos desde una copia de Kotatsu (.bk.zip)';
+
+  @override
+  String kotatsuExportDone(int count) {
+    return '$count manga exportados a Kotatsu';
+  }
+
+  @override
+  String get kotatsuExportNone =>
+      'No se encontró manga compatible para exportar';
+
+  @override
+  String kotatsuImportDone(int count) {
+    return '$count manga importados desde Kotatsu';
+  }
+
+  @override
+  String get kotatsuImportNone =>
+      'No se encontró manga compatible para importar';
+
+  @override
+  String get kotatsuImportInvalid => 'Archivo de copia de Kotatsu no válido';
+
+  @override
   String get periodicBackups => 'Copias periódicas';
 
   @override

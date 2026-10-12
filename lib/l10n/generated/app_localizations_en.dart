@@ -2233,6 +2233,39 @@ class AppLocalizationsEn extends AppLocalizations {
   String get tachiyomiImportNone => 'No compatible manga found to import';
 
   @override
+  String get exportKotatsu => 'Export to Kotatsu';
+
+  @override
+  String get exportKotatsuSubtitle =>
+      'Export favorites and history as a Kotatsu backup (.bk.zip)';
+
+  @override
+  String get importKotatsu => 'Import from Kotatsu';
+
+  @override
+  String get importKotatsuSubtitle =>
+      'Import favorites from a Kotatsu backup (.bk.zip)';
+
+  @override
+  String kotatsuExportDone(int count) {
+    return '$count manga exported to Kotatsu';
+  }
+
+  @override
+  String get kotatsuExportNone => 'No compatible manga found to export';
+
+  @override
+  String kotatsuImportDone(int count) {
+    return '$count manga imported from Kotatsu';
+  }
+
+  @override
+  String get kotatsuImportNone => 'No compatible manga found to import';
+
+  @override
+  String get kotatsuImportInvalid => 'Invalid Kotatsu backup file';
+
+  @override
   String get periodicBackups => 'Periodic backups';
 
   @override

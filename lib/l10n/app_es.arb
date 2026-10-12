@@ -940,6 +940,29 @@
   "tachiyomiExportNone": "No se encontró manga compatible para exportar",
   "tachiyomiImportInvalid": "Archivo de copia de Tachiyomi inválido",
   "tachiyomiImportNone": "No se encontró manga compatible para importar",
+  "exportKotatsu": "Exportar a Kotatsu",
+  "exportKotatsuSubtitle": "Exportar favoritos e historial como copia de Kotatsu (.bk.zip)",
+  "importKotatsu": "Importar desde Kotatsu",
+  "importKotatsuSubtitle": "Importar favoritos desde una copia de Kotatsu (.bk.zip)",
+  "kotatsuExportDone": "{count} manga exportados a Kotatsu",
+  "@kotatsuExportDone": {
+    "placeholders": {
+      "count": {
+        "type": "int"
+      }
+    }
+  },
+  "kotatsuExportNone": "No se encontró manga compatible para exportar",
+  "kotatsuImportDone": "{count} manga importados desde Kotatsu",
+  "@kotatsuImportDone": {
+    "placeholders": {
+      "count": {
+        "type": "int"
+      }
+    }
+  },
+  "kotatsuImportNone": "No se encontró manga compatible para importar",
+  "kotatsuImportInvalid": "Archivo de copia de Kotatsu no válido",
   "periodicBackups": "Copias periódicas",
   "enablePeriodicBackups": "Activar copias periódicas",
   "backupsOutputDirectory": "Directorio de copias de seguridad",

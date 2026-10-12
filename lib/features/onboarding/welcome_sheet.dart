@@ -214,15 +214,26 @@ class WelcomeSheetContent extends ConsumerWidget {
             );
           }
         case BackupFormat.tachiyomi:
+        case BackupFormat.kotatsu:
           final parsed = result.tachiyomi!;
+          final isKotatsu = result.format == BackupFormat.kotatsu;
           if (parsed.isEmpty) {
             if (context.mounted) {
-              showIosToast(context, message: l.tachiyomiImportNone);
+              showIosToast(
+                context,
+                message: isKotatsu ? l.kotatsuImportNone : l.tachiyomiImportNone,
+              );
             }
             return;
           }
           if (context.mounted) {
-            showIosToast(context, message: importFinishedMessage(l, parsed));
+            final finished = isKotatsu
+                ? parsed.skipped > 0
+                      ? '${l.kotatsuImportDone(parsed.imported)} · '
+                            '${l.importResultsNotImported(parsed.skipped)}'
+                      : l.kotatsuImportDone(parsed.imported)
+                : importFinishedMessage(l, parsed);
+            showIosToast(context, message: finished);
           }
           navigator.push(
             MaterialPageRoute(

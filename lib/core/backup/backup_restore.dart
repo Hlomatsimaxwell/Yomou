@@ -1,5 +1,6 @@
 import 'dart:convert';
 import 'dart:typed_data';
+import 'package:yomou/core/backup/kotatsu_backup.dart';
 import 'package:yomou/core/backup/tachiyomi_backup.dart';
 import 'package:yomou/core/database/database_helper.dart';
 
@@ -7,8 +8,9 @@ import 'package:yomou/core/database/database_helper.dart';
 ///
 /// The reader picks one file and never chooses a format themselves, so this is
 /// detected rather than asked for: nobody holding a Mihon backup knows it is
-/// "gzipped protobuf", and a `.json` extension belongs to both formats.
-enum BackupFormat { yomou, tachiyomi }
+/// "gzipped protobuf", a `.json` extension belongs to both formats, and a
+/// Kotatsu backup is just "the zip I saved in Kotatsu".
+enum BackupFormat { yomou, tachiyomi, kotatsu }
 
 /// What a Yomou-format backup restored.
 class YomouRestoreResult {
@@ -40,6 +42,10 @@ class BackupRestoreResult {
     : format = BackupFormat.tachiyomi,
       yomou = null;
 
+  const BackupRestoreResult.kotatsu(this.tachiyomi)
+    : format = BackupFormat.kotatsu,
+      yomou = null;
+
   final BackupFormat format;
   final YomouRestoreResult? yomou;
   final TachiyomiImportResult? tachiyomi;
@@ -54,10 +60,20 @@ class BackupRestoreResult {
 class BackupRestore {
   const BackupRestore._();
 
-  /// Whether [bytes] is a Yomou backup, a Tachiyomi/Mihon one, or neither.
+  /// Whether [bytes] is a Yomou backup, a Tachiyomi/Mihon one, a Kotatsu one,
+  /// or neither.
   ///
   /// Throws [FormatException] for anything that is not a backup file.
   static BackupFormat detect(Uint8List bytes) {
+    // Zip is a Kotatsu `.bk.zip`; the magic is unambiguous (PK\x03\x04 local
+    // header, or the end-of-central-directory of an empty archive).
+    if (bytes.length >= 4 &&
+        bytes[0] == 0x50 &&
+        bytes[1] == 0x4b &&
+        (bytes[2] == 0x03 || bytes[2] == 0x05)) {
+      return BackupFormat.kotatsu;
+    }
+
     // Gzip is a Tachiyomi `.tachibk` or a gzipped `.proto.gz`. No Yomou backup
     // has ever been written compressed.
     if (bytes.length >= 2 && bytes[0] == 0x1f && bytes[1] == 0x8b) {
@@ -121,6 +137,15 @@ class BackupRestore {
           parsed = await resolveTachiyomi(parsed);
         }
         return BackupRestoreResult.tachiyomi(await applyTachiyomi(parsed));
+      case BackupFormat.kotatsu:
+        // The Kotatsu codec parses into the same shape, so the Tachiyomi
+        // resolver (title scan), apply step and results screen all work
+        // unchanged.
+        var parsed = KotatsuBackupCodec.import(bytes);
+        if (resolveTachiyomi != null) {
+          parsed = await resolveTachiyomi(parsed);
+        }
+        return BackupRestoreResult.kotatsu(await applyTachiyomi(parsed));
     }
   }
 
