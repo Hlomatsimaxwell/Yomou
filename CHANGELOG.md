@@ -5,6 +5,11 @@ All notable changes to Yomou are documented here.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [1.1.4] - 2026-10-12
+
+### Changed
+- Android release builds are now signed with Yomou's own release key instead of the Android debug key, so everyday updates install cleanly over an existing app going forward. Because the signing key changed, this one update needs the currently installed app uninstalled first — after that, updates are seamless.
+
 ## [1.1.3] - 2026-10-11
 
 ### Added
