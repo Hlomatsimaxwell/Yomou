@@ -54,6 +54,20 @@ import 'package:yomou/core/diagnostics/diag_log.dart';
 /// layout rather than guessed.
 const double _kBackdropHeight = 420;
 
+/// How much of the art plate shows through.
+///
+/// The reference holds the cover at a quarter opacity. This is the number that
+/// decides how bold the whole header reads.
+const double _kBackdropArtOpacity = 0.25;
+
+/// Opacity of the wash painted over the art plate.
+///
+/// The reference paints its vignette at full strength, which is 1.0 here: the
+/// art is only visible in a soft band through the middle and melts into the
+/// page at both ends. Lowering it shows the art across the whole plate, at the
+/// cost of the plate's bottom edge becoming a visible step rather than a fade.
+const double _kBackdropWashOpacity = 0.05;
+
 /// The bottom safe-area inset, raised to at least [kBottomChromeClearance].
 ///
 /// Some gesture-nav skins (notably EMUI) paint a translucent swipe strip over
@@ -2790,13 +2804,17 @@ class _MangaDetailScreenState extends ConsumerState<MangaDetailScreen> {
   ///   opacity is what lets the info card stay opaque and still read as though
   ///   it were translucent -- there is simply very little art under it.
   /// * The wash is a **symmetric vignette**, not a fade to the bottom:
-  ///   surface, half, clear, clear, half, surface. The art is only visible in a
-  ///   soft band through the middle and dissolves back into the page at both
-  ///   ends.
+  ///   surface, half, clear, clear, half, surface. At full strength the art is
+  ///   only visible in a soft band through the middle and dissolves back into
+  ///   the page at both ends.
   ///
-  /// It is painted in the page's own background colour, so the ends of the
-  /// vignette land on the real background in either theme. Nothing here is
-  /// interactive.
+  /// The two strengths are named constants above, because they are the dials
+  /// for the whole look and the pair chosen here is not the reference's: the
+  /// vignette is dialled right down so the art carries across the plate, which
+  /// keeps more of the cover reading behind the header at the cost of a step at
+  /// the plate's bottom edge. It is painted in the page's own background colour,
+  /// so whatever is left of the vignette lands on the real background in either
+  /// theme. Nothing here is interactive.
   Widget _buildImmersiveBackdrop() {
     final cover = _coverUrl;
     if (cover.isEmpty) return const SizedBox.shrink();
@@ -2810,10 +2828,10 @@ class _MangaDetailScreenState extends ConsumerState<MangaDetailScreen> {
         child: Stack(
           fit: StackFit.expand,
           children: [
-            // Held at a quarter opacity and only lightly blurred. The blur is
-            // clamped at the plate's edges, so it needs no zoom to hide a seam.
+            // How much of the art shows through. The reference holds it at a
+            // quarter.
             Opacity(
-              opacity: 0.25,
+              opacity: _kBackdropArtOpacity,
               child: ImageFiltered(
                 imageFilter: ImageFilter.blur(sigmaX: 16, sigmaY: 16),
                 child: SizedBox.expand(
@@ -2821,21 +2839,28 @@ class _MangaDetailScreenState extends ConsumerState<MangaDetailScreen> {
                 ),
               ),
             ),
-            DecoratedBox(
-              decoration: BoxDecoration(
-                gradient: LinearGradient(
-                  begin: Alignment.topCenter,
-                  end: Alignment.bottomCenter,
-                  // Six evenly spaced stops, matching GradientDrawable's ramp:
-                  // opaque surface top and bottom, clear through the middle.
-                  colors: [
-                    surface,
-                    surface.withValues(alpha: 0.5),
-                    surface.withValues(alpha: 0.0),
-                    surface.withValues(alpha: 0.0),
-                    surface.withValues(alpha: 0.5),
-                    surface,
-                  ],
+            // The wash over the art. At full strength it is the reference's
+            // vignette; dialled down, the art shows right across the plate and
+            // the plate's bottom edge becomes a visible step instead of a fade.
+            Opacity(
+              opacity: _kBackdropWashOpacity,
+              child: DecoratedBox(
+                decoration: BoxDecoration(
+                  gradient: LinearGradient(
+                    begin: Alignment.topCenter,
+                    end: Alignment.bottomCenter,
+                    // Six evenly spaced stops, matching GradientDrawable's
+                    // ramp: opaque surface top and bottom, clear through the
+                    // middle.
+                    colors: [
+                      surface,
+                      surface.withValues(alpha: 0.5),
+                      surface.withValues(alpha: 0.0),
+                      surface.withValues(alpha: 0.0),
+                      surface.withValues(alpha: 0.5),
+                      surface,
+                    ],
+                  ),
                 ),
               ),
             ),
