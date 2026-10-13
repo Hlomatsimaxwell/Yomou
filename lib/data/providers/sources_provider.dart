@@ -5,6 +5,8 @@ import 'package:shared_preferences/shared_preferences.dart';
 import '../models/manga_source.dart';
 import 'package:yomou/features/settings/providers/cache_settings_provider.dart';
 import 'package:yomou/features/content_preferences/providers/content_preferences_provider.dart';
+import 'source_sort.dart';
+import 'source_usage_provider.dart';
 import '../sources/atsumoe_source.dart';
 import '../sources/seimanga_source.dart';
 import '../sources/mangaball_source.dart';
@@ -371,7 +373,9 @@ List<Map<String, dynamic>> sourceRowsFromPrefs(SharedPreferences prefs) {
 }
 
 class SourcesNotifier extends StateNotifier<List<Map<String, dynamic>>> {
-  SourcesNotifier() : super(defaultSources) {
+  // Normalized to pinned-first from the start: every reorder assumes the two
+  // zones are contiguous, and the hand-written registry is not in that order.
+  SourcesNotifier() : super(_sortSources(defaultSources)) {
     _loadFromPrefs();
   }
 
@@ -945,28 +949,41 @@ class SourcesNotifier extends StateNotifier<List<Map<String, dynamic>>> {
   Future<void> _loadFromPrefs() async {
     final prefs = await SharedPreferences.getInstance();
     final String? savedJson = prefs.getString(_prefsKey);
+    if (savedJson == null) return;
 
-    if (savedJson != null) {
-      final List<dynamic> decoded = jsonDecode(savedJson);
-      final pinnedMap = <String, bool>{};
-      final enabledMap = <String, bool>{};
+    final List<dynamic> decoded = jsonDecode(savedJson);
+    final pinnedMap = <String, bool>{};
+    final enabledMap = <String, bool>{};
+    final savedOrder = <String>[];
 
-      for (var item in decoded) {
-        pinnedMap[item['name']] = item['isPinned'] ?? false;
-        enabledMap[item['name']] = item['isEnabled'] ?? true;
-      }
-
-      final updatedList = state.map((source) {
-        final name = source['name'] as String;
-        return {
-          ...source,
-          'isPinned': pinnedMap[name] ?? false,
-          'isEnabled': enabledMap[name] ?? true,
-        };
-      }).toList();
-
-      state = _sortSources(updatedList);
+    for (var item in decoded) {
+      final name = item['name'] as String;
+      pinnedMap[name] = item['isPinned'] ?? false;
+      enabledMap[name] = item['isEnabled'] ?? true;
+      savedOrder.add(name);
     }
+
+    final byName = <String, Map<String, dynamic>>{
+      for (final source in state)
+        source['name'] as String: {
+          ...source,
+          'isPinned': pinnedMap[source['name']] ?? false,
+          'isEnabled': enabledMap[source['name']] ?? true,
+        },
+    };
+
+    // Restore the reader's manual order: the saved names first, in the order
+    // they were saved, then any source the registry gained since (in its own
+    // order). New sources therefore arrive at the end instead of reshuffling
+    // what the reader arranged.
+    final ordered = <Map<String, dynamic>>[];
+    for (final name in savedOrder) {
+      final source = byName.remove(name);
+      if (source != null) ordered.add(source);
+    }
+    ordered.addAll(byName.values);
+
+    state = _sortSources(ordered);
   }
 
   Future<void> _saveToPrefs() async {
@@ -1011,13 +1028,40 @@ class SourcesNotifier extends StateNotifier<List<Map<String, dynamic>>> {
 
   void moveToTop(String sourceName) {
     final index = state.indexWhere((s) => s['name'] == sourceName);
-    if (index != -1) {
-      final item = state[index];
-      final newList = List<Map<String, dynamic>>.from(state)..removeAt(index);
-      newList.insert(0, item);
-      state = newList;
-      _saveToPrefs();
-    }
+    if (index == -1) return;
+    // To the top of the source's own zone, not the whole list: an unpinned
+    // source must not jump above the pinned block.
+    final pinned = state[index]['isPinned'] == true;
+    final target = pinned
+        ? 0
+        : state.where((s) => s['isPinned'] == true).length;
+    if (index == target) return;
+    final item = state[index];
+    final newList = List<Map<String, dynamic>>.from(state)..removeAt(index);
+    newList.insert(target, item);
+    state = newList;
+    _saveToPrefs();
+  }
+
+  /// Moves the row at [oldIndex] to [newIndex], for a long-press drag.
+  ///
+  /// Pinned and unpinned sources are two zones: a drag is clamped to the
+  /// destination's own zone, so an unpinned source dropped above the pinned
+  /// block lands at the top of the unpinned block instead, and vice versa.
+  /// Pinning is the way to change a source's zone.
+  void reorder(int oldIndex, int newIndex) {
+    if (oldIndex < 0 || oldIndex >= state.length) return;
+    final pinnedCount = state.where((s) => s['isPinned'] == true).length;
+    final pinned = state[oldIndex]['isPinned'] == true;
+    final min = pinned ? 0 : pinnedCount;
+    final max = (pinned ? pinnedCount : state.length) - 1;
+    final target = newIndex.clamp(min, max);
+    if (target == oldIndex) return;
+    final item = state[oldIndex];
+    final newList = List<Map<String, dynamic>>.from(state)..removeAt(oldIndex);
+    newList.insert(target, item);
+    state = newList;
+    _saveToPrefs();
   }
 
   void enableAll() {
@@ -1027,7 +1071,9 @@ class SourcesNotifier extends StateNotifier<List<Map<String, dynamic>>> {
     _saveToPrefs();
   }
 
-  List<Map<String, dynamic>> _sortSources(List<Map<String, dynamic>> list) {
+  static List<Map<String, dynamic>> _sortSources(
+    List<Map<String, dynamic>> list,
+  ) {
     final pinned = list.where((s) => s['isPinned'] == true).toList();
     final unpinned = list.where((s) => s['isPinned'] != true).toList();
     return [...pinned, ...unpinned];
@@ -1058,4 +1104,18 @@ final visibleSourceRowsProvider = Provider<List<Map<String, dynamic>>>((ref) {
     if (disableNsfw && isNsfwSource(row)) return false;
     return content.accepts(row);
   }).toList();
+});
+
+/// [visibleSourceRowsProvider] in the reader's chosen sort order, pinned
+/// sources first.
+///
+/// This is what every full list of sources should show — the Explore wall and
+/// the Manage sources screen both do. Sorting used to be applied only inside
+/// the Manage sources screen, which is why the setting looked inert: nothing
+/// the reader actually browses by reordered.
+final sortedSourceRowsProvider = Provider<List<Map<String, dynamic>>>((ref) {
+  final rows = ref.watch(visibleSourceRowsProvider);
+  final order = ref.watch(sourceSortOrderProvider);
+  final lastUsed = ref.watch(sourceLastUsedProvider);
+  return sortSourceRows(rows, order, lastUsed: lastUsed);
 });

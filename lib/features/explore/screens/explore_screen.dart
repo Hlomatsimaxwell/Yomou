@@ -68,7 +68,7 @@ class _ExploreScreenState extends ConsumerState<ExploreScreen> {
 
   @override
   Widget build(BuildContext context) {
-    final sources = ref.watch(visibleSourceRowsProvider);
+    final sources = ref.watch(sortedSourceRowsProvider);
     final showInGrid = ref.watch(showSourcesInGridProvider);
     final enabledSources = sources.where(isSourceEnabled).toList();
 

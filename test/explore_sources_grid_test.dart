@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_test/flutter_test.dart';
+import 'package:shared_preferences/shared_preferences.dart';
 import 'package:yomou/data/providers/sources_provider.dart';
 import 'package:yomou/data/models/manga.dart';
 import 'package:yomou/features/explore/screens/explore_screen.dart';
@@ -18,6 +19,10 @@ import 'package:yomou/widgets/source_icon.dart';
 /// same size and fits its cell, and the cell is no taller than the content in
 /// it.
 void main() {
+  // Explore now sorts its source wall from the stored order, which reads
+  // preferences; the sort itself is covered elsewhere.
+  setUp(() => SharedPreferences.setMockInitialValues({}));
+
   const names = [
     'MangaFire',
     'Manganato',

@@ -159,6 +159,22 @@ class AppLocalizationsEn extends AppLocalizations {
   String get sourcesSortOrderName => 'Name';
 
   @override
+  String get sourcesSortOrderPopular => 'Popular';
+
+  @override
+  String get sourcesSortOrderLastUsed => 'Last used';
+
+  @override
+  String get sourcesSortOrderPopularReliable => 'Popular & reliable';
+
+  @override
+  String get sourcesReorderManualOnly =>
+      'Use Manual sorting to reorder sources';
+
+  @override
+  String get sourcesReorderClearSearch => 'Clear the search to reorder sources';
+
+  @override
   String get sourcesManage => 'Manage sources';
 
   @override

@@ -160,6 +160,23 @@ class AppLocalizationsEs extends AppLocalizations {
   String get sourcesSortOrderName => 'Nombre';
 
   @override
+  String get sourcesSortOrderPopular => 'Populares';
+
+  @override
+  String get sourcesSortOrderLastUsed => 'Usado por última vez';
+
+  @override
+  String get sourcesSortOrderPopularReliable => 'Populares y confiables';
+
+  @override
+  String get sourcesReorderManualOnly =>
+      'Usa el orden Manual para reordenar las fuentes';
+
+  @override
+  String get sourcesReorderClearSearch =>
+      'Borra la búsqueda para reordenar las fuentes';
+
+  @override
   String get sourcesManage => 'Gestionar fuentes';
 
   @override

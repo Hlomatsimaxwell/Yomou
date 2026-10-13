@@ -5,6 +5,7 @@ import 'package:yomou/core/theme/layout.dart';
 import 'package:yomou/core/widgets/responsive.dart';
 import 'package:yomou/l10n/generated/app_localizations.dart';
 import 'package:yomou/data/providers/sources_provider.dart';
+import 'package:yomou/data/providers/source_sort.dart';
 import 'package:yomou/features/settings/providers/cache_settings_provider.dart';
 import 'package:yomou/features/source_management/screens/manga_sources_screen.dart';
 import 'package:yomou/widgets/m3_components.dart';
@@ -120,7 +121,10 @@ class MangaSourcesSettingsScreen extends ConsumerStatefulWidget {
 class _MangaSourcesSettingsScreenState
     extends ConsumerState<MangaSourcesSettingsScreen> {
   String _sortLabel(String order, AppLocalizations l) => switch (order) {
-        'name' => l.sourcesSortOrderName,
+        SourceSortOrder.name => l.sourcesSortOrderName,
+        SourceSortOrder.popular => l.sourcesSortOrderPopular,
+        SourceSortOrder.lastUsed => l.sourcesSortOrderLastUsed,
+        SourceSortOrder.popularReliable => l.sourcesSortOrderPopularReliable,
         _ => l.sourcesSortOrderManual,
       };
 
@@ -133,16 +137,23 @@ class _MangaSourcesSettingsScreenState
   Future<void> _pickSort() async {
     final l = AppLocalizations.of(context);
     final current = ref.read(sourceSortOrderProvider);
+    // Labels and keys line up by index, so the dialog can hand back a label and
+    // still name a stable stored value.
+    final labels = [
+      for (final order in SourceSortOrder.values) _sortLabel(order, l),
+    ];
     final chosen = await showSourceChoiceDialog(
       context,
       title: l.sourcesSortingOrder,
-      options: [l.sourcesSortOrderManual, l.sourcesSortOrderName],
+      options: labels,
       selected: _sortLabel(current, l),
     );
     if (chosen == null) return;
+    final index = labels.indexOf(chosen);
+    if (index < 0) return;
     await ref
         .read(cacheSettingsProvider.notifier)
-        .setSourceSortOrder(chosen == l.sourcesSortOrderName ? 'name' : 'manual');
+        .setSourceSortOrder(SourceSortOrder.values[index]);
   }
 
   Future<void> _pickIncognito() async {

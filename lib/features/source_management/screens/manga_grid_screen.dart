@@ -25,6 +25,7 @@ import 'package:yomou/core/widgets/responsive.dart';
 import 'package:yomou/data/models/manga.dart';
 import 'package:yomou/data/models/manga_filter.dart';
 import 'package:yomou/data/providers/sources_provider.dart';
+import 'package:yomou/data/providers/source_usage_provider.dart';
 import 'package:yomou/features/settings/providers/appearance_provider.dart';
 import 'package:yomou/features/settings/providers/grid_density_provider.dart';
 import 'package:yomou/features/source_management/screens/manga_filter_sheet.dart';
@@ -104,6 +105,9 @@ class _MangaGridScreenState extends ConsumerState<MangaGridScreen> {
   @override
   void initState() {
     super.initState();
+    // Opening a source's catalogue is what "using" a source means, so this is
+    // where the Last used order gets its timestamp.
+    ref.read(sourceLastUsedProvider.notifier).markUsed(widget.sourceName);
     _scrollController.addListener(_onScroll);
     _loadTags();
     _loadLayoutPrefs();

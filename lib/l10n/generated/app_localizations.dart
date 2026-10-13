@@ -386,6 +386,36 @@ abstract class AppLocalizations {
   /// **'Name'**
   String get sourcesSortOrderName;
 
+  /// No description provided for @sourcesSortOrderPopular.
+  ///
+  /// In en, this message translates to:
+  /// **'Popular'**
+  String get sourcesSortOrderPopular;
+
+  /// No description provided for @sourcesSortOrderLastUsed.
+  ///
+  /// In en, this message translates to:
+  /// **'Last used'**
+  String get sourcesSortOrderLastUsed;
+
+  /// No description provided for @sourcesSortOrderPopularReliable.
+  ///
+  /// In en, this message translates to:
+  /// **'Popular & reliable'**
+  String get sourcesSortOrderPopularReliable;
+
+  /// No description provided for @sourcesReorderManualOnly.
+  ///
+  /// In en, this message translates to:
+  /// **'Use Manual sorting to reorder sources'**
+  String get sourcesReorderManualOnly;
+
+  /// No description provided for @sourcesReorderClearSearch.
+  ///
+  /// In en, this message translates to:
+  /// **'Clear the search to reorder sources'**
+  String get sourcesReorderClearSearch;
+
   /// No description provided for @sourcesManage.
   ///
   /// In en, this message translates to:

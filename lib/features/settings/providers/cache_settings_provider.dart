@@ -66,7 +66,8 @@ class CacheSettings {
   /// When true, sources flagged as NSFW are hidden from discovery surfaces.
   final bool disableNsfw;
 
-  /// Source list sort: 'manual' (pinned-first, as ordered) or 'name'.
+  /// Source list sort. One of the `SourceSortOrder` values: 'manual', 'name',
+  /// 'popular', 'lastUsed' or 'popularReliable'.
   final String sourceSortOrder;
 
   /// Whether the source-management screen shows a grid instead of a row list.

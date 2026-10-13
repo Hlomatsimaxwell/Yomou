@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_test/flutter_test.dart';
+import 'package:shared_preferences/shared_preferences.dart';
 import 'package:yomou/data/models/manga.dart';
 import 'package:yomou/data/providers/sources_provider.dart';
 import 'package:yomou/features/explore/screens/explore_screen.dart';
@@ -21,6 +22,10 @@ import 'test_fonts.dart';
 /// pill -- the same height at every column count, so a wider cell makes the
 /// button longer rather than taller -- and no label cut off in either language.
 void main() {
+  // Explore now sorts its source wall from the stored order, which reads
+  // preferences; the sort itself is covered elsewhere.
+  setUp(() => SharedPreferences.setMockInitialValues({}));
+
   /// The four labels, in the app's two languages, longest last.
   ///
   /// The Spanish one is the binding constraint and is why the four-across
