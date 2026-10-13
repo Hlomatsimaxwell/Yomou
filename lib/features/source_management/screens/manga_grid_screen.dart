@@ -1,4 +1,5 @@
 import 'package:remixicon/remixicon.dart';
+import 'dart:async';
 import 'dart:math';
 import 'dart:convert';
 import 'package:shared_preferences/shared_preferences.dart';
@@ -13,6 +14,7 @@ import 'package:yomou/features/library/widgets/favorite_badge.dart';
 import 'package:url_launcher/url_launcher.dart';
 
 import 'package:yomou/core/widgets/empty_state.dart';
+import 'package:yomou/data/models/manga_source.dart';
 import 'package:yomou/data/sources/captcha_gate.dart';
 import 'package:yomou/data/sources/source_network.dart';
 import 'package:yomou/features/source_management/screens/captcha_solver_screen.dart';
@@ -59,6 +61,14 @@ class _MangaGridScreenState extends ConsumerState<MangaGridScreen> {
   final TextEditingController _searchController = TextEditingController();
   bool _isSearching = false;
   String _searchQuery = '';
+
+  /// When the grid is showing the results of a live title search rather than
+  /// the plain popular/tag/filter listing. While true the local title-substring
+  /// filter is skipped so remote results are shown verbatim.
+  bool _searchMode = false;
+
+  /// Debounces live title search: a pause in typing refetches from the source.
+  Timer? _searchDebounce;
 
   List<Manga> _mangaList = [];
   bool _isLoading = true;
@@ -187,10 +197,16 @@ class _MangaGridScreenState extends ConsumerState<MangaGridScreen> {
   /// leaving a client-side tag active on top of a freshly applied source-side
   /// filter would silently intersect them.
   void _applyFilter(MangaFilter filter) {
+    // A filter is "browsing", not searching: drop any live query first so the
+    // two don't silently intersect (the search has priority in _loadSpec).
+    _searchDebounce?.cancel();
+    _searchController.clear();
     setState(() {
       _filter = filter;
       _activeTag = null;
       _selectedFilterIndex = -1;
+      _searchQuery = '';
+      _searchMode = false;
     });
     _loadManga();
   }
@@ -210,6 +226,10 @@ class _MangaGridScreenState extends ConsumerState<MangaGridScreen> {
   }
 
   Future<void> _loadManga({bool forceRefresh = false}) async {
+    // The query this outgoing request answers, captured now: a live search can
+    // race ahead while it is in flight, and a stale response must not clobber
+    // the results for the query the field currently holds.
+    final queryAtLoad = _searchQuery.trim();
     setState(() {
       _isLoading = true;
       _error = null;
@@ -220,39 +240,92 @@ class _MangaGridScreenState extends ConsumerState<MangaGridScreen> {
     });
     try {
       final source = getSourceByName(widget.sourceName);
-      final tag = _activeTag;
-      final filter = _filter;
-      final usingFilter = tag == null && !filter.isDefault;
+      final spec = _loadSpec(source, 1);
+      final searching = queryAtLoad.isNotEmpty;
       final manga = await SourceCache.mangaList(
         sourceId: source.id,
-        kind: usingFilter ? 'filter' : (tag != null ? 'tag' : 'popular'),
-        arg: usingFilter ? filter.cacheKey : (tag ?? ''),
+        kind: spec.kind,
+        arg: spec.arg,
         page: 1,
         forceRefresh: forceRefresh,
-        fetch: tag != null
-            ? () => source.searchMangaByTags([tag])
-            : usingFilter
-            ? () => source.searchWithFilter(filter)
-            : source.getPopularManga,
+        fetch: spec.fetch,
       );
+      if (!mounted) return;
+      if (queryAtLoad != _searchQuery.trim()) return;
       setState(() {
         _mangaList = manga;
         _isLoading = false;
+        _searchMode = searching;
         _seenIds
           ..clear()
           ..addAll(manga.map((m) => m.id));
       });
     } on CaptchaRequiredException catch (e) {
+      if (!mounted || queryAtLoad != _searchQuery.trim()) return;
       setState(() {
         _captcha = e;
         _isLoading = false;
       });
     } catch (e) {
+      if (!mounted || queryAtLoad != _searchQuery.trim()) return;
       setState(() {
         _error = e.toString();
         _isLoading = false;
       });
     }
+  }
+
+  /// Which listing the grid is showing and how to fetch a given page of it.
+  ///
+  /// An active title search takes precedence; otherwise the tag and the filter
+  /// beat the plain popular listing. Kept in one place so the initial load and
+  /// the "load more" pagination can never disagree about what to fetch next.
+  ({String kind, String arg, Future<List<Manga>> Function() fetch}) _loadSpec(
+    MangaSource source,
+    int page,
+  ) {
+    final tag = _activeTag;
+    final filter = _filter;
+    final query = _searchQuery.trim();
+    final searching = query.isNotEmpty;
+    final usingFilter = !searching && tag == null && !filter.isDefault;
+    final kind = searching
+        ? 'search'
+        : usingFilter
+        ? 'filter'
+        : (tag != null ? 'tag' : 'popular');
+    final arg =
+        searching ? query : (usingFilter ? filter.cacheKey : (tag ?? ''));
+    final fetch = searching
+        ? () => source.searchByTitle(query, page: page)
+        : tag != null
+        ? () => source.searchMangaByTags([tag], page: page)
+        : usingFilter
+        ? () => source.searchWithFilter(filter, page: page)
+        : () => source.getPopularManga(page: page);
+    return (kind: kind, arg: arg, fetch: fetch);
+  }
+
+  /// Live title search as the user types: keep the instant local filter over
+  /// whatever is loaded, then once they pause, ask the source for real results.
+  void _onSearchChanged(String value) {
+    setState(() => _searchQuery = value);
+    _searchDebounce?.cancel();
+    if (value.trim().isEmpty) {
+      // Field emptied — back to the plain popular/tag/filter listing.
+      _loadManga();
+      return;
+    }
+    _searchDebounce = Timer(
+      const Duration(milliseconds: 450),
+      () => _loadManga(),
+    );
+  }
+
+  /// The keyboard's search action fires a remote search immediately.
+  void _submitRemoteSearch() {
+    _searchDebounce?.cancel();
+    if (_searchQuery.trim().isNotEmpty) _loadManga();
   }
 
   /// Opens the solver, then retries the request with the earned cookie.
@@ -306,26 +379,27 @@ class _MangaGridScreenState extends ConsumerState<MangaGridScreen> {
     setState(() => _isLoadingMore = true);
     try {
       final source = getSourceByName(widget.sourceName);
-      final tag = _activeTag;
-      final filter = _filter;
-      final usingFilter = tag == null && !filter.isDefault;
+      final spec = _loadSpec(source, next);
+      final queryAtLoad = _searchQuery.trim();
       final manga = await SourceCache.mangaList(
         sourceId: source.id,
-        kind: usingFilter ? 'filter' : (tag != null ? 'tag' : 'popular'),
-        arg: usingFilter ? filter.cacheKey : (tag ?? ''),
+        kind: spec.kind,
+        arg: spec.arg,
         page: next,
-        fetch: tag != null
-            ? () => source.searchMangaByTags([tag], page: next)
-            : usingFilter
-            ? () => source.searchWithFilter(filter, page: next)
-            : () => source.getPopularManga(page: next),
+        fetch: spec.fetch,
       );
+      if (!mounted) return;
+      if (queryAtLoad != _searchQuery.trim()) {
+        // The grid moved on (new query / tag / filter) while this page was in
+        // flight; don't append it to the wrong listing.
+        setState(() => _isLoadingMore = false);
+        return;
+      }
       // Sources occasionally repeat titles across pages; keep the grid clean.
       final fresh = <Manga>[];
       for (final m in manga) {
         if (_seenIds.add(m.id)) fresh.add(m);
       }
-      if (!mounted) return;
       setState(() {
         _page = next;
         _mangaList = [..._mangaList, ...fresh];
@@ -350,9 +424,15 @@ class _MangaGridScreenState extends ConsumerState<MangaGridScreen> {
   }
 
   void _applyTag(String? tag) {
+    // Picking a tag chip is "browsing", not searching: drop any live query so
+    // the tag listing isn't hidden behind the search's priority in _loadSpec.
+    _searchDebounce?.cancel();
+    _searchController.clear();
     setState(() {
       _activeTag = tag;
       _selectedFilterIndex = tag == null ? -1 : _tags.indexOf(tag);
+      _searchQuery = '';
+      _searchMode = false;
     });
     _loadManga();
   }
@@ -378,6 +458,7 @@ class _MangaGridScreenState extends ConsumerState<MangaGridScreen> {
   @override
   void dispose() {
     _scrollController.dispose();
+    _searchDebounce?.cancel();
     _searchController.dispose();
     super.dispose();
   }
@@ -409,7 +490,9 @@ class _MangaGridScreenState extends ConsumerState<MangaGridScreen> {
                   fontSize: 18,
                 ),
                 cursorColor: dark ? Colors.white : const Color(0xFF1C1B1F),
-                onChanged: (val) => setState(() => _searchQuery = val),
+                textInputAction: TextInputAction.search,
+                onChanged: _onSearchChanged,
+                onSubmitted: (_) => _submitRemoteSearch(),
                 decoration: InputDecoration(
                   hintText: AppLocalizations.of(context).searchCatalog,
                   hintStyle: TextStyle(
@@ -426,6 +509,7 @@ class _MangaGridScreenState extends ConsumerState<MangaGridScreen> {
               color: dark ? Colors.white : const Color(0xFF1C1B1F),
             ),
             onPressed: () {
+              _searchDebounce?.cancel();
               setState(() {
                 if (_isSearching) {
                   _searchController.clear();
@@ -433,6 +517,9 @@ class _MangaGridScreenState extends ConsumerState<MangaGridScreen> {
                 }
                 _isSearching = !_isSearching;
               });
+              // Closing the field puts the regular listing back — the grid may
+              // currently be showing remote search results.
+              if (!_isSearching) _loadManga();
             },
           ),
           // Updated dice button tap handler
@@ -495,10 +582,12 @@ class _MangaGridScreenState extends ConsumerState<MangaGridScreen> {
     bool dark,
     ColorScheme scheme,
   ) {
-    final displayedManga = _mangaList.where((item) {
-      if (_searchQuery.isEmpty) return true;
-      return item.title.toLowerCase().contains(_searchQuery.toLowerCase());
-    }).toList();
+    final displayedManga = _searchMode
+        ? _mangaList
+        : _mangaList.where((item) {
+            if (_searchQuery.isEmpty) return true;
+            return item.title.toLowerCase().contains(_searchQuery.toLowerCase());
+          }).toList();
 
     return RefreshIndicator(
       color: dark ? Colors.white : scheme.primary,
