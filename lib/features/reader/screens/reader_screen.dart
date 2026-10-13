@@ -13,6 +13,7 @@ import 'package:intl/intl.dart';
 import 'package:path_provider/path_provider.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import 'package:yomou/widgets/safe_image.dart';
+import 'package:yomou/widgets/sheet_snap.dart';
 import 'package:yomou/core/cache/app_cache.dart';
 import 'package:yomou/core/haptics.dart';
 import 'package:yomou/core/diagnostics/diag_log.dart';
@@ -83,6 +84,18 @@ class ReaderScreen extends ConsumerStatefulWidget {
 /// of titles does. Below this the cap simply never binds, so phones are
 /// unaffected.
 const double kReaderTrayMaxWidth = 560;
+
+/// The sizes the chapter tray may come to rest at, as fractions of the screen:
+/// a small peek, the open size, and full height.
+///
+/// The sheet is given these, and the tray's own drag handling -- the grabber
+/// and header, which sit outside the list and so are invisible to the sheet --
+/// snaps between them with the same list, so the two cannot drift apart.
+const List<double> kReaderTraySizes = [0.3, 0.5, 1.0];
+
+/// The size the chapter tray opens at: half open, so the page it was opened
+/// over stays visible behind it.
+const double kReaderTrayInitialSize = 0.5;
 
 /// Widest a portrait chrome pill is allowed to get.
 ///
@@ -332,6 +345,9 @@ class _ReaderScreenState extends ConsumerState<ReaderScreen>
   VoidCallback? _trayRefresh;
   final DraggableScrollableController _trayExtentController =
       DraggableScrollableController();
+
+  // Where the tray's drag started, and null whenever none is in progress.
+  double? _trayDragStartSize;
 
   /// Scroll controller for the tray when it is presented as a side panel.
   ///
@@ -1429,11 +1445,16 @@ class _ReaderScreenState extends ConsumerState<ReaderScreen>
             child: SizedBox.expand(
               child: DraggableScrollableSheet(
                 controller: _trayExtentController,
-                initialChildSize: 0.5,
-                minChildSize: 0.3,
-                maxChildSize: 1.0,
+                initialChildSize: kReaderTrayInitialSize,
+                minChildSize: kReaderTraySizes.first,
+                maxChildSize: kReaderTraySizes.last,
                 snap: true,
-                snapSizes: const [0.3, 0.5, 1.0],
+                // The same const list the grabber's drag snaps against, so
+                // there is one set of resting sizes rather than two that can
+                // drift. Const also matters here: a list built in this builder
+                // would be a new object on every build, and the sheet re-snaps
+                // whenever its `snapSizes` change.
+                snapSizes: kReaderTraySizes,
                 builder: (context, sheetController) {
                   // The sheet itself is transparent so the reader stays
                   // visible above the tray while it is half-open; the tray
@@ -1450,22 +1471,30 @@ class _ReaderScreenState extends ConsumerState<ReaderScreen>
                     child: StatefulBuilder(
                       builder: (context, setSheetState) {
                         if (!didJump) {
-                          // Force the tray back to the mid (0.5) extent on a
-                          // fresh open: the [DraggableScrollableController] is
-                          // persistent and would otherwise inherit the size
-                          // left over from a previous long-press fullscreen.
-                          sheetController.animateTo(
-                            0.5,
-                            duration: const Duration(milliseconds: 250),
-                            curve: Curves.easeOut,
-                          );
+                          didJump = true;
+                          // Push the tray back to the open size on a fresh
+                          // open: the [DraggableScrollableController] is
+                          // persistent, so it would otherwise inherit the size
+                          // the tray was left at. Deferred to after the frame
+                          // because this builder runs during build, where the
+                          // sheet has no scroll position attached yet and the
+                          // animation would be dropped.
+                          WidgetsBinding.instance.addPostFrameCallback((_) {
+                            if (!mounted || !_trayExtentController.isAttached) {
+                              return;
+                            }
+                            _trayExtentController.animateTo(
+                              kReaderTrayInitialSize,
+                              duration: const Duration(milliseconds: 250),
+                              curve: Curves.easeOut,
+                            );
+                          });
                           _jumpToCurrentInSheet(
                             sheetController,
                             currentIndex,
                             72,
                             0,
                           );
-                          didJump = true;
                         }
                         return _buildTrayBody(
                           listView: listView,
@@ -1495,6 +1524,62 @@ class _ReaderScreenState extends ConsumerState<ReaderScreen>
     _selectionMode = false;
   }
 
+  // The grabber and the header are the tray's drag handle.
+  //
+  // A [DraggableScrollableSheet] is only draggable through the scrollable it
+  // hands out, and both of these sit above the chapter list rather than inside
+  // it -- so until now the grabber could be dragged and nothing whatsoever
+  // would happen. Driving the extent by hand fixes that, and lets the tray be
+  // swiped down from wherever the list happens to be scrolled to.
+  void _onTrayDragStart(DragStartDetails details) {
+    if (!_trayExtentController.isAttached) return;
+    _trayDragStartSize = _trayExtentController.size;
+  }
+
+  void _onTrayDragUpdate(DragUpdateDetails details) {
+    final start = _trayDragStartSize;
+    if (start == null || !_trayExtentController.isAttached) return;
+    // The sheet measures itself in fractions of its own container, so the drag
+    // is converted through that height rather than the window's: they stop
+    // being the same number as soon as anything else takes a slice of the
+    // screen.
+    final height = _trayExtentController.sizeToPixels(1.0);
+    if (height <= 0) return;
+    _trayExtentController.jumpTo(
+      (start - details.delta.dy / height).clamp(
+        kReaderTraySizes.first,
+        kReaderTraySizes.last,
+      ),
+    );
+  }
+
+  void _onTrayDragEnd(DragEndDetails details) {
+    final start = _trayDragStartSize;
+    _trayDragStartSize = null;
+    if (start == null || !_trayExtentController.isAttached) return;
+    final velocity = details.velocity.pixelsPerSecond.dy;
+    final size = _trayExtentController.size;
+
+    // Flicked down while already at the smallest size: there is nothing below
+    // it to shrink to, so leave the way a bottom sheet leaves. The tray is a
+    // chooser over the page, and dragging it down is how a reader expects to
+    // be rid of it.
+    if (velocity > 300 && size <= kReaderTraySizes.first + 0.01) {
+      Navigator.of(context).maybePop();
+      return;
+    }
+
+    _trayExtentController.animateTo(
+      sheetSnapTarget(
+        size: size,
+        velocity: velocity,
+        stops: kReaderTraySizes,
+      ),
+      duration: const Duration(milliseconds: 200),
+      curve: Curves.easeOutCubic,
+    );
+  }
+
   /// The tray's contents, identical under both presentations.
   ///
   /// [isSheet] selects only the presentation details: the phone's draggable
@@ -1514,11 +1599,13 @@ class _ReaderScreenState extends ConsumerState<ReaderScreen>
     _trayOpen = true;
     _trayRefresh = onRefresh;
 
-    return Column(
+    final header = Column(
+      mainAxisSize: MainAxisSize.min,
       children: [
         // A grabber is a bottom-sheet affordance: it invites a drag that the
-        // side panel has no extent for. The panel's header carries the title
-        // and the close button instead.
+        // side panel has no extent for, and it is what the tray's own drag
+        // handling is hung off below. The panel's header carries the title and
+        // the close button instead.
         if (isSheet)
           Center(
             child: Container(
@@ -1532,6 +1619,25 @@ class _ReaderScreenState extends ConsumerState<ReaderScreen>
             ),
           ),
         _buildChapterSheetHeader(listView, setListView),
+      ],
+    );
+
+    return Column(
+      children: [
+        // Grabber and header together are the tray's handle. `down` rather than
+        // the default `start` so the sheet does not jump by the touch slop the
+        // moment the drag is recognised.
+        if (isSheet)
+          GestureDetector(
+            behavior: HitTestBehavior.opaque,
+            dragStartBehavior: DragStartBehavior.down,
+            onVerticalDragStart: _onTrayDragStart,
+            onVerticalDragUpdate: _onTrayDragUpdate,
+            onVerticalDragEnd: _onTrayDragEnd,
+            child: header,
+          )
+        else
+          header,
         Expanded(
           child: switch (listView) {
             'grid' => _buildPageGridView(controller, currentIndex, headers),

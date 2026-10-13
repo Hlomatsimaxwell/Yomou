@@ -1,8 +1,10 @@
 import 'dart:async';
 import 'dart:ui' show ImageFilter;
+import 'package:flutter/gestures.dart' show DragStartBehavior;
 import 'package:yomou/widgets/cached_manga_image.dart';
 import 'package:yomou/widgets/manga_hero.dart';
 import 'package:yomou/widgets/cover_viewer.dart';
+import 'package:yomou/widgets/sheet_snap.dart';
 import 'package:remixicon/remixicon.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
@@ -227,6 +229,10 @@ class _MangaDetailScreenState extends ConsumerState<MangaDetailScreen> {
   bool _widePaneScrollListening = false;
   bool _trayScrollListening = false;
   bool _trayAtBottom = false;
+
+  // Where the tray bar's drag started. Null whenever no drag is in progress,
+  // which is also how the drag callbacks know to ignore a stray update.
+  double? _trayDragStartSize;
   bool _isLoadingBookmarks = true;
 
   // Tray shows chapters oldest-first; toggling this shows newest-first.
@@ -277,7 +283,11 @@ class _MangaDetailScreenState extends ConsumerState<MangaDetailScreen> {
         setState(() => _isExpanded = isTop);
       }
 
-      final shouldShowContent = currentSize > 0.12;
+      // Measured against the collapsed size rather than a fixed fraction: the
+      // bar costs 72dp plus the safe area, so on a short window the collapsed
+      // tray is a taller share of the screen than on a tall one, and a fixed
+      // threshold would decide the list was showing while the tray was shut.
+      final shouldShowContent = currentSize > _trayCollapsedSize + 0.001;
       if (shouldShowContent != _showSheetContent) {
         setState(() => _showSheetContent = shouldShowContent);
       }
@@ -755,19 +765,22 @@ class _MangaDetailScreenState extends ConsumerState<MangaDetailScreen> {
     }
   }
 
-  // True when the tray list is scrolled to its last chapter.
+  // True when the tray list is long enough to be worth jumping around in.
   bool get _trayCanScroll {
     final sc = _listScrollController;
     return sc?.hasClients == true && sc!.position.maxScrollExtent > 40;
   }
 
   // Track whether the chapter list has scrolled to its last chapter.
+  //
+  // To the last chapter, not merely near it: the jump button switches direction
+  // off this, so a few hundred pixels of slack at the end had the arrow
+  // offering to jump to the top while chapters were still laid out below it.
   void _onTrayContentScroll() {
     final sc = _listScrollController;
     if (sc == null || !sc.hasClients) return;
     final pos = sc.position;
-    final atBottom =
-        pos.maxScrollExtent <= 0 || pos.pixels >= pos.maxScrollExtent - 400;
+    final atBottom = pos.maxScrollExtent <= 0 || pos.extentAfter <= 8;
     if (atBottom != _trayAtBottom) {
       setState(() => _trayAtBottom = atBottom);
     }
@@ -792,6 +805,56 @@ class _MangaDetailScreenState extends ConsumerState<MangaDetailScreen> {
       sc.position.maxScrollExtent,
       duration: const Duration(milliseconds: 500),
       curve: Curves.easeOutCubic,
+    );
+  }
+
+  /// Where the tray comes to rest: the collapsed bar, and full screen.
+  ///
+  /// The sheet is given no `snapSizes` of its own, so these are also the sizes
+  /// it snaps between when a drag arrives through the chapter list. Two stops
+  /// and not three: with a half state in between, one upward swipe could be
+  /// answered with a half-open tray and read as the swipe having failed.
+  List<double> get _traySnapSizes => [_trayCollapsedSize, 1.0];
+
+  // The tray bar doubles as the tray's drag handle.
+  //
+  // A [DraggableScrollableSheet] only sees drags that arrive through the
+  // scrollable it hands out, so the bar on its own can only ask the sheet to
+  // grow. Dragging it up moves the sheet; dragging it down -- the thing a
+  // full-screen tray most needs, and the thing a bar invites -- used to fall
+  // through to the chapter list and scroll that instead, leaving the tray stuck
+  // open until the list was scrolled all the way back to the top. Kotatsu drags
+  // its sheet by its header bar for the same reason; this is the Flutter
+  // equivalent, and it works from wherever the list happens to be.
+  void _onTrayBarDragStart(DragStartDetails details) {
+    if (!_sheetController.isAttached) return;
+    _trayDragStartSize = _sheetController.size;
+  }
+
+  void _onTrayBarDragUpdate(DragUpdateDetails details) {
+    final start = _trayDragStartSize;
+    if (start == null || !_sheetController.isAttached) return;
+    // The sheet measures itself in fractions of its own container, so the drag
+    // is converted through that height rather than the window's: they stop
+    // being the same number as soon as anything else takes a slice of the
+    // screen.
+    final height = _sheetController.sizeToPixels(1.0);
+    if (height <= 0) return;
+    _sheetController.jumpTo(
+      (start - details.delta.dy / height).clamp(_traySnapSizes.first, 1.0),
+    );
+  }
+
+  void _onTrayBarDragEnd(DragEndDetails details) {
+    final start = _trayDragStartSize;
+    _trayDragStartSize = null;
+    if (start == null || !_sheetController.isAttached) return;
+    _animateSheetTo(
+      sheetSnapTarget(
+        size: _sheetController.size,
+        velocity: details.velocity.pixelsPerSecond.dy,
+        stops: _traySnapSizes,
+      ),
     );
   }
 
@@ -1077,7 +1140,11 @@ class _MangaDetailScreenState extends ConsumerState<MangaDetailScreen> {
               minChildSize: _trayCollapsedSize,
               maxChildSize: 1.0,
               snap: true,
-              snapSizes: [_trayCollapsedSize, 0.5, 1.0],
+              // Deliberately no `snapSizes`. Left out, the sheet snaps between
+              // its min and max -- the bar and full screen, which is what
+              // [_traySnapSizes] names too. A half state here read as the swipe
+              // having failed, and a fresh `snapSizes` list is rebuilt on every
+              // build of this screen, which made the sheet re-snap mid-drag.
               builder: (context, scrollController) {
                 _sheetContentController = scrollController;
                 if (!_trayScrollListening) {
@@ -1199,24 +1266,27 @@ class _MangaDetailScreenState extends ConsumerState<MangaDetailScreen> {
       onDownload: _downloadSelectedChapters,
       onBarTap: () {
         if (docked) return;
-        final current = _sheetController.size;
-        if (current < 0.2) {
-          _animateSheetTo(0.5);
-          _scrollToResumeChapter();
-        } else if (current > 0.6) {
-          // Fullscreen: collapse back to the half state.
-          _animateSheetTo(0.5);
-        } else {
+        // Two states, so a tap is a straight toggle between them: the bar
+        // opens the tray to full screen, and tapping it again puts it back.
+        // With a half state in between, the first tap only ever got you part
+        // of the way, which is what the tester read as "it doesn't go up".
+        if (_isExpanded) {
           _animateSheetTo(_trayCollapsedSize);
+        } else {
+          _animateSheetTo(1.0);
+          _scrollToResumeChapter();
         }
       },
+      onBarDragStart: docked ? null : _onTrayBarDragStart,
+      onBarDragUpdate: docked ? null : _onTrayBarDragUpdate,
+      onBarDragEnd: docked ? null : _onTrayBarDragEnd,
       reverseOrder: _reverseOrder,
       onToggleOrder: () => setState(() => _reverseOrder = !_reverseOrder),
       onTabSelected: (index) {
         setState(() => _activeTab = index);
         if (docked) return;
         if (_sheetController.size < 0.2) {
-          _animateSheetTo(0.5);
+          _animateSheetTo(1.0);
         }
       },
     );
@@ -3648,6 +3718,12 @@ class _SheetHeaderDelegate extends SliverPersistentHeaderDelegate {
   final bool hasSelectionGap;
   final VoidCallback onContinuePressed;
   final VoidCallback onBarTap;
+
+  /// The tray bar is the tray's drag handle; these are absent on the docked
+  /// pane, which has no extent to drag.
+  final GestureDragStartCallback? onBarDragStart;
+  final GestureDragUpdateCallback? onBarDragUpdate;
+  final GestureDragEndCallback? onBarDragEnd;
   final ValueChanged<int> onTabSelected;
   final VoidCallback onExitSelection;
   final VoidCallback onSelectRange;
@@ -3677,6 +3753,9 @@ class _SheetHeaderDelegate extends SliverPersistentHeaderDelegate {
     this.hasSelectionGap = false,
     required this.onContinuePressed,
     required this.onBarTap,
+    this.onBarDragStart,
+    this.onBarDragUpdate,
+    this.onBarDragEnd,
     required this.onTabSelected,
     required this.onExitSelection,
     required this.onSelectRange,
@@ -3702,6 +3781,13 @@ class _SheetHeaderDelegate extends SliverPersistentHeaderDelegate {
     return GestureDetector(
       behavior: HitTestBehavior.opaque,
       onTap: isSelectionMode || docked ? null : onBarTap,
+      // The bar is the tray's handle. `down` rather than the default `start`
+      // so the sheet does not jump by the touch slop the moment the drag is
+      // recognised.
+      dragStartBehavior: DragStartBehavior.down,
+      onVerticalDragStart: isSelectionMode ? null : onBarDragStart,
+      onVerticalDragUpdate: isSelectionMode ? null : onBarDragUpdate,
+      onVerticalDragEnd: isSelectionMode ? null : onBarDragEnd,
       child: Container(
         decoration: BoxDecoration(
           color: dark ? const Color(0xFF1E1E20) : Colors.white,
@@ -4060,7 +4146,14 @@ class _SheetHeaderDelegate extends SliverPersistentHeaderDelegate {
   }
 }
 
-// Floating circular button shown on the right edge of the full-screen tray.
+// Floating circular button on the right edge of the tray: jump to the other end
+// of the chapter list.
+//
+// It only ever exists at full screen, on a list long enough to have somewhere
+// to travel to, and it is not offered at all in selection mode -- all of that
+// is settled by the callers. So the only decision left is direction, and it is
+// read straight off the list: the arrow points the way the list will move, down
+// while there are chapters below and up again once the end is reached.
 class _TrayJumpButton extends StatelessWidget {
   final bool atBottom;
   final VoidCallback onTap;
