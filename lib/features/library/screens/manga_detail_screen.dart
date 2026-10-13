@@ -1,4 +1,5 @@
 import 'dart:async';
+import 'dart:ui' show ImageFilter;
 import 'package:yomou/widgets/cached_manga_image.dart';
 import 'package:yomou/widgets/manga_hero.dart';
 import 'package:yomou/widgets/cover_viewer.dart';
@@ -998,6 +999,10 @@ class _MangaDetailScreenState extends ConsumerState<MangaDetailScreen> {
       backgroundColor: Theme.of(context).scaffoldBackgroundColor,
       body: Stack(
         children: [
+          // The art itself, blurred, behind everything: the header is meant to
+          // feel like it continues out of the cover rather than sit on a flat
+          // sheet beside it. It is below the content, so it never takes a tap.
+          Positioned.fill(child: _buildImmersiveBackdrop()),
           Positioned.fill(
             child: GestureDetector(
               behavior: HitTestBehavior.opaque,
@@ -2753,6 +2758,54 @@ class _MangaDetailScreenState extends ConsumerState<MangaDetailScreen> {
     showIosToast(context, message: message);
   }
 
+  /// The whole screen's backdrop: the cover, scaled past the edges and heavily
+  /// blurred, with a scrim over it.
+  ///
+  /// The scrim is what keeps the title, the info card and the tag chips legible
+  /// over art that could be any colour, while still leaving the cover's palette
+  /// showing through. It is heavier at the bottom, where the description sits
+  /// over the widest stretch of art. Nothing here is interactive.
+  Widget _buildImmersiveBackdrop() {
+    final cover = _coverUrl;
+    if (cover.isEmpty) return const SizedBox.shrink();
+
+    final dark = Theme.of(context).brightness == Brightness.dark;
+    final scrim = dark ? const Color(0xFF141416) : Colors.white;
+    final topAlpha = dark ? 0.78 : 0.74;
+    final bottomAlpha = dark ? 0.94 : 0.90;
+
+    return IgnorePointer(
+      child: Stack(
+        fit: StackFit.expand,
+        children: [
+          Transform.scale(
+            // Zoomed so the blur's soft edges are pushed off screen and the
+            // backdrop never shows a seam at the borders.
+            scale: 1.3,
+            child: ImageFiltered(
+              imageFilter: ImageFilter.blur(sigmaX: 40, sigmaY: 40),
+              child: SizedBox.expand(
+                child: CachedMangaImage(imageUrl: cover, fit: BoxFit.cover),
+              ),
+            ),
+          ),
+          DecoratedBox(
+            decoration: BoxDecoration(
+              gradient: LinearGradient(
+                begin: Alignment.topCenter,
+                end: Alignment.bottomCenter,
+                colors: [
+                  scrim.withValues(alpha: topAlpha),
+                  scrim.withValues(alpha: bottomAlpha),
+                ],
+              ),
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+
   Widget _buildHeaderSection() {
     // Read from this section's own constraints rather than the window: on a wide
     // layout it lives in one pane of a split, and the window is not what it was
@@ -2848,66 +2901,88 @@ class _MangaDetailScreenState extends ConsumerState<MangaDetailScreen> {
                             : Theme.of(context).colorScheme.primary,
                       ),
                     )
-                  : GestureDetector(
-                      onTap: _toggleFavorite,
-                      child: Container(
-                        padding: const EdgeInsets.symmetric(
-                          horizontal: 14,
-                          vertical: 8,
-                        ),
-                        decoration: BoxDecoration(
-                          color: dark
-                              ? (_isFavorite
-                                    ? const Color(0xFF3A3A3C)
-                                    : const Color(0xFF1E1E22))
-                              : Colors.white,
-                          borderRadius: BorderRadius.circular(12),
-                          border: Border.all(
-                            color: dark
-                                ? (_isFavorite
-                                      ? Colors.white70
-                                      : Colors.white24)
-                                : (_isFavorite
-                                      ? Colors.redAccent
-                                      : Colors.black12),
-                          ),
-                        ),
-                        child: Row(
-                          mainAxisSize: MainAxisSize.min,
-                          children: [
-                            Icon(
-                              _isFavorite
-                                  ? RemixIcons.heart_3_fill
-                                  : RemixIcons.heart_3_line,
-                              color: _isFavorite
-                                  ? Colors.redAccent
-                                  : (dark
-                                        ? Colors.white
-                                        : Theme.of(
-                                            context,
-                                          ).colorScheme.onSurface),
-                              size: 18,
-                            ),
-                            const SizedBox(width: 8),
-                            Text(
-                              _isFavorite
-                                  ? AppLocalizations.of(context).favorited
-                                  : AppLocalizations.of(context).favorite,
-                              style: TextStyle(
-                                color: dark
-                                    ? Colors.white
-                                    : Theme.of(context).colorScheme.onSurface,
-                                fontSize: 14,
-                              ),
-                            ),
-                          ],
-                        ),
-                      ),
-                    ),
+                  : _buildFavoriteButton(dark),
             ],
           ),
         ),
       ],
+    );
+  }
+
+  /// The favourite control: a soft-filled pill split in two.
+  ///
+  /// The left half toggles the favourite; the right half is the chevron and
+  /// opens the same options sheet as the top-right overflow, which is the
+  /// "more options" the chevron promises. A single filled pill reads as a
+  /// control sitting on the art-backed header rather than a box drawn over it,
+  /// which is what the old outlined rectangle looked like.
+  Widget _buildFavoriteButton(bool dark) {
+    final l = AppLocalizations.of(context);
+    final onSurface = Theme.of(context).colorScheme.onSurface;
+    final labelColor = dark ? Colors.white : onSurface;
+    final iconColor = _isFavorite
+        ? Colors.redAccent
+        : (dark ? Colors.white : onSurface);
+    final divider = dark
+        ? Colors.white.withValues(alpha: 0.14)
+        : Colors.black.withValues(alpha: 0.08);
+
+    return Container(
+      decoration: BoxDecoration(
+        color: dark ? const Color(0xFF1E1E22) : Colors.white,
+        borderRadius: BorderRadius.circular(999),
+        border: Border.all(
+          color: dark
+              ? (_isFavorite ? Colors.white24 : Colors.white12)
+              : Colors.black.withValues(alpha: 0.06),
+        ),
+      ),
+      child: Row(
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          InkWell(
+            onTap: _toggleFavorite,
+            borderRadius: const BorderRadius.horizontal(
+              left: Radius.circular(999),
+            ),
+            child: Padding(
+              padding: const EdgeInsets.fromLTRB(14, 8, 12, 8),
+              child: Row(
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  Icon(
+                    _isFavorite
+                        ? RemixIcons.heart_3_fill
+                        : RemixIcons.heart_3_line,
+                    color: iconColor,
+                    size: 18,
+                  ),
+                  const SizedBox(width: 8),
+                  Text(
+                    _isFavorite ? l.favorited : l.favorite,
+                    style: TextStyle(color: labelColor, fontSize: 14),
+                  ),
+                ],
+              ),
+            ),
+          ),
+          Container(width: 1, height: 20, color: divider),
+          InkWell(
+            onTap: () => _showOverflowMenu(context),
+            borderRadius: const BorderRadius.horizontal(
+              right: Radius.circular(999),
+            ),
+            child: Padding(
+              padding: const EdgeInsets.fromLTRB(8, 8, 12, 8),
+              child: Icon(
+                RemixIcons.arrow_down_s_line,
+                size: 16,
+                color: labelColor.withValues(alpha: 0.7),
+              ),
+            ),
+          ),
+        ],
+      ),
     );
   }
 
@@ -2924,16 +2999,25 @@ class _MangaDetailScreenState extends ConsumerState<MangaDetailScreen> {
       margin: const EdgeInsets.symmetric(horizontal: 16),
       padding: const EdgeInsets.all(16),
       decoration: BoxDecoration(
-        color: dark ? const Color(0xFF2C2C2E) : Colors.white,
-        borderRadius: BorderRadius.circular(20),
-        border: dark ? null : Border.all(color: Colors.black12),
+        // Slightly translucent, so the blurred art still breathes through it
+        // instead of the card reading as a hard white slab laid over the
+        // backdrop. The generous radius keeps the corners soft.
+        color: dark
+            ? const Color(0xFF2C2C2E).withValues(alpha: 0.94)
+            : Colors.white.withValues(alpha: 0.82),
+        borderRadius: BorderRadius.circular(28),
+        border: Border.all(
+          color: dark
+              ? Colors.white.withValues(alpha: 0.06)
+              : Colors.white.withValues(alpha: 0.6),
+        ),
         boxShadow: dark
             ? null
             : [
                 BoxShadow(
-                  color: Colors.black.withValues(alpha: 0.06),
-                  blurRadius: 8,
-                  offset: const Offset(0, 2),
+                  color: Colors.black.withValues(alpha: 0.05),
+                  blurRadius: 20,
+                  offset: const Offset(0, 4),
                 ),
               ],
       ),
@@ -2963,7 +3047,10 @@ class _MangaDetailScreenState extends ConsumerState<MangaDetailScreen> {
             children: [
               Text(
                 l.detailProgress,
-                style: TextStyle(color: Colors.grey, fontSize: 14),
+                style: TextStyle(
+                  color: _detailLabelColor(dark),
+                  fontSize: 14,
+                ),
               ),
               const SizedBox(width: 16),
               Expanded(
@@ -2985,10 +3072,9 @@ class _MangaDetailScreenState extends ConsumerState<MangaDetailScreen> {
               Text(
                 _lastReadChapter >= 0 ? '${_progressPercent.round()}%' : '0%',
                 style: TextStyle(
-                  color: dark
-                      ? Colors.white
-                      : Theme.of(context).colorScheme.onSurface,
+                  color: _detailValueColor(dark),
                   fontSize: 13,
+                  fontWeight: FontWeight.w600,
                 ),
               ),
             ],
@@ -3137,6 +3223,18 @@ class _MangaDetailScreenState extends ConsumerState<MangaDetailScreen> {
     return SourceIcon(name: name, iconUrl: source?.iconUrl ?? '', size: 20);
   }
 
+  /// The muted colour of a metadata label ("Source", "Author", ...).
+  ///
+  /// Kept clearly lighter than the value beside it: the two used to sit at
+  /// nearly the same contrast, which flattened the hierarchy into a wall of
+  /// grey.
+  Color _detailLabelColor(bool dark) =>
+      dark ? Colors.white54 : const Color(0xFF8A8A8E);
+
+  /// The charcoal colour of a metadata value.
+  Color _detailValueColor(bool dark) =>
+      dark ? Colors.white : const Color(0xFF1C1B1F);
+
   Widget _buildCardRow(
     String label,
     String value, {
@@ -3145,7 +3243,8 @@ class _MangaDetailScreenState extends ConsumerState<MangaDetailScreen> {
     VoidCallback? onTap,
   }) {
     final dark = Theme.of(context).brightness == Brightness.dark;
-    final onSurface = Theme.of(context).colorScheme.onSurface;
+    final valueColor = _detailValueColor(dark);
+    final labelColor = _detailLabelColor(dark);
     final content = Padding(
       padding: const EdgeInsets.symmetric(vertical: 4),
       child: Row(
@@ -3155,7 +3254,7 @@ class _MangaDetailScreenState extends ConsumerState<MangaDetailScreen> {
             width: 90,
             child: Text(
               label,
-              style: const TextStyle(color: Colors.grey, fontSize: 14),
+              style: TextStyle(color: labelColor, fontSize: 14),
             ),
           ),
           Expanded(
@@ -3167,22 +3266,22 @@ class _MangaDetailScreenState extends ConsumerState<MangaDetailScreen> {
                   leading,
                   const SizedBox(width: 6),
                 ] else if (icon != null) ...[
-                  Icon(icon, size: 16, color: dark ? Colors.white : onSurface),
+                  Icon(icon, size: 16, color: valueColor),
                   const SizedBox(width: 6),
                 ],
                 Flexible(
                   child: Text(
                     value,
                     style: TextStyle(
-                      color: dark ? Colors.white : onSurface,
+                      color: valueColor,
                       fontSize: 14,
-                      fontWeight: FontWeight.w500,
+                      fontWeight: FontWeight.w600,
                     ),
                   ),
                 ),
                 if (onTap != null) ...[
                   const SizedBox(width: 4),
-                  Icon(Icons.chevron_right, size: 18, color: Colors.grey),
+                  Icon(Icons.chevron_right, size: 18, color: labelColor),
                 ],
               ],
             ),
