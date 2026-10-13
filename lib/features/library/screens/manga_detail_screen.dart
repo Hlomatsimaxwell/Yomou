@@ -47,6 +47,13 @@ import 'package:yomou/l10n/generated/app_localizations.dart';
 import 'package:yomou/widgets/source_icon.dart';
 import 'package:yomou/core/diagnostics/diag_log.dart';
 
+/// Height of the art plate at the top of the detail screen.
+///
+/// A fixed plate rather than a full screen: past it the page is plain
+/// background. 420dp is Kotatsu-Redo's number, and it is measured from its own
+/// layout rather than guessed.
+const double _kBackdropHeight = 420;
+
 /// The bottom safe-area inset, raised to at least [kBottomChromeClearance].
 ///
 /// Some gesture-nav skins (notably EMUI) paint a translucent swipe strip over
@@ -999,10 +1006,6 @@ class _MangaDetailScreenState extends ConsumerState<MangaDetailScreen> {
       backgroundColor: Theme.of(context).scaffoldBackgroundColor,
       body: Stack(
         children: [
-          // The art itself, blurred, behind everything: the header is meant to
-          // feel like it continues out of the cover rather than sit on a flat
-          // sheet beside it. It is below the content, so it never takes a tap.
-          Positioned.fill(child: _buildImmersiveBackdrop()),
           Positioned.fill(
             child: GestureDetector(
               behavior: HitTestBehavior.opaque,
@@ -1015,22 +1018,38 @@ class _MangaDetailScreenState extends ConsumerState<MangaDetailScreen> {
                   padding: EdgeInsets.only(
                     bottom: 90 + _bottomClearance(context),
                   ),
-                  child: Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
+                  // The art plate is the first layer of the scroll content, not
+                  // a backdrop pinned to the screen. That is the whole point:
+                  // it rides up and off with the header as you scroll, instead
+                  // of staying put behind the page. It paints below the header,
+                  // so it never takes a tap.
+                  child: Stack(
+                    fit: StackFit.passthrough,
                     children: [
-                      _buildTopAppBar(),
-                      // Breathing room under the nav row: the title used to sit
-                      // right up against it.
-                      const SizedBox(height: 12),
-                      _buildHeaderSection(),
-                      const SizedBox(height: 16),
-                      _buildSourceCard(),
-                      const SizedBox(height: 16),
-                      _buildDescriptionSection(),
-                      const SizedBox(height: 12),
-                      _buildTagChips(),
-                      const SizedBox(height: 20),
-                      _buildRelatedMangaSection(),
+                      Positioned(
+                        top: 0,
+                        left: 0,
+                        right: 0,
+                        height: _kBackdropHeight,
+                        child: _buildImmersiveBackdrop(),
+                      ),
+                      Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          _buildTopAppBar(),
+                          // The header carries its own top margin now; the nav
+                          // row sits directly on it.
+                          _buildHeaderSection(),
+                          const SizedBox(height: 16),
+                          _buildSourceCard(),
+                          const SizedBox(height: 16),
+                          _buildDescriptionSection(),
+                          const SizedBox(height: 12),
+                          _buildTagChips(),
+                          const SizedBox(height: 20),
+                          _buildRelatedMangaSection(),
+                        ],
+                      ),
                     ],
                   ),
                 ),
@@ -2761,54 +2780,67 @@ class _MangaDetailScreenState extends ConsumerState<MangaDetailScreen> {
     showIosToast(context, message: message);
   }
 
-  /// The whole screen's backdrop: the cover, scaled past the edges and heavily
-  /// blurred, dissolving into the page through a scrim.
+  /// The art plate behind the header, rebuilt from Kotatsu-Redo.
   ///
-  /// The scrim is deliberately not a flat wash. A single even coat made the blur
-  /// read as a photo parked behind a white page; this is a multi-stop gradient
-  /// in the page's own background colour, so the art is left showing through at
-  /// the top and fades smoothly into the layout toward the bottom. That fade is
-  /// what ties the two layers together, and it is also what keeps the title, the
-  /// info card and the tag chips legible over art of any colour. Nothing here is
+  /// Three things in the reference are easy to get wrong, and all three were:
+  ///
+  /// * It is a **plate, not a backdrop**. 420dp tall at the top of the content;
+  ///   below it the page is plain background.
+  /// * The cover is held at **25% opacity** and blurred by only 16. That low
+  ///   opacity is what lets the info card stay opaque and still read as though
+  ///   it were translucent -- there is simply very little art under it.
+  /// * The wash is a **symmetric vignette**, not a fade to the bottom:
+  ///   surface, half, clear, clear, half, surface. The art is only visible in a
+  ///   soft band through the middle and dissolves back into the page at both
+  ///   ends.
+  ///
+  /// It is painted in the page's own background colour, so the ends of the
+  /// vignette land on the real background in either theme. Nothing here is
   /// interactive.
   Widget _buildImmersiveBackdrop() {
     final cover = _coverUrl;
     if (cover.isEmpty) return const SizedBox.shrink();
 
-    final dark = Theme.of(context).brightness == Brightness.dark;
-    // The scrim blends into the real page colour, not an approximation of it,
-    // so the fade lands exactly where the content begins.
-    final scrim = Theme.of(context).scaffoldBackgroundColor;
-    final alphas = dark
-        ? const [0.62, 0.72, 0.88, 1.0]
-        : const [0.46, 0.60, 0.82, 0.97];
+    // The vignette is painted in the real page colour, so it lands on the
+    // background exactly rather than on an approximation of it.
+    final surface = Theme.of(context).scaffoldBackgroundColor;
 
     return IgnorePointer(
-      child: Stack(
-        fit: StackFit.expand,
-        children: [
-          Transform.scale(
-            // Zoomed so the blur's soft edges are pushed off screen and the
-            // backdrop never shows a seam at the borders.
-            scale: 1.35,
-            child: ImageFiltered(
-              imageFilter: ImageFilter.blur(sigmaX: 45, sigmaY: 45),
-              child: SizedBox.expand(
-                child: CachedMangaImage(imageUrl: cover, fit: BoxFit.cover),
+      child: RepaintBoundary(
+        child: Stack(
+          fit: StackFit.expand,
+          children: [
+            // Held at a quarter opacity and only lightly blurred. The blur is
+            // clamped at the plate's edges, so it needs no zoom to hide a seam.
+            Opacity(
+              opacity: 0.25,
+              child: ImageFiltered(
+                imageFilter: ImageFilter.blur(sigmaX: 16, sigmaY: 16),
+                child: SizedBox.expand(
+                  child: CachedMangaImage(imageUrl: cover, fit: BoxFit.cover),
+                ),
               ),
             ),
-          ),
-          DecoratedBox(
-            decoration: BoxDecoration(
-              gradient: LinearGradient(
-                begin: Alignment.topCenter,
-                end: Alignment.bottomCenter,
-                stops: const [0.0, 0.38, 0.74, 1.0],
-                colors: [for (final a in alphas) scrim.withValues(alpha: a)],
+            DecoratedBox(
+              decoration: BoxDecoration(
+                gradient: LinearGradient(
+                  begin: Alignment.topCenter,
+                  end: Alignment.bottomCenter,
+                  // Six evenly spaced stops, matching GradientDrawable's ramp:
+                  // opaque surface top and bottom, clear through the middle.
+                  colors: [
+                    surface,
+                    surface.withValues(alpha: 0.5),
+                    surface.withValues(alpha: 0.0),
+                    surface.withValues(alpha: 0.0),
+                    surface.withValues(alpha: 0.5),
+                    surface,
+                  ],
+                ),
               ),
             ),
-          ),
-        ],
+          ],
+        ),
       ),
     );
   }
@@ -2818,7 +2850,9 @@ class _MangaDetailScreenState extends ConsumerState<MangaDetailScreen> {
     // layout it lives in one pane of a split, and the window is not what it was
     // given.
     return Padding(
-      padding: const EdgeInsets.symmetric(horizontal: 16),
+      // The reference gives both the cover and the title a 16dp top margin, so
+      // the header sits clear of the nav row instead of tucked under it.
+      padding: const EdgeInsets.fromLTRB(16, 16, 16, 0),
       child: LayoutBuilder(
         builder: (context, constraints) =>
             _buildHeaderRow(mangaDetailCoverWidth(constraints.maxWidth)),
@@ -2892,11 +2926,12 @@ class _MangaDetailScreenState extends ConsumerState<MangaDetailScreen> {
                   color: dark
                       ? Colors.white
                       : Theme.of(context).colorScheme.onSurface,
-                  fontSize: 24,
+                  // TitleLarge, the size the reference uses for the title.
+                  fontSize: 22,
                   fontWeight: FontWeight.bold,
                 ),
               ),
-              const SizedBox(height: 18),
+              const SizedBox(height: 12),
               _isLoadingPreferences
                   ? SizedBox(
                       height: 36,
@@ -2908,7 +2943,7 @@ class _MangaDetailScreenState extends ConsumerState<MangaDetailScreen> {
                             : Theme.of(context).colorScheme.primary,
                       ),
                     )
-                  : _buildFavoriteButton(dark),
+                  : _buildFavoriteButton(),
             ],
           ),
         ),
@@ -2916,33 +2951,28 @@ class _MangaDetailScreenState extends ConsumerState<MangaDetailScreen> {
     );
   }
 
-  /// The favourite control: a soft-filled pill split in two.
+  /// The favourite control: the tonal chip from the reference, split in two.
   ///
-  /// The left half toggles the favourite; the right half is the chevron and
-  /// opens the same options sheet as the top-right overflow, which is the
-  /// "more options" the chevron promises. A single filled pill reads as a
-  /// control sitting on the art-backed header rather than a box drawn over it,
-  /// which is what the old outlined rectangle looked like.
-  Widget _buildFavoriteButton(bool dark) {
+  /// Kotatsu-Redo styles this as a dropdown chip -- `primaryContainer` fill,
+  /// on-colour content, no stroke, 40dp tall. That is where the "soft light-grey
+  /// pill" in the screenshot comes from: it is a tone derived from the user's
+  /// accent, which lands near grey for a neutral accent, not a hand-picked grey.
+  ///
+  /// The one deliberate departure is the split. The reference's chip opens the
+  /// favourite-category menu; Yomou has no favourite categories, so the left
+  /// half keeps the one-tap toggle and the chevron half opens the options sheet,
+  /// which is the "more options" the chevron promises.
+  Widget _buildFavoriteButton() {
     final l = AppLocalizations.of(context);
-    final onSurface = Theme.of(context).colorScheme.onSurface;
-    final labelColor = dark ? Colors.white : onSurface;
-    final iconColor = _isFavorite
-        ? Colors.redAccent
-        : (dark ? Colors.white : onSurface);
-    final divider = dark
-        ? Colors.white.withValues(alpha: 0.14)
-        : Colors.black.withValues(alpha: 0.08);
+    final scheme = Theme.of(context).colorScheme;
+    final fg = scheme.onPrimaryContainer;
+    final divider = fg.withValues(alpha: 0.2);
 
     return Container(
+      constraints: const BoxConstraints(minHeight: 40),
       decoration: BoxDecoration(
-        // A soft translucent grey rather than a white fill with a hard border:
-        // a white pill on a white-ish page pops out, and the border made it
-        // look like a control bolted on. This sits quietly on the palette.
-        color: dark
-            ? Colors.white.withValues(alpha: 0.10)
-            : Colors.black.withValues(alpha: 0.06),
-        borderRadius: BorderRadius.circular(999),
+        color: scheme.primaryContainer,
+        borderRadius: BorderRadius.circular(20),
       ),
       child: Row(
         mainAxisSize: MainAxisSize.min,
@@ -2950,7 +2980,7 @@ class _MangaDetailScreenState extends ConsumerState<MangaDetailScreen> {
           InkWell(
             onTap: _toggleFavorite,
             borderRadius: const BorderRadius.horizontal(
-              left: Radius.circular(999),
+              left: Radius.circular(20),
             ),
             child: Padding(
               padding: const EdgeInsets.fromLTRB(14, 8, 12, 8),
@@ -2961,13 +2991,17 @@ class _MangaDetailScreenState extends ConsumerState<MangaDetailScreen> {
                     _isFavorite
                         ? RemixIcons.heart_3_fill
                         : RemixIcons.heart_3_line,
-                    color: iconColor,
+                    color: fg,
                     size: 18,
                   ),
                   const SizedBox(width: 8),
                   Text(
                     _isFavorite ? l.favorited : l.favorite,
-                    style: TextStyle(color: labelColor, fontSize: 14),
+                    style: TextStyle(
+                      color: fg,
+                      fontSize: 14,
+                      fontWeight: FontWeight.w500,
+                    ),
                   ),
                 ],
               ),
@@ -2977,14 +3011,14 @@ class _MangaDetailScreenState extends ConsumerState<MangaDetailScreen> {
           InkWell(
             onTap: () => _showOverflowMenu(context),
             borderRadius: const BorderRadius.horizontal(
-              right: Radius.circular(999),
+              right: Radius.circular(20),
             ),
             child: Padding(
               padding: const EdgeInsets.fromLTRB(8, 8, 12, 8),
               child: Icon(
                 RemixIcons.arrow_down_s_line,
                 size: 16,
-                color: labelColor.withValues(alpha: 0.7),
+                color: fg.withValues(alpha: 0.8),
               ),
             ),
           ),
@@ -3004,109 +3038,76 @@ class _MangaDetailScreenState extends ConsumerState<MangaDetailScreen> {
 
     return Container(
       margin: const EdgeInsets.symmetric(horizontal: 16),
+      padding: const EdgeInsets.all(16),
       decoration: BoxDecoration(
-        borderRadius: BorderRadius.circular(28),
-        // The shadow lives outside the clip, or the clip that rounds the glass
-        // would also trim the shadow away.
-        boxShadow: dark
-            ? null
-            : [
-                BoxShadow(
-                  color: Colors.black.withValues(alpha: 0.04),
-                  blurRadius: 20,
-                  offset: const Offset(0, 4),
-                ),
-              ],
+        // A plain filled card, level with the page -- exactly what the
+        // reference uses (`materialCardViewFilledStyle`, zero elevation). It
+        // reads as "almost invisible" because the art above it is only at a
+        // quarter opacity, not because the card is transparent. A translucent
+        // card over an already-washed backdrop just looks like a lighter
+        // rectangle, which is what the frosted-glass attempt turned into.
+        color: Theme.of(context).colorScheme.surfaceContainerHighest,
+        borderRadius: BorderRadius.circular(20),
       ),
-      // Frosted glass, not a solid block: the backdrop is blurred a second time
-      // inside the card's rounded bounds with a 70% wash over it, so the art
-      // still reads through and the card floats instead of cutting the screen
-      // in half.
-      child: ClipRRect(
-        borderRadius: BorderRadius.circular(28),
-        child: BackdropFilter(
-          filter: ImageFilter.blur(sigmaX: 16, sigmaY: 16),
-          child: Container(
-            padding: const EdgeInsets.all(16),
-            decoration: BoxDecoration(
-              color: dark
-                  ? const Color(0xFF2C2C2E).withValues(alpha: 0.7)
-                  : Colors.white.withValues(alpha: 0.7),
-              borderRadius: BorderRadius.circular(28),
-              border: Border.all(
-                color: dark
-                    ? Colors.white.withValues(alpha: 0.08)
-                    : Colors.white.withValues(alpha: 0.55),
-              ),
-            ),
-            child: Column(
-              children: [
-                _buildCardRow(
-                  l.detailSource,
-                  _sourceName ?? l.unknown,
-                  leading: _buildSourceIcon(),
-                ),
-                _buildCardRow(
-                  l.detailAuthor,
-                  _details?.author.isEmpty ?? true
-                      ? l.unknown
-                      : _details!.author,
-                ),
-                _buildTranslationRow(),
-                _buildCardRow(
-                  l.detailYear,
-                  _details?.year.isEmpty ?? true ? '—' : _details!.year,
-                ),
-                if ((_details?.status.isEmpty ?? true) == false)
-                  _buildCardRow(l.detailState, _details!.status),
-                _buildCardRow(l.detailChapters, chaptersText),
-                if (_downloadSize > 0)
-                  _buildCardRow(l.detailOnDevice, _formatBytes(_downloadSize)),
-                const SizedBox(height: 8),
-                Row(
-                  children: [
-                    Text(
-                      l.detailProgress,
-                      style: TextStyle(
-                        color: _detailLabelColor(dark),
-                        fontSize: 14,
-                      ),
-                    ),
-                    const SizedBox(width: 16),
-                    Expanded(
-                      child: ClipRRect(
-                        borderRadius: BorderRadius.circular(4),
-                        child: LinearProgressIndicator(
-                          value: _lastReadChapter >= 0
-                              ? (_progressPercent / 100).clamp(0.0, 1.0)
-                              : 0,
-                          backgroundColor: dark
-                              ? Colors.white12
-                              : Colors.black12,
-                          valueColor: AlwaysStoppedAnimation<Color>(
-                            ref.watch(accentProvider),
-                          ),
-                          minHeight: 6,
-                        ),
-                      ),
-                    ),
-                    const SizedBox(width: 12),
-                    Text(
-                      _lastReadChapter >= 0
-                          ? '${_progressPercent.round()}%'
-                          : '0%',
-                      style: TextStyle(
-                        color: _detailValueColor(dark),
-                        fontSize: 13,
-                        fontWeight: FontWeight.w600,
-                      ),
-                    ),
-                  ],
-                ),
-              ],
-            ),
+      child: Column(
+        children: [
+          _buildCardRow(
+            l.detailSource,
+            _sourceName ?? l.unknown,
+            leading: _buildSourceIcon(),
           ),
-        ),
+          _buildCardRow(
+            l.detailAuthor,
+            _details?.author.isEmpty ?? true ? l.unknown : _details!.author,
+          ),
+          _buildTranslationRow(),
+          _buildCardRow(
+            l.detailYear,
+            _details?.year.isEmpty ?? true ? '—' : _details!.year,
+          ),
+          if ((_details?.status.isEmpty ?? true) == false)
+            _buildCardRow(l.detailState, _details!.status),
+          _buildCardRow(l.detailChapters, chaptersText),
+          if (_downloadSize > 0)
+            _buildCardRow(l.detailOnDevice, _formatBytes(_downloadSize)),
+          const SizedBox(height: 8),
+          Row(
+            children: [
+              Text(
+                l.detailProgress,
+                style: TextStyle(
+                  color: _detailLabelColor(dark),
+                  fontSize: 14,
+                ),
+              ),
+              const SizedBox(width: 16),
+              Expanded(
+                child: ClipRRect(
+                  borderRadius: BorderRadius.circular(4),
+                  child: LinearProgressIndicator(
+                    value: _lastReadChapter >= 0
+                        ? (_progressPercent / 100).clamp(0.0, 1.0)
+                        : 0,
+                    backgroundColor: dark ? Colors.white12 : Colors.black12,
+                    valueColor: AlwaysStoppedAnimation<Color>(
+                      ref.watch(accentProvider),
+                    ),
+                    minHeight: 6,
+                  ),
+                ),
+              ),
+              const SizedBox(width: 12),
+              Text(
+                _lastReadChapter >= 0 ? '${_progressPercent.round()}%' : '0%',
+                style: TextStyle(
+                  color: _detailValueColor(dark),
+                  fontSize: 13,
+                  fontWeight: FontWeight.w600,
+                ),
+              ),
+            ],
+          ),
+        ],
       ),
     );
   }
