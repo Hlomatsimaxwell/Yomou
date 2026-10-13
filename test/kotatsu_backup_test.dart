@@ -226,12 +226,11 @@ void main() {
       final result = KotatsuBackupCodec.import(sampleBackup());
 
       final byId = {for (final m in result.mangas) m.mangaId: m};
-      // The six carried favourites plus the history-only WeebCentral title.
-      expect(byId, hasLength(7));
+      // The five carried favourites plus the history-only WeebCentral title.
+      expect(byId, hasLength(6));
       expect(byId['nano-machine-9a7a1ac5']?.sourceId, 'asurascans');
       expect(byId['287f20cd-df67-4f09-bca8-112431d87fda']?.sourceId,
           'mangadex');
-      expect(byId['02-chronicles-of-the-demon-faction']?.sourceId, 'comick');
       expect(byId['the_masters_are_subscribing_to_me']?.sourceId, 'mangago');
       expect(byId['manga/absolute-sword-sense-okxdz']?.sourceId, 'mgeko');
       // Mangafire ids carry the site's dotted catalog slug.
@@ -244,10 +243,15 @@ void main() {
           in result.mangas.where((m) => m.mangaId != weeb.mangaId)) {
         expect(m.isFavorite, isTrue, reason: '${m.title} should be a favourite');
       }
-      // A source Yomou doesn't carry is held back for the title scan.
-      expect(result.missingMangas, hasLength(1));
-      expect(result.missingMangas.single.title, 'The Ultimate of All Ages');
-      expect(result.missingMangas.single.sourceName, 'S2MANGA');
+      // Sources Yomou doesn't carry are held back for the title scan. ComicK
+      // used to be carried; now that the source is gone, its entry lands here
+      // instead of importing as an unreadable title.
+      expect(result.missingMangas, hasLength(2));
+      final missing = {
+        for (final m in result.missingMangas) m.sourceName: m.title,
+      };
+      expect(missing['S2MANGA'], 'The Ultimate of All Ages');
+      expect(missing['COMICK_FUN'], 'Chronicles Of The Demon Faction');
     });
 
     test('history carries the last-read timestamp onto favourites', () {

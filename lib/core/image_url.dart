@@ -6,8 +6,8 @@
 ///  * **MangaDex** stores the cover once and appends a size to serve it, e.g.
 ///    `.../4a74.jpg.256.jpg` for a 256px copy; the untouched file is at
 ///    `.../4a74.jpg`.
-///  * **WordPress**, and the Madara theme built on it (ManhuaPlus, Toonily,
-///    ...), keeps the upload at its original path and links the generated
+///  * **WordPress**, and the Madara theme built on it (ManhuaPlus, ...),
+///    keeps the upload at its original path and links the generated
 ///    thumbnails as `<name>-<w>x<h>.<ext>`, e.g. `cover-193x278.jpg`, while the
 ///    original stays at `cover.jpg`.
 ///

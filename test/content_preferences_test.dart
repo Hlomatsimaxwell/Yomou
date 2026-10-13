@@ -5,8 +5,8 @@ import 'package:yomou/features/content_preferences/providers/content_preferences
 /// reader picks decides which sources appear in Explore and Search at all.
 ///
 /// The risk that makes these worth pinning is hiding too much. A source row
-/// that declares no language (a self-hosted Komga server, a row cached before
-/// the field existed) has to survive any selection, or
+/// that declares no language (a self-hosted server, a row cached before the
+/// field existed) has to survive any selection, or
 /// choosing "English" quietly deletes a library the reader hosts themselves.
 void main() {
   Map<String, dynamic> row(String? language) {
@@ -48,7 +48,7 @@ void main() {
 
   group('rows that declare nothing the filter understands', () {
     test('survive any selection', () {
-      // Komga: a server the reader hosts themselves.
+      // A self-hosted server: the reader hosts it themselves.
       expect(acceptsSourceRow(row('Self-hosted (API)'), english), isTrue);
       expect(acceptsSourceRow(row('Mock'), english), isTrue);
       // No `language` key at all, as written before the field existed.

@@ -25,7 +25,6 @@ class TachiyomiBackupCodec {
     'mangatown': 2703831045012166262,
     'likemanga': 6236979603959140497,
     'asurascans': 6247824327199706550,
-    'comick': 4972933717624256217,
     'mgeko': 734865402529567092,
   };
 
@@ -36,7 +35,6 @@ class TachiyomiBackupCodec {
     'mangatown': 'Mangatown',
     'likemanga': 'LikeManga',
     'asurascans': 'Asura Scans',
-    'comick': 'ComicK',
     'mgeko': 'MangaGeko',
   };
 

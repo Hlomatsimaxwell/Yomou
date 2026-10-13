@@ -16,14 +16,11 @@ import '../sources/mangakatana_source.dart';
 import '../sources/mangatown_source.dart';
 import '../sources/arenascan_source.dart';
 import '../sources/asurascans_source.dart';
-import '../sources/comick_source.dart';
 import '../sources/mgeko_source.dart';
 import '../sources/likemanga_source.dart';
-import '../sources/toonily_source.dart';
 import '../sources/mangapill_source.dart';
 import '../sources/manhwa18_source.dart';
 import '../sources/flame_source.dart';
-import '../sources/komga_source.dart';
 import '../sources/mangabat_source.dart';
 import '../sources/mangafire_source.dart';
 import '../sources/manhuaplus_source.dart';
@@ -143,14 +140,10 @@ MangaSource getSourceByName(String name) {
       return _shared('atsu', AtsuMoeSource.new);
     case 'SeiManga':
       return _shared('seimanga', SeiMangaSource.new);
-    case 'ComicK':
-      return _shared('comick', ComickSource.new);
     case 'Mgeko':
       return _shared('mgeko', MgekoSource.new);
     case 'Like Manga':
       return _shared('likemanga', LikeMangaSource.new);
-    case 'Toonily':
-      return _shared('toonily', ToonilySource.new);
     case 'ManhuaPlus':
       return _shared('manhuaplus', ManhuaPlusSource.new);
     case 'MangaPill':
@@ -159,8 +152,6 @@ MangaSource getSourceByName(String name) {
       return _shared('manhwa18', Manhwa18Source.new);
     case 'Flame Scans':
       return _shared('flamescans', FlameScansSource.new);
-    case 'Komga':
-      return _shared('komga', KomgaSource.new);
     case 'MangaBat':
       return _shared('mangabat', MangaBatSource.new);
     case 'Mangago':
@@ -241,14 +232,10 @@ MangaSource? getSourceBySourceId(String sourceId) {
       return getSourceByName('Asura Scans');
     case 'atsu':
       return getSourceByName('Atsumaru');
-    case 'comick':
-      return getSourceByName('ComicK');
     case 'mgeko':
       return getSourceByName('Mgeko');
     case 'likemanga':
       return getSourceByName('Like Manga');
-    case 'toonily':
-      return getSourceByName('Toonily');
     case 'manhuaplus':
       return getSourceByName('ManhuaPlus');
     case 'mangapill':
@@ -257,8 +244,6 @@ MangaSource? getSourceBySourceId(String sourceId) {
       return getSourceByName('Manhwa18');
     case 'flamescans':
       return getSourceByName('Flame Scans');
-    case 'komga':
-      return getSourceByName('Komga');
     case 'mangabat':
       return getSourceByName('MangaBat');
     case 'mangago':
@@ -843,16 +828,6 @@ class SourcesNotifier extends StateNotifier<List<Map<String, dynamic>>> {
       'isPinned': false,
     },
     {
-      'name': 'Toonily',
-      'language': 'Manhwa, Manhua, English',
-      'bgColor': const Color(0xFF7A1F2B),
-      'text': 'T',
-      'iconUrl':
-          'https://static.tnlycdn.com/2017/10/toonily_favicon2-300x300.png',
-      'isPinned': false,
-      'nsfw': true,
-    },
-    {
       'name': 'ManhuaPlus',
       'language': 'Manhua, English',
       'bgColor': const Color(0xFFE23D28),
@@ -885,15 +860,6 @@ class SourcesNotifier extends StateNotifier<List<Map<String, dynamic>>> {
       'text': 'F',
       'iconUrl': 'https://flamecomics.xyz/favicon.ico',
       'isPinned': false,
-    },
-    {
-      'name': 'Komga',
-      'language': 'Self-hosted (API)',
-      'bgColor': const Color(0xFF334155),
-      'text': 'K',
-      'iconUrl': '',
-      'isPinned': false,
-      'isEnabled': false,
     },
     {
       'name': 'MangaBat',
@@ -971,15 +937,6 @@ class SourcesNotifier extends StateNotifier<List<Map<String, dynamic>>> {
       'bgColor': const Color(0xFFF97316),
       'text': 'F',
       'iconUrl': 'https://mangafire.to/assets/mangafire/logo.png',
-      'isPinned': false,
-      'nsfw': true,
-    },
-    {
-      'name': 'ComicK',
-      'language': 'Manga, Various languages',
-      'bgColor': const Color(0xFF2C2C2E),
-      'text': '🦄',
-      'iconUrl': 'https://comick.io/favicon.ico',
       'isPinned': false,
       'nsfw': true,
     },

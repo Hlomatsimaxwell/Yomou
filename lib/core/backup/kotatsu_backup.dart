@@ -38,7 +38,6 @@ class KotatsuBackupCodec {
   /// entries fall through to the title scan instead of landing as unreadable.
   static const Map<String, String> _kotatsuToYomou = {
     'MANGADEX': 'mangadex',
-    'COMICK_FUN': 'comick',
     'MANGATOWN': 'mangatown',
     'ASURASCANS': 'asurascans',
     'MANGAGO': 'mangago',
@@ -62,7 +61,6 @@ class KotatsuBackupCodec {
 
   static const Map<String, String> _yomouToKotatsu = {
     'mangadex': 'MANGADEX',
-    'comick': 'COMICK_FUN',
     'mangatown': 'MANGATOWN',
     'asurascans': 'ASURASCANS',
     'mangago': 'MANGAGO',
@@ -482,8 +480,6 @@ class KotatsuBackupCodec {
     switch (sourceId) {
       case 'mangadex':
         return '/title/$mangaId';
-      case 'comick':
-        return '/comic/$mangaId';
       case 'mangatown':
         return '/manga/$mangaId/';
       case 'asurascans':
@@ -528,8 +524,6 @@ class KotatsuBackupCodec {
     switch (sourceId) {
       case 'mangadex':
         return 'https://mangadex.org/title/$mangaId';
-      case 'comick':
-        return 'https://comick.io/comic/$mangaId';
       case 'asurascans':
         return 'https://asurascans.com/comics/$mangaId';
       case 'mangatown':
@@ -560,8 +554,8 @@ class KotatsuBackupCodec {
   /// cannot be trusted to a readable id.
   ///
   /// The shapes follow the same conventions Yomou's own sources key by: a
-  /// MangaDex uuid, a ComicK slug, the mangago slug after `read-manga`, and
-  /// the whole path minus slashes for mgeko/mangapill/likemanga.
+  /// MangaDex uuid, the mangago slug after `read-manga`, and the whole path
+  /// minus slashes for mgeko/mangapill/likemanga.
   static String? _mangaIdFor(String yomouSource, String url, String publicUrl) {
     final candidates = <String>[
       _cleanPath(url),
