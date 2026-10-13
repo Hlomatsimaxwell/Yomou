@@ -42,17 +42,28 @@ void main() {
     expect(state.active.languages, isEmpty);
   });
 
-  test('carries an existing selection into a seeded preset on first run',
-      () async {
+  test('a saved selection seeds no preset on first run', () async {
     final c = await load({
       'onboarding.languages': ['English', 'Spanish'],
     });
     final state = c.read(sourcePresetsProvider);
-    expect(state.presets, hasLength(2));
-    expect(state.activeId, isNot(kAllPresetId));
-    expect(state.active.languages, {'English', 'Spanish'});
-    // The filter already agreed with it; loading must not change it.
+    // Choosing languages on the welcome sheet is a filter, not a preset: a
+    // fresh install keeps only the built-in "all".
+    expect(state.presets.map((p) => p.id), [kAllPresetId]);
+    expect(state.activeId, kAllPresetId);
+    // The filter still carries the selection; only the preset is absent.
     expect(filterOf(c), {'English', 'Spanish'});
+  });
+
+  test('editing languages under "all" moves the filter without a preset',
+      () async {
+    final c = await load({});
+    c.read(contentPreferencesProvider.notifier).toggleLanguage('English');
+
+    final state = c.read(sourcePresetsProvider);
+    expect(state.presets.map((p) => p.id), [kAllPresetId]);
+    expect(state.activeId, kAllPresetId);
+    expect(filterOf(c), {'English'});
   });
 
   test('create adds a named preset, activates it, and points the filter at it',

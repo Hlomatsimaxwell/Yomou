@@ -19,10 +19,9 @@ const String _activePresetKey = 'sourcePresets.activeId';
 /// One named language bundle.
 ///
 /// The name is free text and may be empty, in which case the UI shows a
-/// localized fallback ("My sources"): the first preset a reader ends up with
-/// is created by the welcome sheet before any locale has been handed to the
-/// preference layer, so the display name has to be decided where the string
-/// can be translated.
+/// localized fallback ("My sources"): a preset created without a name has no
+/// locale available where it is made, so the display name has to be decided
+/// where the string can be translated.
 class SourcePreset {
   const SourcePreset({
     required this.id,
@@ -82,8 +81,9 @@ class SourcePresetsState {
 ///   [contentPreferencesProvider], which is what the source lists actually
 ///   watch;
 /// - editing the language chips (welcome sheet or settings) writes the new
-///   selection back through [syncLanguages] so the active preset never drifts
-///   from what the reader sees filtered.
+///   selection back through [syncLanguages] so a custom preset never drifts
+///   from what the reader sees filtered. The built-in "all" is left untouched:
+///   picking a language is a filter, not a request for a preset.
 class SourcePresetsNotifier extends StateNotifier<SourcePresetsState> {
   SourcePresetsNotifier(this._ref)
       : super(const SourcePresetsState(
@@ -100,21 +100,14 @@ class SourcePresetsNotifier extends StateNotifier<SourcePresetsState> {
 
     final stored = p.getString(_presetsKey);
     if (stored == null) {
-      // First run of the presets feature. Seed "all" plus, when a selection
-      // already exists from the welcome sheet or the content preferences
-      // screen, a preset that carries it so the reader's choices are not
-      // silently dropped by the new feature.
-      var activeId = kAllPresetId;
-      final seeded = <SourcePreset>[const SourcePreset(id: kAllPresetId)];
-      final carried = (p.getStringList('onboarding.languages') ?? const [])
-          .where((l) => l.trim().isNotEmpty)
-          .toList();
-      if (carried.isNotEmpty) {
-        final id = _newId();
-        seeded.add(SourcePreset(id: id, languages: carried.toSet()));
-        activeId = id;
-      }
-      state = SourcePresetsState(presets: seeded, activeId: activeId);
+      // First run of the presets feature. Seed only the built-in "all": the
+      // language filter is owned by [contentPreferencesProvider] and applies
+      // whether or not a preset exists, so a fresh install must not end up
+      // carrying a preset the reader never created.
+      state = const SourcePresetsState(
+        presets: [SourcePreset(id: kAllPresetId)],
+        activeId: kAllPresetId,
+      );
       await _persist();
       return;
     }
@@ -144,21 +137,13 @@ class SourcePresetsNotifier extends StateNotifier<SourcePresetsState> {
   /// Fold a freshly edited language selection back into the active preset.
   ///
   /// The editor writes the selection to [contentPreferencesProvider] first and
-  /// reports it here so the preset bundle stays the source of truth for that
-  /// selection. When "all" is active and the reader picks a language, there is
-  /// nowhere to put it -- so a preset is created on the spot (the welcome
-  /// sheet's first language tap is what most installs will see).
+  /// reports it here so a custom preset stays the source of truth for that
+  /// selection. While the built-in "all" is active there is no preset to
+  /// update, and editing the chips must not invent one: choosing a language on
+  /// the welcome sheet is a filter, not a request for a preset. The caller has
+  /// already persisted the filter, so this is a no-op then.
   void syncLanguages(Set<String> languages) {
-    if (state.active.isAll) {
-      if (languages.isEmpty) return;
-      final preset = SourcePreset(id: _newId(), languages: {...languages});
-      state = SourcePresetsState(
-        presets: [...state.presets, preset],
-        activeId: preset.id,
-      );
-      _persist();
-      return;
-    }
+    if (state.active.isAll) return;
     if (state.active.languages.length == languages.length &&
         state.active.languages.containsAll(languages)) {
       return;
