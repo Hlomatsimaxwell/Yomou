@@ -222,7 +222,8 @@ class AsuraScansSource extends DioSource implements MangaSource {
   Future<List<Manga>> searchByTitle(String query, {int page = 1}) async {
     try {
       final json = await _getJson(
-        '$baseUrl/api/search?q=${Uri.encodeQueryComponent(query)}',
+        '$baseUrl/api/search?q=${Uri.encodeQueryComponent(query)}'
+        '&offset=${(page - 1) * 20}',
       );
       return _parseList(json?['data']);
     } catch (e) {

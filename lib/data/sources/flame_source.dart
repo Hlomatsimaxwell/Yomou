@@ -84,14 +84,42 @@ class FlameScansSource extends DioSource implements MangaSource {
     }
   }
 
+  /// The whole `/api/series` catalog, kept briefly in memory. Flame Scans has
+  /// no server-side search (`/api/search` is just the Next.js shell and
+  /// `/api/series?q=` ignores the query), so search must filter the catalog
+  /// locally — a full download per keystroke would be brutal, so cache it.
+  List<dynamic>? _catalog;
+  DateTime? _catalogAt;
+  static const Duration _catalogMaxAge = Duration(minutes: 5);
+
+  Future<List<dynamic>?> _getCatalog() async {
+    final now = DateTime.now();
+    if (_catalog != null &&
+        _catalogAt != null &&
+        now.difference(_catalogAt!) < _catalogMaxAge) {
+      return _catalog;
+    }
+    try {
+      final body = await grabText('$baseUrl/api/series');
+      if (body.isEmpty) return null;
+      final rows = jsonDecode(body);
+      if (rows is! List) return null;
+      _catalog = rows;
+      _catalogAt = now;
+      return _catalog;
+    } catch (_) {
+      return _catalog;
+    }
+  }
+
+  static const int _pageSize = 20;
+
   @override
   Future<List<Manga>> getPopularManga({int page = 1}) async {
     try {
       if (page > 1) return [];
-      final body = await grabText('$baseUrl/api/series');
-      if (body.isEmpty) return [];
-      final rows = jsonDecode(body);
-      if (rows is! List) return [];
+      final rows = await _getCatalog();
+      if (rows == null) return [];
       final list = _fromSeriesJson(rows);
       // Use chapter count as a cheap popularity proxy.
       list.sort((a, b) {
@@ -108,12 +136,18 @@ class FlameScansSource extends DioSource implements MangaSource {
   @override
   Future<List<Manga>> searchByTitle(String query, {int page = 1}) async {
     try {
-      if (page > 1) return [];
-      final body = await grabText('$baseUrl/api/series');
-      if (body.isEmpty || query.isEmpty) return [];
-      final rows = jsonDecode(body);
-      if (rows is! List) return [];
-      return _fromSeriesJson(rows, query: query);
+      if (query.isEmpty) return [];
+      final rows = await _getCatalog();
+      if (rows == null) return [];
+      final all = _fromSeriesJson(rows, query: query);
+      if (all.isEmpty) return [];
+      // No server-side pagination exists, so paginate the filtered results.
+      final start = (page - 1) * _pageSize;
+      if (start >= all.length) return [];
+      final end = (start + _pageSize) > all.length
+          ? all.length
+          : start + _pageSize;
+      return all.sublist(start, end);
     } catch (_) {
       return [];
     }

@@ -78,6 +78,10 @@ class MangakatanaSource extends DioSource implements MangaSource {
   @override
   Future<List<Manga>> searchByTitle(String query, {int page = 1}) async {
     try {
+      // The search page lists every match on the one page — the site emits no
+      // pagination links at all — so requests past page 1 are by definition
+      // empty (returning the first page again would duplicate grid entries).
+      if (page > 1) return [];
       final html = await grabText(
         '$baseUrl/?search=${Uri.encodeQueryComponent(query)}',
       );

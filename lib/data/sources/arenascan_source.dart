@@ -238,7 +238,12 @@ class ArenascanSource extends DioSource implements MangaSource {
   @override
   Future<List<Manga>> searchByTitle(String query, {int page = 1}) async {
     try {
-      final url = '$baseUrl/?s=${Uri.encodeQueryComponent(query)}';
+      final param = Uri.encodeQueryComponent(query);
+      // WordPress search pagination: page 1 is `/?s=...`, later pages use the
+      // `/page/N/?s=...` path form (seen in the site's own pager links).
+      final url = page <= 1
+          ? '$baseUrl/?s=$param'
+          : '$baseUrl/page/$page/?s=$param';
       final html = await grabText(url);
       if (html.isEmpty) return [];
       return _parseCards(html);
