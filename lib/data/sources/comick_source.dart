@@ -7,6 +7,21 @@ import '../models/chapter.dart';
 import '../models/manga_details.dart';
 import 'source_network.dart';
 
+/// ComicK — comick.art (the live successor to the closed comick.io/comick.live).
+///
+/// The old JSON API host (`api.comick.{io,...}`) is gone; the current site is
+/// served from a single origin and answers the SPA's own JSON endpoints plus
+/// server-rendered pages:
+///   - search / browse:  /api/search?q=...     (cursor-paginated via next_cursor)
+///   - details:          /comic/{slug}         (a <script id="comic-data"> JSON)
+///   - chapters:         /api/comics/{slug}/chapter-list?page=N  (60/page)
+///   - pages:            /comic/{slug}/{hid}-chapter-{chap}-{lang}
+///                       (a <script id="sv-data"> with chapter.images[].url)
+///
+/// Search slugs lack the site's internal numeric prefix (`solo-leveling` vs
+/// the canonical `00-solo-leveling`); a reader URL built from the unprefixed
+/// slug makes the server drop the chapter and land on the plain comic page, so
+/// the canonical slug (from comic-data) is threaded into chapter ids.
 class ComickSource extends DioSource implements MangaSource {
   @override
   String get networkSourceId => id;
@@ -16,25 +31,32 @@ class ComickSource extends DioSource implements MangaSource {
   @override
   String get name => 'ComicK';
   @override
-  String get baseUrl => 'https://comick.live';
+  String get baseUrl => 'https://comick.art';
 
   @override
   String websiteMangaUrl(String mangaId) => '$websiteUrl/comic/$mangaId';
   @override
-  String get readerBaseUrl => 'https://comick.live';
+  String get readerBaseUrl => 'https://comick.art';
   @override
-  String get iconUrl => 'https://comick.io/favicon.ico';
+  String get iconUrl => 'https://comick.art/favicon.ico';
 
   @override
   Map<String, String>? get headers => {
-    'Referer': 'https://comick.live/',
+    'Referer': 'https://comick.art/',
     'User-Agent':
         'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 '
         '(KHTML, like Gecko) Chrome/126.0.0.0 Safari/537.36',
-    'Accept': 'application/json, text/plain, */*',
+    'Accept':
+        'text/html,application/xhtml+xml,application/json;q=0.9,*/*;q=0.8',
   };
 
-  static const int _maxChapterPages = 12;
+  static const int _maxChapterPages = 50;
+
+  /// Cursors for the search page's cursor-based pagination, keyed by
+  /// `'query@page'` with the cursor the *next* page request needs. The
+  /// `/api/search` endpoint ignores a plain `page` parameter.
+  final Map<String, String> _searchCursors = {};
+  final Map<String, String> _popularCursors = {};
 
   Future<Map<String, dynamic>?> _getJson(String url) async {
     final body = await grabText(url);
@@ -54,16 +76,50 @@ class ComickSource extends DioSource implements MangaSource {
       if (item is! Map) continue;
       final slug = item['slug']?.toString() ?? '';
       final title = item['title']?.toString() ?? '';
-      String cover = item['full_image_path']?.toString() ?? '';
+      if (slug.isEmpty || title.isEmpty) continue;
+      String cover = item['default_thumbnail']?.toString() ?? '';
+      if (cover.isEmpty) cover = item['full_image_path']?.toString() ?? '';
       if (cover.isNotEmpty && !cover.startsWith('http')) {
         cover = '$baseUrl$cover';
       }
-      if (slug.isEmpty || title.isEmpty) continue;
       result.add(
         Manga(id: slug, sourceId: id, title: title, coverUrl: cover),
       );
     }
     return result;
+  }
+
+  /// Shared cursor-paginated listing behind [getPopularManga] and
+  /// [searchByTitle] (the site serves both from the same endpoint).
+  Future<List<Manga>> _searchLike(
+    String? query,
+    int page,
+    Map<String, String> cursors,
+    String prefix,
+  ) async {
+    try {
+      final q = query == null || query.isEmpty
+          ? ''
+          : '&q=${Uri.encodeQueryComponent(query)}';
+      String? cursor;
+      if (page > 1) {
+        cursor = cursors['$prefix@${page - 1}'];
+        // No known cursor means we cannot advance this listing; report empty
+        // rather than re-serving page 1 (which would duplicate grid entries).
+        if (cursor == null) return [];
+      }
+      final url = cursor == null
+          ? '$baseUrl/api/search?type=comic$q'
+          : '$baseUrl/api/search?type=comic$q'
+              '&cursor=${Uri.encodeQueryComponent(cursor)}';
+      final json = await _getJson(url);
+      final next = json?['next_cursor']?.toString() ?? '';
+      if (next.isNotEmpty) cursors['$prefix@$page'] = next;
+      return _parseList(json?['data']);
+    } catch (e) {
+      debugPrint('$id List Error: $e');
+      return [];
+    }
   }
 
   Future<Map<String, dynamic>?> _comicData(String slug) async {
@@ -82,15 +138,51 @@ class ComickSource extends DioSource implements MangaSource {
     }
   }
 
+  /// The site's canonical slug for [slug] (adds its internal numeric prefix,
+  /// e.g. `00-solo-leveling`). Unprefixed slugs still work for the JSON
+  /// endpoints but break the reader page, so chapter ids carry the canonical
+  /// form.
+  Future<String?> _canonicalSlug(String slug) async {
+    if (RegExp(r'^\d+-\S+').hasMatch(slug)) return slug;
+    final data = await _comicData(slug);
+    final canonical = data?['slug']?.toString() ?? '';
+    return canonical.isEmpty ? null : canonical;
+  }
+
+  /// The `chapter` object from a reader page's `sv-data` script.
+  Map<String, dynamic>? _readerChapter(String html) {
+    final match = RegExp(
+      r'<script id="sv-data" type="application/json">(.*?)</script>',
+      dotAll: true,
+    ).firstMatch(html);
+    if (match == null) return null;
+    try {
+      final data = jsonDecode(match.group(1)!) as Map<String, dynamic>;
+      return (data['chapter'] as Map?)?.cast<String, dynamic>();
+    } catch (_) {
+      return null;
+    }
+  }
+
+  static String _statusName(Object? status) {
+    final s = (status?.toString() ?? '').trim();
+    switch (s) {
+      case '1':
+        return 'Ongoing';
+      case '2':
+        return 'Completed';
+      case '3':
+        return 'Abandoned';
+      case '4':
+        return 'Paused';
+      default:
+        return s;
+    }
+  }
+
   @override
   Future<List<Manga>> getPopularManga({int page = 1}) async {
-    try {
-      final json = await _getJson('$baseUrl/api/comics/top?type=popular_ongoing&day=7');
-      return _parseList(json?['data']);
-    } catch (e) {
-      debugPrint('ComicK Popular Error: $e');
-      return [];
-    }
+    return _searchLike(null, page, _popularCursors, 'popular');
   }
 
   @override
@@ -114,12 +206,11 @@ class ComickSource extends DioSource implements MangaSource {
         }
       }
 
-      final desc = (data['parsed']?.toString() ?? '').trim();
-      final translated = data['translation_completed'] == true;
-      final status = data['status']?.toString() ?? '';
-      final resolvedStatus = (status.isNotEmpty && status.toLowerCase() != '1')
-          ? status
-          : (translated ? 'Completed' : 'Ongoing');
+      final parsed = data['parsed']?.toString() ?? data['desc']?.toString() ?? '';
+      final desc = parsed
+          .replaceAll(RegExp(r'<[^>]+>'), '')
+          .replaceAll(RegExp(r'\s+'), ' ')
+          .trim();
 
       return MangaDetails(
         id: mangaId,
@@ -128,10 +219,10 @@ class ComickSource extends DioSource implements MangaSource {
         coverUrl: data['default_thumbnail']?.toString() ?? '',
         description: desc,
         author: authors.join(', '),
-        status: resolvedStatus,
+        status: _statusName(data['status']),
         year: (data['year'] ?? '').toString(),
         tags: tags,
-        followers: (data['user_follow_count'] as num?)?.toInt() ?? 0,
+        followers: (data['follow_count'] as num?)?.toInt() ?? 0,
         totalChapters: (data['chapter_count'] as num?)?.toInt() ?? 0,
       );
     } catch (e) {
@@ -143,11 +234,12 @@ class ComickSource extends DioSource implements MangaSource {
   @override
   Future<List<Chapter>> getChapters(String mangaId) async {
     try {
+      final canonical = await _canonicalSlug(mangaId) ?? mangaId;
       final chapters = <Chapter>[];
       var page = 1;
       while (page <= _maxChapterPages) {
         final json = await _getJson(
-          '$baseUrl/api/comics/$mangaId/chapter-list?page=$page',
+          '$baseUrl/api/comics/$canonical/chapter-list?page=$page',
         );
         final data = json?['data'];
         if (data is! List || data.isEmpty) break;
@@ -158,7 +250,7 @@ class ComickSource extends DioSource implements MangaSource {
           final hid = item['hid']?.toString() ?? '';
           final chap = item['chap']?.toString() ?? '';
           if (hid.isEmpty || chap.isEmpty) continue;
-          final id = '$mangaId/$hid-chapter-$chap-$lang';
+          final id = '$canonical/$hid-chapter-$chap-$lang';
           chapters.add(
             Chapter(
               id: id,
@@ -167,7 +259,7 @@ class ComickSource extends DioSource implements MangaSource {
               releaseDate:
                   item['publish_at']?.toString() ??
                   item['created_at']?.toString(),
-              url: '$baseUrl/api/comics/$id',
+              url: '$baseUrl/comic/$canonical/$hid-chapter-$chap-$lang',
             ),
           );
         }
@@ -184,14 +276,27 @@ class ComickSource extends DioSource implements MangaSource {
   @override
   Future<List<String>> getPageUrls(String chapterId) async {
     try {
-      final json = await _getJson('$baseUrl/api/comics/$chapterId');
-      final images = ((json?['chapter'] as Map?)?['images'] as List?) ?? const [];
-      final urls = <String>[];
-      for (final img in images) {
-        final u = (img as Map?)?['url']?.toString() ?? '';
-        if (u.isNotEmpty) urls.add(u);
+      final parts = chapterId.split('/');
+      if (parts.length < 2) return [];
+      final slug = parts[0];
+      final rest = parts[1];
+      var html = await grabText('$baseUrl/comic/$slug/$rest');
+      var chapter = _readerChapter(html);
+      if (chapter == null) {
+        // Fall back to the canonical slug (reader URLs fail without its
+        // numeric prefix); applies to ids built before this rewrite.
+        final canonical = await _canonicalSlug(slug);
+        if (canonical != null && canonical != slug) {
+          html = await grabText('$baseUrl/comic/$canonical/$rest');
+          chapter = _readerChapter(html);
+        }
       }
-      return urls;
+      if (chapter == null) return [];
+      final images = (chapter['images'] as List?) ?? const [];
+      return images
+          .map((img) => (img as Map?)?['url']?.toString() ?? '')
+          .where((u) => u.isNotEmpty)
+          .toList();
     } catch (e) {
       debugPrint('ComicK Pages Error: $e');
       return [];
@@ -225,15 +330,7 @@ class ComickSource extends DioSource implements MangaSource {
 
   @override
   Future<List<Manga>> searchByTitle(String query, {int page = 1}) async {
-    try {
-      final json = await _getJson(
-        '$baseUrl/api/search?q=${Uri.encodeQueryComponent(query)}&page=$page',
-      );
-      return _parseList(json?['data'] ?? json?['comics']);
-    } catch (e) {
-      debugPrint('ComicK Search Error: $e');
-      return [];
-    }
+    return _searchLike(query, page, _searchCursors, 'search');
   }
 
   @override
