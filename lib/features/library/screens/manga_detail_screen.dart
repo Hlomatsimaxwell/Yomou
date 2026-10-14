@@ -78,6 +78,14 @@ const double _kBackdropWashOpacity = 0.05;
 /// way to a full-screen tray.
 const double _kTrayHalfSize = 0.5;
 
+/// How much of the collapsed tray's lip is trimmed to shorten it.
+///
+/// The lip is the one part of the tray that carries nothing, so this is the
+/// only place the height can come from: a selection row already fills the
+/// bar's own interior, so taking the room from there would push those buttons
+/// out of the bar.
+const double _kTrayLipTrim = 10;
+
 /// The bottom safe-area inset, raised to at least [kBottomChromeClearance].
 ///
 /// Some gesture-nav skins (notably EMUI) paint a translucent swipe strip over
@@ -743,14 +751,21 @@ class _MangaDetailScreenState extends ConsumerState<MangaDetailScreen> {
     );
   }
 
-  /// The collapsed tray, as a fraction of the screen: the tray bar plus the
-  /// bottom clearance, so collapsing never clips the bar's own gesture-area
-  /// lip. On a phone-height screen this lands just above the old 8% peek;
-  /// on a taller window the bar costs less of the height, so the ratio
-  /// shrinks back toward it.
+  /// The lip the collapsed tray keeps under its bar.
+  ///
+  /// The safe-area floor less [_kTrayLipTrim]. Trimming the lip shortens the
+  /// tray without touching the bar's interior, so nothing inside the bar moves
+  /// relative to the bar -- the whole thing simply sits [_kTrayLipTrim] lower.
+  double get _trayBottomLip => _bottomClearance(context) - _kTrayLipTrim;
+
+  /// The collapsed tray, as a fraction of the screen: the tray bar plus its
+  /// lip, so collapsing never clips the bar's own gesture-area lip. On a
+  /// phone-height screen this lands just above the old 8% peek; on a taller
+  /// window the bar costs less of the height, so the ratio shrinks back
+  /// toward it.
   double get _trayCollapsedSize {
     final height = MediaQuery.sizeOf(context).height;
-    return ((72 + _bottomClearance(context)) / height).clamp(0.08, 0.5);
+    return ((72 + _trayBottomLip) / height).clamp(0.08, 0.5);
   }
 
   // Scroll the chapter list to the chapter you were last reading (or the
@@ -1290,7 +1305,7 @@ class _MangaDetailScreenState extends ConsumerState<MangaDetailScreen> {
       isExpanded: docked || _isExpanded,
       activeTab: _activeTab,
       topPadding: docked ? 0 : MediaQuery.of(context).padding.top,
-      bottomPadding: docked ? 0 : _bottomClearance(context),
+      bottomPadding: docked ? 0 : _trayBottomLip,
       unreadCount: _unreadCount,
       showContinueButton: _activeTab == 0 && _chapters.isNotEmpty,
       hasRead: _lastReadChapter >= 0,
