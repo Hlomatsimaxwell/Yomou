@@ -303,29 +303,16 @@ class _NotificationSettingsScreenState
     required int selectedIndex,
     required Future<void> Function(int index) onSelect,
   }) async {
-    await showM3ModalSheet(
+    final index = await showM3OptionSheet<int>(
       context,
       title: title,
-      children: [
-        for (var i = 0; i < labels.length; i++)
-          ListTile(
-            leading: Icon(
-              i == selectedIndex
-                  ? RemixIcons.checkbox_circle_fill
-                  : RemixIcons.checkbox_circle_line,
-              color: i == selectedIndex
-                  ? Theme.of(context).colorScheme.primary
-                  : Theme.of(context).colorScheme.onSurfaceVariant,
-            ),
-            title: Text(labels[i]),
-            onTap: () async {
-              await onSelect(i);
-              if (!mounted) return;
-              Navigator.pop(context);
-            },
-          ),
+      options: [
+        for (var i = 0; i < labels.length; i++) (i, labels[i]),
       ],
+      selected: selectedIndex,
     );
+    if (index == null) return;
+    await onSelect(index);
   }
 
   @override

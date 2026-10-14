@@ -10,7 +10,7 @@ abstract final class SourceSortOrder {
   static const lastUsed = 'lastUsed';
   static const popularReliable = 'popularReliable';
 
-  /// The order the settings dialog offers the orders in.
+  /// The order the settings sheet offers the orders in.
   static const values = [name, popular, manual, lastUsed, popularReliable];
 }
 

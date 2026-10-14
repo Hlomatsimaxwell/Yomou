@@ -365,7 +365,8 @@ class ReaderSettingsScreen extends ConsumerWidget {
   }
 
   /// Option sheet shared by every picker row: a row per option with an accent
-  /// check on the current one, and a Cancel footer.
+  /// check on the current one. Tapping a row applies it and closes the sheet,
+  /// so there is no Cancel to offer.
   static Future<void> _pick({
     required BuildContext context,
     required String title,
@@ -373,28 +374,11 @@ class ReaderSettingsScreen extends ConsumerWidget {
     required String selected,
     required Future<void> Function(String) onSelect,
   }) async {
-    final cs = Theme.of(context).colorScheme;
-    final l = AppLocalizations.of(context);
-    final picked = await showM3ModalSheet<String>(
+    final picked = await showM3OptionSheet<String>(
       context,
       title: title,
-      children: [
-        for (final (id, label) in options)
-          ListTile(
-            title: Text(label),
-            trailing: id == selected
-                ? Icon(RemixIcons.check_line, color: cs.primary)
-                : null,
-            onTap: () => Navigator.pop(context, id),
-          ),
-      ],
-      footer: Align(
-        alignment: Alignment.centerRight,
-        child: TextButton(
-          onPressed: () => Navigator.pop(context),
-          child: Text(l.cancel, style: TextStyle(color: cs.primary)),
-        ),
-      ),
+      options: options,
+      selected: selected,
     );
     if (picked == null) return;
     await onSelect(picked);

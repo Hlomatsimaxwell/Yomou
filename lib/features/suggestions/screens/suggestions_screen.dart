@@ -24,8 +24,8 @@ import 'package:yomou/l10n/generated/app_localizations.dart';
 import 'package:yomou/core/widgets/search_bar.dart';
 import 'package:yomou/features/settings/providers/cache_settings_provider.dart';
 import 'package:yomou/features/settings/providers/grid_density_provider.dart';
-import 'package:yomou/features/settings/screens/manga_sources_settings_screen.dart';
 import 'package:yomou/features/settings/screens/settings_screen.dart';
+import 'package:yomou/widgets/m3_components.dart';
 
 class SuggestionsScreen extends ConsumerStatefulWidget {
   const SuggestionsScreen({super.key});
@@ -293,23 +293,19 @@ class _SuggestionsScreenState extends ConsumerState<SuggestionsScreen> {
   Future<void> _pickRefreshInterval() async {
     final l = AppLocalizations.of(context);
     final current = ref.read(suggestionsRefreshMinutesProvider);
-    final chosen = await showSourceChoiceDialog(
+    final chosen = await showM3OptionSheet<int>(
       context,
       title: l.suggestionsRefreshTitle,
       options: [
         for (final minutes in _refreshIntervalMinutes)
-          _refreshIntervalLabel(minutes, l),
+          (minutes, _refreshIntervalLabel(minutes, l)),
       ],
-      selected: _refreshIntervalLabel(current, l),
+      selected: current,
     );
     if (chosen == null) return;
-    final minutes = _refreshIntervalMinutes.firstWhere(
-      (m) => _refreshIntervalLabel(m, l) == chosen,
-      orElse: () => current,
-    );
     await ref
         .read(cacheSettingsProvider.notifier)
-        .setSuggestionsRefreshMinutes(minutes);
+        .setSuggestionsRefreshMinutes(chosen);
   }
 
   Future<void> _showListOptionsSheet() async {

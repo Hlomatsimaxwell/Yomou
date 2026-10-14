@@ -124,18 +124,6 @@ class _MangaDirectoriesScreenState extends ConsumerState<MangaDirectoriesScreen>
           onTap: () => Navigator.pop(context, 'pick'),
         ),
       ],
-      footer: Padding(
-        padding: const EdgeInsets.only(top: 4),
-        child: Row(
-          mainAxisAlignment: MainAxisAlignment.end,
-          children: [
-            TextButton(
-              onPressed: () => Navigator.pop(context),
-              child: Text(l.cancel, style: TextStyle(color: cs.primary)),
-            ),
-          ],
-        ),
-      ),
     );
     if (picked != 'pick' || !mounted) return;
 

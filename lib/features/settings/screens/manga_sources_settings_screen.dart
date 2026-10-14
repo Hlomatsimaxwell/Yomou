@@ -10,106 +10,6 @@ import 'package:yomou/features/settings/providers/cache_settings_provider.dart';
 import 'package:yomou/features/source_management/screens/manga_sources_screen.dart';
 import 'package:yomou/widgets/m3_components.dart';
 
-/// Center-aligned modal with heavily rounded corners: bold title top-left, a
-/// vertical list of thin-line circular radio options, and a single Cancel
-/// text button bottom-right (matching the "Sorting order" dialog spec).
-Future<String?> showSourceChoiceDialog(
-  BuildContext context, {
-  required String title,
-  required List<String> options,
-  required String selected,
-}) {
-  final dark = Theme.of(context).brightness == Brightness.dark;
-  final scheme = Theme.of(context).colorScheme;
-  final l = AppLocalizations.of(context);
-
-  return showDialog<String>(
-    context: context,
-    builder: (dialogContext) => Dialog(
-      backgroundColor: dark ? const Color(0xFF1C1C1E) : Colors.white,
-      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(28)),
-      insetPadding: const EdgeInsets.symmetric(horizontal: 32),
-      child: Padding(
-        padding: const EdgeInsets.fromLTRB(24, 24, 24, 12),
-        child: ConstrainedBox(
-          constraints: const BoxConstraints(maxWidth: 340),
-          child: Column(
-            mainAxisSize: MainAxisSize.min,
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              Text(
-                title,
-                style: TextStyle(
-                  color: dark ? Colors.white : const Color(0xFF1C1B1F),
-                  fontSize: 18,
-                  fontWeight: FontWeight.bold,
-                ),
-              ),
-              const SizedBox(height: 16),
-              for (final option in options) ...[
-                InkWell(
-                  borderRadius: BorderRadius.circular(12),
-                  onTap: () => Navigator.pop(dialogContext, option),
-                  child: Padding(
-                    padding: const EdgeInsets.symmetric(
-                      horizontal: 4,
-                      vertical: 12,
-                    ),
-                    child: Row(
-                      children: [
-                        Icon(
-                          option == selected
-                              ? RemixIcons.checkbox_circle_fill
-                              : RemixIcons.radio_button_line,
-                          size: 22,
-                          color: option == selected
-                              ? scheme.primary
-                              : (dark
-                                    ? Colors.white38
-                                    : const Color(0xFF9E9E9E)),
-                        ),
-                        const SizedBox(width: 14),
-                        Text(
-                          option,
-                          style: TextStyle(
-                            color: dark
-                                ? Colors.white
-                                : const Color(0xFF1C1B1F),
-                            fontSize: 15,
-                            fontWeight: option == selected
-                                ? FontWeight.w600
-                                : FontWeight.w400,
-                          ),
-                        ),
-                      ],
-                    ),
-                  ),
-                ),
-                const SizedBox(height: 4),
-              ],
-              const SizedBox(height: 12),
-              Align(
-                alignment: Alignment.centerRight,
-                child: TextButton(
-                  onPressed: () => Navigator.pop(dialogContext),
-                  style: TextButton.styleFrom(
-                    foregroundColor: scheme.primary,
-                    textStyle: const TextStyle(
-                      fontSize: 15,
-                      fontWeight: FontWeight.w600,
-                    ),
-                  ),
-                  child: Text(l.cancel),
-                ),
-              ),
-            ],
-          ),
-        ),
-      ),
-    ),
-  );
-}
-
 class MangaSourcesSettingsScreen extends ConsumerStatefulWidget {
   const MangaSourcesSettingsScreen({super.key});
 
@@ -137,48 +37,34 @@ class _MangaSourcesSettingsScreenState
   Future<void> _pickSort() async {
     final l = AppLocalizations.of(context);
     final current = ref.read(sourceSortOrderProvider);
-    // Labels and keys line up by index, so the dialog can hand back a label and
-    // still name a stable stored value.
-    final labels = [
-      for (final order in SourceSortOrder.values) _sortLabel(order, l),
-    ];
-    final chosen = await showSourceChoiceDialog(
+    final chosen = await showM3OptionSheet<String>(
       context,
       title: l.sourcesSortingOrder,
-      options: labels,
-      selected: _sortLabel(current, l),
+      options: [
+        for (final order in SourceSortOrder.values)
+          (order, _sortLabel(order, l)),
+      ],
+      selected: current,
     );
     if (chosen == null) return;
-    final index = labels.indexOf(chosen);
-    if (index < 0) return;
-    await ref
-        .read(cacheSettingsProvider.notifier)
-        .setSourceSortOrder(SourceSortOrder.values[index]);
+    await ref.read(cacheSettingsProvider.notifier).setSourceSortOrder(chosen);
   }
 
   Future<void> _pickIncognito() async {
     final l = AppLocalizations.of(context);
     final current = ref.read(incognitoModeProvider);
-    final chosen = await showSourceChoiceDialog(
+    final chosen = await showM3OptionSheet<String>(
       context,
       title: l.sourcesIncognitoNsfw,
       options: [
-        l.sourcesIncognitoEnable,
-        l.sourcesIncognitoAsk,
-        l.sourcesIncognitoDisable,
+        ('enable', l.sourcesIncognitoEnable),
+        ('ask', l.sourcesIncognitoAsk),
+        ('disable', l.sourcesIncognitoDisable),
       ],
-      selected: _incognitoLabel(current, l),
+      selected: current,
     );
     if (chosen == null) return;
-    String mode;
-    if (chosen == l.sourcesIncognitoEnable) {
-      mode = 'enable';
-    } else if (chosen == l.sourcesIncognitoDisable) {
-      mode = 'disable';
-    } else {
-      mode = 'ask';
-    }
-    await ref.read(cacheSettingsProvider.notifier).setIncognitoMode(mode);
+    await ref.read(cacheSettingsProvider.notifier).setIncognitoMode(chosen);
   }
 
   Future<void> _toggleEnableAll(bool enable) async {

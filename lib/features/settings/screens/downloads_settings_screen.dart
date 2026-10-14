@@ -216,7 +216,6 @@ class DownloadsSettingsScreen extends ConsumerWidget {
   ) {
     return _showPicker(
       context: context,
-      l: l,
       title: l.dlsFolderTitle,
       options: _folderOptions(l, s),
       selected: s.downloadsFolder,
@@ -237,7 +236,6 @@ class DownloadsSettingsScreen extends ConsumerWidget {
     ];
     return _showPicker(
       context: context,
-      l: l,
       title: l.dlsFormatTitle,
       options: options,
       selected: s.preferredFormat,
@@ -258,7 +256,6 @@ class DownloadsSettingsScreen extends ConsumerWidget {
     ];
     return _showPicker(
       context: context,
-      l: l,
       title: l.dlsNetworkTitle,
       options: options,
       selected: s.cellularNetwork,
@@ -266,45 +263,21 @@ class DownloadsSettingsScreen extends ConsumerWidget {
     );
   }
 
-  /// Shared option-sheet used by every picker: a row per option with an
-  /// accent check on the selected one, plus a bottom-right Cancel footer.
+  /// Shared option-sheet used by every picker: a row per option with an accent
+  /// check on the selected one. Tapping a row applies it and closes the sheet,
+  /// so there is no Cancel to offer.
   Future<void> _showPicker({
     required BuildContext context,
-    required AppLocalizations l,
     required String title,
     required List<(String, String)> options,
     required String selected,
     required Future<void> Function(String) onSelect,
   }) async {
-    final cs = Theme.of(context).colorScheme;
-    final picked = await showM3ModalSheet<String>(
+    final picked = await showM3OptionSheet<String>(
       context,
       title: title,
-      children: [
-        for (final (id, label) in options)
-          ListTile(
-            title: Text(label),
-            trailing: id == selected
-                ? Icon(RemixIcons.check_line, color: cs.primary)
-                : null,
-            onTap: () => Navigator.pop(context, id),
-          ),
-      ],
-      footer: Padding(
-        padding: const EdgeInsets.only(top: 4),
-        child: Row(
-          mainAxisAlignment: MainAxisAlignment.end,
-          children: [
-            TextButton(
-              onPressed: () => Navigator.pop(context),
-              child: Text(
-                l.cancel,
-                style: TextStyle(color: cs.primary),
-              ),
-            ),
-          ],
-        ),
-      ),
+      options: options,
+      selected: selected,
     );
     if (picked == null || !context.mounted) return;
     await onSelect(picked);

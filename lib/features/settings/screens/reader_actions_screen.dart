@@ -102,14 +102,6 @@ class ReaderActionsScreen extends ConsumerWidget {
           onTap: () => Navigator.pop(context, 'disable'),
         ),
       ],
-      footer: Align(
-        alignment: Alignment.centerRight,
-        child: TextButton(
-          onPressed: () => Navigator.pop(context),
-          child: Text(l.cancel,
-              style: TextStyle(color: Theme.of(context).colorScheme.primary)),
-        ),
-      ),
     );
     if (choice == null) return;
     if (choice == 'reset') {
@@ -129,7 +121,7 @@ class ReaderActionsScreen extends ConsumerWidget {
 
   static const Duration _snackDuration = Duration(seconds: 2);
 
-  /// The action picker: a radio list, one row per action, Cancel underneath.
+  /// The action picker: one row per action with the chosen one ticked.
   static Future<void> _pickAction({
     required BuildContext context,
     required String title,
@@ -137,45 +129,14 @@ class ReaderActionsScreen extends ConsumerWidget {
     required Future<void> Function(String) onSelect,
   }) async {
     final l = AppLocalizations.of(context);
-    final cs = Theme.of(context).colorScheme;
-    final picked = await showM3ModalSheet<String>(
+    final picked = await showM3OptionSheet<String>(
       context,
       title: title,
       // The reference list asks for `hand_line`, which this icon set version
       // does not ship; `cursor_hand` is the same pointing-finger glyph.
       titleLeading: RemixIcons.cursor_hand,
-      children: [
-        // One RadioGroup around the whole list rather than a per-row
-        // groupValue: that is the non-deprecated way to drive a radio set, and
-        // it keeps a single selection even if the list is ever rebuilt.
-        RadioGroup<String>(
-          groupValue: selected,
-          onChanged: (v) {
-            if (v != null) Navigator.pop(context, v);
-          },
-          child: Column(
-            mainAxisSize: MainAxisSize.min,
-            crossAxisAlignment: CrossAxisAlignment.stretch,
-            children: [
-              for (final id in kActIds)
-                RadioListTile<String>(
-                  value: id,
-                  title: Text(actionLabel(l, id)),
-                  activeColor: cs.primary,
-                  controlAffinity: ListTileControlAffinity.leading,
-                  contentPadding: const EdgeInsets.symmetric(horizontal: 20),
-                ),
-            ],
-          ),
-        ),
-      ],
-      footer: Align(
-        alignment: Alignment.centerRight,
-        child: TextButton(
-          onPressed: () => Navigator.pop(context),
-          child: Text(l.cancel, style: TextStyle(color: cs.primary)),
-        ),
-      ),
+      options: [for (final id in kActIds) (id, actionLabel(l, id))],
+      selected: selected,
     );
     if (picked == null) return;
     await onSelect(picked);

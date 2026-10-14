@@ -107,6 +107,44 @@ Future<T?> showM3ModalSheet<T>(
   );
 }
 
+/// Single-select option sheet: a row per choice, a plain check on the current
+/// one, and no footer.
+///
+/// The shape every Settings picker uses. Tapping a row applies the choice and
+/// closes the sheet, so there is nothing left to confirm and no Cancel to
+/// offer -- the sheet itself is the list, not a form around it. The tick is the
+/// same plain `check_line` the appearance sheets use, never a radio or a circled
+/// box, because only one value is ever chosen.
+///
+/// [selected] is compared with `==`, so [T] can be any value type and callers
+/// hand back the stored id rather than a label.
+Future<T?> showM3OptionSheet<T>(
+  BuildContext context, {
+  required String title,
+  required List<(T, String)> options,
+  required T selected,
+  IconData? titleLeading,
+  double maxHeightFactor = 0.6,
+}) {
+  final cs = Theme.of(context).colorScheme;
+  return showM3ModalSheet<T>(
+    context,
+    title: title,
+    titleLeading: titleLeading,
+    maxHeightFactor: maxHeightFactor,
+    children: [
+      for (final (id, label) in options)
+        ListTile(
+          title: Text(label),
+          trailing: id == selected
+              ? Icon(RemixIcons.check_line, color: cs.primary)
+              : null,
+          onTap: () => Navigator.pop(context, id),
+        ),
+    ],
+  );
+}
+
 /// Standard settings-screen app bar: themed foreground, transparent
 /// background, large light-weight title and back arrow.
 /// Present while a settings category screen is rendered inside a wide
