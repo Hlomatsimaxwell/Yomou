@@ -5,6 +5,27 @@ All notable changes to Yomou are documented here.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [1.1.6] - 2026-10-14
+
+### Added
+- **Source sorting works now** — Settings → Manga sources → Sorting order used to change nothing. Explore honours five orders (Name, Popular, Manual, Last used, and Popular & reliable), the manual order survives a restart, and long-press dragging in Manage sources reorders a source within its pinned or unpinned zone.
+- **Source-grid search actually searches** — typing in a source's search box now queries the source itself (debounced at 450ms, with real pagination) instead of filtering only the page already loaded, so a title that isn't on screen still turns up.
+- **The source row on a manga opens its catalogue** — tapping the source on the detail card goes straight to that source's listing, the same screen Explore opens. It stays inert when the source has since been removed, rather than opening the wrong catalogue.
+
+### Changed
+- **Manga detail screen** reworked against Kotatsu-Redo: a 420dp art plate that scrolls away with the header under a soft vignette wash, an opaque filled info card, a tonal favourite chip split so the chevron is a real control, and firmer label-versus-value contrast.
+- **The reader and detail trays are dragged by their own bars**, the way Kotatsu moves its sheet: the chapter list can be dragged open or shut from the bar whatever the list is scrolled to, the halfway stop is back as a proper step rather than a toll gate, and the floating jump button's arrow follows the direction you're reading.
+- **Every Settings picker is now the same bottom sheet** — a plain tick on the current choice, applied the moment you tap it, and no Cancel button. Source sorting and the NSFW incognito mode move from centre-aligned dialogs into these sheets, and the "check for new chapters" frequency sheet drops its circled tick.
+- **Picking languages on the welcome sheet no longer invents a preset** — a fresh install keeps the built-in "all" preset, and editing the chips while it is active just moves the filter.
+
+### Fixed
+- **Tapping outside a sheet now dismisses it**, on every sheet. Several sheets sized their surface to the whole window, so the tap landed on the sheet itself and only the drag handle could close it.
+- **Toasts no longer show a yellow double underline** under their text, and the Undo label follows the chosen accent. The underline was Flutter's "no Material here" fallback style leaking into the root overlay the toasts live in.
+- **The accent colour now reaches the Continue pill** on the detail screen and the reader's reading-mode selector, which were painted with fixed blues.
+- **ComicK, Komga and Toonily removed** — ComicK's search was unreliable and Komga needs per-user server setup. Their Explore rows, id resolvers and backup mappings go with them; a backup entry for one now falls through to the title scan like any other source Yomou does not carry.
+- **Search pagination fixed** for Arenascan, MangaKatana, Asura Scans and Flame Scans, whose searches either repeated page one or re-downloaded the whole catalogue on every keystroke.
+- **Chapter-list spacing tightened** — a two-line chapter tile no longer reserves more air between one chapter and the next than it uses.
+
 ## [1.1.5] - 2026-10-12
 
 ### Added
