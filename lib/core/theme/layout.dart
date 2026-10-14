@@ -36,6 +36,15 @@ const double kBottomChromeClearance = 24;
 /// wide screens (and on all tabs, with or without the Continue FAB beside it).
 const double kFloatingPillMaxWidth = 330;
 
+/// Least strip of scrim a modal sheet must leave above itself.
+///
+/// A sheet whose content can grow to the window height otherwise fills the
+/// screen, and a full-height sheet leaves nowhere for a tap outside to land:
+/// the scrim is unreachable and the sheet can only be closed from inside it.
+/// Sheets that cap their content subtract this from the height they are given,
+/// so there is always somewhere to tap to dismiss.
+const double kSheetOutsideGap = 48;
+
 /// Extra breathing room below a list/grid so the floating bar never
 /// permanently covers the last row once the user scrolls to the end.
 /// = safe area + small gap. Kept minimal on purpose so content scrolls

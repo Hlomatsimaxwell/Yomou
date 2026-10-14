@@ -3333,7 +3333,11 @@ class _MangaDetailScreenState extends ConsumerState<MangaDetailScreen> {
           child: LayoutBuilder(
             builder: (context, constraints) => SingleChildScrollView(
               child: ConstrainedBox(
-                constraints: BoxConstraints(maxHeight: constraints.maxHeight),
+                // A gap below the full height, so a long list still leaves a
+                // strip of scrim to tap and dismiss the sheet.
+                constraints: BoxConstraints(
+                  maxHeight: constraints.maxHeight - kSheetOutsideGap,
+                ),
                 child: Column(
                   mainAxisSize: MainAxisSize.min,
                   crossAxisAlignment: CrossAxisAlignment.stretch,

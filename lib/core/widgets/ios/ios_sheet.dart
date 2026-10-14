@@ -102,6 +102,13 @@ Future<T?> _showIosBottomSheet<T>(
     builder: (sheetContext) {
       return Align(
         alignment: Alignment.bottomCenter,
+        // Hug the panel rather than the window. A plain [Align] is greedy: it
+        // would take the whole height the sheet allows and paint the route's
+        // surface over the scrim, leaving a tap outside with nothing to hit --
+        // the sheet could only be closed by dragging it. `heightFactor: 1`
+        // keeps the box the height of the panel while still centring the
+        // width-capped panel horizontally.
+        heightFactor: 1.0,
         child: SizedBox(
           width: maxWidth,
           child: Material(

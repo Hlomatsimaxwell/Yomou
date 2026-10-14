@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 
 import 'package:remixicon/remixicon.dart';
+import 'package:yomou/core/theme/layout.dart';
 import 'ios_sheet.dart';
 
 /// A single row in an [IosMenu]/[IosMenuButton] panel.
@@ -94,6 +95,10 @@ Future<T?> showIosMenuPanel<T>(
         builder: (context, constraints) {
           return Align(
             alignment: Alignment.bottomCenter,
+            // As in the bottom sheet: an [Align] with no height factor is
+            // greedy, so the route's surface would cover the whole window and
+            // a tap beside the menu would have no scrim under it.
+            heightFactor: 1.0,
             child: Container(
               width: 520,
               margin: const EdgeInsets.fromLTRB(8, 8, 8, 24),
@@ -105,7 +110,13 @@ Future<T?> showIosMenuPanel<T>(
                 // The 8 and 24 are the margin above, so the panel never claims
                 // height it cannot have. Scrolling below means a menu taller
                 // than a short viewport stays reachable instead of overflowing.
-                constraints: BoxConstraints(maxHeight: constraints.maxHeight - 32),
+                // The gap keeps a strip of scrim above the sheet, so a menu
+                // that does fill the viewport can still be dismissed by a tap
+                // outside it.
+                constraints: BoxConstraints(
+                  maxHeight:
+                      constraints.maxHeight - 32 - kSheetOutsideGap,
+                ),
                 child: SingleChildScrollView(
                   child: Column(
                     mainAxisSize: MainAxisSize.min,

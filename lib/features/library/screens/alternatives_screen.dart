@@ -4,6 +4,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:remixicon/remixicon.dart';
 import 'package:yomou/core/database/source_cache.dart';
+import 'package:yomou/core/theme/layout.dart';
 import 'package:yomou/core/widgets/empty_state.dart';
 import 'package:yomou/core/widgets/ios/ios_toast.dart';
 import 'package:yomou/data/providers/sources_provider.dart';
@@ -735,6 +736,13 @@ class _AlternativesScreenState extends ConsumerState<AlternativesScreen> {
       // this the sheet is still capped at about 9/16 of the viewport, which in
       // landscape leaves a usable but needlessly cramped panel.
       isScrollControlled: true,
+      // [isScrollControlled] hands the sheet as much height as it asks for, and
+      // with every source listed that is the whole window: a full-height sheet
+      // has no scrim left for a tap outside, so it can only be closed from
+      // inside. Cap it a gap short so there is always somewhere to tap.
+      constraints: BoxConstraints(
+        maxHeight: MediaQuery.sizeOf(context).height - kSheetOutsideGap,
+      ),
       shape: const RoundedRectangleBorder(
         borderRadius: BorderRadius.vertical(top: Radius.circular(20)),
       ),

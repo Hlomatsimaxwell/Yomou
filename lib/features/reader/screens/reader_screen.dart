@@ -1435,81 +1435,86 @@ class _ReaderScreenState extends ConsumerState<ReaderScreen>
       ),
       builder: (context) {
         // Capped and centred so the tray reads as a panel on a wide window
-        // rather than a full-width drawer. The cap is on width only -- the
-        // tray keeps the full screen height, since the drag extents below are
-        // fractions of it.
+        // rather than a full-width drawer. The cap is on width only.
+        //
+        // The box is shrunk to the panel -- the `heightFactor` here and
+        // `expand: false` below -- so a strip of scrim stays reachable above
+        // it and the tray can still be dismissed by tapping outside. A box
+        // covering the window would swallow that tap. The drag extents are
+        // unaffected: they are fractions of the incoming constraints, which
+        // are still the full window height.
         return Align(
           alignment: Alignment.bottomCenter,
+          heightFactor: 1.0,
           child: ConstrainedBox(
             constraints: const BoxConstraints(maxWidth: kReaderTrayMaxWidth),
-            child: SizedBox.expand(
-              child: DraggableScrollableSheet(
-                controller: _trayExtentController,
-                initialChildSize: kReaderTrayInitialSize,
-                minChildSize: kReaderTraySizes.first,
-                maxChildSize: kReaderTraySizes.last,
-                snap: true,
-                // The same const list the grabber's drag snaps against, so
-                // there is one set of resting sizes rather than two that can
-                // drift. Const also matters here: a list built in this builder
-                // would be a new object on every build, and the sheet re-snaps
-                // whenever its `snapSizes` change.
-                snapSizes: kReaderTraySizes,
-                builder: (context, sheetController) {
-                  // The sheet itself is transparent so the reader stays
-                  // visible above the tray while it is half-open; the tray
-                  // therefore paints its own rounded surface.
-                  final dark = Theme.of(context).brightness == Brightness.dark;
-                  return Container(
-                    decoration: BoxDecoration(
-                      color: dark ? const Color(0xFF1C1C1E) : Colors.white,
-                      borderRadius: const BorderRadius.vertical(
-                        top: Radius.circular(28),
-                      ),
+            child: DraggableScrollableSheet(
+              expand: false,
+              controller: _trayExtentController,
+              initialChildSize: kReaderTrayInitialSize,
+              minChildSize: kReaderTraySizes.first,
+              maxChildSize: kReaderTraySizes.last,
+              snap: true,
+              // The same const list the grabber's drag snaps against, so
+              // there is one set of resting sizes rather than two that can
+              // drift. Const also matters here: a list built in this builder
+              // would be a new object on every build, and the sheet re-snaps
+              // whenever its `snapSizes` change.
+              snapSizes: kReaderTraySizes,
+              builder: (context, sheetController) {
+                // The sheet itself is transparent so the reader stays
+                // visible above the tray while it is half-open; the tray
+                // therefore paints its own rounded surface.
+                final dark = Theme.of(context).brightness == Brightness.dark;
+                return Container(
+                  decoration: BoxDecoration(
+                    color: dark ? const Color(0xFF1C1C1E) : Colors.white,
+                    borderRadius: const BorderRadius.vertical(
+                      top: Radius.circular(28),
                     ),
-                    clipBehavior: Clip.antiAlias,
-                    child: StatefulBuilder(
-                      builder: (context, setSheetState) {
-                        if (!didJump) {
-                          didJump = true;
-                          // Push the tray back to the open size on a fresh
-                          // open: the [DraggableScrollableController] is
-                          // persistent, so it would otherwise inherit the size
-                          // the tray was left at. Deferred to after the frame
-                          // because this builder runs during build, where the
-                          // sheet has no scroll position attached yet and the
-                          // animation would be dropped.
-                          WidgetsBinding.instance.addPostFrameCallback((_) {
-                            if (!mounted || !_trayExtentController.isAttached) {
-                              return;
-                            }
-                            _trayExtentController.animateTo(
-                              kReaderTrayInitialSize,
-                              duration: const Duration(milliseconds: 250),
-                              curve: Curves.easeOut,
-                            );
-                          });
-                          _jumpToCurrentInSheet(
-                            sheetController,
-                            currentIndex,
-                            72,
-                            0,
+                  ),
+                  clipBehavior: Clip.antiAlias,
+                  child: StatefulBuilder(
+                    builder: (context, setSheetState) {
+                      if (!didJump) {
+                        didJump = true;
+                        // Push the tray back to the open size on a fresh
+                        // open: the [DraggableScrollableController] is
+                        // persistent, so it would otherwise inherit the size
+                        // the tray was left at. Deferred to after the frame
+                        // because this builder runs during build, where the
+                        // sheet has no scroll position attached yet and the
+                        // animation would be dropped.
+                        WidgetsBinding.instance.addPostFrameCallback((_) {
+                          if (!mounted || !_trayExtentController.isAttached) {
+                            return;
+                          }
+                          _trayExtentController.animateTo(
+                            kReaderTrayInitialSize,
+                            duration: const Duration(milliseconds: 250),
+                            curve: Curves.easeOut,
                           );
-                        }
-                        return _buildTrayBody(
-                          listView: listView,
-                          setListView: (v) => setSheetState(() => listView = v),
-                          currentIndex: currentIndex,
-                          headers: headers,
-                          onRefresh: () => setSheetState(() {}),
-                          isSheet: true,
-                          controller: sheetController,
+                        });
+                        _jumpToCurrentInSheet(
+                          sheetController,
+                          currentIndex,
+                          72,
+                          0,
                         );
-                      },
-                    ),
-                  );
-                },
-              ),
+                      }
+                      return _buildTrayBody(
+                        listView: listView,
+                        setListView: (v) => setSheetState(() => listView = v),
+                        currentIndex: currentIndex,
+                        headers: headers,
+                        onRefresh: () => setSheetState(() {}),
+                        isSheet: true,
+                        controller: sheetController,
+                      );
+                    },
+                  ),
+                );
+              },
             ),
           ),
         );
