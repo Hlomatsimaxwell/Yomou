@@ -1551,6 +1551,12 @@ class _MangaDetailScreenState extends ConsumerState<MangaDetailScreen> {
 
           return ListTile(
             key: ValueKey(ch.id),
+            // Two-line tiles reserve 72dp, and the title and subtitle only
+            // fill 40 of it, so most of the space between one chapter and the
+            // next is the tile's own air rather than anything this list asked
+            // for. -2 takes 8dp of it back (76dp a row becomes 68) without
+            // touching the text styles the way `dense` would.
+            visualDensity: const VisualDensity(vertical: -2),
             contentPadding: const EdgeInsets.symmetric(vertical: 2),
             shape: isSelected
                 ? RoundedRectangleBorder(
