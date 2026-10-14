@@ -1,6 +1,7 @@
 import 'dart:async';
 import 'dart:ui' show ImageFilter;
 import 'package:flutter/gestures.dart' show DragStartBehavior;
+import 'package:flutter/rendering.dart' show ScrollDirection;
 import 'package:yomou/widgets/cached_manga_image.dart';
 import 'package:yomou/widgets/manga_hero.dart';
 import 'package:yomou/widgets/cover_viewer.dart';
@@ -69,6 +70,13 @@ const double _kBackdropArtOpacity = 0.25;
 /// page at both ends. Lowering it shows the art across the whole plate, at the
 /// cost of the plate's bottom edge becoming a visible step rather than a fade.
 const double _kBackdropWashOpacity = 0.05;
+
+/// The tray's halfway resting size, between the collapsed bar and full screen.
+///
+/// The size a tap or a small swipe reaches first. A swipe that carries past it
+/// keeps going, so the state is a convenience rather than a toll gate on the
+/// way to a full-screen tray.
+const double _kTrayHalfSize = 0.5;
 
 /// The bottom safe-area inset, raised to at least [kBottomChromeClearance].
 ///
@@ -233,6 +241,12 @@ class _MangaDetailScreenState extends ConsumerState<MangaDetailScreen> {
   // Where the tray bar's drag started. Null whenever no drag is in progress,
   // which is also how the drag callbacks know to ignore a stray update.
   double? _trayDragStartSize;
+
+  // The tray's resting sizes, rebuilt only when the collapsed size changes.
+  // Kept as a field because the sheet re-snaps whenever the list it is handed
+  // changes, and a fresh list on every build is what let it re-snap mid-drag.
+  List<double>? _traySnapSizesCache;
+  double? _traySnapSizesCollapsed;
   bool _isLoadingBookmarks = true;
 
   // Tray shows chapters oldest-first; toggling this shows newest-first.
@@ -771,16 +785,38 @@ class _MangaDetailScreenState extends ConsumerState<MangaDetailScreen> {
     return sc?.hasClients == true && sc!.position.maxScrollExtent > 40;
   }
 
-  // Track whether the chapter list has scrolled to its last chapter.
+  // Track which way the chapter list is being read, for the jump button.
   //
-  // To the last chapter, not merely near it: the jump button switches direction
-  // off this, so a few hundred pixels of slack at the end had the arrow
-  // offering to jump to the top while chapters were still laid out below it.
+  // The button follows the gesture instead of waiting for an end to be reached:
+  // the arrow points the way the list is being read, so it is the down arrow
+  // while the reader is working towards the last chapter and the up arrow as
+  // soon as they turn back -- sitting four chapters from the end should not be
+  // the point at which the arrow changes its mind, and a slow drag should turn
+  // it as surely as a flick.
+  //
+  // The ends still pin it, because from them there is only one way left to go:
+  // at the top the button can only offer the last chapter, and at the end it can
+  // only offer the first. Without that, over-scrolling at an end would leave the
+  // arrow pointing at the end the list is already sitting on.
   void _onTrayContentScroll() {
     final sc = _listScrollController;
     if (sc == null || !sc.hasClients) return;
     final pos = sc.position;
-    final atBottom = pos.maxScrollExtent <= 0 || pos.extentAfter <= 8;
+
+    final bool atBottom;
+    if (pos.maxScrollExtent <= 0 || pos.extentAfter <= 8) {
+      atBottom = true;
+    } else if (pos.pixels <= 8) {
+      atBottom = false;
+    } else if (pos.userScrollDirection == ScrollDirection.reverse) {
+      atBottom = false;
+    } else if (pos.userScrollDirection == ScrollDirection.forward) {
+      atBottom = true;
+    } else {
+      // Nothing has moved the list yet, so leave the button as it was.
+      atBottom = _trayAtBottom;
+    }
+
     if (atBottom != _trayAtBottom) {
       setState(() => _trayAtBottom = atBottom);
     }
@@ -808,13 +844,30 @@ class _MangaDetailScreenState extends ConsumerState<MangaDetailScreen> {
     );
   }
 
-  /// Where the tray comes to rest: the collapsed bar, and full screen.
+  /// Where the tray comes to rest: the collapsed bar, halfway, full screen.
   ///
-  /// The sheet is given no `snapSizes` of its own, so these are also the sizes
-  /// it snaps between when a drag arrives through the chapter list. Two stops
-  /// and not three: with a half state in between, one upward swipe could be
-  /// answered with a half-open tray and read as the swipe having failed.
-  List<double> get _traySnapSizes => [_trayCollapsedSize, 1.0];
+  /// The sheet is given these, and the bar's own drag snaps against the same
+  /// list, so the two cannot drift apart. Halfway is what a tap or a small
+  /// swipe reaches first; a swipe that carries past it opens the rest of the
+  /// way rather than dropping back to it, which is what [sheetNextStop] is for.
+  List<double> get _traySnapSizes {
+    final collapsed = _trayCollapsedSize;
+    // Built once per collapsed size rather than once per build: the sheet is
+    // handed this list, and it re-snaps whenever the list changes. A fresh
+    // list on every build is what made it re-snap mid-drag.
+    if (_traySnapSizesCache == null || _traySnapSizesCollapsed != collapsed) {
+      _traySnapSizesCache = [
+        collapsed,
+        // The sheet asserts its snap sizes are strictly ascending, and the
+        // collapsed size is clamped at 0.5 -- so on a window short enough for
+        // the bar to reach that, the half stop is simply left out.
+        if (_kTrayHalfSize > collapsed + 0.01) _kTrayHalfSize,
+        1.0,
+      ];
+      _traySnapSizesCollapsed = collapsed;
+    }
+    return _traySnapSizesCache!;
+  }
 
   // The tray bar doubles as the tray's drag handle.
   //
@@ -1140,11 +1193,13 @@ class _MangaDetailScreenState extends ConsumerState<MangaDetailScreen> {
               minChildSize: _trayCollapsedSize,
               maxChildSize: 1.0,
               snap: true,
-              // Deliberately no `snapSizes`. Left out, the sheet snaps between
-              // its min and max -- the bar and full screen, which is what
-              // [_traySnapSizes] names too. A half state here read as the swipe
-              // having failed, and a fresh `snapSizes` list is rebuilt on every
-              // build of this screen, which made the sheet re-snap mid-drag.
+              // The same list the bar's drag snaps against, so there is one set
+              // of resting sizes rather than two that can drift apart. It is
+              // cached rather than built inline here: a fresh list on every
+              // build reads as changed `snapSizes` to the sheet, which then
+              // re-snaps -- and it used to do that mid-drag, which is part of
+              // why a swipe up could stop short of full screen.
+              snapSizes: _traySnapSizes,
               builder: (context, scrollController) {
                 _sheetContentController = scrollController;
                 if (!_trayScrollListening) {
@@ -1158,13 +1213,6 @@ class _MangaDetailScreenState extends ConsumerState<MangaDetailScreen> {
                     borderRadius: _isExpanded
                         ? BorderRadius.zero
                         : const BorderRadius.vertical(top: Radius.circular(28)),
-                    boxShadow: const [
-                      BoxShadow(
-                        color: Colors.black87,
-                        blurRadius: 20,
-                        offset: Offset(0, -6),
-                      ),
-                    ],
                   ),
                   child: ClipRRect(
                     borderRadius: _isExpanded
@@ -1206,7 +1254,10 @@ class _MangaDetailScreenState extends ConsumerState<MangaDetailScreen> {
           if (_showSheetContent && _trayCanScroll && !_selectionMode)
             Positioned(
               right: 14,
-              bottom: 90 + _bottomClearance(context),
+              // Just clear of the bottom safe area rather than parked up the
+              // screen: it was sitting 90dp up, which read as floating in the
+              // middle of the last chapters instead of over them.
+              bottom: 40 + _bottomClearance(context),
               child: IgnorePointer(
                 ignoring: !_isExpanded,
                 child: AnimatedOpacity(
@@ -1266,16 +1317,14 @@ class _MangaDetailScreenState extends ConsumerState<MangaDetailScreen> {
       onDownload: _downloadSelectedChapters,
       onBarTap: () {
         if (docked) return;
-        // Two states, so a tap is a straight toggle between them: the bar
-        // opens the tray to full screen, and tapping it again puts it back.
-        // With a half state in between, the first tap only ever got you part
-        // of the way, which is what the tester read as "it doesn't go up".
-        if (_isExpanded) {
-          _animateSheetTo(_trayCollapsedSize);
-        } else {
-          _animateSheetTo(1.0);
-          _scrollToResumeChapter();
-        }
+        // One stop per tap, so each tap is a step that can be seen: bar to
+        // halfway, halfway to full screen, and around again from there. The
+        // same walk the bar's own drag does, and the reason a tap no longer
+        // skips past the halfway state on its way up.
+        final current = _sheetController.size;
+        final next = sheetNextStop(size: current, stops: _traySnapSizes);
+        _animateSheetTo(next);
+        if (next > current) _scrollToResumeChapter();
       },
       onBarDragStart: docked ? null : _onTrayBarDragStart,
       onBarDragUpdate: docked ? null : _onTrayBarDragUpdate,
@@ -1285,8 +1334,11 @@ class _MangaDetailScreenState extends ConsumerState<MangaDetailScreen> {
       onTabSelected: (index) {
         setState(() => _activeTab = index);
         if (docked) return;
+        // Picking a tab is a request to see that tab, so a shut tray opens to
+        // the halfway state -- far enough to read the list, not so far that it
+        // covers the page for someone who only wanted a glance.
         if (_sheetController.size < 0.2) {
-          _animateSheetTo(1.0);
+          _animateSheetTo(_kTrayHalfSize);
         }
       },
     );
@@ -4151,9 +4203,10 @@ class _SheetHeaderDelegate extends SliverPersistentHeaderDelegate {
 //
 // It only ever exists at full screen, on a list long enough to have somewhere
 // to travel to, and it is not offered at all in selection mode -- all of that
-// is settled by the callers. So the only decision left is direction, and it is
-// read straight off the list: the arrow points the way the list will move, down
-// while there are chapters below and up again once the end is reached.
+// is settled by the callers. What is left is its direction, and that follows
+// the drag: the arrow points the way the list is being read, so it is the down
+// arrow while the reader is working towards the last chapter and the up arrow
+// as soon as they turn back, and tapping carries on to that end.
 class _TrayJumpButton extends StatelessWidget {
   final bool atBottom;
   final VoidCallback onTap;

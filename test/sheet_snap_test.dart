@@ -5,14 +5,14 @@ import 'package:yomou/widgets/sheet_snap.dart';
 /// [DraggableScrollableSheet] hands out, so they snap themselves.
 ///
 /// These pin the behaviour that was wrong on device: a flick used to be able to
-/// stop a stop short, and a tray dragged down from full screen used to do
-/// nothing at all. A flick now always travels one stop, and a drag let go
-/// without a flick settles on the nearer of the two it sits between.
+/// stop a stop short, a tray dragged down from full screen used to do nothing at
+/// all, and a tray dragged most of the way up used to fall back to the halfway
+/// point it had already passed.
 void main() {
-  /// The tray's stops: collapsed bar, half, full screen.
+  /// The detail tray's stops: collapsed bar, halfway, full screen.
   const tray = [0.12, 0.5, 1.0];
 
-  /// A flick is thrown well past the threshold; 300 logical pixels per second.
+  /// A flick is thrown well past the threshold of 300 logical pixels per second.
   const flick = 1200.0;
 
   group('a flick travels one stop', () {
@@ -20,15 +20,15 @@ void main() {
       expect(sheetSnapTarget(size: 0.12, velocity: -flick, stops: tray), 0.5);
     });
 
-    test('upwards again from the half state, all the way to full', () {
+    test('upwards again from halfway, all the way to full', () {
       expect(sheetSnapTarget(size: 0.5, velocity: -flick, stops: tray), 1.0);
     });
 
-    test('downwards from full screen, back to half', () {
+    test('downwards from full screen, back to halfway', () {
       expect(sheetSnapTarget(size: 1.0, velocity: flick, stops: tray), 0.5);
     });
 
-    test('downwards again from half, back to the bar', () {
+    test('downwards again from halfway, back to the bar', () {
       expect(sheetSnapTarget(size: 0.5, velocity: flick, stops: tray), 0.12);
     });
 
@@ -39,7 +39,7 @@ void main() {
   });
 
   group('a drag without a flick settles on the nearer stop', () {
-    test('past the half state goes up', () {
+    test('past halfway goes up', () {
       expect(sheetSnapTarget(size: 0.8, velocity: 0, stops: tray), 1.0);
     });
 
@@ -63,25 +63,46 @@ void main() {
     });
   });
 
-  group('a two-stop tray', () {
-    // The detail tray: collapsed bar or full screen, nothing between.
-    const twoStop = [0.12, 1.0];
-
-    test('goes all the way up on one flick', () {
-      expect(sheetSnapTarget(size: 0.12, velocity: -flick, stops: twoStop), 1.0);
+  group('a tap walks the stops one at a time', () {
+    test('the bar opens to halfway, not past it', () {
+      expect(sheetNextStop(size: 0.12, stops: tray), 0.5);
     });
 
-    test('and all the way down on the reverse', () {
-      expect(sheetSnapTarget(size: 1.0, velocity: flick, stops: twoStop), 0.12);
+    test('halfway opens the rest of the way', () {
+      expect(sheetNextStop(size: 0.5, stops: tray), 1.0);
     });
 
-    test('a slow drag lands on the nearer end', () {
-      expect(sheetSnapTarget(size: 0.4, velocity: 0, stops: twoStop), 0.12);
-      expect(sheetSnapTarget(size: 0.8, velocity: 0, stops: twoStop), 1.0);
+    test('and full screen wraps round to closed', () {
+      expect(sheetNextStop(size: 1.0, stops: tray), 0.12);
+    });
+
+    test('a tray already past a stop does not fall back to it', () {
+      // The tester's report in one line: this is the tray they dragged most of
+      // the way up, and it opens rather than dropping to the halfway point.
+      expect(sheetNextStop(size: 0.7, stops: tray), 1.0);
+    });
+  });
+
+  group('and the same walk downwards', () {
+    test('full screen closes to halfway, halfway to the bar', () {
+      expect(sheetPreviousStop(size: 1.0, stops: tray), 0.5);
+      expect(sheetPreviousStop(size: 0.5, stops: tray), 0.12);
+    });
+
+    test('the bar, which is already the bottom, wraps to full screen', () {
+      expect(sheetPreviousStop(size: 0.12, stops: tray), 1.0);
+    });
+
+    test('a tray above a stop skips the ones it has not reached', () {
+      expect(sheetPreviousStop(size: 0.9, stops: tray), 0.5);
     });
   });
 
   test('the stops need not be given in order', () {
-    expect(sheetSnapTarget(size: 1.0, velocity: flick, stops: [1.0, 0.12, 0.5]), 0.5);
+    expect(
+      sheetSnapTarget(size: 1.0, velocity: flick, stops: [1.0, 0.12, 0.5]),
+      0.5,
+    );
+    expect(sheetNextStop(size: 0.12, stops: [1.0, 0.5, 0.12]), 0.5);
   });
 }
