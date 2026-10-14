@@ -104,86 +104,92 @@ class _TachiyomiScanPill extends StatelessWidget {
     // reads as a notification.
     final bottomGap = bottomBarTopEdge(context) + 12;
 
-    return IgnorePointer(
-      ignoring: true,
-      child: Align(
-        alignment: Alignment.bottomCenter,
-        child: Padding(
-          padding: EdgeInsets.fromLTRB(16, 16, 16, bottomGap),
-          child: ValueListenableBuilder<({int done, int total})>(
-            valueListenable: progress,
-            builder: (context, value, _) {
-              return TweenAnimationBuilder<double>(
-                tween: Tween(begin: 0, end: 1),
-                duration: const Duration(milliseconds: 220),
-                curve: Curves.easeOutCubic,
-                builder: (context, t, child) => Opacity(
-                  opacity: t,
-                  child: Transform.scale(
-                    scale: 0.9 + 0.1 * t,
-                    child: child,
+    return Material(
+      // Same as the toast: this pill goes straight into the root overlay, so
+      // without a Material above it its text drew in Flutter's fallback style,
+      // underlined in double yellow.
+      type: MaterialType.transparency,
+      child: IgnorePointer(
+        ignoring: true,
+        child: Align(
+          alignment: Alignment.bottomCenter,
+          child: Padding(
+            padding: EdgeInsets.fromLTRB(16, 16, 16, bottomGap),
+            child: ValueListenableBuilder<({int done, int total})>(
+              valueListenable: progress,
+              builder: (context, value, _) {
+                return TweenAnimationBuilder<double>(
+                  tween: Tween(begin: 0, end: 1),
+                  duration: const Duration(milliseconds: 220),
+                  curve: Curves.easeOutCubic,
+                  builder: (context, t, child) => Opacity(
+                    opacity: t,
+                    child: Transform.scale(
+                      scale: 0.9 + 0.1 * t,
+                      child: child,
+                    ),
                   ),
-                ),
-                child: Container(
-                  padding: const EdgeInsets.symmetric(
-                    horizontal: 16,
-                    vertical: 10,
-                  ),
-                  decoration: BoxDecoration(
-                    color: pillColor,
-                    borderRadius: BorderRadius.circular(28),
-                    border: Border.all(color: pillBorder),
-                    boxShadow: [
-                      BoxShadow(
-                        color: Colors.black.withValues(alpha: 0.12),
-                        blurRadius: 16,
-                        offset: const Offset(0, 6),
-                      ),
-                    ],
-                  ),
-                  child: Row(
-                    mainAxisSize: MainAxisSize.min,
-                    children: [
-                      SizedBox(
-                        width: 20,
-                        height: 20,
-                        child: CircularProgressIndicator(
-                          strokeWidth: 2.6,
-                          color: accent,
-                          backgroundColor: accent.withValues(alpha: 0.18),
-                          value: value.total > 0
-                              ? value.done / value.total
-                              : null,
+                  child: Container(
+                    padding: const EdgeInsets.symmetric(
+                      horizontal: 16,
+                      vertical: 10,
+                    ),
+                    decoration: BoxDecoration(
+                      color: pillColor,
+                      borderRadius: BorderRadius.circular(28),
+                      border: Border.all(color: pillBorder),
+                      boxShadow: [
+                        BoxShadow(
+                          color: Colors.black.withValues(alpha: 0.12),
+                          blurRadius: 16,
+                          offset: const Offset(0, 6),
                         ),
-                      ),
-                      const SizedBox(width: 12),
-                      Column(
-                        crossAxisAlignment: CrossAxisAlignment.start,
-                        mainAxisSize: MainAxisSize.min,
-                        children: [
-                          Text(
-                            l.importScanTitle,
-                            style: TextStyle(
-                              color: fg,
-                              fontSize: 14,
-                              fontWeight: FontWeight.w600,
-                            ),
+                      ],
+                    ),
+                    child: Row(
+                      mainAxisSize: MainAxisSize.min,
+                      children: [
+                        SizedBox(
+                          width: 20,
+                          height: 20,
+                          child: CircularProgressIndicator(
+                            strokeWidth: 2.6,
+                            color: accent,
+                            backgroundColor: accent.withValues(alpha: 0.18),
+                            value: value.total > 0
+                                ? value.done / value.total
+                                : null,
                           ),
-                          const SizedBox(height: 2),
-                          Text(
-                            l.importScanProgress(value.done, value.total),
-                            style: TextStyle(
-                              color: fg.withValues(alpha: 0.72),
-                              fontSize: 12,
+                        ),
+                        const SizedBox(width: 12),
+                        Column(
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          mainAxisSize: MainAxisSize.min,
+                          children: [
+                            Text(
+                              l.importScanTitle,
+                              style: TextStyle(
+                                color: fg,
+                                fontSize: 14,
+                                fontWeight: FontWeight.w600,
+                              ),
                             ),
-                          ),
-                        ],
-                      ),
-                    ],
+                            const SizedBox(height: 2),
+                            Text(
+                              l.importScanProgress(value.done, value.total),
+                              style: TextStyle(
+                                color: fg.withValues(alpha: 0.72),
+                                fontSize: 12,
+                              ),
+                            ),
+                          ],
+                        ),
+                      ],
+                    ),
                   ),
-                ),
-              );
-            },
+                );
+              },
+            ),
           ),
         ),
       ),

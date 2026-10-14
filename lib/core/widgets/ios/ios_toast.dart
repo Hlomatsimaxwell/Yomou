@@ -145,73 +145,85 @@ class _IosToastPillState extends State<_IosToastPill>
     // reads as a notification.
     final bottomGap = bottomBarTopEdge(context) + 12;
 
-    return IgnorePointer(
-      ignoring: !_hasAction,
-      child: Align(
-        alignment: Alignment.bottomCenter,
-        child: Padding(
-          padding: EdgeInsets.fromLTRB(16, 16, 16, bottomGap),
-          child: FadeTransition(
-            opacity: _controller,
-            child: ScaleTransition(
-              scale: Tween<double>(begin: 0.9, end: 1).animate(
-                CurvedAnimation(
-                  parent: _controller,
-                  curve: Curves.easeOutCubic,
+    return Material(
+      // Flutter supplies a fallback text style -- red, monospace, and underlined
+      // in double yellow -- for any text with no [Material] above it, to say so
+      // loudly. A toast is inserted straight into the root overlay, where there
+      // is none, so that underline was leaking in under every message. A
+      // transparent Material is the fix Flutter asks for, and it paints nothing
+      // and absorbs no tap of its own, so the pill stays the only thing here
+      // that can be touched.
+      type: MaterialType.transparency,
+      child: IgnorePointer(
+        ignoring: !_hasAction,
+        child: Align(
+          alignment: Alignment.bottomCenter,
+          child: Padding(
+            padding: EdgeInsets.fromLTRB(16, 16, 16, bottomGap),
+            child: FadeTransition(
+              opacity: _controller,
+              child: ScaleTransition(
+                scale: Tween<double>(begin: 0.9, end: 1).animate(
+                  CurvedAnimation(
+                    parent: _controller,
+                    curve: Curves.easeOutCubic,
+                  ),
                 ),
-              ),
-              child: Container(
-                padding: const EdgeInsets.symmetric(
-                  horizontal: 16,
-                  vertical: 10,
-                ),
-                decoration: BoxDecoration(
-                  color: pillColor,
-                  borderRadius: BorderRadius.circular(28),
-                  border: Border.all(color: pillBorder),
-                  boxShadow: [
-                    BoxShadow(
-                      color: Colors.black.withValues(alpha: 0.12),
-                      blurRadius: 16,
-                      offset: const Offset(0, 6),
-                    ),
-                  ],
-                ),
-                child: Row(
-                  mainAxisSize: MainAxisSize.min,
-                  children: [
-                    Flexible(
-                      child: Text(
-                        widget.message,
-                        style: TextStyle(
-                          color: fg,
-                          fontSize: 14,
-                          fontWeight: FontWeight.w600,
+                child: Container(
+                  padding: const EdgeInsets.symmetric(
+                    horizontal: 16,
+                    vertical: 10,
+                  ),
+                  decoration: BoxDecoration(
+                    color: pillColor,
+                    borderRadius: BorderRadius.circular(28),
+                    border: Border.all(color: pillBorder),
+                    boxShadow: [
+                      BoxShadow(
+                        color: Colors.black.withValues(alpha: 0.12),
+                        blurRadius: 16,
+                        offset: const Offset(0, 6),
+                      ),
+                    ],
+                  ),
+                  child: Row(
+                    mainAxisSize: MainAxisSize.min,
+                    children: [
+                      Flexible(
+                        child: Text(
+                          widget.message,
+                          style: TextStyle(
+                            color: fg,
+                            fontSize: 14,
+                            fontWeight: FontWeight.w600,
+                          ),
                         ),
                       ),
-                    ),
-                    if (_hasAction) ...[
-                      const SizedBox(width: 12),
-                      GestureDetector(
-                        behavior: HitTestBehavior.opaque,
-                        onTap: _handleAction,
-                        child: Padding(
-                          padding: const EdgeInsets.symmetric(
-                            horizontal: 4,
-                            vertical: 6,
-                          ),
-                          child: Text(
-                            widget.actionLabel!,
-                            style: const TextStyle(
-                              color: Color(0xFF64AFFF),
-                              fontSize: 14,
-                              fontWeight: FontWeight.w600,
+                      if (_hasAction) ...[
+                        const SizedBox(width: 12),
+                        GestureDetector(
+                          behavior: HitTestBehavior.opaque,
+                          onTap: _handleAction,
+                          child: Padding(
+                            padding: const EdgeInsets.symmetric(
+                              horizontal: 4,
+                              vertical: 6,
+                            ),
+                            child: Text(
+                              widget.actionLabel!,
+                              style: TextStyle(
+                                // Accent-derived, like the other accent-tinted
+                                // things on screen; it used to be a fixed blue.
+                                color: Theme.of(context).colorScheme.primary,
+                                fontSize: 14,
+                                fontWeight: FontWeight.w600,
+                              ),
                             ),
                           ),
                         ),
-                      ),
+                      ],
                     ],
-                  ],
+                  ),
                 ),
               ),
             ),
