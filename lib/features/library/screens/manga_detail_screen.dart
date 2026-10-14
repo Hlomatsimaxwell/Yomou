@@ -1305,6 +1305,7 @@ class _MangaDetailScreenState extends ConsumerState<MangaDetailScreen> {
       docked: docked,
       isExpanded: docked || _isExpanded,
       activeTab: _activeTab,
+      accent: ref.watch(accentProvider),
       topPadding: docked ? 0 : MediaQuery.of(context).padding.top,
       bottomPadding: docked ? 0 : _trayBottomLip,
       unreadCount: _unreadCount,
@@ -3809,6 +3810,11 @@ class _SheetHeaderDelegate extends SliverPersistentHeaderDelegate {
 
   final bool isExpanded;
   final int activeTab;
+
+  /// The accent the user picked in appearance settings. The Continue pill is
+  /// built in this delegate rather than on the screen, so the color has to
+  /// travel with it.
+  final Color accent;
   final double topPadding;
   final double bottomPadding;
   final int unreadCount;
@@ -3844,6 +3850,7 @@ class _SheetHeaderDelegate extends SliverPersistentHeaderDelegate {
     this.docked = false,
     required this.isExpanded,
     required this.activeTab,
+    required this.accent,
     required this.topPadding,
     this.bottomPadding = 0,
     this.unreadCount = 0,
@@ -4176,8 +4183,19 @@ class _SheetHeaderDelegate extends SliverPersistentHeaderDelegate {
     final label = (hasRead)
         ? '${l.continueAction} · ${continueChapterNumber ?? ''}'.trim()
         : l.readAction;
-    final leftColor = Colors.blue.shade700;
-    final rightColor = Colors.blue.shade800;
+    // The pill wears the accent the user picked, with the dropdown half a step
+    // darker and a lighter hairline between them -- the relationship the fixed
+    // blues had. The label takes whichever of black or white reads on that
+    // accent: a green or monochrome pill cannot carry white.
+    final leftColor = accent;
+    final rightColor = Color.alphaBlend(
+      Colors.black.withValues(alpha: 0.18),
+      accent,
+    );
+    final onAccent =
+        ThemeData.estimateBrightnessForColor(accent) == Brightness.dark
+        ? Colors.white
+        : Colors.black;
     return Row(
       mainAxisSize: MainAxisSize.min,
       children: [
@@ -4193,8 +4211,8 @@ class _SheetHeaderDelegate extends SliverPersistentHeaderDelegate {
             ),
             child: Text(
               label,
-              style: const TextStyle(
-                color: Colors.white,
+              style: TextStyle(
+                color: onAccent,
                 fontSize: 13,
                 fontWeight: FontWeight.bold,
               ),
@@ -4211,12 +4229,18 @@ class _SheetHeaderDelegate extends SliverPersistentHeaderDelegate {
                 right: Radius.circular(20),
               ),
               border: Border(
-                left: BorderSide(color: Colors.blue.shade600, width: 0.5),
+                left: BorderSide(
+                  color: Color.alphaBlend(
+                    Colors.white.withValues(alpha: 0.35),
+                    accent,
+                  ),
+                  width: 0.5,
+                ),
               ),
             ),
-            child: const Icon(
+            child: Icon(
               RemixIcons.arrow_down_s_line,
-              color: Colors.white,
+              color: onAccent,
               size: 20,
             ),
           ),
@@ -4235,6 +4259,7 @@ class _SheetHeaderDelegate extends SliverPersistentHeaderDelegate {
   bool shouldRebuild(covariant _SheetHeaderDelegate oldDelegate) {
     return oldDelegate.isExpanded != isExpanded ||
         oldDelegate.activeTab != activeTab ||
+        oldDelegate.accent != accent ||
         oldDelegate.topPadding != topPadding ||
         oldDelegate.bottomPadding != bottomPadding ||
         oldDelegate.unreadCount != unreadCount ||

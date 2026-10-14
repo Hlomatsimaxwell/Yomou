@@ -2617,8 +2617,26 @@ class _ReaderScreenState extends ConsumerState<ReaderScreen>
       (ReadingMode.webtoon, RemixIcons.list_view, l.readerModeWebtoon),
     ];
     final dark = Theme.of(context).brightness == Brightness.dark;
-    final selectedBg = dark ? const Color(0xFF5B8DEF) : Colors.blue.shade100;
-    final selectedFg = dark ? Colors.white : Colors.blue.shade900;
+    // The selected capsule wears the accent the user picked. Light mode tints
+    // its surface with the accent and writes in a deep version of it, as the
+    // fixed pale blue and navy did; dark mode fills with the accent outright
+    // and takes whichever of black or white reads on it, since a green or
+    // monochrome accent cannot carry white.
+    final accent = ref.watch(accentProvider);
+    final selectedBg = dark
+        ? accent
+        : Color.alphaBlend(
+            accent.withValues(alpha: 0.20),
+            Colors.white,
+          );
+    final selectedFg = dark
+        ? (ThemeData.estimateBrightnessForColor(accent) == Brightness.dark
+              ? Colors.white
+              : Colors.black)
+        : Color.alphaBlend(
+            accent.withValues(alpha: 0.75),
+            const Color(0xFF1C1B1F),
+          );
 
     return Container(
       decoration: BoxDecoration(
