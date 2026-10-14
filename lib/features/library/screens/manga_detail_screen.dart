@@ -45,6 +45,7 @@ import 'package:yomou/data/providers/sources_provider.dart';
 import 'package:yomou/features/explore/screens/source_search_results_screen.dart';
 import 'package:yomou/features/feed/providers/updates_provider.dart';
 import 'package:yomou/features/explore/screens/global_search_results_screen.dart';
+import 'package:yomou/features/source_management/screens/manga_grid_screen.dart';
 import 'package:yomou/features/settings/providers/appearance_provider.dart';
 import 'package:yomou/l10n/generated/app_localizations.dart';
 import 'package:yomou/widgets/source_icon.dart';
@@ -3217,6 +3218,14 @@ class _MangaDetailScreenState extends ConsumerState<MangaDetailScreen> {
             l.detailSource,
             _sourceName ?? l.unknown,
             leading: _buildSourceIcon(),
+            // Only when the source still resolves: an unknown name falls back
+            // to MangaDex in [getSourceByName], which would open the wrong
+            // catalogue rather than nothing.
+            onTap: ref
+                    .watch(sourcesProvider)
+                    .any((row) => row['name'] == (_sourceName ?? ''))
+                ? _openSourceCatalogue
+                : null,
           ),
           _buildCardRow(
             l.detailAuthor,
@@ -3407,6 +3416,23 @@ class _MangaDetailScreenState extends ConsumerState<MangaDetailScreen> {
       return '${(bytes / (1024 * 1024)).toStringAsFixed(1)} MB';
     }
     return '${(bytes / (1024 * 1024 * 1024)).toStringAsFixed(1)} GB';
+  }
+
+  /// Opens the catalogue of the source this manga came from -- the same screen
+  /// Explore pushes when a source is tapped. Only offered when the name still
+  /// resolves to a real source; [getSourceByName] silently falls back to
+  /// MangaDex, so a manga whose source was removed would otherwise open the
+  /// wrong catalogue.
+  void _openSourceCatalogue() {
+    final name = _sourceName;
+    if (name == null || name.isEmpty) return;
+    final known = ref
+        .read(sourcesProvider)
+        .any((row) => row['name'] == name);
+    if (!known) return;
+    Navigator.of(context).push(
+      MaterialPageRoute(builder: (_) => MangaGridScreen(sourceName: name)),
+    );
   }
 
   // Small favicon tile (20×20) for the source row, using the shared brand
