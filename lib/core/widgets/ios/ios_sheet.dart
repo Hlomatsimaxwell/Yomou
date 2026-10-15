@@ -26,9 +26,10 @@ const double kSheetPanelMaxWidth = 460;
 /// How a sheet is presented on a window too wide for a bottom sheet to read
 /// well.
 enum IosSheetStyle {
-  /// A panel anchored to the right edge on a wide window, a bottom sheet on a
-  /// phone. The default, because it is what every list- or options-shaped
-  /// sheet wants.
+  /// A full-height drawer anchored to the right edge on a wide window, a bottom
+  /// sheet on a phone. The default, because it is what every list- or
+  /// options-shaped sheet wants: the drawer is a place the reader is in, with
+  /// the page it belongs to still visible beside it.
   auto,
 
   /// Always a bottom sheet, however wide the window.
@@ -41,7 +42,7 @@ enum IosSheetStyle {
 }
 
 /// Presents an iOS-style bottom sheet, or -- on a wide window -- the same
-/// content as a panel on the right edge.
+/// content as a full-height drawer on the right edge.
 ///
 /// The two are different presentations of one content set, not two content
 /// sets. A bottom sheet stretched across a 1280px window leaves the app as a
@@ -190,8 +191,8 @@ Future<T?> _showIosEndSheet<T>(
   );
 }
 
-/// The panel itself. Anchored right, rounded on the left, and no taller than
-/// its content.
+/// The drawer itself. The full height of the window, anchored to the right edge,
+/// rounded on the left.
 class _IosEndSheetShell extends StatelessWidget {
   const _IosEndSheetShell({required this.title, required this.child});
 
@@ -206,56 +207,54 @@ class _IosEndSheetShell extends StatelessWidget {
       kSheetPanelMaxWidth,
     );
 
-    return SafeArea(
-      child: Align(
-        alignment: Alignment.centerRight,
-        child: SizedBox(
-          width: panelWidth,
-          // A ceiling, not a height. The panel takes the height of what is in
-          // it -- the reader's overflow menu is a handful of rows, and
-          // stretching that to the window leaves a column of empty surface
-          // below them -- and only reaches the window's height when the content
-          // outgrows it.
-          child: ConstrainedBox(
-            constraints: BoxConstraints(maxHeight: media.height),
-            child: Material(
-              color: iosSheetBackground(context),
-              // The panel sits over a page, so it needs to read as a layer above
-              // it rather than as part of the same plane.
-              elevation: 16,
-              shadowColor: Colors.black54,
-              // Rounded on the left only: the right edge is the screen edge, so
-              // a corner there would be a radius around nothing.
-              clipBehavior: Clip.antiAlias,
-              shape: const RoundedRectangleBorder(
-                borderRadius: BorderRadius.horizontal(left: Radius.circular(20)),
-              ),
-              child: Column(
-                mainAxisSize: MainAxisSize.min,
-                crossAxisAlignment: CrossAxisAlignment.stretch,
-                children: [
-                  if (title != null) _IosEndSheetHeader(title!),
-                  Flexible(
-                    child: Padding(
-                      padding: EdgeInsets.only(
-                        top: title == null ? 8 : 0,
-                        bottom: 8,
-                      ),
-                      // No scroll view here, on purpose. The panel hands its
-                      // child a bounded height (the window, minus the header)
-                      // and leaves scrolling to the content: the chapter list's
-                      // tray is a Column with an Expanded in it, and an
-                      // Expanded inside a SingleChildScrollView is "children
-                      // have non-zero flex but incoming height constraints are
-                      // unbounded" -- a hard crash. Every sheet that can outgrow
-                      // the window already scrolls itself (they were bottom
-                      // sheets first), and short content hugs because the
-                      // column above this has MainAxisSize.min.
-                      child: child,
+    return Align(
+      alignment: Alignment.centerRight,
+      child: SizedBox(
+        width: panelWidth,
+        height: media.height,
+        child: Material(
+          color: iosSheetBackground(context),
+          // The drawer sits over a page, so it needs to read as a layer above it
+          // rather than as part of the same plane.
+          elevation: 16,
+          shadowColor: Colors.black54,
+          // Rounded on the left only: the right edge is the screen edge, so a
+          // corner there would be a radius around nothing.
+          clipBehavior: Clip.antiAlias,
+          shape: const RoundedRectangleBorder(
+            borderRadius: BorderRadius.horizontal(left: Radius.circular(20)),
+          ),
+          // The surface runs the full height, edge to edge; only the content
+          // keeps clear of the notch and the home indicator. Insetting the whole
+          // panel instead is what made it read as a card floating in the window
+          // rather than as an edge the page slides away from.
+          child: SafeArea(
+            left: false,
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.stretch,
+              children: [
+                if (title != null) _IosEndSheetHeader(title!),
+                // Expanded, not Flexible: the content owns the height between
+                // the header and the bottom edge. Short content sits at the top
+                // with the surface continuing below it, which is what a drawer
+                // looks like, and content that scrolls -- or a tray with an
+                // Expanded of its own, like the chapter list's -- gets the
+                // bounded height it needs to lay out against.
+                //
+                // Scrolling stays the content's job. An Expanded inside a
+                // SingleChildScrollView here would be "children have non-zero
+                // flex but incoming height constraints are unbounded" -- a hard
+                // crash -- so the bounded height has to come from this column.
+                Expanded(
+                  child: Padding(
+                    padding: EdgeInsets.only(
+                      top: title == null ? 8 : 0,
+                      bottom: 8,
                     ),
+                    child: child,
                   ),
-                ],
-              ),
+                ),
+              ],
             ),
           ),
         ),

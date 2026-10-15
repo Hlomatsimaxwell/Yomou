@@ -621,9 +621,13 @@ class _HistoryScreenState extends ConsumerState<HistoryScreen> {
         return StatefulBuilder(
           builder: (context, setSheetState) {
             final dark = Theme.of(context).brightness == Brightness.dark;
+            final cs = Theme.of(context).colorScheme;
+            // One gap between sections, so the panel breathes evenly instead of
+            // at 24/20/20 depending on which row was edited last.
+            const sectionGap = SizedBox(height: 28);
             return SingleChildScrollView(
               child: Padding(
-                padding: const EdgeInsets.fromLTRB(20, 12, 20, 24),
+                padding: const EdgeInsets.fromLTRB(20, 16, 20, 32),
                 child: Column(
                   mainAxisSize: MainAxisSize.min,
                   crossAxisAlignment: CrossAxisAlignment.start,
@@ -631,18 +635,24 @@ class _HistoryScreenState extends ConsumerState<HistoryScreen> {
                   Text(
                     AppLocalizations.of(context).historyListMode,
                     style: TextStyle(
-                      color: dark ? Colors.white70 : const Color(0xFF49454F),
-                      fontSize: 14,
+                      color: cs.onSurfaceVariant,
+                      fontSize: 13,
                       fontWeight: FontWeight.w500,
                     ),
                   ),
-                  const SizedBox(height: 12),
+                  const SizedBox(height: 10),
                   Container(
-                    height: 52,
+                    // One unit: a single track holding three equal segments, with
+                    // the hairline on the track rather than on each button. The
+                    // fixed 8px gaps this used to have read as three separate
+                    // pills that happened to sit next to each other, and the
+                    // 26px radius turned each of them into a lozenge.
+                    padding: const EdgeInsets.all(3),
                     decoration: BoxDecoration(
-                      borderRadius: BorderRadius.circular(26),
+                      color: cs.surfaceContainerHighest.withValues(alpha: 0.6),
+                      borderRadius: BorderRadius.circular(12),
                       border: Border.all(
-                        color: dark ? Colors.white24 : Colors.black12,
+                        color: cs.outlineVariant.withValues(alpha: 0.6),
                         width: 1,
                       ),
                     ),
@@ -653,13 +663,11 @@ class _HistoryScreenState extends ConsumerState<HistoryScreen> {
                           RemixIcons.list_unordered,
                           setSheetState,
                         ),
-                        const SizedBox(width: 8),
                         _buildSegmentTab(
                           'Details',
                           RemixIcons.list_view,
                           setSheetState,
                         ),
-                        const SizedBox(width: 8),
                         _buildSegmentTab(
                           'Grid',
                           RemixIcons.grid_line,
@@ -668,62 +676,68 @@ class _HistoryScreenState extends ConsumerState<HistoryScreen> {
                       ],
                     ),
                   ),
-                  const SizedBox(height: 24),
-                  Text(
-                    AppLocalizations.of(context).appearanceGridSize(
-                      _gridSize.round(),
+                  sectionGap,
+                  _gridSizeLabel(context, cs),
+                  const SizedBox(height: 10),
+                  SliderTheme(
+                    // The minimalist treatment the reader's filter sliders already
+                    // use: a 3px track and a 7px thumb, rather than the default 4px
+                    // and 10px that read as a stock system control. Tick marks go too --
+                    // the value is labelled, so eleven of them across the track are
+                    // noise rather than information.
+                    data: SliderTheme.of(context).copyWith(
+                      trackHeight: 3,
+                      activeTrackColor: cs.primary,
+                      inactiveTrackColor: cs.outlineVariant,
+                      thumbColor: cs.primary,
+                      thumbShape: const RoundSliderThumbShape(enabledThumbRadius: 7),
+                      overlayShape: const RoundSliderOverlayShape(overlayRadius: 16),
+                      activeTickMarkColor: Colors.transparent,
+                      inactiveTickMarkColor: Colors.transparent,
                     ),
-                    style: TextStyle(
-                      color: dark
-                    ? Colors.white70
-                    : const Color(0xFF49454F),
-                      fontSize: 14,
-                      fontWeight: FontWeight.w500,
+                    child: Slider(
+                      // Left to right is small to large, which is what a size
+                      // control reads as: dragging right grows every cover and
+                      // the grid drops a column to make room. The old slider
+                      // pointed the same way -- it counted columns backwards from
+                      // the far end, so a higher thumb meant fewer, larger covers
+                      // either way. The unit is new, not the direction.
+                      //
+                      // Always live. It used to be disabled on a wide window,
+                      // where the count was derived from the width and the stored
+                      // number was only ever a floor -- a control that could be
+                      // dragged without changing a single pixel. The size is now
+                      // the reader's everywhere, so moving it does change the
+                      // grid on a tablet too.
+                      value: _gridSize,
+                      min: kMangaGridSizeMin.toDouble(),
+                      max: kMangaGridSizeMax.toDouble(),
+                      divisions: kMangaGridSizeDivisions,
+                      label: '${_gridSize.round()}%',
+                      onChanged: (value) {
+                        setSheetState(() {
+                          _gridSize = value;
+                        });
+                        setState(() {});
+                        // One preference for every manga grid, so this choice
+                        // follows the reader to explore, search and the
+                        // source browser as well.
+                        ref
+                            .read(appearanceSettingsProvider.notifier)
+                            .setGridSize(value);
+                      },
                     ),
                   ),
-                  const SizedBox(height: 8),
-                  Slider(
-                    // Left to right is small to large, which is what a size
-                    // control reads as: dragging right grows every cover and
-                    // the grid drops a column to make room. The old slider
-                    // pointed the same way -- it counted columns backwards from
-                    // the far end, so a higher thumb meant fewer, larger covers
-                    // either way. The unit is new, not the direction.
-                    //
-                    // Always live. It used to be disabled on a wide window,
-                    // where the count was derived from the width and the stored
-                    // number was only ever a floor -- a control that could be
-                    // dragged without changing a single pixel. The size is now
-                    // the reader's everywhere, so moving it does change the
-                    // grid on a tablet too.
-                    value: _gridSize,
-                    min: kMangaGridSizeMin.toDouble(),
-                    max: kMangaGridSizeMax.toDouble(),
-                    divisions: kMangaGridSizeDivisions,
-                    label: '${_gridSize.round()}%',
-                    onChanged: (value) {
-                      setSheetState(() {
-                        _gridSize = value;
-                      });
-                      setState(() {});
-                      // One preference for every manga grid, so this choice
-                      // follows the reader to explore, search and the
-                      // source browser as well.
-                      ref
-                          .read(appearanceSettingsProvider.notifier)
-                          .setGridSize(value);
-                    },
-                  ),
-                  const SizedBox(height: 20),
+                  sectionGap,
                   Text(
                     AppLocalizations.of(context).historySortingOrder,
                     style: TextStyle(
-                      color: dark ? Colors.white70 : const Color(0xFF49454F),
-                      fontSize: 14,
+                      color: cs.onSurfaceVariant,
+                      fontSize: 13,
                       fontWeight: FontWeight.w500,
                     ),
                   ),
-                  const SizedBox(height: 8),
+                  const SizedBox(height: 10),
                   Container(
                     padding: const EdgeInsets.symmetric(
                       horizontal: 16,
@@ -759,8 +773,9 @@ class _HistoryScreenState extends ConsumerState<HistoryScreen> {
                         : const Color(0xFF49454F),
                         ),
                         style: TextStyle(
-                          color: dark ? Colors.white : const Color(0xFF1C1B1F),
+                          color: cs.onSurface,
                           fontSize: 15,
+                          fontWeight: FontWeight.w500,
                         ),
                         items: _sortOptions.map((value) {
                             return DropdownMenuItem<String>(
@@ -780,7 +795,7 @@ class _HistoryScreenState extends ConsumerState<HistoryScreen> {
                       ),
                     ),
                   ),
-                  const SizedBox(height: 20),
+                  sectionGap,
                   Row(
                     mainAxisAlignment: MainAxisAlignment.spaceBetween,
                     children: [
@@ -797,9 +812,7 @@ class _HistoryScreenState extends ConsumerState<HistoryScreen> {
                           Text(
                             AppLocalizations.of(context).historyGroup,
                             style: TextStyle(
-                              color: dark
-                            ? Colors.white
-                            : const Color(0xFF1C1B1F),
+                              color: cs.onSurface,
                               fontSize: 15,
                               fontWeight: FontWeight.w500,
                             ),
@@ -885,13 +898,7 @@ class _HistoryScreenState extends ConsumerState<HistoryScreen> {
     StateSetter setSheetState,
   ) {
     final isSelected = _listMode == mode;
-    final dark = Theme.of(context).brightness == Brightness.dark;
-    final selectedBg = dark
-        ? const Color(0xFF6B6F76)
-        : Theme.of(context).colorScheme.primary;
-    final fg = isSelected
-        ? Colors.white
-        : (dark ? Colors.white : const Color(0xFF1C1B1F));
+    final cs = Theme.of(context).colorScheme;
     return Expanded(
       child: GestureDetector(
         onTap: () {
@@ -900,27 +907,74 @@ class _HistoryScreenState extends ConsumerState<HistoryScreen> {
           setState(() {});
           _savePreference('history_list_mode', mode);
         },
-        child: Container(
+        child: AnimatedContainer(
+          duration: const Duration(milliseconds: 150),
+          curve: Curves.easeOut,
+          height: 46,
           decoration: BoxDecoration(
-            color: isSelected ? selectedBg : Colors.transparent,
-            borderRadius: BorderRadius.circular(28),
+            // The live mode is a solid accent block in the track. A raised
+            // neutral chip -- what the two-option settings rows use -- would not
+            // say which of three modes is live at a glance, and the accent is
+            // the page's own colour rather than a fourth grey.
+            color: isSelected ? cs.primary : Colors.transparent,
+            borderRadius: BorderRadius.circular(9),
           ),
           child: Column(
             mainAxisAlignment: MainAxisAlignment.center,
             children: [
-              Icon(icon, color: fg, size: 20),
+              Icon(
+                icon,
+                color: isSelected ? cs.onPrimary : cs.onSurfaceVariant,
+                size: 19,
+              ),
               const SizedBox(height: 2),
               Text(
                 _modeLabel(context, mode),
                 style: TextStyle(
-                  color: fg,
+                  color: isSelected ? cs.onPrimary : cs.onSurfaceVariant,
                   fontSize: 13,
-                  fontWeight: FontWeight.w500,
+                  fontWeight: isSelected ? FontWeight.w600 : FontWeight.w500,
                 ),
               ),
             ],
           ),
         ),
+      ),
+    );
+  }
+
+  /// The grid-size caption with its value split out, so the caption stays muted
+  /// and the number carries the weight.
+  ///
+  /// [AppLocalizations.appearanceGridSize] renders as one string ("Grid size:
+  /// 100%"). Splitting the value back out of it keeps the two tones without
+  /// adding a key -- and so a string in every locale -- just for the caption.
+  Widget _gridSizeLabel(BuildContext context, ColorScheme cs) {
+    final value = '${_gridSize.round()}%';
+    final label = AppLocalizations.of(context).appearanceGridSize(
+      _gridSize.round(),
+    );
+    final caption = TextStyle(
+      color: cs.onSurfaceVariant,
+      fontSize: 13,
+      fontWeight: FontWeight.w500,
+    );
+    final at = label.indexOf(value);
+    if (at < 0) return Text(label, style: caption);
+
+    return Text.rich(
+      TextSpan(
+        children: [
+          TextSpan(text: label.substring(0, at), style: caption),
+          TextSpan(
+            text: value,
+            style: caption.copyWith(
+              color: cs.onSurface,
+              fontWeight: FontWeight.w600,
+            ),
+          ),
+          TextSpan(text: label.substring(at + value.length), style: caption),
+        ],
       ),
     );
   }

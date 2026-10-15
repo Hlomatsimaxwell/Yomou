@@ -5,9 +5,10 @@ import 'package:yomou/core/widgets/reader_side_panel.dart';
 import 'package:yomou/l10n/generated/app_localizations.dart';
 
 /// The panel is a presentation wrapper, so these tests check placement and the
-/// header affordances rather than any reader logic: on a wide window the panel
-/// is anchored to the right with a titled header and a close button, and on a
-/// narrow window the same content comes up as a bottom sheet with neither.
+/// header affordances rather than any reader logic: on a wide window the content
+/// is a full-height drawer anchored to the right edge with a titled header and a
+/// close button, and on a narrow window the same content comes up as a bottom
+/// sheet with neither.
 void main() {
   Widget host() {
     return MaterialApp(
@@ -67,12 +68,20 @@ void main() {
     // It is a side panel, not a bottom sheet: no BottomSheet in the tree.
     expect(find.byType(BottomSheet), findsNothing);
 
-    // The panel hugs its content instead of filling the window. A short body
-    // used to stretch the panel to the full height, leaving a column of empty
-    // surface under whatever was actually in it.
+    // The drawer fills the window's height instead of hugging its content. A
+    // short body used to leave the surface floating in the vertical middle, with
+    // empty space above and below it -- a window over the page rather than an
+    // edge the page slides away from.
+    final surface = tester.getRect(
+      find.byWidgetPredicate((w) => w is Material && w.elevation == 16),
+    );
+    expect(surface.top, 0);
+    expect(surface.bottom, 800);
+    // A third of the window, within the panel's width bounds.
+    expect(surface.width, 400);
+    // The header is at the top of the drawer, above the body it labels.
     final header = tester.getRect(find.text('Chapters'));
-    expect(header.top, greaterThan(100));
-    // The header is at the top of the panel, above the body it labels.
+    expect(header.top, lessThan(24));
     expect(header.top, lessThan(rect.top));
 
     // Closing via the header button dismisses the panel.
