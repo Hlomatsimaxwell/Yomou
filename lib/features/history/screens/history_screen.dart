@@ -61,10 +61,11 @@ class ProgressBadge extends ConsumerWidget {
 
   const ProgressBadge({super.key, required this.progress});
 
-  /// Kotatsu draws this at 32dp; our tiles are built around 28dp, so the stroke
-  /// and the glyph scale down with the disc to hold the same visual weight.
-  static const double _size = 28;
-  static const double _strokeWidth = 4.5;
+  /// Kotatsu's own numbers: `card_indicator_size` is the 32dp disc, and the
+  /// Expressive ring style paints a 5dp stroke. The disc, arc and track are its
+  /// colours too (`secondaryContainer`, the accent, `outlineVariant`).
+  static const double _size = 32;
+  static const double _strokeWidth = 5;
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
@@ -1938,10 +1939,11 @@ class _GridHistoryCardState extends State<GridHistoryCard> {
                   mangaId: widget.item['mangaId'] as String,
                   alignment: Alignment.topLeft,
                 ),
-                // Reading-progress bubble, pinned to the top-right corner.
+                // Reading-progress bubble, pinned to the top-right corner at
+                // Kotatsu's own offset (`card_indicator_offset`, 8dp).
                 Positioned(
-                  top: 6,
-                  right: 6,
+                  top: 8,
+                  right: 8,
                   child: ProgressBadge(progress: progress),
                 ),
                 // New-chapter count and download flag, bottom-left. Down here

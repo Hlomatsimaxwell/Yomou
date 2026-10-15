@@ -9,7 +9,6 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:remixicon/remixicon.dart';
 import 'package:shared_preferences/shared_preferences.dart';
-import 'package:sqflite_common_ffi/sqflite_ffi.dart';
 import 'package:yomou/core/cache/app_cache.dart';
 import 'package:yomou/core/database/database_helper.dart';
 import 'package:yomou/features/history/screens/history_screen.dart';
@@ -17,6 +16,8 @@ import 'package:yomou/features/settings/providers/appearance_provider.dart';
 import 'package:yomou/l10n/generated/app_localizations.dart';
 
 import 'test_fonts.dart';
+
+import 'isolated_database.dart';
 
 /// Two behaviours on the History screen, each of which has regressed once.
 ///
@@ -33,8 +34,7 @@ import 'test_fonts.dart';
 /// the pill stays outlined while unselected, like every other chip in the app.
 void main() {
   TestWidgetsFlutterBinding.ensureInitialized();
-  sqfliteFfiInit();
-  databaseFactory = databaseFactoryFfi;
+  useIsolatedTestDatabase();
 
   // A source pill draws the source's real favicon, which goes through
   // flutter_cache_manager, which asks path_provider where to put its files.
@@ -107,7 +107,7 @@ void main() {
       await tester.pump();
 
       // One device pixel per logical pixel, so a pixel coordinate is the
-      // logical coordinate and the 28px ring is 28px of buffer.
+      // logical coordinate and the 32px ring is 32px of buffer.
       final boundary = tester.renderObject<RenderRepaintBoundary>(
         find.byKey(boundaryKey),
       );
@@ -130,7 +130,7 @@ void main() {
 
       // Which of the ring's three colours a pixel is nearest to. Classifying
       // rather than matching exactly leaves room for the 8-bit round trip and
-      // for the anti-aliasing on the edges of a 4.5px stroke.
+      // for the anti-aliasing on the edges of a 5px stroke.
       String roleOf(Color pixel) {
         final candidates = {
           'disc': scheme.secondaryContainer,
@@ -152,15 +152,15 @@ void main() {
         return best;
       }
 
-      // The geometry of a 28px ring with a 4.5px stroke: the centre line of the
-      // stroke is 11.75px from the middle. At 40% the arc runs from twelve
+      // The geometry of Kotatsu's 32px ring with its 5px stroke: the centre line
+      // of the stroke is 13.5px from the middle. At 40% the arc runs from twelve
       // o'clock round to roughly 4:48, and the track takes over from about 5:16
       // the rest of the way round.
-      expect(roleOf(pixelAt(14, 2)), 'arc'); // twelve o'clock
-      expect(roleOf(pixelAt(22, 6)), 'arc'); // half past one
-      expect(roleOf(pixelAt(14, 26)), 'track'); // six o'clock
-      expect(roleOf(pixelAt(2, 14)), 'track'); // nine o'clock
-      expect(roleOf(pixelAt(14, 22)), 'disc'); // inside the ring
+      expect(roleOf(pixelAt(16, 2)), 'arc'); // twelve o'clock
+      expect(roleOf(pixelAt(25, 6)), 'arc'); // half past one
+      expect(roleOf(pixelAt(16, 29)), 'track'); // six o'clock
+      expect(roleOf(pixelAt(2, 16)), 'track'); // nine o'clock
+      expect(roleOf(pixelAt(16, 24)), 'disc'); // inside the ring
     });
 
     test('the cover card draws no second completed badge of its own', () {

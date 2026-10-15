@@ -3,9 +3,10 @@ import 'dart:typed_data';
 
 import 'package:archive/archive.dart';
 import 'package:flutter_test/flutter_test.dart';
-import 'package:sqflite_common_ffi/sqflite_ffi.dart';
 import 'package:yomou/core/backup/backup_restore.dart';
 import 'package:yomou/core/database/database_helper.dart';
+
+import 'isolated_database.dart';
 
 /// Restoring a Kotatsu `.bk.zip` end to end: detect the zip, parse it through
 /// the Kotatsu codec and apply the result to a real (ffi) database.
@@ -15,8 +16,7 @@ import 'package:yomou/core/database/database_helper.dart';
 /// tables the Library and History tabs read from.
 void main() {
   TestWidgetsFlutterBinding.ensureInitialized();
-  sqfliteFfiInit();
-  databaseFactory = databaseFactoryFfi;
+  useIsolatedTestDatabase();
 
   final testMangaIds = [
     'nano-machine-9a7a1ac5',

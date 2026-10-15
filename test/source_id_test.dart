@@ -6,6 +6,8 @@ import 'package:yomou/core/database/database_helper.dart';
 import 'package:yomou/data/models/manga.dart';
 import 'package:yomou/data/providers/sources_provider.dart';
 
+import 'isolated_database.dart';
+
 /// Eight listing parsers wrote the manga's own slug into `sourceId` instead of
 /// the source's id, because a local `id` holding the slug shadowed the source's
 /// `id` getter. Every title they listed then reported itself as coming from a
@@ -16,8 +18,7 @@ import 'package:yomou/data/providers/sources_provider.dart';
 /// repeat unnoticed.
 void main() {
   TestWidgetsFlutterBinding.ensureInitialized();
-  sqfliteFfiInit();
-  databaseFactory = databaseFactoryFfi;
+  useIsolatedTestDatabase();
 
   Manga manga({required String id, required String sourceId}) =>
       Manga(id: id, title: 't', coverUrl: '', sourceId: sourceId);
