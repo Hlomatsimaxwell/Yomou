@@ -708,53 +708,63 @@ class _HomeScreenState extends ConsumerState<HomeScreen>
             right: kBottomBarSideMargin,
             bottom: kBottomBarBottomMargin,
           ),
-          child: Row(
-            mainAxisSize: MainAxisSize.max,
-            crossAxisAlignment: CrossAxisAlignment.center,
-            children: [
-              Expanded(
-                child: Align(
-                  alignment: showFab
-                      ? Alignment.centerLeft
-                      : Alignment.center,
-                  heightFactor: 1,
+          // The pill and the Continue FAB are a single group and centre
+          // together. Left-aligning the pill whenever a FAB was present pushed
+          // the nav and the button to opposite ends of anything wider than a
+          // phone -- a hand's width of dead space between the two, on exactly
+          // the devices that had room to spare.
+          child: Center(
+            heightFactor: 1,
+            child: Row(
+              mainAxisSize: MainAxisSize.min,
+              crossAxisAlignment: CrossAxisAlignment.center,
+              children: [
+                Flexible(
                   child: ConstrainedBox(
-                    constraints: const BoxConstraints(maxWidth: kFloatingPillMaxWidth),
-                    child: _buildFloatingPill(context, updatesCount, accent, settings, enabledTabs),
+                    constraints: const BoxConstraints(
+                      maxWidth: kFloatingPillMaxWidth,
+                    ),
+                    child: _buildFloatingPill(
+                      context,
+                      updatesCount,
+                      accent,
+                      settings,
+                      enabledTabs,
+                    ),
                   ),
                 ),
-              ),
-              AnimatedSize(
-                duration: const Duration(milliseconds: 220),
-                curve: Curves.easeOutCubic,
-                alignment: Alignment.centerRight,
-                child: AnimatedSwitcher(
-                  duration: const Duration(milliseconds: 200),
-                  switchInCurve: Curves.easeOutCubic,
-                  switchOutCurve: Curves.easeInCubic,
-                  transitionBuilder: (child, animation) => FadeTransition(
-                    opacity: animation,
-                    child: ScaleTransition(scale: animation, child: child),
-                  ),
-                  child: showFab
-                      ? KeyedSubtree(
-                          key: const ValueKey('continue-fab'),
-                          child: Row(
-                            mainAxisSize: MainAxisSize.min,
-                            children: [
-                              const SizedBox(width: 8),
-                              _buildContinueFab(accent),
-                            ],
+                AnimatedSize(
+                  duration: const Duration(milliseconds: 220),
+                  curve: Curves.easeOutCubic,
+                  alignment: Alignment.centerRight,
+                  child: AnimatedSwitcher(
+                    duration: const Duration(milliseconds: 200),
+                    switchInCurve: Curves.easeOutCubic,
+                    switchOutCurve: Curves.easeInCubic,
+                    transitionBuilder: (child, animation) => FadeTransition(
+                      opacity: animation,
+                      child: ScaleTransition(scale: animation, child: child),
+                    ),
+                    child: showFab
+                        ? KeyedSubtree(
+                            key: const ValueKey('continue-fab'),
+                            child: Row(
+                              mainAxisSize: MainAxisSize.min,
+                              children: [
+                                const SizedBox(width: 8),
+                                _buildContinueFab(accent),
+                              ],
+                            ),
+                          )
+                        : const SizedBox(
+                            key: ValueKey('fab-hidden'),
+                            width: 0,
+                            height: kBottomBarHeight,
                           ),
-                        )
-                      : const SizedBox(
-                          key: ValueKey('fab-hidden'),
-                          width: 0,
-                          height: kBottomBarHeight,
-                        ),
+                  ),
                 ),
-              ),
-            ],
+              ],
+            ),
           ),
         ),
       ),
