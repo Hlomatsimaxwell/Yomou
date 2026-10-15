@@ -577,7 +577,6 @@ class _ExploreScreenState extends ConsumerState<ExploreScreen> {
       sliver: SliverLayoutBuilder(
         builder: (context, constraints) {
           final layout = _SourceCardLayout.resolve(
-            context,
             constraints.crossAxisExtent,
           );
           return SliverGrid.builder(
@@ -770,9 +769,13 @@ const double _sourceGridTargetCellWidth = 96;
 ///
 /// Past this the plates are small enough that the logo inside one stops being
 /// identifiable, so a wider window spends the extra width on fewer, larger cells
-/// instead of more of them -- the same reasoning as the manga grid's ceiling,
-/// and the reason this is not a max-extent delegate: that one can only ever add
-/// columns, and has no way to hold the plate at a size that stays legible.
+/// instead of more of them -- and the reason this is not a max-extent delegate:
+/// that one can only ever add columns, and has no way to hold the plate at a
+/// size that stays legible.
+///
+/// The manga grids have no ceiling, because there the reader chooses the cover
+/// size and the count is whatever fits. A source plate is a fixed graphic
+/// nobody can scale, so this wall has to hold one for itself.
 const int _sourceGridMaxColumns = 10;
 
 /// Columns at which the source name drops a size, for the same reason a manga
@@ -794,19 +797,22 @@ class _SourceCardLayout {
   /// cell whose width follows the window is what left a 64px plate adrift in a
   /// 285px cell on a desktop -- four columns per row, four fifths of each one
   /// empty.
-  factory _SourceCardLayout.resolve(BuildContext context, double width) {
-    final columns = mangaGridColumns(
-      context,
-      // The horizontal padding is already off by the time this runs.
-      horizontalPadding: 0,
-      crossSpacing: _sourceGridCrossSpacing,
-      targetCellWidth: _sourceGridTargetCellWidth,
-      // Four at the narrow end, which is what a phone has always shown. The
-      // plate has a floor size, so a fifth column there would only crush it.
-      minColumns: 4,
-      maxColumns: _sourceGridMaxColumns,
-      availableWidth: width,
-    );
+  ///
+  /// Its own arithmetic rather than the manga grids': this cell carries a logo
+  /// and a name rather than a cover, so it has its own target width, its own
+  /// floor and its own ceiling -- and none of them follow the reader's grid-size
+  /// setting, which is about covers and has no say over how big a logo is.
+  factory _SourceCardLayout.resolve(double width) {
+    // The +1 gap for the same reason the manga count has one: only the gaps
+    // *between* columns exist, so without it the last column is counted as
+    // having a gap it does not, and the count comes out one short at some
+    // widths.
+    final fit = ((width + _sourceGridCrossSpacing) /
+            (_sourceGridTargetCellWidth + _sourceGridCrossSpacing))
+        .floor();
+    // Four at the narrow end, which is what a phone has always shown. The
+    // plate has a floor size, so a fifth column there would only crush it.
+    final columns = fit.clamp(4, _sourceGridMaxColumns);
 
     final cellWidth =
         (width - (columns - 1) * _sourceGridCrossSpacing) / columns;

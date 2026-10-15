@@ -3,6 +3,7 @@ import 'dart:math';
 import 'package:yomou/widgets/cached_manga_image.dart';
 import 'package:yomou/widgets/manga_hero.dart';
 import 'package:flutter/material.dart';
+import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:remixicon/remixicon.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import 'package:yomou/core/database/source_cache.dart';
@@ -16,9 +17,10 @@ import 'package:yomou/features/library/widgets/downloaded_badge.dart';
 import 'package:yomou/features/library/widgets/favorite_badge.dart';
 import 'package:yomou/core/widgets/ios/ios_menu.dart';
 import 'package:yomou/core/providers/incognito_provider.dart';
+import 'package:yomou/features/settings/providers/appearance_provider.dart';
 import 'package:yomou/l10n/generated/app_localizations.dart';
 
-class SourceSearchResultsScreen extends StatefulWidget {
+class SourceSearchResultsScreen extends ConsumerStatefulWidget {
   final MangaSource source;
   final String query;
   final String? genre;
@@ -31,11 +33,12 @@ class SourceSearchResultsScreen extends StatefulWidget {
   });
 
   @override
-  State<SourceSearchResultsScreen> createState() =>
+  ConsumerState<SourceSearchResultsScreen> createState() =>
       _SourceSearchResultsScreenState();
 }
 
-class _SourceSearchResultsScreenState extends State<SourceSearchResultsScreen> {
+class _SourceSearchResultsScreenState
+    extends ConsumerState<SourceSearchResultsScreen> {
   static const int _pageSize = 20;
 
   late final MangaSource _source = widget.source;
@@ -599,15 +602,15 @@ class _SourceSearchResultsScreenState extends State<SourceSearchResultsScreen> {
                   ? (dark
                       ? Colors.white
                       : Theme.of(context).colorScheme.primary)
-                  : (dark ? Colors.transparent : const Color(0xFFE2E8F0)),
+                  : Colors.transparent,
               borderRadius: BorderRadius.circular(12),
-              border: dark
-                  ? Border.all(
-                      color: _genrePrefixSelected
-                          ? Colors.white
-                          : Colors.white38,
-                    )
-                  : null,
+              border: Border.all(
+                color: _genrePrefixSelected
+                    ? (dark
+                        ? Colors.white
+                        : Theme.of(context).colorScheme.primary)
+                    : (dark ? Colors.white38 : Colors.black38),
+              ),
             ),
             child: Row(
               mainAxisSize: MainAxisSize.min,
@@ -652,13 +655,15 @@ class _SourceSearchResultsScreenState extends State<SourceSearchResultsScreen> {
                     ? (dark
                         ? Colors.white
                         : Theme.of(context).colorScheme.primary)
-                    : (dark ? Colors.transparent : const Color(0xFFE2E8F0)),
+                    : Colors.transparent,
                 borderRadius: BorderRadius.circular(12),
-                border: dark
-                    ? Border.all(
-                        color: isSelected ? Colors.white : Colors.white38,
-                      )
-                    : null,
+                border: Border.all(
+                  color: isSelected
+                      ? (dark
+                          ? Colors.white
+                          : Theme.of(context).colorScheme.primary)
+                      : (dark ? Colors.white38 : Colors.black38),
+                ),
               ),
               child: Text(
                 genre,
@@ -689,6 +694,12 @@ class _SourceSearchResultsScreenState extends State<SourceSearchResultsScreen> {
 
   Widget _buildResults() {
     final dark = Theme.of(context).brightness == Brightness.dark;
+    // Read once and shared by the count and the cell height: they measure the
+    // same grid, and two separate calls can only ever disagree about it.
+    final columns = mangaGridColumns(
+      context,
+      gridSize: ref.watch(appearanceSettingsProvider).gridSize,
+    );
     if (_isInitialLoading && _mangaList.isEmpty) {
       return Center(
         child: CircularProgressIndicator(
@@ -762,10 +773,10 @@ class _SourceSearchResultsScreenState extends State<SourceSearchResultsScreen> {
             padding: const EdgeInsets.symmetric(horizontal: 16),
             sliver: SliverGrid.builder(
               gridDelegate: SliverGridDelegateWithFixedCrossAxisCount(
-                crossAxisCount: mangaGridColumns(context),
+                crossAxisCount: columns,
                 childAspectRatio: mangaCellAspectRatio(
                   context,
-                  columns: mangaGridColumns(context),
+                  columns: columns,
                 ),
                 crossAxisSpacing: kMangaGridCrossSpacing,
                 mainAxisSpacing: kMangaGridRowSpacing,
@@ -803,7 +814,7 @@ class _SourceSearchResultsScreenState extends State<SourceSearchResultsScreen> {
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
           AspectRatio(
-            aspectRatio: 2 / 3,
+            aspectRatio: kMangaCoverAspectRatio,
             child: Stack(
               fit: StackFit.expand,
               children: [

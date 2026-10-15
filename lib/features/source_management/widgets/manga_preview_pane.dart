@@ -4,6 +4,7 @@ import 'package:remixicon/remixicon.dart';
 import 'package:yomou/core/database/source_cache.dart';
 import 'package:yomou/core/diagnostics/diag_log.dart';
 import 'package:yomou/core/widgets/empty_state.dart';
+import 'package:yomou/core/widgets/manga_grid_metrics.dart';
 import 'package:yomou/data/models/manga.dart';
 import 'package:yomou/data/models/manga_details.dart';
 import 'package:yomou/data/providers/sources_provider.dart';
@@ -261,7 +262,7 @@ class _MangaPreviewPaneState extends ConsumerState<MangaPreviewPane> {
           child: ClipRRect(
             borderRadius: BorderRadius.circular(16),
             child: AspectRatio(
-              aspectRatio: 2 / 3,
+              aspectRatio: kMangaCoverAspectRatio,
               child: CachedMangaImage(
                 imageUrl: coverUrl,
                 fit: BoxFit.cover,
@@ -313,10 +314,11 @@ class _MangaPreviewPaneState extends ConsumerState<MangaPreviewPane> {
                     vertical: 4,
                   ),
                   decoration: BoxDecoration(
-                    color: dark
-                        ? const Color(0xFF2C2C2E)
-                        : const Color(0xFFE8EAF0),
+                    color: Colors.transparent,
                     borderRadius: BorderRadius.circular(8),
+                    border: Border.all(
+                      color: dark ? Colors.white38 : Colors.black38,
+                    ),
                   ),
                   child: Text(
                     tag,

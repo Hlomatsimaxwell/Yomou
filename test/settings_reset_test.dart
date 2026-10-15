@@ -10,7 +10,7 @@ void main() {
   // (search history is data, not a setting).
   Map<String, Object> seed() => {
     'appearance.themeMode': 'dark',
-    'appearance.gridColumns': 3,
+    'appearance.gridSize': 100.0,
     'manga_grid_list_mode': 'List',
     'onboarding.languages': <String>['en'],
     'onboarding.formats': <String>['Manga'],
@@ -37,7 +37,7 @@ void main() {
 
     final keys = await remaining();
     expect(keys, isNot(contains('appearance.themeMode')));
-    expect(keys, isNot(contains('appearance.gridColumns')));
+    expect(keys, isNot(contains('appearance.gridSize')));
     expect(keys, isNot(contains('manga_grid_list_mode')));
     // Untouched groups and protected flags survive.
     expect(keys, contains('rs.mode'));

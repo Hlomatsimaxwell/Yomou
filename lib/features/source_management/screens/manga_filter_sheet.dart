@@ -533,9 +533,6 @@ class _MangaFilterSheetState extends ConsumerState<MangaFilterSheet> {
     );
   }
 
-  Color _unselectedCapsule(bool dark) =>
-      dark ? const Color(0xFF2C2C2E) : const Color(0xFFE8EAF0);
-
   Widget _buildSortPills(bool dark, ColorScheme scheme) {
     return SizedBox(
       height: 34,
@@ -664,8 +661,9 @@ class _MangaFilterSheetState extends ConsumerState<MangaFilterSheet> {
     final onSurface = dark ? Colors.white : const Color(0xFF1C1B1F);
     return Container(
       decoration: BoxDecoration(
-        color: dark ? const Color(0xFF2C2C2E) : const Color(0xFFE8EAF0),
+        color: Colors.transparent,
         borderRadius: BorderRadius.circular(24),
+        border: Border.all(color: dark ? Colors.white38 : Colors.black38),
       ),
       child: Row(
         mainAxisSize: MainAxisSize.min,
@@ -725,10 +723,13 @@ class _MangaFilterSheetState extends ConsumerState<MangaFilterSheet> {
       child: Container(
         padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 7),
         decoration: BoxDecoration(
-          color: selected
-              ? scheme.primary
-              : (dark ? const Color(0xFF2C2C2E) : const Color(0xFFE8EAF0)),
+          color: selected ? scheme.primary : Colors.transparent,
           borderRadius: BorderRadius.circular(24),
+          border: Border.all(
+            color: selected
+                ? scheme.primary
+                : (dark ? Colors.white38 : Colors.black38),
+          ),
         ),
         child: Text(
           label,
@@ -756,10 +757,13 @@ class _MangaFilterSheetState extends ConsumerState<MangaFilterSheet> {
       child: Container(
         padding: const EdgeInsets.symmetric(horizontal: 13, vertical: 7),
         decoration: BoxDecoration(
-          color: selected
-              ? scheme.primary
-              : _unselectedCapsule(dark),
+          color: selected ? scheme.primary : Colors.transparent,
           borderRadius: BorderRadius.circular(24),
+          border: Border.all(
+            color: selected
+                ? scheme.primary
+                : (dark ? Colors.white38 : Colors.black38),
+          ),
         ),
         child: Row(
           mainAxisSize: MainAxisSize.min,

@@ -1040,8 +1040,9 @@ class _SourcePill extends StatelessWidget {
     return Container(
       padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 3),
       decoration: BoxDecoration(
-        color: dark ? Colors.white.withValues(alpha: 0.08) : const Color(0xFFF1F3F4),
+        color: Colors.transparent,
         borderRadius: BorderRadius.circular(10),
+        border: Border.all(color: dark ? Colors.white38 : Colors.black38),
       ),
       child: Row(
         mainAxisSize: MainAxisSize.min,

@@ -247,10 +247,10 @@ class _GlobalSearchScreenState extends ConsumerState<GlobalSearchScreen> {
                     ),
                     decoration: BoxDecoration(
                       borderRadius: BorderRadius.circular(12),
-                      color: dark
-                          ? Colors.transparent
-                          : const Color(0xFFE2E8F0),
-                      border: dark ? Border.all(color: Colors.white38) : null,
+                      color: Colors.transparent,
+                      border: Border.all(
+                        color: dark ? Colors.white38 : Colors.black38,
+                      ),
                     ),
                     child: Text(
                       genre,
@@ -484,6 +484,12 @@ class _GlobalSearchScreenState extends ConsumerState<GlobalSearchScreen> {
   Widget _buildLiveResults(String query) {
     final dark = Theme.of(context).brightness == Brightness.dark;
     final resultsAsync = ref.watch(searchResultsProvider(query));
+    // Read once and shared by the count and the cell height: they measure the
+    // same grid, and two separate calls can only ever disagree about it.
+    final columns = mangaGridColumns(
+      context,
+      gridSize: ref.watch(appearanceSettingsProvider).gridSize,
+    );
 
     return resultsAsync.when(
       data: (results) {
@@ -500,10 +506,10 @@ class _GlobalSearchScreenState extends ConsumerState<GlobalSearchScreen> {
           physics: const NeverScrollableScrollPhysics(),
           padding: const EdgeInsets.symmetric(horizontal: 16),
           gridDelegate: SliverGridDelegateWithFixedCrossAxisCount(
-            crossAxisCount: mangaGridColumns(context),
+            crossAxisCount: columns,
             childAspectRatio: mangaCellAspectRatio(
               context,
-              columns: mangaGridColumns(context),
+              columns: columns,
             ),
             crossAxisSpacing: kMangaGridCrossSpacing,
             mainAxisSpacing: kMangaGridRowSpacing,
@@ -520,7 +526,7 @@ class _GlobalSearchScreenState extends ConsumerState<GlobalSearchScreen> {
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
                   AspectRatio(
-                    aspectRatio: 2 / 3,
+                    aspectRatio: kMangaCoverAspectRatio,
                     child: Stack(
                       fit: StackFit.expand,
                       children: [

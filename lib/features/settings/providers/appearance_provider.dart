@@ -597,6 +597,12 @@ ThemeData _baseTheme(bool dark) {
 }
 
 /// Pure black/white Material 3 scheme for the Monochrome preset.
+///
+/// The tonal roles matter as much as the primaries: `ColorScheme.light` and
+/// `ColorScheme.dark` leave `secondaryContainer`, `onSecondaryContainer` and
+/// `outlineVariant` at the Material baseline - a lavender and two warm greys -
+/// which tinted the selected preset card and the reading-progress ring in a
+/// scheme that is supposed to carry no hue at all.
 ColorScheme monochromeScheme(Brightness brightness) {
   if (brightness == Brightness.dark) {
     return const ColorScheme.dark(
@@ -604,9 +610,12 @@ ColorScheme monochromeScheme(Brightness brightness) {
       onPrimary: Color(0xFF000000),
       primaryContainer: Color(0xFF2A2A2A),
       onPrimaryContainer: Color(0xFFFFFFFF),
+      secondary: Color(0xFFCCCCCC),
+      secondaryContainer: Color(0xFF2A2A2A),
+      onSecondaryContainer: Color(0xFFFFFFFF),
+      outlineVariant: Color(0xFF3F3F3F),
       surface: Color(0xFF000000),
       onSurface: Color(0xFFFFFFFF),
-      secondary: Color(0xFFCCCCCC),
     );
   }
   return const ColorScheme.light(
@@ -614,9 +623,12 @@ ColorScheme monochromeScheme(Brightness brightness) {
     onPrimary: Color(0xFFFFFFFF),
     primaryContainer: Color(0xFFE0E0E0),
     onPrimaryContainer: Color(0xFF000000),
+    secondary: Color(0xFF444444),
+    secondaryContainer: Color(0xFFE0E0E0),
+    onSecondaryContainer: Color(0xFF000000),
+    outlineVariant: Color(0xFFC7C7C7),
     surface: Color(0xFFFFFFFF),
     onSurface: Color(0xFF000000),
-    secondary: Color(0xFF444444),
   );
 }
 

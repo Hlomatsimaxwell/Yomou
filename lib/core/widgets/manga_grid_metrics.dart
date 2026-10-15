@@ -4,104 +4,131 @@ import 'package:flutter/widgets.dart';
 /// (2:3 cover + title). Keeps every grid's row density identical and
 /// computed from the actual viewport so cells never carry dead space.
 const double kMangaGridHorizontalPadding = 16;
-const double kMangaGridCrossSpacing = 10;
-const double kMangaGridRowSpacing = 10;
-const double kMangaCardTitleGap = 4;
 
-/// Cover width a grid cell aims for, which is what decides how many columns
-/// fit. 100 rather than the more usual 120 because that is what the grids
-/// already resolved to on a 360dp phone: 3 columns of ~103dp. Picking 120
-/// would have quietly dropped phones to 2 columns and made every cover
-/// noticeably larger.
-const double kMangaGridTargetCellWidth = 100;
-
-/// Ceiling on derived columns. Past about eight covers across, the covers get
-/// small enough to be unidentifiable and the browsing stops being useful, so a
-/// very wide display spends the extra space on a capped grid plus a side rail
-/// rather than on more columns.
-const int kMangaGridMaxColumns = 8;
-
-/// The range the grid-density sliders move over, in columns.
+/// Gap between covers across a row, and between rows.
 ///
-/// This is a different thing from [kMangaGridMaxColumns] and the two used to be
-/// written as bare numbers in each screen, which is how a ceiling ended up in
-/// three places with only one of them sharing the constant. The slider is what
-/// a user may *choose* for a narrow layout; the ceiling is what a *derived*
-/// count is held to on a wide one. A stored choice above the ceiling is
-/// impossible here because the range tops out below it.
-///
-/// The slider reads right-to-left -- dragging towards "more columns" moves the
-/// thumb left -- so positions are counted back from
-/// [kMangaGridSliderMaxColumns].
-const int kMangaGridSliderMinColumns = 1;
-const int kMangaGridSliderMaxColumns = 6;
+/// Tightened from 10 to 6 against the Kotatsu-style reference the grids are
+/// being matched to: the gutters should recede and let the wall of covers read
+/// as one block, and the width they free is width the covers get, which is what
+/// fits more of them on screen at a given column count. Applies to every cover
+/// grid, so the whole app tightens together rather than one screen drifting.
+const double kMangaGridCrossSpacing = 6;
+const double kMangaGridRowSpacing = 6;
 
-/// The slider position that stands for [columns].
+/// Gap between a cover's bottom edge and its title.
 ///
-/// And [mangaGridColumnsForSliderPosition] for the other direction. Both are
-/// here because a slider is a double while the setting it edits is an int, and
-/// every screen had been doing the same `7 - value` and `max + 1 - value` by
-/// hand -- which is how a range could drift from the constant that describes it.
-double mangaGridSliderPositionForColumns(double columns) =>
-    kMangaGridSliderMaxColumns + 1 - columns;
+/// Two, so the title reads as a caption fused to the artwork rather than a line
+/// floating below it. It is also the vertical half of the same tightening as
+/// [kMangaGridCrossSpacing] above.
+const double kMangaCardTitleGap = 2;
 
-/// Columns a slider position stands for.
+/// Width:height of a manga cover cell.
 ///
-/// The position is counted from the far end, hence the `+ 1 - position`: at
-/// [kMangaGridSliderMaxColumns] on the track this is one column, and at
-/// [kMangaGridSliderMinColumns] it is the maximum.
-int mangaGridColumnsForSliderPosition(double position) =>
-    (kMangaGridSliderMaxColumns + 1 - position).round();
+/// Slightly taller than the traditional 2:3 (0.667) the grids used to hard
+/// code, to match the slimmer covers of the reference. Every cover cell draws
+/// at this ratio and [mangaCellAspectRatio] measures its row against it, so the
+/// two can never disagree and leave dead space under a row.
+const double kMangaCoverAspectRatio = 0.62;
 
-/// How many columns a manga grid should have at the current width.
+/// Cover width a grid aims for at 100% grid size, in logical pixels.
 ///
-/// Derived from the actual viewport rather than picked from breakpoints, so
-/// density changes continuously with screen size instead of jumping at each
-/// one: a 360dp phone gets 3, a 800dp tablet gets 7, and there is no width at
-/// which the layout reflows to a fixed choice.
+/// This is the reference the grids are matched to, and it sizes a *cover*
+/// rather than a column count: 120dp on a phone or a portrait tablet, more on a
+/// landscape one (see [kMangaGridBaseCellWidthLandscape]). The reader scales it
+/// between [kMangaGridSizeMin] and [kMangaGridSizeMax] percent, and the column
+/// count is whatever fits at that size -- so the density control is a size
+/// control, which is what makes "fewer, bigger covers" reachable at all.
+const double kMangaGridBaseCellWidth = 120;
+
+/// Cover width aimed for at 100% on a landscape window at least
+/// [kMangaGridLargeWidth] wide.
+///
+/// The reference raises its base cell on a landscape tablet, and this matches
+/// it, so the same percentage reads as the same size whichever way round the
+/// screen is held: 140dp of cover is 140dp of cover.
+const double kMangaGridBaseCellWidthLandscape = 140;
+
+/// Window width at which a landscape window switches to the larger base cell.
+///
+/// The reference states this as its `w600dp-land` resource qualifier, and this
+/// is that rule: 600dp of width *and* landscape. Orientation is part of it on
+/// purpose -- a phone turned sideways is over 800dp wide, and without it that
+/// phone would lay its covers out at a tablet's size.
+const double kMangaGridLargeWidth = 600;
+
+/// The range the grid-size sliders move over, in percent of the base cell.
+///
+/// One setting for every manga grid, so a reader who wants bigger covers says
+/// so once rather than in four separate sheets. Whole numbers because the sheet
+/// prints the value back ("Grid size: 125%") and a slider resting between two
+/// of those has no way to say where it is.
+const int kMangaGridSizeMin = 50;
+const int kMangaGridSizeMax = 150;
+
+/// Gap between two positions on a grid-size slider.
+const int kMangaGridSizeStep = 5;
+
+/// Positions a grid-size slider divides its track into.
+const int kMangaGridSizeDivisions =
+    (kMangaGridSizeMax - kMangaGridSizeMin) ~/ kMangaGridSizeStep;
+
+/// Grid size a reader who has never moved a slider gets.
+const double kMangaGridSizeDefault = 100;
+
+/// Fewest columns a grid resolves to, whatever the size setting says.
+///
+/// At 150% on a narrow phone the arithmetic bottoms out below two columns, and
+/// one cover per row is a list that has stopped being a grid: the last position
+/// on the slider is "two enormous covers", not one.
+const int kMangaGridMinColumns = 2;
+
+/// Cover width a grid aims for at 100% on this window.
+///
+/// Reads the window rather than the grid's own width, because which base cell
+/// applies is a property of the screen the reader is holding and not of how
+/// much of it this particular grid was given.
+double mangaGridBaseCellWidth(BuildContext context) {
+  final size = MediaQuery.sizeOf(context);
+  final landscape = size.width > size.height;
+  return landscape && size.width >= kMangaGridLargeWidth
+      ? kMangaGridBaseCellWidthLandscape
+      : kMangaGridBaseCellWidth;
+}
+
+/// How many columns a manga grid should have.
+///
+/// Derived from the width the grid got and the reader's [gridSize], rather than
+/// from a stored column count: the setting says how big a cover is and the
+/// count is what fits. That is why a wide window shows *more* covers at the
+/// same setting instead of the same count at a bigger size, and why there is no
+/// ceiling here -- a reader who wants tiny covers on a big screen can have
+/// them, and one who wants huge covers on a small screen can have those. Only
+/// [minColumns] bounds the count, and only so the grid stays a grid.
+///
+/// [availableWidth] is the width the grid was given, which is not the window's
+/// when a nav rail or a side pane shares the row. Defaults to the viewport,
+/// which is right for a grid that has the screen to itself.
 int mangaGridColumns(
   BuildContext context, {
+  required double gridSize,
   double horizontalPadding = kMangaGridHorizontalPadding,
   double crossSpacing = kMangaGridCrossSpacing,
-  double targetCellWidth = kMangaGridTargetCellWidth,
-  int minColumns = 2,
-  int maxColumns = kMangaGridMaxColumns,
+  int minColumns = kMangaGridMinColumns,
   double? availableWidth,
 }) {
-  // Defaults to the viewport, which is right for a grid that has the screen to
-  // itself. A grid sharing the row with a side pane must pass the width it
-  // actually got, or it derives columns for space it does not have and paints
-  // cells narrower than the target.
   final base = availableWidth ?? MediaQuery.sizeOf(context).width;
   final available = base - horizontalPadding * 2;
+  final cell = mangaGridBaseCellWidth(context) * gridSize / 100;
   // The spacing is added to the available width because only the gaps between
   // columns exist -- without the +1 term the last column is counted as having
   // a gap it does not, and the count comes out one short at some widths.
-  final fit =
-      ((available + crossSpacing) / (targetCellWidth + crossSpacing)).floor();
-  return fit.clamp(minColumns, maxColumns);
-}
-
-/// Columns for a grid whose density the reader chose themselves.
-///
-/// The choice is honoured exactly, on a wide window as on a phone. It used to
-/// become a floor past the wide-layout threshold instead: a tablet derived its
-/// own count from the width and took whichever was larger, which meant the
-/// slider could make covers smaller but never bigger -- and "bigger" is half of
-/// what a density control is for. A reader who wants four enormous covers on a
-/// twelve-inch display asked for four enormous covers.
-///
-/// Pass null for [userColumns] to get the derived count instead, which is what
-/// a grid does when the reader has never expressed a preference.
-int mangaGridColumnsFor(
-  BuildContext context, {
-  required int? userColumns,
-  double? availableWidth,
-}) {
-  if (userColumns == null) {
-    return mangaGridColumns(context, availableWidth: availableWidth);
-  }
-  return userColumns;
+  //
+  // Rounded rather than floored, so the count is the one nearest the size the
+  // reader asked for. Flooring always spends the leftover width on covers
+  // bigger than the setting says, and at 150% on a phone that is the difference
+  // between the two covers it promised and one enormous one.
+  final fit = ((available + crossSpacing) / (cell + crossSpacing)).round();
+  return fit < minColumns ? minColumns : fit;
 }
 
 /// Columns at which a card's title drops to the smaller size.
@@ -135,7 +162,8 @@ double mangaCardTitleFontSize(int columns) =>
 const double kMangaCardTitleSlack = 2.0;
 
 /// Cell aspect ratio that makes a card sit flush with its content:
-/// a 2:3 cover, [titleGap] px gap, a [titleLines]-line title at
+/// a [kMangaCoverAspectRatio] cover, [titleGap] px gap, a [titleLines]-line
+/// title at
 /// [titleFontSize] with [titleLineHeight] line height, and
 /// [kMangaCardTitleSlack] spare so the title is not flush against the edge.
 ///
@@ -165,7 +193,7 @@ double mangaCellAspectRatio(
   final gridWidth = base - horizontalPadding * 2;
   final cellWidth = (gridWidth - (columns - 1) * crossSpacing) / columns;
   final contentHeight =
-      cellWidth * 3 / 2 +
+      cellWidth / kMangaCoverAspectRatio +
       titleGap +
       titleLines * titleFontSize * titleLineHeight +
       titleSlack;

@@ -3,6 +3,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:remixicon/remixicon.dart';
 
 import 'package:yomou/core/widgets/ios/ios_press.dart';
+import 'package:yomou/core/widgets/manga_grid_metrics.dart';
 import 'package:yomou/data/models/manga_source.dart';
 import 'package:yomou/data/providers/sources_provider.dart';
 import 'package:yomou/l10n/generated/app_localizations.dart';
@@ -283,7 +284,7 @@ class _CoversFromSourcesScreenState
                       color: dark ? Colors.white24 : Colors.black26,
                     )
             : AspectRatio(
-                aspectRatio: 2 / 3,
+                aspectRatio: kMangaCoverAspectRatio,
                 child: ClipRRect(
                   borderRadius: BorderRadius.circular(18),
                   child: CachedMangaImage(

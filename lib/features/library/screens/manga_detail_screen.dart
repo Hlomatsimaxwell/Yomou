@@ -3636,8 +3636,10 @@ class _MangaDetailScreenState extends ConsumerState<MangaDetailScreen> {
               padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 8),
               decoration: BoxDecoration(
                 borderRadius: BorderRadius.circular(12),
-                color: dark ? Colors.transparent : const Color(0xFFE2E8F0),
-                border: dark ? Border.all(color: Colors.white30) : null,
+                color: Colors.transparent,
+                border: Border.all(
+                  color: dark ? Colors.white30 : Colors.black38,
+                ),
               ),
               child: Text(
                 tag,

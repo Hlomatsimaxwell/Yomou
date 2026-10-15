@@ -1,5 +1,8 @@
+import 'dart:math' as math;
+
 import 'package:yomou/widgets/cached_manga_image.dart';
 import 'package:yomou/widgets/manga_hero.dart';
+import 'package:yomou/widgets/source_icon.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:shared_preferences/shared_preferences.dart';
@@ -20,66 +23,177 @@ import 'package:yomou/core/widgets/ios/ios_sheet.dart';
 import 'package:yomou/core/widgets/ios/ios_toast.dart';
 import 'package:yomou/core/widgets/manga_grid_metrics.dart';
 import 'package:yomou/core/widgets/responsive.dart' show usesWideLayout;
-import 'package:yomou/features/settings/providers/grid_density_provider.dart';
 import 'package:yomou/core/providers/incognito_provider.dart';
 import 'package:yomou/features/history/providers/history_provider.dart';
 import 'package:yomou/features/history/screens/reading_statistics_screen.dart';
 import 'package:yomou/features/library/providers/downloads_provider.dart';
 import 'package:yomou/features/library/providers/favorites_provider.dart';
 import 'package:yomou/features/settings/providers/appearance_provider.dart';
+import 'package:yomou/data/models/manga_source.dart';
 import 'package:yomou/data/providers/sources_provider.dart';
 import 'package:yomou/l10n/generated/app_localizations.dart';
 import 'package:yomou/core/widgets/search_bar.dart';
 
+/// Reading-progress ring, pinned to the top-right of a cover.
+///
+/// Painted in Kotatsu's Material 3 Expressive style (`ProgressDrawable
+/// .Expressive`): a filled tonal disc, the read portion as an arc in the accent
+/// colour from twelve o'clock, and - the part a stock [CircularProgressIndicator]
+/// cannot do - the remainder drawn as a real track, offset from the arc by a gap
+/// at each end. The gap is dropped at the extremes, where there is either no
+/// indicator or no track for it to be separated from.
+///
+/// The gap is Kotatsu's 14 degrees at this size as well. Their drawable, and
+/// this one, round the arc ends, and a round cap reaches further round a small
+/// circle than a wide one - at 28px it swallows most of the 14 degrees, so the
+/// ring reads as one continuous stroke with a soft joint rather than as two
+/// clearly separated pieces. That is the reference, so it is the behaviour here.
+///
+/// The ring doubles as the "completed" mark: once the last chapter has been
+/// read the percentage is replaced by a check *inside the same ring*, which is
+/// what Kotatsu's `ReadingProgressDrawable` does - it draws `ic_check` in place
+/// of the label when `ReadingProgress.isCompleted(percent)`. The two signals
+/// are deliberately mutually exclusive; a "100%" bubble and a separate check
+/// badge say the same thing twice, in two different corners.
 class ProgressBadge extends ConsumerWidget {
   final int progress;
 
   const ProgressBadge({super.key, required this.progress});
+
+  /// Kotatsu draws this at 32dp; our tiles are built around 28dp, so the stroke
+  /// and the glyph scale down with the disc to hold the same visual weight.
+  static const double _size = 28;
+  static const double _strokeWidth = 4.5;
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
     if (!ref.watch(appearanceSettingsProvider).showReadingProgress) {
       return const SizedBox.shrink();
     }
-    final double value = (progress / 100).clamp(0.0, 1.0);
+    final scheme = Theme.of(context).colorScheme;
+    final value = (progress / 100).clamp(0.0, 1.0);
+    final completed = progress >= 100;
 
     return SizedBox(
-      width: 28,
-      height: 28,
-      child: Stack(
-        alignment: Alignment.center,
-        children: [
-          Container(
-            width: 28,
-            height: 28,
-            decoration: const BoxDecoration(
-              color: Colors.white,
-              shape: BoxShape.circle,
+      width: _size,
+      height: _size,
+      child: DecoratedBox(
+        decoration: BoxDecoration(
+          color: scheme.secondaryContainer,
+          shape: BoxShape.circle,
+        ),
+        child: Stack(
+          alignment: Alignment.center,
+          children: [
+            Positioned.fill(
+              child: CustomPaint(
+                painter: _ExpressiveRingPainter(
+                  value: value,
+                  arcColor: ref.watch(accentProvider),
+                  trackColor: scheme.outlineVariant,
+                  strokeWidth: _strokeWidth,
+                ),
+              ),
             ),
-          ),
-          SizedBox(
-            width: 26,
-            height: 26,
-            child: CircularProgressIndicator(
-              value: value,
-              strokeWidth: 2.5,
-              backgroundColor: Colors.transparent,
-              valueColor:
-                  AlwaysStoppedAnimation<Color>(ref.watch(accentProvider)),
-            ),
-          ),
-          Text(
-            '$progress%',
-            style: const TextStyle(
-              color: Colors.black,
-              fontSize: 8.5,
-              fontWeight: FontWeight.bold,
-            ),
-          ),
-        ],
+            if (completed)
+              Icon(
+                RemixIcons.check_line,
+                color: scheme.onSecondaryContainer,
+                // Kotatsu scales the check to 0.6 of the ring's bounds.
+                size: _size * 0.6,
+              )
+            else
+              Text(
+                '$progress%',
+                style: TextStyle(
+                  color: scheme.onSecondaryContainer,
+                  fontSize: 9,
+                  fontWeight: FontWeight.bold,
+                ),
+              ),
+          ],
+        ),
       ),
     );
   }
+}
+
+/// Paints the Expressive progress ring under [ProgressBadge]'s label.
+///
+/// Two arcs rather than a [CircularProgressIndicator]: the widget's
+/// `backgroundColor` is a full 360 degree ring with no separation, which is
+/// exactly what the Expressive track is not.
+class _ExpressiveRingPainter extends CustomPainter {
+  const _ExpressiveRingPainter({
+    required this.value,
+    required this.arcColor,
+    required this.trackColor,
+    required this.strokeWidth,
+  });
+
+  final double value;
+  final Color arcColor;
+  final Color trackColor;
+  final double strokeWidth;
+
+  /// Separation between the active indicator and the track, per M3 Expressive.
+  static const double _gapDegrees = 14;
+
+  /// Twelve o'clock, which is where both arcs are measured from.
+  static const double _startDegrees = -90;
+
+  @override
+  void paint(Canvas canvas, Size size) {
+    final center = size.center(Offset.zero);
+    // Half the stroke sits outside this radius, so the ring lands flush with
+    // the disc instead of overhanging it.
+    final bounds = Rect.fromCircle(
+      center: center,
+      radius: size.shortestSide / 2 - strokeWidth / 2,
+    );
+    final paint = Paint()
+      ..style = PaintingStyle.stroke
+      ..strokeWidth = strokeWidth
+      ..strokeCap = StrokeCap.round
+      ..isAntiAlias = true;
+
+    final sweep = 360 * value;
+    final gap = (sweep > 0 && sweep < 360) ? _gapDegrees : 0.0;
+
+    // The track is drawn first and the indicator over it, so a full ring reads
+    // as solid progress rather than progress with a seam in it.
+    final trackSweep = 360 - sweep - gap * 2;
+    if (trackSweep > 0) {
+      paint.color = trackColor;
+      canvas.drawArc(
+        bounds,
+        _radians(_startDegrees + sweep + gap),
+        _radians(trackSweep),
+        false,
+        paint,
+      );
+    }
+
+    if (sweep > 0) {
+      paint.color = arcColor;
+      canvas.drawArc(
+        bounds,
+        _radians(_startDegrees),
+        _radians(sweep),
+        false,
+        paint,
+      );
+    }
+  }
+
+  static double _radians(double degrees) => degrees * math.pi / 180;
+
+  @override
+  bool shouldRepaint(_ExpressiveRingPainter oldDelegate) =>
+      oldDelegate.value != value ||
+      oldDelegate.arcColor != arcColor ||
+      oldDelegate.trackColor != trackColor ||
+      oldDelegate.strokeWidth != strokeWidth;
 }
 
 class HistoryScreen extends ConsumerStatefulWidget {
@@ -91,19 +205,25 @@ class HistoryScreen extends ConsumerStatefulWidget {
 
 class _HistoryScreenState extends ConsumerState<HistoryScreen> {
   int _selectedFilter = -1;
+
+  /// The source a pinned-source chip has narrowed the list to, as a source id,
+  /// or null when no source chip is active. Kept separate from
+  /// [_selectedFilter] so a source and a filter combine instead of replacing
+  /// one another: "on device, from this source" is a question worth asking.
+  String? _selectedSourceId;
+
   final TextEditingController _searchController = TextEditingController();
   String _searchQuery = '';
 
   String _listMode = 'Grid';
 
-  /// The reader's density choice, from the one preference all four manga grids
-  /// share. Null means auto: derive the count from the width.
+  /// The reader's grid size, from the one preference every manga grid shares.
   ///
   /// Kept as a field rather than read from the provider everywhere because the
   /// grid resolves its columns inside a [SliverLayoutBuilder], which runs
   /// during layout rather than during build -- watching a provider there is not
   /// allowed. It is synced from the provider at the top of [build].
-  int? _gridSize;
+  double _gridSize = kMangaGridSizeDefault;
 
   String _sortingOrder = 'Last read';
   bool _isGrouped = true;
@@ -547,103 +667,50 @@ class _HistoryScreenState extends ConsumerState<HistoryScreen> {
                     ),
                   ),
                   const SizedBox(height: 24),
-                  Row(
-                    mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                    children: [
-                      Text(
-                        AppLocalizations.of(context).historyGridSize,
-                        style: TextStyle(
-                          color: dark
-                        ? Colors.white70
-                        : const Color(0xFF49454F),
-                          fontSize: 14,
-                          fontWeight: FontWeight.w500,
-                        ),
-                      ),
-                      Text(
-                        AppLocalizations.of(
-                          context,
-                        ).historyGridSizeColumns(_resolvedColumns(context)),
-                        style: TextStyle(
-                          color: dark ? Colors.white54 : Colors.black54,
-                          fontSize: 12,
-                        ),
-                      ),
-                    ],
+                  Text(
+                    AppLocalizations.of(context).appearanceGridSize(
+                      _gridSize.round(),
+                    ),
+                    style: TextStyle(
+                      color: dark
+                    ? Colors.white70
+                    : const Color(0xFF49454F),
+                      fontSize: 14,
+                      fontWeight: FontWeight.w500,
+                    ),
                   ),
                   const SizedBox(height: 8),
-                  SliderTheme(
-                    data: SliderTheme.of(context).copyWith(
-                      trackHeight: 6,
-                      activeTrackColor: dark
-                    ? Colors.white
-                    : Theme.of(context).colorScheme.primary,
-                      inactiveTrackColor: dark
-                    ? Colors.white12
-                    : Colors.black12,
-                      thumbColor: dark
-                    ? Colors.white
-                    : Theme.of(context).colorScheme.primary,
-                      thumbShape: const RoundSliderThumbShape(
-                        enabledThumbRadius: 10,
-                        elevation: 4,
-                      ),
-                      overlayColor: (dark ? Colors.white : Colors.black)
-                    .withValues(alpha: 0.12),
-                      overlayShape: const RoundSliderOverlayShape(
-                        overlayRadius: 20,
-                      ),
-                      tickMarkShape: const RoundSliderTickMarkShape(
-                        tickMarkRadius: 2,
-                      ),
-                      activeTickMarkColor: Colors.transparent,
-                      inactiveTickMarkColor: dark
-                    ? Colors.white30
-                    : Colors.black26,
-                    ),
-                    child: Slider(
-                      // Reversed so that dragging right means "more columns",
-                      // which is what the track reads as going.
-                      //
-                      // Always live. It used to be disabled on a wide window,
-                      // where the count was derived from the width and the
-                      // stored number was only ever a floor -- a control that
-                      // could be dragged without changing a single pixel. The
-                      // density is now the reader's everywhere, so moving it
-                      // does change the grid on a tablet too.
-                      value: mangaGridSliderPositionForColumns(
-                        // The label can read higher than the track goes: on a
-                        // wide window with no stored choice the width resolves
-                        // eight columns and the slider's range stops at six.
-                        // Show the count, but park the thumb on the end.
-                        (_gridSize ?? _resolvedColumns(context))
-                            .clamp(
-                              kMangaGridSliderMinColumns,
-                              kMangaGridSliderMaxColumns,
-                            )
-                            .toDouble(),
-                      ),
-                      min: kMangaGridSliderMinColumns.toDouble(),
-                      max: kMangaGridSliderMaxColumns.toDouble(),
-                      divisions:
-                          kMangaGridSliderMaxColumns -
-                          kMangaGridSliderMinColumns,
-                      onChanged: (value) {
-                        final actualColumns =
-                            mangaGridColumnsForSliderPosition(value);
-
-                        setSheetState(() {
-                          _gridSize = actualColumns;
-                        });
-                        setState(() {});
-                        // One preference for every manga grid, so this choice
-                        // follows the reader to explore, search and the
-                        // source browser as well.
-                        ref
-                            .read(gridDensityProvider.notifier)
-                            .setColumns(actualColumns);
-                      },
-                    ),
+                  Slider(
+                    // Left to right is small to large, which is what a size
+                    // control reads as: dragging right grows every cover and
+                    // the grid drops a column to make room. The old slider
+                    // pointed the same way -- it counted columns backwards from
+                    // the far end, so a higher thumb meant fewer, larger covers
+                    // either way. The unit is new, not the direction.
+                    //
+                    // Always live. It used to be disabled on a wide window,
+                    // where the count was derived from the width and the stored
+                    // number was only ever a floor -- a control that could be
+                    // dragged without changing a single pixel. The size is now
+                    // the reader's everywhere, so moving it does change the
+                    // grid on a tablet too.
+                    value: _gridSize,
+                    min: kMangaGridSizeMin.toDouble(),
+                    max: kMangaGridSizeMax.toDouble(),
+                    divisions: kMangaGridSizeDivisions,
+                    label: '${_gridSize.round()}%',
+                    onChanged: (value) {
+                      setSheetState(() {
+                        _gridSize = value;
+                      });
+                      setState(() {});
+                      // One preference for every manga grid, so this choice
+                      // follows the reader to explore, search and the
+                      // source browser as well.
+                      ref
+                          .read(appearanceSettingsProvider.notifier)
+                          .setGridSize(value);
+                    },
                   ),
                   const SizedBox(height: 20),
                   Text(
@@ -769,23 +836,19 @@ class _HistoryScreenState extends ConsumerState<HistoryScreen> {
     );
   }
 
-  /// Columns the history grid actually renders.
-  ///
-  /// Read from here rather than from [_gridSize] wherever the number is shown
-  /// or measured: on a wide layout the two differ, because the derived count
-  /// can sit above every position on the slider.
+  /// Columns the history grid actually renders at [_gridSize].
   ///
   /// No clamp of its own. It used to end in `.clamp(2, 7)`, which was this
   /// screen quietly holding every other grid to a ceiling one lower than the one
   /// they all share -- so on a wide window History showed seven columns while
   /// Favourites and a source catalogue showed eight, and the cells did not match
-  /// between tabs of the same library. [mangaGridColumnsFor] already holds the
-  /// derived count to [kMangaGridMaxColumns], and the stored value cannot exceed
-  /// [kMangaGridSliderMaxColumns], so there is nothing left to bound here.
+  /// between tabs of the same library. [mangaGridColumns] holds the count to
+  /// [kMangaGridMinColumns] and to nothing else, so there is no second opinion
+  /// left to add here.
   int _resolvedColumns(BuildContext context, [double? availableWidth]) =>
-      mangaGridColumnsFor(
+      mangaGridColumns(
         context,
-        userColumns: _gridSize,
+        gridSize: _gridSize,
         availableWidth: availableWidth,
       );
 
@@ -1007,7 +1070,17 @@ class _HistoryScreenState extends ConsumerState<HistoryScreen> {
   Widget build(BuildContext context) {
     final appearance = ref.watch(appearanceSettingsProvider);
     final showIncognito = ref.watch(incognitoProvider);
-    _gridSize = ref.watch(gridDensityProvider);
+    _gridSize = appearance.gridSize;
+
+    // A pinned source can be unpinned in Manage sources while its pill is the
+    // active filter, which would leave the list filtered by a pill that is no
+    // longer on screen. Clearing the field here rather than in a listener is
+    // safe because the filter is evaluated just below, so the frame that
+    // notices the unpin is the frame that stops filtering by it.
+    if (_selectedSourceId != null &&
+        !_pinnedSources.any((source) => source.id == _selectedSourceId)) {
+      _selectedSourceId = null;
+    }
 
     final filteredList = _historyItems.where(_matchesHistoryFilter).toList();
 
@@ -1201,6 +1274,9 @@ class _HistoryScreenState extends ConsumerState<HistoryScreen> {
         !item['title'].toString().toLowerCase().contains(
           _searchQuery.toLowerCase(),
         )) {
+      return false;
+    }
+    if (_selectedSourceId != null && item['sourceId'] != _selectedSourceId) {
       return false;
     }
     if (_selectedFilter == 0) return item['hasDownloadedChapters'] == true;
@@ -1461,6 +1537,77 @@ class _HistoryScreenState extends ConsumerState<HistoryScreen> {
     bumpHistoryRevision(ref);
   }
 
+  /// The reader's pinned sources, resolved through the registry.
+  ///
+  /// Rows the registry cannot resolve are dropped rather than shown:
+  /// [getSourceByName] answers a name it does not know with MangaDex, so a
+  /// mis-registered row would wear one source's name while filtering by another
+  /// source's history.
+  List<MangaSource> get _pinnedSources {
+    final pinned = <MangaSource>[];
+    for (final row in ref.watch(sourcesProvider)) {
+      if (row['isPinned'] != true) continue;
+      final name = row['name'] as String? ?? '';
+      if (name.isEmpty) continue;
+      final source = getSourceByName(name);
+      if (source.name != name) continue;
+      pinned.add(source);
+    }
+    return pinned;
+  }
+
+  /// One pill in the History filter row.
+  ///
+  /// Shared by the filter macros and the pinned sources so the two groups
+  /// cannot drift apart. Outlined while unselected, filled once selected, and
+  /// the border takes the fill's own colour when selected so that toggling a
+  /// pill never changes its size.
+  Widget _filterChip({
+    required bool isSelected,
+    required String label,
+    required VoidCallback onTap,
+    IconData? icon,
+    Widget? leading,
+  }) {
+    final dark = Theme.of(context).brightness == Brightness.dark;
+    final fill = dark ? Colors.white : Theme.of(context).colorScheme.primary;
+    final fg = isSelected
+        ? (dark ? Colors.black : Colors.white)
+        : (dark ? Colors.white : const Color(0xFF334155));
+
+    return GestureDetector(
+      onTap: onTap,
+      child: Container(
+        margin: const EdgeInsets.only(right: 6),
+        padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
+        decoration: BoxDecoration(
+          color: isSelected ? fill : Colors.transparent,
+          borderRadius: BorderRadius.circular(10),
+          border: Border.all(
+            color: isSelected
+                ? fill
+                : (dark ? Colors.white38 : Colors.black38),
+          ),
+        ),
+        child: Row(
+          children: [
+            if (icon != null) Icon(icon, size: 14, color: fg),
+            ?leading,
+            const SizedBox(width: 4),
+            Text(
+              label,
+              style: TextStyle(
+                color: fg,
+                fontSize: 12,
+                fontWeight: FontWeight.w500,
+              ),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+
   Widget _buildFilterChips() {
     final filters = [
       {'icon': RemixIcons.sd_card_line, 'labelKey': 'onDevice'},
@@ -1475,59 +1622,41 @@ class _HistoryScreenState extends ConsumerState<HistoryScreen> {
       l.historyCompleted,
     ];
 
-    final dark = Theme.of(context).brightness == Brightness.dark;
-    final primary = Theme.of(context).colorScheme.primary;
-
     return SingleChildScrollView(
       scrollDirection: Axis.horizontal,
       padding: const EdgeInsets.symmetric(horizontal: 16),
       child: Row(
-        children: List.generate(filters.length, (index) {
-          final filter = filters[index];
-          final isSelected = _selectedFilter == index;
-
-          final Color bg = dark
-              ? (isSelected ? Colors.white : Colors.transparent)
-              : (isSelected ? primary : const Color(0xFFE2E8F0));
-          final Color fg = dark
-              ? (isSelected ? Colors.black : Colors.white)
-              : (isSelected ? Colors.white : const Color(0xFF334155));
-
-          return GestureDetector(
-            onTap: () {
-              setState(() {
-                _selectedFilter = isSelected ? -1 : index;
-              });
-            },
-            child: Container(
-              margin: const EdgeInsets.only(right: 8),
-              padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 8),
-              decoration: BoxDecoration(
-                color: bg,
-                borderRadius: BorderRadius.circular(12),
-                border: dark
-                    ? Border.all(
-                        color: isSelected ? Colors.white : Colors.white38,
-                      )
-                    : null,
-              ),
-              child: Row(
-                children: [
-                  Icon(filter['icon'] as IconData, size: 16, color: fg),
-                  const SizedBox(width: 6),
-                  Text(
-                    labels[index],
-                    style: TextStyle(
-                      color: fg,
-                      fontSize: 13,
-                      fontWeight: FontWeight.w500,
-                    ),
-                  ),
-                ],
-              ),
+        children: [
+          for (var index = 0; index < filters.length; index++)
+            _filterChip(
+              isSelected: _selectedFilter == index,
+              icon: filters[index]['icon'] as IconData,
+              label: labels[index],
+              onTap: () => setState(() {
+                _selectedFilter = _selectedFilter == index ? -1 : index;
+              }),
             ),
-          );
-        }),
+          // Pinned sources, as branded pills: the source's own icon and then its
+          // name, which is the shape Kotatsu gives a source quick-filter chip.
+          // Only pinned sources are offered - pinning is the deliberate "I read
+          // this one" gesture, and listing every source here would just be a
+          // second catalogue.
+          for (final source in _pinnedSources)
+            _filterChip(
+              isSelected: _selectedSourceId == source.id,
+              leading: SourceIcon(
+                name: source.name,
+                iconUrl: source.iconUrl,
+                size: 14,
+              ),
+              label: source.name,
+              onTap: () => setState(() {
+                _selectedSourceId = _selectedSourceId == source.id
+                    ? null
+                    : source.id;
+              }),
+            ),
+        ],
       ),
     );
   }
@@ -1727,7 +1856,7 @@ class _GridHistoryCardState extends State<GridHistoryCard> {
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
           AspectRatio(
-            aspectRatio: 2 / 3,
+            aspectRatio: kMangaCoverAspectRatio,
             child: Stack(
               children: [
                 MangaCoverHero(
@@ -1801,79 +1930,95 @@ class _GridHistoryCardState extends State<GridHistoryCard> {
                       ),
                     ),
                   ),
+                // Favourite heart, pinned to the top-left corner.
+                if (isFavorited)
+                  Positioned(
+                    top: 6,
+                    left: 6,
+                    child: Consumer(
+                      builder: (context, ref, _) {
+                        if (!ref
+                            .watch(appearanceSettingsProvider)
+                            .showListBadges) {
+                          return const SizedBox.shrink();
+                        }
+                        return Container(
+                          padding: const EdgeInsets.all(5),
+                          decoration: const BoxDecoration(
+                            color: Colors.redAccent,
+                            shape: BoxShape.circle,
+                          ),
+                          child: const Icon(
+                            RemixIcons.heart_3_fill,
+                            color: Colors.white,
+                            size: 14,
+                          ),
+                        );
+                      },
+                    ),
+                  ),
+                // Reading-progress bubble, pinned to the top-right corner.
                 Positioned(
                   top: 6,
-                  left: 6,
                   right: 6,
-                  child: Row(
-                    mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
-                      Expanded(
-                        child: Consumer(
-                          builder: (context, ref, _) {
-                            if (!ref
-                                .watch(appearanceSettingsProvider)
-                                .showListBadges) {
-                              return const SizedBox.shrink();
-                            }
-                            return Wrap(
-                          spacing: 4,
-                          runSpacing: 4,
-                          crossAxisAlignment: WrapCrossAlignment.center,
-                          children: [
-                            if (newChapters > 0)
-                              Container(
-                                padding: const EdgeInsets.symmetric(
-                                  horizontal: 6,
-                                  vertical: 4,
-                                ),
-                                decoration: BoxDecoration(
-                                  color: Theme.of(context).colorScheme.primary,
-                                  shape: BoxShape.circle,
-                                ),
-                                child: Text(
-                                  '$newChapters',
-                                  style: const TextStyle(
-                                    color: Colors.white,
-                                    fontSize: 10,
-                                    fontWeight: FontWeight.bold,
-                                  ),
-                                ),
+                  child: ProgressBadge(progress: progress),
+                ),
+                // New-chapter count and download flag, bottom-left. Down here
+                // rather than sharing the heart's corner so each corner holds
+                // exactly one kind of signal.
+                Positioned(
+                  bottom: 6,
+                  left: 6,
+                  child: Consumer(
+                    builder: (context, ref, _) {
+                      if (!ref
+                          .watch(appearanceSettingsProvider)
+                          .showListBadges) {
+                        return const SizedBox.shrink();
+                      }
+                      if (newChapters <= 0 && !hasDownloadedChapters) {
+                        return const SizedBox.shrink();
+                      }
+                      return Row(
+                        mainAxisSize: MainAxisSize.min,
+                        children: [
+                          if (newChapters > 0)
+                            Container(
+                              padding: const EdgeInsets.symmetric(
+                                horizontal: 6,
+                                vertical: 4,
                               ),
-                            if (hasDownloadedChapters)
-                              Container(
-                                padding: const EdgeInsets.all(5),
-                                decoration: const BoxDecoration(
-                                  color: Colors.black54,
-                                  shape: BoxShape.circle,
-                                ),
-                                child: const Icon(
-                                  RemixIcons.sd_card_line,
+                              decoration: BoxDecoration(
+                                color: Theme.of(context).colorScheme.primary,
+                                shape: BoxShape.circle,
+                              ),
+                              child: Text(
+                                '$newChapters',
+                                style: const TextStyle(
                                   color: Colors.white,
-                                  size: 14,
+                                  fontSize: 10,
+                                  fontWeight: FontWeight.bold,
                                 ),
                               ),
-                            if (isFavorited)
-                              Container(
-                                padding: const EdgeInsets.all(5),
-                                decoration: const BoxDecoration(
-                                  color: Colors.redAccent,
-                                  shape: BoxShape.circle,
-                                ),
-                                child: const Icon(
-                                  RemixIcons.heart_3_fill,
-                                  color: Colors.white,
-                                  size: 14,
-                                ),
+                            ),
+                          if (newChapters > 0 && hasDownloadedChapters)
+                            const SizedBox(width: 4),
+                          if (hasDownloadedChapters)
+                            Container(
+                              padding: const EdgeInsets.all(5),
+                              decoration: const BoxDecoration(
+                                color: Colors.black54,
+                                shape: BoxShape.circle,
                               ),
-                          ],
-                          );
-                        },
-                      ),
-                    ),
-                    ProgressBadge(progress: progress),
-                    ],
+                              child: const Icon(
+                                RemixIcons.sd_card_line,
+                                color: Colors.white,
+                                size: 14,
+                              ),
+                            ),
+                        ],
+                      );
+                    },
                   ),
                 ),
               ],

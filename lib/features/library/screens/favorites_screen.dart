@@ -15,7 +15,7 @@ import 'package:yomou/core/widgets/ios/ios_sheet.dart';
 import 'package:yomou/core/widgets/tab_header.dart';
 import 'package:yomou/core/widgets/responsive.dart' show usesWideLayout;
 import 'package:yomou/core/widgets/manga_grid_metrics.dart';
-import 'package:yomou/features/settings/providers/grid_density_provider.dart';
+import 'package:yomou/features/settings/providers/appearance_provider.dart';
 import 'package:yomou/l10n/generated/app_localizations.dart';
 import 'package:yomou/core/widgets/search_bar.dart';
 
@@ -30,13 +30,13 @@ class _FavoritesScreenState extends ConsumerState<FavoritesScreen> {
   final TextEditingController _searchController = TextEditingController();
   String _searchQuery = '';
 
-  /// The density the reader chose, from the one preference all manga grids
-  /// share. Null means auto: derive the count from the width.
+  /// The cover size the reader chose, as a percentage of a normal cell, from
+  /// the one preference every manga grid shares. 100 is the design size.
   ///
   /// Synced from the provider at the top of [build] rather than watched in
   /// place, because the grid resolves its columns inside a layout builder that
   /// runs after build.
-  int? _gridSize;
+  double _gridSize = kMangaGridSizeDefault;
 
   @override
   void dispose() {
@@ -46,7 +46,7 @@ class _FavoritesScreenState extends ConsumerState<FavoritesScreen> {
 
   @override
   Widget build(BuildContext context) {
-    _gridSize = ref.watch(gridDensityProvider);
+    _gridSize = ref.watch(appearanceSettingsProvider).gridSize;
     final favoritesAsync = ref.watch(favoritesProvider);
 
     return Scaffold(
@@ -172,93 +172,45 @@ class _FavoritesScreenState extends ConsumerState<FavoritesScreen> {
                 mainAxisSize: MainAxisSize.min,
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
-                  Row(
-                    mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                    children: [
-                      Text(
-                        AppLocalizations.of(context).favoritesGridSize,
-                        style: TextStyle(
-                          color: dark
-                              ? Colors.white70
-                              : const Color(0xFF49454F),
-                          fontSize: 14,
-                          fontWeight: FontWeight.w500,
-                        ),
-                      ),
-                      Text(
-                        AppLocalizations.of(
-                          context,
-                        ).favoritesGridSizeColumns(_resolvedColumns(context)),
-                        style: TextStyle(
-                          color: dark ? Colors.white54 : Colors.black54,
-                          fontSize: 12,
-                        ),
-                      ),
-                    ],
+                  Text(
+                    AppLocalizations.of(
+                      context,
+                    ).appearanceGridSize(_gridSize.round()),
+                    style: TextStyle(
+                      color: dark ? Colors.white70 : const Color(0xFF49454F),
+                      fontSize: 14,
+                      fontWeight: FontWeight.w500,
+                    ),
                   ),
                   const SizedBox(height: 8),
-                  SliderTheme(
-                    data: SliderTheme.of(context).copyWith(
-                      trackHeight: 6,
-                      activeTrackColor: dark
-                          ? Colors.white
-                          : Theme.of(context).colorScheme.primary,
-                      inactiveTrackColor: dark
-                          ? Colors.white12
-                          : Colors.black12,
-                      thumbColor: dark
-                          ? Colors.white
-                          : Theme.of(context).colorScheme.primary,
-                      thumbShape: const RoundSliderThumbShape(
-                        enabledThumbRadius: 10,
-                        elevation: 4,
-                      ),
-                      overlayColor: (dark ? Colors.white : Colors.black)
-                          .withValues(alpha: 0.12),
-                      overlayShape: const RoundSliderOverlayShape(
-                        overlayRadius: 20,
-                      ),
-                      tickMarkShape: const RoundSliderTickMarkShape(
-                        tickMarkRadius: 2,
-                      ),
-                      activeTickMarkColor: Colors.transparent,
-                      inactiveTickMarkColor: dark
-                          ? Colors.white30
-                          : Colors.black26,
-                    ),
-                    child: Slider(
-                      // Always live. It used to be disabled on a wide layout,
-                      // where the width decided the count and this was only a
-                      // floor -- dragging it moved a stored number and not a
-                      // single pixel. The density is the reader's everywhere
-                      // now, so a tablet changes with it too.
-                      value: mangaGridSliderPositionForColumns(
-                        (_gridSize ?? _resolvedColumns(context))
-                            .clamp(
-                              kMangaGridSliderMinColumns,
-                              kMangaGridSliderMaxColumns,
-                            )
-                            .toDouble(),
-                      ),
-                      min: kMangaGridSliderMinColumns.toDouble(),
-                      max: kMangaGridSliderMaxColumns.toDouble(),
-                      divisions:
-                          kMangaGridSliderMaxColumns -
-                          kMangaGridSliderMinColumns,
-                      onChanged: (value) {
-                        final actualColumns =
-                            mangaGridColumnsForSliderPosition(value);
-                        setSheetState(() {
-                          _gridSize = actualColumns;
-                        });
-                        setState(() {});
-                        // One density for every manga grid, so this choice
-                        // follows the reader to the other tabs as well.
-                        ref
-                            .read(gridDensityProvider.notifier)
-                            .setColumns(actualColumns);
-                      },
-                    ),
+                  Slider(
+                    // Left to right is small to large, which is what a size
+                    // control reads as: dragging right grows every cover and
+                    // the grid drops a column to make room. The old slider
+                    // pointed the same way -- it counted columns backwards from
+                    // the far end, so a higher thumb meant fewer, larger covers
+                    // either way. The unit is new, not the direction.
+                    //
+                    // Always live. It used to be disabled on a wide layout,
+                    // where the width decided the count and this was only a
+                    // floor -- dragging it moved a stored number and not a
+                    // single pixel. The size is the reader's everywhere now, so
+                    // a tablet changes with it too.
+                    value: _gridSize,
+                    min: kMangaGridSizeMin.toDouble(),
+                    max: kMangaGridSizeMax.toDouble(),
+                    divisions: kMangaGridSizeDivisions,
+                    onChanged: (value) {
+                      setSheetState(() {
+                        _gridSize = value;
+                      });
+                      setState(() {});
+                      // One size for every manga grid, so this choice follows
+                      // the reader to the other tabs as well.
+                      ref
+                          .read(appearanceSettingsProvider.notifier)
+                          .setGridSize(value);
+                    },
                   ),
                 ],
               ),
@@ -269,17 +221,15 @@ class _FavoritesScreenState extends ConsumerState<FavoritesScreen> {
     );
   }
 
-  /// Columns the favourites grid actually renders.
+  /// Columns the favourites grid actually renders at [_gridSize].
   ///
   /// Read from here rather than from [_gridSize] wherever the number is shown or
-  /// measured: on auto the two differ, because the derived count can sit above
-  /// every position on the slider. Without this the grid asked for
-  /// [mangaGridColumns], which honours no stored choice at all, so the cards were
-  /// a different size here than on the two grids that do keep a setting.
+  /// measured, because the count is derived from the size and the width and is
+  /// not the stored number itself.
   int _resolvedColumns(BuildContext context, [double? availableWidth]) =>
-      mangaGridColumnsFor(
+      mangaGridColumns(
         context,
-        userColumns: _gridSize,
+        gridSize: _gridSize,
         availableWidth: availableWidth,
       );
 
@@ -371,7 +321,7 @@ class _FavoritesScreenState extends ConsumerState<FavoritesScreen> {
         children: [
           // Strict 2:3 Aspect Ratio for Cover Image
           AspectRatio(
-            aspectRatio: 2 / 3,
+            aspectRatio: kMangaCoverAspectRatio,
             child: Stack(
               fit: StackFit.expand,
               children: [
