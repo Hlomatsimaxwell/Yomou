@@ -28,6 +28,7 @@ import 'package:yomou/features/history/providers/history_provider.dart';
 import 'package:yomou/features/history/screens/reading_statistics_screen.dart';
 import 'package:yomou/features/library/providers/downloads_provider.dart';
 import 'package:yomou/features/library/providers/favorites_provider.dart';
+import 'package:yomou/features/library/widgets/favorite_badge.dart';
 import 'package:yomou/features/settings/providers/appearance_provider.dart';
 import 'package:yomou/data/models/manga_source.dart';
 import 'package:yomou/data/providers/sources_provider.dart';
@@ -1844,7 +1845,6 @@ class _GridHistoryCardState extends State<GridHistoryCard> {
     final progress = widget.item['progress'] as int;
     final newChapters = widget.item['newChapters'] as int;
     final hasDownloadedChapters = widget.item['hasDownloadedChapters'] == true;
-    final isFavorited = widget.item['isFavorite'] == true;
     final bool isCompactGrid =
         widget.columns >= kMangaCardCompactColumns;
     final dark = Theme.of(context).brightness == Brightness.dark;
@@ -1930,33 +1930,14 @@ class _GridHistoryCardState extends State<GridHistoryCard> {
                       ),
                     ),
                   ),
-                // Favourite heart, pinned to the top-left corner.
-                if (isFavorited)
-                  Positioned(
-                    top: 6,
-                    left: 6,
-                    child: Consumer(
-                      builder: (context, ref, _) {
-                        if (!ref
-                            .watch(appearanceSettingsProvider)
-                            .showListBadges) {
-                          return const SizedBox.shrink();
-                        }
-                        return Container(
-                          padding: const EdgeInsets.all(5),
-                          decoration: const BoxDecoration(
-                            color: Colors.redAccent,
-                            shape: BoxShape.circle,
-                          ),
-                          child: const Icon(
-                            RemixIcons.heart_3_fill,
-                            color: Colors.white,
-                            size: 14,
-                          ),
-                        );
-                      },
-                    ),
-                  ),
+                // Favourite heart, pinned to the top-left corner and drawn by
+                // the shared badge. The inline copy this replaced read the
+                // history row's own isFavorite flag, so it ignored a title
+                // being unfavourited anywhere else until the list reloaded.
+                FavoriteBadge(
+                  mangaId: widget.item['mangaId'] as String,
+                  alignment: Alignment.topLeft,
+                ),
                 // Reading-progress bubble, pinned to the top-right corner.
                 Positioned(
                   top: 6,

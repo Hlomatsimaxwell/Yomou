@@ -43,4 +43,40 @@ void main() {
     expect(container.read(appearanceSettingsProvider).hapticsEnabled, isFalse);
     expect(prefs.getBool('appearance.hapticsEnabled'), isFalse);
   });
+
+  test('the monochrome preset gives both cover indicators a disc', () {
+    // The reading-progress ring and the favourite heart are drawn on tonal
+    // discs, one in each top corner of a cover. Neither role has a usable
+    // default here: this Flutter's ColorScheme.light answers tertiaryContainer
+    // with whatever `secondary` was handed to it, so the heart's disc came out
+    // #444444 in light mode - a black glyph on a dark grey disc, and nothing
+    // like the #E0E0E0 the ring wears. The roles are spelled out, and this
+    // holds them to it.
+    final light = monochromeScheme(Brightness.light);
+    expect(light.secondaryContainer, const Color(0xFFE0E0E0));
+    expect(light.tertiaryContainer, const Color(0xFFE0E0E0));
+    expect(light.onSecondaryContainer, const Color(0xFF000000));
+    expect(light.onTertiaryContainer, const Color(0xFF000000));
+
+    final dark = monochromeScheme(Brightness.dark);
+    expect(dark.secondaryContainer, const Color(0xFF2A2A2A));
+    expect(dark.tertiaryContainer, const Color(0xFF2A2A2A));
+    expect(dark.onSecondaryContainer, const Color(0xFFFFFFFF));
+    expect(dark.onTertiaryContainer, const Color(0xFFFFFFFF));
+
+    // And no hue in any of them, since the whole point of the preset is that
+    // it has none: a role left to a default shows up as a tinted badge.
+    for (final scheme in [light, dark]) {
+      for (final color in [
+        scheme.secondaryContainer,
+        scheme.onSecondaryContainer,
+        scheme.tertiaryContainer,
+        scheme.onTertiaryContainer,
+        scheme.outlineVariant,
+      ]) {
+        expect(color.r, color.g, reason: '$color carries a hue');
+        expect(color.g, color.b, reason: '$color carries a hue');
+      }
+    }
+  });
 }

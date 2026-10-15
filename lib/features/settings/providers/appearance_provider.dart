@@ -599,10 +599,12 @@ ThemeData _baseTheme(bool dark) {
 /// Pure black/white Material 3 scheme for the Monochrome preset.
 ///
 /// The tonal roles matter as much as the primaries: `ColorScheme.light` and
-/// `ColorScheme.dark` leave `secondaryContainer`, `onSecondaryContainer` and
-/// `outlineVariant` at the Material baseline - a lavender and two warm greys -
-/// which tinted the selected preset card and the reading-progress ring in a
-/// scheme that is supposed to carry no hue at all.
+/// `ColorScheme.dark` answer `secondaryContainer`, `onSecondaryContainer` and
+/// `outlineVariant` with defaults of their own, which tinted the selected
+/// preset card and the reading-progress ring in a scheme that is supposed to
+/// carry no hue at all. `tertiaryContainer` and `onTertiaryContainer` are the
+/// same trap for the favourite heart on the cover's other corner: left to a
+/// default it cannot match the disc the ring wears.
 ColorScheme monochromeScheme(Brightness brightness) {
   if (brightness == Brightness.dark) {
     return const ColorScheme.dark(
@@ -613,6 +615,8 @@ ColorScheme monochromeScheme(Brightness brightness) {
       secondary: Color(0xFFCCCCCC),
       secondaryContainer: Color(0xFF2A2A2A),
       onSecondaryContainer: Color(0xFFFFFFFF),
+      tertiaryContainer: Color(0xFF2A2A2A),
+      onTertiaryContainer: Color(0xFFFFFFFF),
       outlineVariant: Color(0xFF3F3F3F),
       surface: Color(0xFF000000),
       onSurface: Color(0xFFFFFFFF),
@@ -626,6 +630,8 @@ ColorScheme monochromeScheme(Brightness brightness) {
     secondary: Color(0xFF444444),
     secondaryContainer: Color(0xFFE0E0E0),
     onSecondaryContainer: Color(0xFF000000),
+    tertiaryContainer: Color(0xFFE0E0E0),
+    onTertiaryContainer: Color(0xFF000000),
     outlineVariant: Color(0xFFC7C7C7),
     surface: Color(0xFFFFFFFF),
     onSurface: Color(0xFF000000),
