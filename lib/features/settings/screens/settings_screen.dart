@@ -4,6 +4,7 @@ import 'package:package_info_plus/package_info_plus.dart';
 import 'package:remixicon/remixicon.dart';
 import 'package:yomou/core/theme/layout.dart';
 import 'package:yomou/core/changelog/changelog.dart';
+import 'package:yomou/core/notifications/notification_service.dart';
 import 'package:yomou/core/widgets/responsive.dart';
 import 'package:yomou/l10n/generated/app_localizations.dart';
 import 'package:yomou/features/whats_new/whats_new_sheet.dart';
@@ -124,12 +125,16 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
         subtitle: l.settingsDownloadsSubtitle,
         screen: const DownloadsSettingsScreen(),
       ),
-      _Category(
-        icon: RemixIcons.rss_line,
-        title: l.settingsNewChapters,
-        subtitle: l.settingsNewChaptersSubtitle,
-        screen: const NotificationSettingsScreen(),
-      ),
+      // Notifications are a mobile feature (see [NotificationService.supported]):
+      // offering the row on a desktop build would be a switch with nothing
+      // behind it, so it is absent rather than dead.
+      if (NotificationService.supported)
+        _Category(
+          icon: RemixIcons.rss_line,
+          title: l.settingsNewChapters,
+          subtitle: l.settingsNewChaptersSubtitle,
+          screen: const NotificationSettingsScreen(),
+        ),
       // No screen behind it: tapping this has always done nothing. Now that it
       // can be a selection in a pane, a row that silently does nothing is worse
       // than one that says why.

@@ -36,4 +36,34 @@ void main() {
       isNot(NotificationService.importResultNotificationId),
     );
   });
+
+  // The desktop build used to die here: the plugin rejects an initialization
+  // settings object without Linux settings ("Linux settings must be set when
+  // targeting Linux platform"), and the startup update check reached it from a
+  // detached future, so it surfaced as an unhandled error. The host running
+  // these tests is one of those platforms, which is what makes this assertion
+  // meaningful rather than academic.
+  test('every notification entry point is inert off Android and iOS', () async {
+    expect(
+      NotificationService.supported,
+      isFalse,
+      reason: 'the test host is a desktop platform',
+    );
+
+    final service = NotificationService.instance;
+    await service.init();
+    expect(await service.launchPayload(), isNull);
+    await service.showTestNewChapters();
+    await service.showTestSuggested();
+    await service.showBackupProgress(
+      id: NotificationService.importResultNotificationId,
+      title: 'Looking for missing titles',
+      body: '1/4 scanned',
+      current: 1,
+      total: 4,
+    );
+    await service.cancelBackupProgress(
+      id: NotificationService.importResultNotificationId,
+    );
+  });
 }

@@ -62,6 +62,15 @@ class NotificationService {
 
   static final NotificationService instance = NotificationService._();
 
+  /// Whether OS notifications are a feature on this platform.
+  ///
+  /// The alert types here are built on the mobile plugins and nothing schedules
+  /// the periodic checks on desktop, so every entry point below is inert off
+  /// Android/iOS rather than failing there: `initialize` rejects a settings
+  /// object without Linux settings, and a switch that cannot do its job is
+  /// worse than no switch.
+  static bool get supported => Platform.isAndroid || Platform.isIOS;
+
   static const String enabledPrefsKey = 'new_chapter_notifications';
   static const String lastSuggestedSentPrefsKey = 'last_suggested_sent_ms';
   static const String _channelId = 'new_chapters';
@@ -109,6 +118,7 @@ class NotificationService {
     void Function(NotificationResponse response)? onSelect,
   }) async {
     if (onSelect != null) _onSelect = onSelect;
+    if (!supported) return;
     if (_initialized) return;
     _initialized = true;
 
@@ -141,6 +151,7 @@ class NotificationService {
 
   /// Payload of the notification that launched the app, if any.
   Future<String?> launchPayload() async {
+    if (!supported) return null;
     try {
       final details = await _plugin.getNotificationAppLaunchDetails();
       if (details?.didNotificationLaunchApp ?? false) {
@@ -214,6 +225,8 @@ class NotificationService {
     required String latestChapterTitle,
     String? sourceId,
   }) async {
+    if (!supported) return;
+
     final bytes = await _fetchImageBytes(coverUrl);
     final countText = newCount == 1
         ? '1 new chapter'
@@ -298,6 +311,8 @@ class NotificationService {
   /// Dev/demo: fires three per-series notifications plus their OS group
   /// summary so the stacked shade view can be previewed.
   Future<void> showTestNewChapters() async {
+    if (!supported) return;
+
     await init();
     await showNewChapterNotification(
       mangaId: 'preview_one_piece',
@@ -345,6 +360,8 @@ class NotificationService {
   /// - Footer: READ / MORE. Android renders inline text buttons (expanded);
   ///   iOS requires long-press/expansion via the registered category.
   Future<void> showSuggestedManga(SuggestedMangaNotification manga) async {
+    if (!supported) return;
+
     final title = 'Suggestion: ${manga.mangaTitle}';
     final bytes = await _fetchImageBytes(manga.coverUrl);
     final text = manga.metadataLine.isNotEmpty
@@ -416,6 +433,8 @@ class NotificationService {
     required String title,
     required String body,
   }) async {
+    if (!supported) return;
+
     try {
       await init();
       await _plugin.show(
@@ -451,6 +470,8 @@ class NotificationService {
     required int current,
     required int total,
   }) async {
+    if (!supported) return;
+
     try {
       await init();
       final indeterminate = total <= 0 || current < 0;
@@ -485,6 +506,8 @@ class NotificationService {
   /// Removes the ongoing progress notification so nothing lingers when an
   /// import finishes without posting a result (e.g. nothing was importable).
   Future<void> cancelBackupProgress({required int id}) async {
+    if (!supported) return;
+
     try {
       await init();
       await _plugin.cancel(id: id);
@@ -494,6 +517,8 @@ class NotificationService {
   /// Dev/demo: shows a realistic "suggested manga" card with a cover image for
   /// previewing its look and layout.
   Future<void> showTestSuggested() async {
+    if (!supported) return;
+
     await init();
     await showSuggestedManga(
       SuggestedMangaNotification(

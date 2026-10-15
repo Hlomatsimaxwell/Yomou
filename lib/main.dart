@@ -452,6 +452,10 @@ class _HomeScreenState extends ConsumerState<HomeScreen>
   /// switches the setting off rather than leaving it on with notifications
   /// silently blocked, so the switch the reader sees stays honest.
   Future<void> _enableNotificationsOnFirstRun() async {
+    // Nothing to ask for off mobile: there is no notification plugin and no
+    // scheduler behind the check, so the switch is left alone rather than
+    // switched on with nothing behind it.
+    if (!NotificationService.supported) return;
     final service = NotificationService.instance;
     final granted = await service.requestPermission();
     if (!granted) {

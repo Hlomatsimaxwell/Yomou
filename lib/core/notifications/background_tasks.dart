@@ -517,7 +517,9 @@ Future<void> ensureWorkManagerInitialized() async {
 bool _workManagerInitialized = false;
 
 Future<void> registerUpdateCheckTask() async {
-  if (Platform.isIOS) return;
+  // WorkManager is the Android scheduler; on any other platform there is
+  // nothing to register and initializing it throws.
+  if (!Platform.isAndroid) return;
   await ensureWorkManagerInitialized();
   final interval = NotificationSettings.intervalFor(
     await NotificationSettings.frequency(),
