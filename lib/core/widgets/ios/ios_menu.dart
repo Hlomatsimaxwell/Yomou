@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 
 import 'package:remixicon/remixicon.dart';
 import 'package:yomou/core/theme/layout.dart';
+import 'package:yomou/core/widgets/responsive.dart';
 import 'ios_sheet.dart';
 
 /// A single row in an [IosMenu]/[IosMenuButton] panel.
@@ -74,10 +75,28 @@ Future<T?> showIosMenu<T>(
 
 /// Shows an iOS-style menu panel with arbitrary [children] rows (e.g. toggle
 /// rows that stay open). Rows are responsible for closing the sheet themselves.
+///
+/// On a wide window this is the same right-edge panel [showIosSheet] presents
+/// (see [IosSheetStyle.auto]): the menu is an options list like any other, and
+/// opening it as a centred modal beside a right-anchored List options panel made
+/// two widgets out of one job. A phone keeps the bottom sheet below, including
+/// the height cap that keeps a five-row menu inside a landscape viewport.
 Future<T?> showIosMenuPanel<T>(
   BuildContext context, {
   required List<Widget> children,
 }) {
+  if (usesWideLayout(context)) {
+    return showIosSheet<T>(
+      context,
+      builder: (context) => SingleChildScrollView(
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          children: children,
+        ),
+      ),
+    );
+  }
+
   return showModalBottomSheet<T>(
     context: context,
     backgroundColor: Colors.transparent,
