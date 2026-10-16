@@ -4087,7 +4087,6 @@ class _SheetHeaderDelegate extends SliverPersistentHeaderDelegate {
           dark: dark,
           scheme: scheme,
           onTap: () => onTabSelected(0),
-          badge: unreadCount > 0 ? _buildBadge(unreadCount) : null,
         ),
         const SizedBox(width: 2),
         _buildTabIcon(
