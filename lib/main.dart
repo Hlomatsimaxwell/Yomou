@@ -39,7 +39,7 @@ import 'package:yomou/features/whats_new/whats_new_sheet.dart';
 import 'package:yomou/core/changelog/changelog.dart';
 import 'package:package_info_plus/package_info_plus.dart';
 import 'package:yomou/l10n/generated/app_localizations.dart';
-import 'package:remixicon/remixicon.dart';
+import 'package:flutter_material_design_icons/flutter_material_design_icons.dart';
 
 /// Navigator handle used to route notification taps (deep link) after the
 /// widget tree is built.
@@ -1034,20 +1034,22 @@ class _HomeScreenState extends ConsumerState<HomeScreen>
 
   /// Line/fill glyph pair per tab, shared by the bottom bar and the side rail
   /// so the two navigation shapes can never drift into showing different icons
-  /// for the same tab.
+  /// for the same tab. History and Updates repeat one glyph because MDI has no
+  /// filled cut of them, which is what Kotatsu's own history and feed selectors
+  /// do as well.
   (IconData, IconData) _navIcons(int index) => switch (index) {
-        0 => (RemixIcons.history_line, RemixIcons.history_fill),
-        1 => (RemixIcons.heart_3_line, RemixIcons.heart_3_fill),
-        2 => (RemixIcons.lightbulb_line, RemixIcons.lightbulb_fill),
-        3 => (RemixIcons.compass_3_line, RemixIcons.compass_3_fill),
-        _ => (RemixIcons.rss_line, RemixIcons.rss_fill),
+        0 => (MdiIcons.history, MdiIcons.history),
+        1 => (MdiIcons.heartOutline, MdiIcons.heart),
+        2 => (MdiIcons.lightbulbOutline, MdiIcons.lightbulb),
+        3 => (MdiIcons.compassOutline, MdiIcons.compass),
+        _ => (MdiIcons.rss, MdiIcons.rss),
       };
 
-  // Icon + label slot (friend's iOS-style bar, Remix icons). Every tab shows
-  // icon + small label; the active tab swaps to the fill glyph, tints with the
-  // accent and scales up 5%. Each item is Expanded so the 5 tabs share the
-  // available width evenly; the label is wrapped in FittedBox so it scales down
-  // instead of overflowing on narrow screens.
+  // Icon + label slot (friend's iOS-style bar, Material Design Icons). Every
+  // tab shows icon + small label; the active tab swaps to the fill glyph, tints
+  // with the accent and scales up 5%. Each item is Expanded so the 5 tabs share
+  // the available width evenly; the label is wrapped in FittedBox so it scales
+  // down instead of overflowing on narrow screens.
   Widget _buildNavItem(
     int index,
     int updatesCount,
@@ -1198,7 +1200,7 @@ class _HomeScreenState extends ConsumerState<HomeScreen>
                 ),
               )
             : Icon(
-                RemixIcons.book_open_line,
+                MdiIcons.bookOpenVariant,
                 color: accent,
                 size: 30,
               ),
@@ -1246,7 +1248,7 @@ class _HomeScreenState extends ConsumerState<HomeScreen>
                             ),
                           )
                         : Icon(
-                            RemixIcons.book_open_line,
+                            MdiIcons.bookOpenVariant,
                             color: accent,
                             size: 30,
                           ),

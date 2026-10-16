@@ -28,10 +28,12 @@ dependencies:
   flutter_inappwebview: ^6.0.0
   shared_preferences: ^2.2.3
   intl: ^0.20.2
-  remixicon: ^4.9.3
   # Renders the settings row icons ported from Kotatsu-Redo, which ship as
   # their original SVG geometry rather than a font.
   flutter_svg: ^2.0.17
+  # Material Design Icons, the family most of Kotatsu-Redo's own drawables come
+  # from. Declares the MdiIcons constants that replaced the Remix set.
+  flutter_material_design_icons: ^3.1.0+7447
   url_launcher: ^6.3.1
   image_picker: ^1.1.2
   file_picker: ^10.3.0

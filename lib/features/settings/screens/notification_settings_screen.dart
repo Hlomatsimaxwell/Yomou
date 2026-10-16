@@ -4,7 +4,7 @@ import 'dart:io';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
-import 'package:remixicon/remixicon.dart';
+import 'package:flutter_material_design_icons/flutter_material_design_icons.dart';
 import 'package:yomou/core/database/database_helper.dart';
 import 'package:yomou/core/notifications/background_tasks.dart';
 import 'package:yomou/core/notifications/notification_service.dart';
@@ -345,7 +345,7 @@ class _NotificationSettingsScreenState
         SwitchListTile(
           value: _enabled,
           onChanged: _setEnabled,
-          secondary: const Icon(RemixIcons.notification_3_line),
+          secondary: const Icon(MdiIcons.bellOutline),
           title: Text(l.notificationSettingsEnable),
           subtitle: Text(
             _enabled ? l.notificationSettingsOn : l.notificationSettingsOff,
@@ -356,12 +356,12 @@ class _NotificationSettingsScreenState
           SwitchListTile(
             value: _wifiOnly,
             onChanged: _setWifiOnly,
-            secondary: const Icon(RemixIcons.wifi_line),
+            secondary: const Icon(MdiIcons.wifi),
             title: Text(l.notificationWifiOnly),
             subtitle: Text(l.notificationWifiOnlySubtitle),
           ),
           ListTile(
-            leading: const Icon(RemixIcons.time_line),
+            leading: const Icon(MdiIcons.clockOutline),
             title: Text(l.notificationFrequency),
             trailing: _trailingValue(
               _frequencyLabel(l),
@@ -370,7 +370,7 @@ class _NotificationSettingsScreenState
             onTap: _showFrequencySheet,
           ),
           ListTile(
-            leading: const Icon(RemixIcons.bookmark_line),
+            leading: const Icon(MdiIcons.bookmarkOutline),
             title: Text(l.notificationScope),
             subtitle: Text(
               scopeEnabledCount == 0
@@ -378,13 +378,13 @@ class _NotificationSettingsScreenState
                   : l.notificationScopeSubtitle(scopeEnabledCount, 2),
             ),
             trailing: Icon(
-              RemixIcons.arrow_right_s_line,
+              MdiIcons.chevronRight,
               color: cs.onSurfaceVariant,
             ),
             onTap: _showScopeSheet,
           ),
           ListTile(
-            leading: const Icon(RemixIcons.price_tag_3_line),
+            leading: const Icon(MdiIcons.tagOutline),
             title: Text(l.notificationCategories),
             subtitle: Text(
               _categoryCandidates.isEmpty
@@ -397,7 +397,7 @@ class _NotificationSettingsScreenState
                     ),
             ),
             trailing: Icon(
-              RemixIcons.arrow_right_s_line,
+              MdiIcons.chevronRight,
               color: cs.onSurfaceVariant,
             ),
             onTap: _showCategoriesSheet,
@@ -405,12 +405,12 @@ class _NotificationSettingsScreenState
           SwitchListTile(
             value: !_nsfwAllowed,
             onChanged: _setNsfw,
-            secondary: const Icon(RemixIcons.eye_off_line),
+            secondary: const Icon(MdiIcons.eyeOffOutline),
             title: Text(l.notificationNsfw),
             subtitle: Text(l.notificationNsfwSubtitle),
           ),
           ListTile(
-            leading: const Icon(RemixIcons.download_2_line),
+            leading: const Icon(MdiIcons.downloadOutline),
             title: Text(l.notificationDownload),
             trailing: _trailingValue(
               _autoDownloadLabel(l),
@@ -421,19 +421,19 @@ class _NotificationSettingsScreenState
         ],
         M3SectionHeader(title: l.notificationPreviewSection),
         ListTile(
-          leading: const Icon(RemixIcons.book_read_line),
+          leading: const Icon(MdiIcons.bookEducationOutline),
           title: Text(l.notificationPreviewNewChapters),
           trailing: Icon(
-            RemixIcons.arrow_right_s_line,
+            MdiIcons.chevronRight,
             color: cs.onSurfaceVariant,
           ),
           onTap: () => NotificationService.instance.showTestNewChapters(),
         ),
         ListTile(
-          leading: const Icon(RemixIcons.sparkling_2_line),
+          leading: const Icon(MdiIcons.creationOutline),
           title: Text(l.notificationPreviewSuggested),
           trailing: Icon(
-            RemixIcons.arrow_right_s_line,
+            MdiIcons.chevronRight,
             color: cs.onSurfaceVariant,
           ),
           onTap: () => NotificationService.instance.showTestSuggested(),
@@ -446,15 +446,15 @@ class _NotificationSettingsScreenState
                   height: 22,
                   child: CircularProgressIndicator(strokeWidth: 2.5),
                 )
-              : const Icon(RemixIcons.refresh_line),
+              : const Icon(MdiIcons.refresh),
           title: Text(l.notificationCheckNow),
           onTap: _checking ? null : _runManualCheck,
         ),
         ListTile(
-          leading: const Icon(RemixIcons.file_list_3_line),
+          leading: const Icon(MdiIcons.newspaperVariantOutline),
           title: Text(l.notificationLog),
           trailing: Icon(
-            RemixIcons.arrow_right_s_line,
+            MdiIcons.chevronRight,
             color: cs.onSurfaceVariant,
           ),
           onTap: () => Navigator.push(
@@ -464,7 +464,7 @@ class _NotificationSettingsScreenState
         ),
         if (Platform.isAndroid) ...[
           ListTile(
-            leading: const Icon(RemixIcons.battery_2_line),
+            leading: const Icon(MdiIcons.batteryMedium),
             title: Text(l.notificationBattery),
             subtitle: Text(l.notificationBatterySubtitle),
             onTap: _openBatterySettings,
@@ -483,7 +483,7 @@ class _NotificationSettingsScreenState
       children: [
         Text(value, style: TextStyle(color: cs.onSurfaceVariant, fontSize: 14)),
         const SizedBox(width: 4),
-        Icon(RemixIcons.arrow_right_s_line, color: cs.onSurfaceVariant),
+        Icon(MdiIcons.chevronRight, color: cs.onSurfaceVariant),
       ],
     );
   }

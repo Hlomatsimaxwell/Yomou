@@ -1,6 +1,6 @@
 import 'package:flutter/material.dart';
+import 'package:flutter_material_design_icons/flutter_material_design_icons.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
-import 'package:remixicon/remixicon.dart';
 import 'package:yomou/core/security/app_lock.dart';
 import 'package:yomou/core/theme/amoled.dart';
 import 'package:yomou/l10n/generated/app_localizations.dart';
@@ -68,7 +68,7 @@ class _PinEntryViewState extends State<PinEntryView> {
       mainAxisSize: MainAxisSize.min,
       children: [
         const SizedBox(height: 8),
-        Icon(RemixIcons.lock_line, color: cs.primary, size: 36),
+        Icon(MdiIcons.lockOutline, color: cs.primary, size: 36),
         const SizedBox(height: 12),
         Text(
           widget.title,
@@ -175,7 +175,7 @@ class _PinEntryViewState extends State<PinEntryView> {
                       height: 56,
                       child: Center(
                         child: Icon(
-                          RemixIcons.delete_back_2_line,
+                          MdiIcons.backspaceOutline,
                           size: 24,
                         ),
                       ),

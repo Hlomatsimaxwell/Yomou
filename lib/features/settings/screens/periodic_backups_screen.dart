@@ -1,6 +1,6 @@
 import 'package:flutter/material.dart';
+import 'package:flutter_material_design_icons/flutter_material_design_icons.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
-import 'package:remixicon/remixicon.dart';
 import 'package:yomou/core/backup/saf_directory_picker.dart';
 import 'package:yomou/core/utils/relative_time.dart';
 import 'package:yomou/core/widgets/responsive.dart';
@@ -73,7 +73,7 @@ class _PeriodicBackupsScreenState extends ConsumerState<PeriodicBackupsScreen> {
         ),
         const SizedBox(height: 8),
         _BuildRow(
-          icon: RemixIcons.time_line,
+          icon: MdiIcons.clockOutline,
           title: l.backupCreationFrequency,
           subtitle: _frequencyLabel(settings.backupFrequency),
           onTap: () {
@@ -81,7 +81,7 @@ class _PeriodicBackupsScreenState extends ConsumerState<PeriodicBackupsScreen> {
           },
         ),
         _BuildRow(
-          icon: RemixIcons.delete_bin_line,
+          icon: MdiIcons.deleteOutline,
           title: l.deleteOldBackups,
           subtitle:
               'Auto remove backups older than ${settings.maxNumberOfBackups}',
@@ -94,7 +94,7 @@ class _PeriodicBackupsScreenState extends ConsumerState<PeriodicBackupsScreen> {
           ),
         ),
         _BuildRow(
-          icon: RemixIcons.archive_line,
+          icon: MdiIcons.archiveOutline,
           title: l.maxNumberOfBackups,
           subtitle: 'Maximum number of backups to keep',
           trailing: Text(
@@ -126,7 +126,7 @@ class _PeriodicBackupsScreenState extends ConsumerState<PeriodicBackupsScreen> {
           child: Row(
             children: [
               Icon(
-                RemixIcons.information_line,
+                MdiIcons.informationOutline,
                 size: 18,
                 color: Theme.of(context).colorScheme.outline,
               ),

@@ -1,5 +1,5 @@
 import 'package:flutter/material.dart';
-import 'package:remixicon/remixicon.dart';
+import 'package:flutter_material_design_icons/flutter_material_design_icons.dart';
 import 'package:yomou/core/backup/tachiyomi_backup.dart';
 import 'package:yomou/core/widgets/responsive.dart';
 import 'package:yomou/data/providers/sources_provider.dart';
@@ -28,7 +28,7 @@ class ImportResultsScreen extends StatelessWidget {
         const SizedBox(height: 8),
         if (result.mangas.isNotEmpty) ...[
           _SectionHeader(
-            icon: RemixIcons.check_double_line,
+            icon: MdiIcons.checkAll,
             title: l.importResultsImportedSection,
             count: result.mangas.length,
             color: color.primary,
@@ -38,7 +38,7 @@ class ImportResultsScreen extends StatelessWidget {
         ],
         if (result.recoveredMangas.isNotEmpty) ...[
           _SectionHeader(
-            icon: RemixIcons.check_line,
+            icon: MdiIcons.check,
             title: l.importResultsRecoveredSection,
             count: result.recoveredMangas.length,
             color: color.tertiary,
@@ -47,7 +47,7 @@ class ImportResultsScreen extends StatelessWidget {
         ],
         if (result.skippedMangas.isNotEmpty) ...[
           _SectionHeader(
-            icon: RemixIcons.error_warning_line,
+            icon: MdiIcons.alertCircleOutline,
             title: l.importResultsSkippedSection,
             count: result.skippedMangas.length,
             color: color.error,
@@ -94,8 +94,8 @@ class _SummaryHeader extends StatelessWidget {
             ),
             child: Icon(
               allImported
-                  ? RemixIcons.check_double_line
-                  : RemixIcons.information_line,
+                  ? MdiIcons.checkAll
+                  : MdiIcons.informationOutline,
               color: allImported
                   ? color.onPrimaryContainer
                   : color.onErrorContainer,
@@ -184,7 +184,7 @@ class _ImportedTile extends StatelessWidget {
       leading: Padding(
         padding: const EdgeInsets.only(right: 8),
         child: Icon(
-          RemixIcons.check_line,
+          MdiIcons.check,
           size: 22,
           color: color.primary,
         ),
@@ -226,7 +226,7 @@ class _RecoveredTile extends StatelessWidget {
       leading: Padding(
         padding: const EdgeInsets.only(right: 8),
         child: Icon(
-          RemixIcons.find_replace_line,
+          MdiIcons.findReplace,
           size: 22,
           color: color.tertiary,
         ),
@@ -271,7 +271,7 @@ class _SkippedTile extends StatelessWidget {
       leading: Padding(
         padding: const EdgeInsets.only(right: 8),
         child: Icon(
-          RemixIcons.close_circle_line,
+          MdiIcons.closeCircleOutline,
           size: 22,
           color: color.error,
         ),

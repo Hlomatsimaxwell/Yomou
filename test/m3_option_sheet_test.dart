@@ -1,6 +1,6 @@
 import 'package:flutter/material.dart';
+import 'package:flutter_material_design_icons/flutter_material_design_icons.dart';
 import 'package:flutter_test/flutter_test.dart';
-import 'package:remixicon/remixicon.dart';
 
 import 'package:yomou/widgets/m3_components.dart';
 
@@ -66,19 +66,19 @@ void main() {
 
     Finder tickIn(String label) => find.descendant(
           of: find.widgetWithText(ListTile, label),
-          matching: find.byIcon(RemixIcons.check_line),
+          matching: find.byIcon(MdiIcons.check),
         );
 
     expect(tickIn('Right to left'), findsOneWidget);
     expect(tickIn('Standard'), findsNothing);
     expect(tickIn('Webtoon'), findsNothing);
     // Exactly one tick overall, so an option cannot be double-marked.
-    expect(find.byIcon(RemixIcons.check_line), findsOneWidget);
+    expect(find.byIcon(MdiIcons.check), findsOneWidget);
 
     // Not the circled box or the radio the old pickers drew.
-    expect(find.byIcon(RemixIcons.checkbox_circle_fill), findsNothing);
-    expect(find.byIcon(RemixIcons.checkbox_circle_line), findsNothing);
-    expect(find.byIcon(RemixIcons.radio_button_line), findsNothing);
+    expect(find.byIcon(MdiIcons.checkboxBlankCircle), findsNothing);
+    expect(find.byIcon(MdiIcons.checkboxBlankCircleOutline), findsNothing);
+    expect(find.byIcon(MdiIcons.radioboxBlank), findsNothing);
   });
 
   testWidgets('tapping a row returns its value and closes the sheet', (

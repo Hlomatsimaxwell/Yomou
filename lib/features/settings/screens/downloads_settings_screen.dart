@@ -1,6 +1,6 @@
 import 'package:flutter/material.dart';
+import 'package:flutter_material_design_icons/flutter_material_design_icons.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
-import 'package:remixicon/remixicon.dart';
 import 'package:yomou/core/backup/saf_directory_picker.dart';
 import 'package:yomou/core/widgets/responsive.dart';
 import 'package:yomou/features/settings/providers/download_settings_provider.dart';
@@ -26,7 +26,7 @@ class DownloadsSettingsScreen extends ConsumerWidget {
       children: [
         _row(
           context: context,
-          icon: RemixIcons.folder_open_line,
+          icon: MdiIcons.folderOpenOutline,
           title: l.dlsDirsTitle,
           subtitle: Text(l.dlsDirsCount(3 + s.customDirs.length)),
           onTap: () {
@@ -40,21 +40,21 @@ class DownloadsSettingsScreen extends ConsumerWidget {
         ),
         _row(
           context: context,
-          icon: RemixIcons.folder_line,
+          icon: MdiIcons.folderOutline,
           title: l.dlsFolderTitle,
           subtitle: _resolvedPath(s.downloadsFolder, l.dlsNotSet),
           onTap: () => _showFolderPicker(context, l, s, notifier),
         ),
         _row(
           context: context,
-          icon: RemixIcons.file_line,
+          icon: MdiIcons.fileOutline,
           title: l.dlsFormatTitle,
           subtitle: Text(_formatLabel(l, s.preferredFormat)),
           onTap: () => _showFormatPicker(context, l, s, notifier),
         ),
         _row(
           context: context,
-          icon: RemixIcons.signal_wifi_line,
+          icon: MdiIcons.wifiStrength3,
           title: l.dlsNetworkTitle,
           subtitle: Text(_networkLabel(l, s.cellularNetwork)),
           onTap: () => _showNetworkPicker(context, l, s, notifier),
@@ -63,7 +63,7 @@ class DownloadsSettingsScreen extends ConsumerWidget {
         M3SectionHeader(title: l.dlsSectionSaving),
         _row(
           context: context,
-          icon: RemixIcons.save_line,
+          icon: MdiIcons.contentSaveOutline,
           title: l.dlsSaveDirTitle,
           subtitle: _resolvedPath(s.defaultPageSaveDir, l.dlsNotSet),
           onTap: () => _pickPageSaveDir(context, notifier),
@@ -103,7 +103,7 @@ class DownloadsSettingsScreen extends ConsumerWidget {
         child: subtitle,
       ),
       trailing: Icon(
-        RemixIcons.arrow_right_s_line,
+        MdiIcons.chevronRight,
         color: Theme.of(context).colorScheme.outline,
       ),
       onTap: onTap,
@@ -120,7 +120,7 @@ class DownloadsSettingsScreen extends ConsumerWidget {
           Padding(
             padding: const EdgeInsets.only(top: 1),
             child: Icon(
-              RemixIcons.information_line,
+              MdiIcons.informationOutline,
               size: 18,
               color: cs.onSurfaceVariant,
             ),

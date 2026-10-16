@@ -1,5 +1,5 @@
 import 'package:flutter/material.dart';
-import 'package:remixicon/remixicon.dart';
+import 'package:flutter_material_design_icons/flutter_material_design_icons.dart';
 import 'package:yomou/core/gallery/gallery_saver.dart';
 import 'package:yomou/core/image_url.dart';
 import 'package:yomou/core/widgets/ios/ios_toast.dart';
@@ -128,7 +128,7 @@ class _CoverViewerScreenState extends State<_CoverViewerScreen> {
             child: Align(
               alignment: Alignment.topLeft,
               child: IconButton(
-                icon: const Icon(RemixIcons.close_line, color: Colors.white),
+                icon: const Icon(MdiIcons.close, color: Colors.white),
                 tooltip: l.close,
                 onPressed: () => Navigator.of(context).maybePop(),
               ),
@@ -151,7 +151,7 @@ class _CoverViewerScreenState extends State<_CoverViewerScreen> {
                     )
                   : IconButton(
                       icon: const Icon(
-                        RemixIcons.download_2_line,
+                        MdiIcons.downloadOutline,
                         color: Colors.white,
                       ),
                       tooltip: l.coverSaveImage,

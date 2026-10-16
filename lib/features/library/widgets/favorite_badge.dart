@@ -1,6 +1,6 @@
 import 'package:flutter/material.dart';
+import 'package:flutter_material_design_icons/flutter_material_design_icons.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
-import 'package:remixicon/remixicon.dart';
 import '../providers/favorites_provider.dart';
 import 'package:yomou/features/settings/providers/appearance_provider.dart';
 
@@ -58,7 +58,7 @@ class FavoriteBadge extends ConsumerWidget {
         shape: BoxShape.circle,
       ),
       child: Icon(
-        RemixIcons.heart_3_fill,
+        MdiIcons.heart,
         color: scheme.onTertiaryContainer,
         size: iconSize,
       ),

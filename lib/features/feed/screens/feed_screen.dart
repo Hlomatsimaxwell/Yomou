@@ -3,7 +3,7 @@ import 'package:yomou/widgets/cached_manga_image.dart';
 import 'package:yomou/widgets/manga_hero.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
-import 'package:remixicon/remixicon.dart';
+import 'package:flutter_material_design_icons/flutter_material_design_icons.dart';
 import 'package:yomou/features/explore/screens/global_search_screen.dart';
 import 'package:yomou/features/feed/providers/updates_provider.dart';
 import 'package:yomou/core/theme/layout.dart';
@@ -80,7 +80,7 @@ class _FeedScreenState extends ConsumerState<FeedScreen> {
                 data: (updates) {
                   if (updates.isEmpty) {
                     return EmptyState(
-                      icon: RemixIcons.rss_line,
+                      icon: MdiIcons.rss,
                       title: AppLocalizations.of(context).feedNoNewUpdates,
                       subtitle: AppLocalizations.of(context).feedUpdatesHint,
                     );
@@ -134,7 +134,7 @@ class _FeedScreenState extends ConsumerState<FeedScreen> {
       trailing: Padding(
         padding: const EdgeInsets.all(8),
         child: Icon(
-          RemixIcons.more_2_line,
+          MdiIcons.dotsVertical,
           color: dark ? Colors.white70 : Colors.black54,
           size: 22,
         ),
@@ -180,7 +180,7 @@ class _FeedScreenState extends ConsumerState<FeedScreen> {
                   )
                 else
                   Icon(
-                    RemixIcons.refresh_line,
+                    MdiIcons.refresh,
                     color: dark ? Colors.white70 : const Color(0xFF49454F),
                     size: 15,
                   ),
@@ -298,7 +298,7 @@ class _FeedScreenState extends ConsumerState<FeedScreen> {
                           color: amoled(context, 0xFF2C2C2E),
                           alignment: Alignment.center,
                           child: const Icon(
-                            RemixIcons.book_open_line,
+                            MdiIcons.bookOpenVariant,
                             color: Colors.white38,
                           ),
                         ),

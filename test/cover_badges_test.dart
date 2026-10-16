@@ -1,7 +1,7 @@
 import 'package:flutter/material.dart';
+import 'package:flutter_material_design_icons/flutter_material_design_icons.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_test/flutter_test.dart';
-import 'package:remixicon/remixicon.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import 'package:yomou/data/models/manga.dart';
 import 'package:yomou/features/library/providers/downloads_provider.dart';
@@ -94,7 +94,7 @@ void main() {
     final scheme = schemeOf(tester, FavoriteBadge);
     expect(discColor(tester, FavoriteBadge), scheme.tertiaryContainer);
 
-    final glyph = tester.widget<Icon>(find.byIcon(RemixIcons.heart_3_fill));
+    final glyph = tester.widget<Icon>(find.byIcon(MdiIcons.heart));
     expect(glyph.color, scheme.onTertiaryContainer);
     expect(
       glyph.color,
@@ -111,7 +111,7 @@ void main() {
     expect(discColor(tester, DownloadedMangaBadge), scheme.primaryContainer);
     expect(discColor(tester, DownloadedMangaBadge), isNot(Colors.black54));
 
-    final glyph = tester.widget<Icon>(find.byIcon(RemixIcons.sd_card_line));
+    final glyph = tester.widget<Icon>(find.byIcon(MdiIcons.sd));
     expect(glyph.color, scheme.onPrimaryContainer);
     expect(
       discColor(tester, DownloadedMangaBadge),

@@ -1,7 +1,7 @@
 import 'dart:async';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
-import 'package:remixicon/remixicon.dart';
+import 'package:flutter_material_design_icons/flutter_material_design_icons.dart';
 import 'package:yomou/core/database/database_helper.dart';
 import 'package:yomou/core/storage/storage_stats.dart';
 import 'package:yomou/core/theme/amoled.dart';
@@ -271,13 +271,13 @@ class _DownloadsScreenState extends ConsumerState<DownloadsScreen> {
       title: l.downloads,
       children: [
         _SheetRow(
-          icon: RemixIcons.delete_bin_6_line,
+          icon: MdiIcons.deleteOutline,
           label: l.dlgRemoveAll,
           color: cs.error,
           onTap: () => Navigator.pop(context, 'removeAll'),
         ),
         _SheetRow(
-          icon: RemixIcons.settings_3_line,
+          icon: MdiIcons.cogOutline,
           label: l.dlgSettingsItem,
           subtitle: l.dlgSettingsItemSubtitle,
           color: cs.onSurface,
@@ -345,7 +345,7 @@ class _DownloadsScreenState extends ConsumerState<DownloadsScreen> {
               title: l.downloads,
               actions: [
                 IconButton(
-                  icon: const Icon(RemixIcons.more_2_fill),
+                  icon: const Icon(MdiIcons.dotsVertical),
                   tooltip: l.moreOptions,
                   onPressed: _groups.isEmpty && _jobs.isEmpty
                       ? null
@@ -361,7 +361,7 @@ class _DownloadsScreenState extends ConsumerState<DownloadsScreen> {
             )
           : _groups.isEmpty && !_jobs.any((j) => j.status.isOpen)
           ? EmptyState(
-              icon: RemixIcons.download_cloud_line,
+              icon: MdiIcons.cloudDownloadOutline,
               title: l.downloadsEmpty,
               subtitle: l.downloadsEmptySubtitle,
             )
@@ -377,7 +377,7 @@ class _DownloadsScreenState extends ConsumerState<DownloadsScreen> {
       preferredSize: const Size.fromHeight(kToolbarHeight),
       child: AppBar(
         leading: IconButton(
-          icon: const Icon(RemixIcons.close_line),
+          icon: const Icon(MdiIcons.close),
           tooltip: l.cancel,
           onPressed: _exitSelection,
         ),
@@ -389,14 +389,14 @@ class _DownloadsScreenState extends ConsumerState<DownloadsScreen> {
           IconButton(
             icon: Icon(
               allSelected
-                  ? RemixIcons.checkbox_line
-                  : RemixIcons.checkbox_multiple_fill,
+                  ? MdiIcons.checkboxBlankOutline
+                  : MdiIcons.checkboxMultipleBlank,
             ),
             tooltip: allSelected ? l.deselectAll : l.selectAll,
             onPressed: _toggleSelectAll,
           ),
           IconButton(
-            icon: const Icon(RemixIcons.delete_bin_6_line),
+            icon: const Icon(MdiIcons.deleteOutline),
             color: cs.error,
             tooltip: l.remove,
             onPressed: _selected.isEmpty ? null : _confirmRemoveSelected,
@@ -766,7 +766,7 @@ class _DownloadCard extends StatelessWidget {
                     turns: expanded ? 0.5 : 0,
                     duration: const Duration(milliseconds: 180),
                     child: Icon(
-                      RemixIcons.arrow_down_s_line,
+                      MdiIcons.chevronDown,
                       color: cs.onSurfaceVariant,
                       size: 22,
                     ),
@@ -904,13 +904,13 @@ class _ChapterStrip extends StatelessWidget {
               if (selectionMode)
                 Icon(
                   isSelected
-                      ? RemixIcons.checkbox_fill
-                      : RemixIcons.checkbox_blank_line,
+                      ? MdiIcons.checkboxBlank
+                      : MdiIcons.checkboxBlankOutline,
                   color: isSelected ? cs.primary : cs.onSurfaceVariant,
                   size: 19,
                 )
               else if (isRead)
-                Icon(RemixIcons.check_line, color: cs.primary, size: 17),
+                Icon(MdiIcons.check, color: cs.primary, size: 17),
             ],
           ),
         ),
@@ -940,7 +940,7 @@ class _Cover extends StatelessWidget {
           color: isDark ? const Color(0xFF2C2C2E) : Colors.black12,
           alignment: Alignment.center,
           child: Icon(
-            RemixIcons.book_open_line,
+            MdiIcons.bookOpenVariant,
             color: isDark ? Colors.white38 : Colors.black38,
           ),
         ),

@@ -1,5 +1,5 @@
 import 'package:flutter/material.dart';
-import 'package:remixicon/remixicon.dart';
+import 'package:flutter_material_design_icons/flutter_material_design_icons.dart';
 import 'package:yomou/core/theme/amoled.dart';
 import 'package:yomou/core/widgets/responsive.dart';
 import 'package:yomou/l10n/generated/app_localizations.dart';
@@ -295,7 +295,7 @@ class _IosEndSheetHeader extends StatelessWidget {
             ),
           ),
           IconButton(
-            icon: const Icon(RemixIcons.close_line, size: 22),
+            icon: const Icon(MdiIcons.close, size: 22),
             color: scheme.onSurfaceVariant,
             tooltip: AppLocalizations.of(context).close,
             // A sheet the reader cannot dismiss still has to be closable from

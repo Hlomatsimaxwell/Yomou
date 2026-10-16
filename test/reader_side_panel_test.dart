@@ -1,6 +1,6 @@
 import 'package:flutter/material.dart';
+import 'package:flutter_material_design_icons/flutter_material_design_icons.dart';
 import 'package:flutter_test/flutter_test.dart';
-import 'package:remixicon/remixicon.dart';
 import 'package:yomou/core/widgets/reader_side_panel.dart';
 import 'package:yomou/l10n/generated/app_localizations.dart';
 
@@ -58,7 +58,7 @@ void main() {
 
     expect(find.text('panel-body'), findsOneWidget);
     expect(find.text('Chapters'), findsOneWidget);
-    expect(find.byIcon(RemixIcons.close_line), findsOneWidget);
+    expect(find.byIcon(MdiIcons.close), findsOneWidget);
 
     // The body is inside the panel, so on a 1200-wide window it must sit in the
     // right-hand third.
@@ -85,7 +85,7 @@ void main() {
     expect(header.top, lessThan(rect.top));
 
     // Closing via the header button dismisses the panel.
-    await tester.tap(find.byIcon(RemixIcons.close_line));
+    await tester.tap(find.byIcon(MdiIcons.close));
     await tester.pumpAndSettle();
     expect(find.text('panel-body'), findsNothing);
   });
@@ -204,7 +204,7 @@ void main() {
     expect(find.text('panel-body'), findsOneWidget);
     // The sheet shell has no titled header and no explicit close button.
     expect(find.text('Chapters'), findsNothing);
-    expect(find.byIcon(RemixIcons.close_line), findsNothing);
+    expect(find.byIcon(MdiIcons.close), findsNothing);
 
     // It really is the bottom-sheet presentation, not the side panel.
     expect(find.byType(BottomSheet), findsOneWidget);

@@ -1,7 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:image_picker/image_picker.dart';
-import 'package:remixicon/remixicon.dart';
+import 'package:flutter_material_design_icons/flutter_material_design_icons.dart';
 
 import 'package:yomou/core/database/database_helper.dart';
 import 'package:yomou/core/theme/amoled.dart';
@@ -275,7 +275,7 @@ class _EditMangaScreenState extends ConsumerState<EditMangaScreen> {
                   onTap: () => Navigator.maybePop(context),
                   child: Padding(
                     padding: const EdgeInsets.all(8),
-                    child: Icon(RemixIcons.close_line, size: 22, color: fg),
+                    child: Icon(MdiIcons.close, size: 22, color: fg),
                   ),
                 ),
               ),
@@ -338,7 +338,7 @@ class _EditMangaScreenState extends ConsumerState<EditMangaScreen> {
                       crossAxisAlignment: CrossAxisAlignment.start,
                       children: [
                         Icon(
-                          RemixIcons.information_line,
+                          MdiIcons.informationOutline,
                           size: 16,
                           color: muted,
                         ),
@@ -395,7 +395,7 @@ class _EditMangaScreenState extends ConsumerState<EditMangaScreen> {
                 ? Container(
                     color: amoled(context, 0xFF2C2C2E),
                     child: const Icon(
-                      RemixIcons.book_open_line,
+                      MdiIcons.bookOpenVariant,
                       color: Colors.white38,
                       size: 28,
                     ),
@@ -442,21 +442,21 @@ class _EditMangaScreenState extends ConsumerState<EditMangaScreen> {
             children: [
               _buildActionTile(
                 context,
-                icon: RemixIcons.image_add_line,
+                icon: MdiIcons.imagePlusOutline,
                 label: l.editPickFromFiles,
                 onTap: _pickImage,
               ),
               const SizedBox(height: 10),
               _buildActionTile(
                 context,
-                icon: RemixIcons.image_2_line,
+                icon: MdiIcons.imageMultipleOutline,
                 label: l.editCoversFromSources,
                 onTap: _showAltCovers,
               ),
               const SizedBox(height: 10),
               _buildActionTile(
                 context,
-                icon: RemixIcons.arrow_go_back_line,
+                icon: MdiIcons.arrowULeftTop,
                 label: l.editUseDefaultCover,
                 onTap: _useDefaultCover,
               ),
@@ -500,7 +500,7 @@ class _EditMangaScreenState extends ConsumerState<EditMangaScreen> {
               ),
             ),
             Icon(
-              RemixIcons.arrow_right_s_line,
+              MdiIcons.chevronRight,
               color: dark ? Colors.white38 : Colors.black38,
               size: 18,
             ),
@@ -550,7 +550,7 @@ class _EditMangaScreenState extends ConsumerState<EditMangaScreen> {
                     shape: BoxShape.circle,
                   ),
                   child: Icon(
-                    RemixIcons.arrow_go_back_line,
+                    MdiIcons.arrowULeftTop,
                     size: 18,
                     color: scheme.primary,
                   ),

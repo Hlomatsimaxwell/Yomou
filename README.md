@@ -79,7 +79,7 @@ This project ships an **unsigned** build via GitHub Actions (`.github/workflows/
 - `isar` / `isar_flutter_libs` — source & chapter caches
 - `dio` + `html` — source scraping
 - `cached_network_image` — cover caching
-- `remixicon` — icon set
+- `flutter_material_design_icons` — icon set
 - `flutter_inappwebview` — embedded web content where needed
 
 ## Project Structure
@@ -104,7 +104,7 @@ lib/
 
 ## Acknowledgments
 
-- Icons: [Remix Icon](https://remixicon.com/)
+- Icons: [Material Design Icons](https://materialdesignicons.com/) (Pictogrammers), plus glyphs ported from Kotatsu-Redo
 - Design inspiration: [Kotatsu](https://github.com/KotatsuApp/Kotatsu), [Kotatsu-Redo](https://github.com/Kotatsu-Redo/Kotatsu-Redo)
 - iOS sideloading inspiration: [LiveContainer](https://github.com/LiveContainer/LiveContainer), [SideStore](https://github.com/SideStore/SideStore)
 

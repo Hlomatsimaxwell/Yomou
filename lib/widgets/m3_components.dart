@@ -1,5 +1,5 @@
 import 'package:flutter/material.dart';
-import 'package:remixicon/remixicon.dart';
+import 'package:flutter_material_design_icons/flutter_material_design_icons.dart';
 import 'package:yomou/core/widgets/responsive.dart';
 
 /// Material 3 section header (titleSmall-ish / primary, title case).
@@ -143,7 +143,7 @@ Future<T?> showM3OptionSheet<T>(
         ListTile(
           title: Text(label),
           trailing: id == selected
-              ? Icon(RemixIcons.check_line, color: cs.primary)
+              ? Icon(MdiIcons.check, color: cs.primary)
               : null,
           onTap: () => Navigator.pop(context, id),
         ),
@@ -205,7 +205,7 @@ class SettingsAppBar extends StatelessWidget implements PreferredSizeWidget {
       return AppBar(
         automaticallyImplyLeading: false,
         leading: IconButton(
-          icon: const Icon(RemixIcons.arrow_left_line),
+          icon: const Icon(MdiIcons.arrowLeft),
           onPressed: () => Navigator.pop(context),
         ),
         title: Text(title, style: titleStyle),

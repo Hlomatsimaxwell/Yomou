@@ -1,8 +1,8 @@
 import 'dart:async';
 
 import 'package:flutter/material.dart';
+import 'package:flutter_material_design_icons/flutter_material_design_icons.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
-import 'package:remixicon/remixicon.dart';
 import 'package:yomou/core/database/source_cache.dart';
 import 'package:yomou/core/theme/amoled.dart';
 import 'package:yomou/core/theme/layout.dart';
@@ -281,14 +281,14 @@ class _AlternativesScreenState extends ConsumerState<AlternativesScreen> {
           if (!_searchActive)
             IconButton(
               icon: Icon(
-                RemixIcons.search_line,
+                MdiIcons.magnify,
                 color: dark ? Colors.white : _titleLight,
               ),
               onPressed: _activateSearch,
             ),
           IconButton(
             icon: Icon(
-              RemixIcons.filter_3_line,
+              MdiIcons.filterVariant,
               color: dark ? Colors.white : _titleLight,
             ),
             onPressed: () => _showFilterSheet(l),
@@ -354,7 +354,7 @@ class _AlternativesScreenState extends ConsumerState<AlternativesScreen> {
         if (_searchController.text.isNotEmpty)
           IconButton(
             icon: Icon(
-              RemixIcons.close_line,
+              MdiIcons.close,
               size: 20,
               color: dark ? Colors.white70 : _metaLight,
             ),
@@ -395,7 +395,7 @@ class _AlternativesScreenState extends ConsumerState<AlternativesScreen> {
                 mainAxisSize: MainAxisSize.min,
                 children: [
                   Icon(
-                    RemixIcons.search_line,
+                    MdiIcons.magnify,
                     size: 15,
                     color: dark ? Colors.white60 : _metaLight,
                   ),
@@ -466,8 +466,8 @@ class _AlternativesScreenState extends ConsumerState<AlternativesScreen> {
                   children: [
                     Icon(
                       _showOnlyEnabled
-                          ? RemixIcons.checkbox_circle_fill
-                          : RemixIcons.checkbox_circle_line,
+                          ? MdiIcons.checkboxBlankCircle
+                          : MdiIcons.checkboxBlankCircleOutline,
                       size: 15,
                       color: _lavender,
                     ),
@@ -514,7 +514,7 @@ class _AlternativesScreenState extends ConsumerState<AlternativesScreen> {
       return SingleChildScrollView(
         physics: const AlwaysScrollableScrollPhysics(),
         child: EmptyState(
-          icon: RemixIcons.global_off_line,
+          icon: MdiIcons.earthOff,
           title: l.noResultsFound,
           subtitle: l.tryDifferentSearch,
         ),
@@ -632,7 +632,7 @@ class _AlternativesScreenState extends ConsumerState<AlternativesScreen> {
                 color: primary.withValues(alpha: 0.12),
                 shape: BoxShape.circle,
               ),
-              child: Icon(RemixIcons.swap_box_line, color: primary, size: 36),
+              child: Icon(MdiIcons.swapHorizontal, color: primary, size: 36),
             ),
             const SizedBox(height: 16),
             Text(
@@ -775,7 +775,7 @@ class _AlternativesScreenState extends ConsumerState<AlternativesScreen> {
                         if (showSources)
                           IconButton(
                             icon: Icon(
-                              RemixIcons.arrow_left_line,
+                              MdiIcons.arrowLeft,
                               color: textColor,
                             ),
                             onPressed: () => setSheet(() => showSources = false),
@@ -891,7 +891,7 @@ class _AlternativesScreenState extends ConsumerState<AlternativesScreen> {
                             const SizedBox(height: 8),
                             ListTile(
                               leading: Icon(
-                                RemixIcons.stack_line,
+                                MdiIcons.layersOutline,
                                 color: textColor,
                               ),
                               title: Text(
@@ -902,7 +902,7 @@ class _AlternativesScreenState extends ConsumerState<AlternativesScreen> {
                                 ),
                               ),
                               trailing: Icon(
-                                RemixIcons.arrow_right_s_line,
+                                MdiIcons.chevronRight,
                                 color: dark
                                     ? Colors.white60
                                     : const Color(0xFF9E9E9E),
@@ -962,7 +962,7 @@ class _AlternativesScreenState extends ConsumerState<AlternativesScreen> {
     return ListTile(
       dense: true,
       leading: Icon(
-        selected ? RemixIcons.checkbox_circle_fill : RemixIcons.radio_button_line,
+        selected ? MdiIcons.checkboxBlankCircle : MdiIcons.radioboxBlank,
         color: selected ? primary : (dark ? Colors.white38 : const Color(0xFF9E9E9E)),
         size: 20,
       ),
@@ -1085,7 +1085,7 @@ class _AltCoverPlaceholder extends StatelessWidget {
       height: height,
       decoration: const BoxDecoration(color: Color(0xFFE0E0E0)),
       child: const Icon(
-        RemixIcons.book_line,
+        MdiIcons.bookOutline,
         color: Colors.white,
         size: 26,
       ),
@@ -1117,7 +1117,7 @@ class _ReplaceButton extends StatelessWidget {
           child: Row(
             mainAxisSize: MainAxisSize.min,
             children: [
-              Icon(RemixIcons.swap_box_line, size: 14, color: fg),
+              Icon(MdiIcons.swapHorizontal, size: 14, color: fg),
               const SizedBox(width: 5),
               Text(
                 AppLocalizations.of(context).altReplace,

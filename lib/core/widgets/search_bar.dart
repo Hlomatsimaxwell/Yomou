@@ -1,5 +1,5 @@
 import 'package:flutter/material.dart';
-import 'package:remixicon/remixicon.dart';
+import 'package:flutter_material_design_icons/flutter_material_design_icons.dart';
 import 'package:yomou/core/theme/amoled.dart';
 
 /// The single shared search bar look used across the app: a rounded pill with
@@ -90,7 +90,7 @@ class YomouSearchBar extends StatelessWidget {
       children: [
         Padding(
           padding: const EdgeInsets.only(left: 16),
-          child: Icon(RemixIcons.search_line, color: iconColor, size: 22),
+          child: Icon(MdiIcons.magnify, color: iconColor, size: 22),
         ),
         const SizedBox(width: 12),
         Expanded(
@@ -104,7 +104,7 @@ class YomouSearchBar extends StatelessWidget {
         ),
         if (clearVisible)
           IconButton(
-            icon: Icon(RemixIcons.close_line, color: iconColor, size: 20),
+            icon: Icon(MdiIcons.close, color: iconColor, size: 20),
             onPressed: onClear,
           )
         else if (trailing != null)

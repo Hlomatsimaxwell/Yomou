@@ -2,9 +2,9 @@ import 'package:flutter/material.dart';
 
 /// A "hat and glasses" incognito glyph.
 ///
-/// The app's bundled icon sets (Remix Icon, Material) have no incognito mark,
-/// and the nearest -- Remix Icon's `spy` -- reads as a robot. This paints the
-/// classic fedora-and-glasses silhouette instead, at any size and theme colour.
+/// This is the app's own drawing, from before Material Design Icons -- which
+/// carries an `incognito` mark of its own -- was on hand. It paints the classic
+/// fedora-and-glasses silhouette instead, at any size and theme colour.
 class IncognitoIcon extends StatelessWidget {
   const IncognitoIcon({super.key, this.size = 24, this.color});
 

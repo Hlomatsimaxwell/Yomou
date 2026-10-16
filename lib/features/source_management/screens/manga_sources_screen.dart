@@ -1,6 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
-import 'package:remixicon/remixicon.dart';
+import 'package:flutter_material_design_icons/flutter_material_design_icons.dart';
 import 'package:yomou/data/providers/sources_provider.dart';
 import 'package:yomou/data/providers/source_sort.dart';
 import 'package:yomou/features/settings/providers/cache_settings_provider.dart';
@@ -56,7 +56,7 @@ class _ManageSourcesScreenState extends ConsumerState<ManageSourcesScreen> {
         elevation: 0,
         leading: IconButton(
           icon: Icon(
-            RemixIcons.arrow_left_line,
+            MdiIcons.arrowLeft,
             color: dark ? Colors.white : const Color(0xFF1C1B1F),
           ),
           onPressed: () => Navigator.pop(context),
@@ -90,7 +90,7 @@ class _ManageSourcesScreenState extends ConsumerState<ManageSourcesScreen> {
         actions: [
           IconButton(
             icon: Icon(
-              _isSearching ? RemixIcons.close_line : RemixIcons.search_line,
+              _isSearching ? MdiIcons.close : MdiIcons.magnify,
               color: dark ? Colors.white : const Color(0xFF1C1B1F),
             ),
             onPressed: () {
@@ -123,7 +123,7 @@ class _ManageSourcesScreenState extends ConsumerState<ManageSourcesScreen> {
               child: Padding(
                 padding: const EdgeInsets.all(8),
                 child: Icon(
-                  RemixIcons.more_2_line,
+                  MdiIcons.dotsVertical,
                   color: (dark ? Colors.white : const Color(0xFF1C1B1F))
                       .withValues(alpha: 0.8),
                 ),
@@ -211,7 +211,7 @@ class _ManageSourcesScreenState extends ConsumerState<ManageSourcesScreen> {
           children: [
             if (isPinned) ...[
               Icon(
-                RemixIcons.pushpin_2_fill,
+                MdiIcons.pin,
                 color: dark ? Colors.white30 : const Color(0xFFBDBDBD),
                 size: 12,
               ),
@@ -244,31 +244,31 @@ class _ManageSourcesScreenState extends ConsumerState<ManageSourcesScreen> {
             IosMenuItem(
               value: 'top',
               label: AppLocalizations.of(context).toTop,
-              icon: RemixIcons.align_top,
+              icon: MdiIcons.formatVerticalAlignTop,
             ),
             IosMenuItem(
               value: 'pin',
               label: AppLocalizations.of(context).pin,
               icon: isPinned
-                  ? RemixIcons.checkbox_fill
-                  : RemixIcons.checkbox_blank_line,
+                  ? MdiIcons.checkboxBlank
+                  : MdiIcons.checkboxBlankOutline,
             ),
             IosMenuItem(
               value: 'enabled',
               label: isEnabled ? l.disableSource : l.enableSource,
               icon: isEnabled
-                  ? RemixIcons.pause_circle_line
-                  : RemixIcons.play_circle_line,
+                  ? MdiIcons.pauseCircleOutline
+                  : MdiIcons.playCircleOutline,
             ),
             IosMenuItem(
               value: 'shortcut',
               label: AppLocalizations.of(context).createShortcut,
-              icon: RemixIcons.external_link_line,
+              icon: MdiIcons.openInNew,
             ),
             IosMenuItem(
               value: 'settings',
               label: AppLocalizations.of(context).settings,
-              icon: RemixIcons.settings_3_line,
+              icon: MdiIcons.cogOutline,
             ),
           ],
           onSelected: (value) {

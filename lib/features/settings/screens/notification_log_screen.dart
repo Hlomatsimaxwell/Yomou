@@ -1,7 +1,7 @@
 import 'dart:convert';
 
 import 'package:flutter/material.dart';
-import 'package:remixicon/remixicon.dart';
+import 'package:flutter_material_design_icons/flutter_material_design_icons.dart';
 import 'package:yomou/core/database/database_helper.dart';
 import 'package:yomou/l10n/generated/app_localizations.dart';
 import 'package:yomou/widgets/m3_components.dart';
@@ -127,8 +127,8 @@ class _LogTile extends StatelessWidget {
               ),
               child: Icon(
                 type == 'suggestion'
-                    ? RemixIcons.sparkling_2_line
-                    : RemixIcons.file_list_3_line,
+                    ? MdiIcons.creationOutline
+                    : MdiIcons.newspaperVariantOutline,
                 color: cs.onSurfaceVariant,
               ),
             ),

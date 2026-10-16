@@ -3,7 +3,7 @@ import 'package:yomou/widgets/cached_manga_image.dart';
 import 'package:yomou/widgets/manga_hero.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
-import 'package:remixicon/remixicon.dart';
+import 'package:flutter_material_design_icons/flutter_material_design_icons.dart';
 import 'package:yomou/data/models/manga.dart';
 import 'package:yomou/features/library/screens/manga_detail_screen.dart';
 import 'package:yomou/features/library/widgets/downloaded_badge.dart';
@@ -78,21 +78,21 @@ class _RelatedMangaScreenState extends ConsumerState<RelatedMangaScreen> {
                         _buildModeButton(
                           context,
                           label: 'Compact',
-                          icon: RemixIcons.drag_drop_line,
+                          icon: MdiIcons.dragVariant,
                           mode: ListMode.compact,
                           setSheetState: setSheetState,
                         ),
                         _buildModeButton(
                           context,
                           label: 'Details',
-                          icon: RemixIcons.list_unordered,
+                          icon: MdiIcons.formatListBulleted,
                           mode: ListMode.details,
                           setSheetState: setSheetState,
                         ),
                         _buildModeButton(
                           context,
                           label: 'Grid',
-                          icon: RemixIcons.grid_line,
+                          icon: MdiIcons.viewGridOutline,
                           mode: ListMode.grid,
                           setSheetState: setSheetState,
                         ),
@@ -209,7 +209,7 @@ class _RelatedMangaScreenState extends ConsumerState<RelatedMangaScreen> {
         elevation: 0,
         leading: IconButton(
           icon: Icon(
-            RemixIcons.arrow_left_line,
+            MdiIcons.arrowLeft,
             color: dark ? Colors.white : const Color(0xFF1C1B1F),
           ),
           onPressed: () => Navigator.pop(context),
@@ -220,7 +220,7 @@ class _RelatedMangaScreenState extends ConsumerState<RelatedMangaScreen> {
               IosMenuItem(
                 value: 'options',
                 label: 'List options',
-                icon: RemixIcons.equalizer_line,
+                icon: MdiIcons.tune,
               ),
             ],
             onSelected: (value) {
@@ -298,7 +298,7 @@ class _RelatedMangaScreenState extends ConsumerState<RelatedMangaScreen> {
                                           color: amoled(context, 0xFF2C2C2E),
                                           alignment: Alignment.center,
                                           child: const Icon(
-                                            RemixIcons.book_open_line,
+                                            MdiIcons.bookOpenVariant,
                                             color: Colors.white38,
                                           ),
                                         ),
@@ -318,7 +318,7 @@ class _RelatedMangaScreenState extends ConsumerState<RelatedMangaScreen> {
                                             color: Colors.black12,
                                             alignment: Alignment.center,
                                             child: const Icon(
-                                              RemixIcons.book_open_line,
+                                              MdiIcons.bookOpenVariant,
                                               color: Colors.black38,
                                             ),
                                           ),
@@ -385,7 +385,7 @@ class _RelatedMangaScreenState extends ConsumerState<RelatedMangaScreen> {
                                         color: amoled(context, 0xFF2C2C2E),
                                         alignment: Alignment.center,
                                         child: const Icon(
-                                          RemixIcons.book_open_line,
+                                          MdiIcons.bookOpenVariant,
                                           color: Colors.white38,
                                         ),
                                       ),
@@ -407,7 +407,7 @@ class _RelatedMangaScreenState extends ConsumerState<RelatedMangaScreen> {
                                           color: Colors.black12,
                                           alignment: Alignment.center,
                                           child: const Icon(
-                                            RemixIcons.book_open_line,
+                                            MdiIcons.bookOpenVariant,
                                             color: Colors.black38,
                                           ),
                                         ),

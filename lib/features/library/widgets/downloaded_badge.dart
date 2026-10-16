@@ -1,6 +1,6 @@
 import 'package:flutter/material.dart';
+import 'package:flutter_material_design_icons/flutter_material_design_icons.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
-import 'package:remixicon/remixicon.dart';
 import '../providers/downloads_provider.dart';
 import 'package:yomou/features/settings/providers/appearance_provider.dart';
 
@@ -61,7 +61,7 @@ class DownloadedMangaBadge extends ConsumerWidget {
         shape: BoxShape.circle,
       ),
       child: Icon(
-        RemixIcons.sd_card_line,
+        MdiIcons.sd,
         color: scheme.onPrimaryContainer,
         size: iconSize,
       ),

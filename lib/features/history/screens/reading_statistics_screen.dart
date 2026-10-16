@@ -1,6 +1,6 @@
 import 'package:flutter/material.dart';
+import 'package:flutter_material_design_icons/flutter_material_design_icons.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
-import 'package:remixicon/remixicon.dart';
 import 'package:yomou/core/database/database_helper.dart';
 import 'package:yomou/core/theme/amoled.dart';
 import 'package:yomou/core/theme/layout.dart';
@@ -100,7 +100,7 @@ class _ReadingStatisticsScreenState
                   height: 48,
                   child: Row(
                     children: [
-                      Icon(RemixIcons.delete_bin_5_line, color: fg, size: 22),
+                      Icon(MdiIcons.deleteOutline, color: fg, size: 22),
                       const SizedBox(width: 14),
                       Expanded(
                         child: Text(
@@ -141,7 +141,7 @@ class _ReadingStatisticsScreenState
           mainAxisSize: MainAxisSize.min,
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            Icon(RemixIcons.delete_bin_5_line, color: fg, size: 26),
+            Icon(MdiIcons.deleteOutline, color: fg, size: 26),
             const SizedBox(height: 12),
             Text(
               l.statsClearTitle,
@@ -212,7 +212,7 @@ class _ReadingStatisticsScreenState
                 ),
               ),
               child: selected
-                  ? const Icon(RemixIcons.check_line, color: Colors.white, size: 13)
+                  ? const Icon(MdiIcons.check, color: Colors.white, size: 13)
                   : null,
             ),
             const SizedBox(width: 14),
@@ -254,15 +254,15 @@ class _ReadingStatisticsScreenState
           mainAxisSize: MainAxisSize.min,
           children: [
             _ActionPill(
-              leading: const Icon(RemixIcons.time_line, size: 17),
+              leading: const Icon(MdiIcons.clockOutline, size: 17),
               label: _rangeLabel(l, ref.watch(statsRangeProvider)),
-              trailing: const Icon(RemixIcons.arrow_down_s_line, size: 18),
+              trailing: const Icon(MdiIcons.chevronDown, size: 18),
               onTap: _showTimeRangePicker,
             ),
             const SizedBox(width: 10),
             _ActionPill(
               leading: Icon(
-                favoritesOnly ? RemixIcons.check_line : RemixIcons.heart_3_line,
+                favoritesOnly ? MdiIcons.check : MdiIcons.heartOutline,
                 size: 17,
                 color: favoritesOnly ? accent : null,
               ),
@@ -299,7 +299,7 @@ class _ReadingStatisticsScreenState
                 onTap: _showOverflowMenu,
                 child: const Padding(
                   padding: EdgeInsets.all(8),
-                  child: Icon(RemixIcons.more_2_line, size: 22),
+                  child: Icon(MdiIcons.dotsVertical, size: 22),
                 ),
               ),
             ],
@@ -321,7 +321,7 @@ class _ReadingStatisticsScreenState
               data: (slices) {
                 if (slices.isEmpty) {
                   return EmptyState(
-                    icon: RemixIcons.pie_chart_2_line,
+                    icon: MdiIcons.chartDonut,
                     title: l.statsEmptyTitle,
                     subtitle: l.statsEmptySubtitle,
                   );

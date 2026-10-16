@@ -1,6 +1,6 @@
 import 'package:flutter/material.dart';
+import 'package:flutter_material_design_icons/flutter_material_design_icons.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
-import 'package:remixicon/remixicon.dart';
 
 import 'package:yomou/core/theme/amoled.dart';
 import 'package:yomou/core/widgets/ios/ios_press.dart';
@@ -218,7 +218,7 @@ class _CoversFromSourcesScreenState
                 onTap: () => Navigator.pop(context),
                 child: Padding(
                   padding: const EdgeInsets.all(8),
-                  child: Icon(RemixIcons.close_line, size: 22, color: fg),
+                  child: Icon(MdiIcons.close, size: 22, color: fg),
                 ),
               ),
             ),
@@ -278,7 +278,7 @@ class _CoversFromSourcesScreenState
             ? _isFetching
                   ? CircularProgressIndicator(color: scheme.primary)
                   : Icon(
-                      RemixIcons.image_2_line,
+                      MdiIcons.imageMultipleOutline,
                       size: 48,
                       color: dark ? Colors.white24 : Colors.black26,
                     )
@@ -331,7 +331,7 @@ class _CoversFromSourcesScreenState
                     mainAxisSize: MainAxisSize.min,
                     children: [
                       Icon(
-                        RemixIcons.refresh_line,
+                        MdiIcons.refresh,
                         size: 16,
                         color: scheme.primary,
                       ),

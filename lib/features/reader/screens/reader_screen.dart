@@ -1,4 +1,4 @@
-import 'package:remixicon/remixicon.dart';
+import 'package:flutter_material_design_icons/flutter_material_design_icons.dart';
 import 'dart:async';
 import 'dart:convert';
 import 'dart:io';
@@ -818,7 +818,7 @@ class _ReaderScreenState extends ConsumerState<ReaderScreen>
 
   Widget _buildReaderBackButton(Color iconColor) {
     return IconButton(
-      icon: Icon(RemixIcons.arrow_left_line, color: iconColor),
+      icon: Icon(MdiIcons.arrowLeft, color: iconColor),
       onPressed: () async {
         await _saveCascadingReadProgress();
         if (!mounted) return;
@@ -870,7 +870,7 @@ class _ReaderScreenState extends ConsumerState<ReaderScreen>
   Widget _buildPrevChapterButton(Color iconColor) {
     return IconButton(
       tooltip: AppLocalizations.of(context).readerPreviousChapter,
-      icon: Icon(RemixIcons.skip_back_line, color: iconColor, size: 28),
+      icon: Icon(MdiIcons.skipPrevious, color: iconColor, size: 28),
       onPressed: _currentChapterIndex > 0
           ? () => _changeChapterExplicitly(_currentChapterIndex - 1)
           : null,
@@ -880,7 +880,7 @@ class _ReaderScreenState extends ConsumerState<ReaderScreen>
   Widget _buildNextChapterButton(Color iconColor) {
     return IconButton(
       tooltip: AppLocalizations.of(context).readerNextChapter,
-      icon: Icon(RemixIcons.skip_forward_line, color: iconColor, size: 28),
+      icon: Icon(MdiIcons.skipNext, color: iconColor, size: 28),
       onPressed: _currentChapterIndex < widget.allChapters.length - 1
           ? () => _changeChapterExplicitly(_currentChapterIndex + 1)
           : null,
@@ -912,7 +912,7 @@ class _ReaderScreenState extends ConsumerState<ReaderScreen>
   Widget _buildChaptersButton(Color iconColor) {
     return IconButton(
       tooltip: AppLocalizations.of(context).detailChapters,
-      icon: Icon(RemixIcons.list_unordered, color: iconColor, size: 24),
+      icon: Icon(MdiIcons.formatListBulleted, color: iconColor, size: 24),
       onPressed: _showChapterList,
     );
   }
@@ -920,7 +920,7 @@ class _ReaderScreenState extends ConsumerState<ReaderScreen>
   Widget _buildReaderSettingsButton(Color iconColor) {
     return IconButton(
       tooltip: AppLocalizations.of(context).settings,
-      icon: Icon(RemixIcons.more_2_line, color: iconColor, size: 24),
+      icon: Icon(MdiIcons.dotsVertical, color: iconColor, size: 24),
       onPressed: _showSettingsSheet,
     );
   }
@@ -950,8 +950,8 @@ class _ReaderScreenState extends ConsumerState<ReaderScreen>
             if (_batteryLevel >= 0) ...[
               Icon(
                 _batteryLevel > 20
-                    ? RemixIcons.battery_2_fill
-                    : RemixIcons.battery_low_fill,
+                    ? MdiIcons.battery
+                    : MdiIcons.batteryLow,
                 color: Colors.white,
                 size: 14,
               ),
@@ -1685,7 +1685,7 @@ class _ReaderScreenState extends ConsumerState<ReaderScreen>
                 key: const ValueKey('selectionTrayHeader'),
                 children: [
                   IconButton(
-                    icon: Icon(RemixIcons.close_line, color: iconColor),
+                    icon: Icon(MdiIcons.close, color: iconColor),
                     onPressed: _exitSelection,
                   ),
                   const SizedBox(width: 4),
@@ -1701,7 +1701,7 @@ class _ReaderScreenState extends ConsumerState<ReaderScreen>
                   if (_isAllSelectedInTray)
                     IconButton(
                       icon: Icon(
-                        RemixIcons.checkbox_multiple_blank_line,
+                        MdiIcons.checkboxMultipleBlankOutline,
                         color: iconColor,
                       ),
                       tooltip: AppLocalizations.of(context).deselectAll,
@@ -1710,13 +1710,13 @@ class _ReaderScreenState extends ConsumerState<ReaderScreen>
                   else ...[
                     if (_hasSelectionGap)
                       IconButton(
-                        icon: Icon(RemixIcons.list_unordered, color: iconColor),
+                        icon: Icon(MdiIcons.formatListBulleted, color: iconColor),
                         tooltip: AppLocalizations.of(context).selectRange,
                         onPressed: _selectChapterRange,
                       ),
                     IconButton(
                       icon: Icon(
-                        RemixIcons.checkbox_multiple_line,
+                        MdiIcons.checkboxMultipleBlankOutline,
                         color: iconColor,
                       ),
                       tooltip: AppLocalizations.of(context).selectAll,
@@ -1726,8 +1726,8 @@ class _ReaderScreenState extends ConsumerState<ReaderScreen>
                   IconButton(
                     icon: Icon(
                       _isAllSelectedRead
-                          ? RemixIcons.eye_off_line
-                          : RemixIcons.eye_line,
+                          ? MdiIcons.eyeOffOutline
+                          : MdiIcons.eyeOutline,
                       color: iconColor,
                     ),
                     tooltip: AppLocalizations.of(context).toggleRead,
@@ -1736,7 +1736,7 @@ class _ReaderScreenState extends ConsumerState<ReaderScreen>
                   if (_isSelectedDownloaded)
                     IconButton(
                       icon: Icon(
-                        RemixIcons.delete_bin_6_line,
+                        MdiIcons.deleteOutline,
                         color: iconColor,
                       ),
                       tooltip: AppLocalizations.of(
@@ -1746,7 +1746,7 @@ class _ReaderScreenState extends ConsumerState<ReaderScreen>
                     )
                   else
                     IconButton(
-                      icon: Icon(RemixIcons.download_line, color: iconColor),
+                      icon: Icon(MdiIcons.downloadOutline, color: iconColor),
                       tooltip: AppLocalizations.of(context).detailDownload,
                       onPressed: _downloadSelectedChapters,
                     ),
@@ -1756,19 +1756,19 @@ class _ReaderScreenState extends ConsumerState<ReaderScreen>
                 key: const ValueKey('trayHeader'),
                 children: [
                   _buildTrayViewIcon(
-                    icon: RemixIcons.list_unordered,
+                    icon: MdiIcons.formatListBulleted,
                     active: listView == 'list',
                     dark: dark,
                     onTap: () => setListView('list'),
                   ),
                   _buildTrayViewIcon(
-                    icon: RemixIcons.grid_line,
+                    icon: MdiIcons.viewGridOutline,
                     active: listView == 'grid',
                     dark: dark,
                     onTap: () => setListView('grid'),
                   ),
                   _buildTrayViewIcon(
-                    icon: RemixIcons.bookmark_2_line,
+                    icon: MdiIcons.bookmarkOutline,
                     active: listView == 'bookmark',
                     dark: dark,
                     onTap: () => setListView('bookmark'),
@@ -1838,7 +1838,7 @@ class _ReaderScreenState extends ConsumerState<ReaderScreen>
           title: Row(
             children: [
               Icon(
-                RemixIcons.play_fill,
+                MdiIcons.play,
                 color: isCurrent
                     ? Theme.of(context).colorScheme.primary
                     : Colors.transparent,
@@ -1873,7 +1873,7 @@ class _ReaderScreenState extends ConsumerState<ReaderScreen>
           ),
           trailing: isSelected
               ? Icon(
-                  RemixIcons.check_fill,
+                  MdiIcons.check,
                   color: Theme.of(context).colorScheme.primary,
                   size: 18,
                 )
@@ -1960,7 +1960,7 @@ class _ReaderScreenState extends ConsumerState<ReaderScreen>
         final bookmarks = snapshot.data ?? const [];
         if (bookmarks.isEmpty) {
           return EmptyState(
-            icon: RemixIcons.bookmark_3_line,
+            icon: MdiIcons.bookmarkOutline,
             title: AppLocalizations.of(context).bookmarksEmpty,
             subtitle: AppLocalizations.of(context).readerBookmarksHint,
           );
@@ -2073,7 +2073,7 @@ class _ReaderScreenState extends ConsumerState<ReaderScreen>
             return ListTile(
               dense: true,
               leading: Icon(
-                RemixIcons.checkbox_circle_line,
+                MdiIcons.checkboxBlankCircleOutline,
                 color: _activeGreen,
                 size: 22,
               ),
@@ -2107,7 +2107,7 @@ class _ReaderScreenState extends ConsumerState<ReaderScreen>
               ),
               trailing: IconButton(
                 icon: Icon(
-                  RemixIcons.delete_bin_6_line,
+                  MdiIcons.deleteOutline,
                   color: dark ? Colors.white38 : Colors.black38,
                   size: 20,
                 ),
@@ -2172,7 +2172,7 @@ class _ReaderScreenState extends ConsumerState<ReaderScreen>
                         return Container(
                           color: dark ? amoled(context, 0xFF2C2C2E) : Colors.white,
                           child: Icon(
-                            RemixIcons.book_open_line,
+                            MdiIcons.bookOpenVariant,
                             color: dark ? Colors.white38 : Colors.black38,
                             size: 20,
                           ),
@@ -2189,7 +2189,7 @@ class _ReaderScreenState extends ConsumerState<ReaderScreen>
                         return Container(
                           color: dark ? amoled(context, 0xFF2C2C2E) : Colors.white,
                           child: Icon(
-                            RemixIcons.book_open_line,
+                            MdiIcons.bookOpenVariant,
                             color: dark ? Colors.white38 : Colors.black38,
                             size: 20,
                           ),
@@ -2363,7 +2363,7 @@ class _ReaderScreenState extends ConsumerState<ReaderScreen>
                           vertical: 2,
                         ),
                         leading: Icon(
-                          RemixIcons.save_2_line,
+                          MdiIcons.contentSaveOutline,
                           color: dark ? Colors.white : const Color(0xFF1C1B1F),
                           size: 22,
                         ),
@@ -2385,8 +2385,8 @@ class _ReaderScreenState extends ConsumerState<ReaderScreen>
                         ),
                         leading: Icon(
                           _isCurrentPageBookmarked
-                              ? RemixIcons.bookmark_2_fill
-                              : RemixIcons.bookmark_3_line,
+                              ? MdiIcons.bookmark
+                              : MdiIcons.bookmarkOutline,
                           color: _isCurrentPageBookmarked
                               ? _activeGreen
                               : dark
@@ -2504,7 +2504,7 @@ class _ReaderScreenState extends ConsumerState<ReaderScreen>
                           vertical: 2,
                         ),
                         leading: Icon(
-                          RemixIcons.timer_line,
+                          MdiIcons.timerOutline,
                           color: dark ? Colors.white : const Color(0xFF1C1B1F),
                           size: 22,
                         ),
@@ -2525,7 +2525,7 @@ class _ReaderScreenState extends ConsumerState<ReaderScreen>
                           vertical: 2,
                         ),
                         leading: Icon(
-                          RemixIcons.contrast_2_line,
+                          MdiIcons.contrast,
                           color: dark ? Colors.white : const Color(0xFF1C1B1F),
                           size: 22,
                         ),
@@ -2546,7 +2546,7 @@ class _ReaderScreenState extends ConsumerState<ReaderScreen>
                           vertical: 2,
                         ),
                         leading: Icon(
-                          RemixIcons.settings_4_line,
+                          MdiIcons.cogOutline,
                           color: dark ? Colors.white : const Color(0xFF1C1B1F),
                           size: 22,
                         ),
@@ -2596,10 +2596,10 @@ class _ReaderScreenState extends ConsumerState<ReaderScreen>
   Widget _buildReadModeSelector({VoidCallback? afterChange}) {
     final l = AppLocalizations.of(context);
     final modes = [
-      (ReadingMode.standard, RemixIcons.crop_line, l.readerModeStandard),
-      (ReadingMode.rightToLeft, RemixIcons.swap_line, l.readerModeRTL),
-      (ReadingMode.vertical, RemixIcons.rectangle_line, l.readerModeVertical),
-      (ReadingMode.webtoon, RemixIcons.list_view, l.readerModeWebtoon),
+      (ReadingMode.standard, MdiIcons.crop, l.readerModeStandard),
+      (ReadingMode.rightToLeft, MdiIcons.swapHorizontal, l.readerModeRTL),
+      (ReadingMode.vertical, MdiIcons.rectangleOutline, l.readerModeVertical),
+      (ReadingMode.webtoon, MdiIcons.viewListOutline, l.readerModeWebtoon),
     ];
     final dark = Theme.of(context).brightness == Brightness.dark;
     // The selected capsule wears the accent the user picked. Light mode tints
@@ -4314,7 +4314,7 @@ class _ReaderScreenState extends ConsumerState<ReaderScreen>
       child: Column(
         mainAxisAlignment: MainAxisAlignment.center,
         children: [
-          const Icon(RemixIcons.image_2_line, color: Colors.white54, size: 32),
+          const Icon(MdiIcons.imageMultipleOutline, color: Colors.white54, size: 32),
           const SizedBox(height: 8),
           Text(
             AppLocalizations.of(context).readerFailedLoadPage,
@@ -4323,7 +4323,7 @@ class _ReaderScreenState extends ConsumerState<ReaderScreen>
           const SizedBox(height: 12),
           TextButton.icon(
             onPressed: () => _retryPage(index, localPath),
-            icon: const Icon(RemixIcons.refresh_line, size: 18),
+            icon: const Icon(MdiIcons.refresh, size: 18),
             label: Text(AppLocalizations.of(context).retry),
             style: TextButton.styleFrom(foregroundColor: Colors.white),
           ),
@@ -4698,7 +4698,7 @@ class _ChapterPageToast extends StatelessWidget {
       child: Row(
         mainAxisSize: MainAxisSize.min,
         children: [
-          Icon(RemixIcons.book_2_line, size: 15, color: accent),
+          Icon(MdiIcons.bookOutline, size: 15, color: accent),
           const SizedBox(width: 7),
           Text(
             label,

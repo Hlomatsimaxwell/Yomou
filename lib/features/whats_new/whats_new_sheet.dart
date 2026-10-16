@@ -1,6 +1,6 @@
 import 'package:flutter/material.dart';
+import 'package:flutter_material_design_icons/flutter_material_design_icons.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
-import 'package:remixicon/remixicon.dart';
 import 'package:yomou/core/changelog/changelog.dart';
 import 'package:yomou/core/widgets/ios/ios_sheet.dart';
 import 'package:yomou/core/widgets/responsive.dart';
@@ -77,7 +77,7 @@ class WhatsNewContent extends ConsumerWidget {
                 ),
                 if (sidePanel)
                   IconButton(
-                    icon: const Icon(RemixIcons.close_line),
+                    icon: const Icon(MdiIcons.close),
                     tooltip: l.close,
                     onPressed: () => Navigator.of(context).pop(),
                   ),

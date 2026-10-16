@@ -1,4 +1,4 @@
-import 'package:remixicon/remixicon.dart';
+import 'package:flutter_material_design_icons/flutter_material_design_icons.dart';
 import 'dart:async';
 import 'dart:math';
 import 'dart:convert';
@@ -480,7 +480,7 @@ class _MangaGridScreenState extends ConsumerState<MangaGridScreen> {
         elevation: 0,
         leading: IconButton(
           icon: Icon(
-            RemixIcons.arrow_left_line,
+            MdiIcons.arrowLeft,
             color: dark ? Colors.white : const Color(0xFF1C1B1F),
           ),
           onPressed: () => Navigator.pop(context),
@@ -509,7 +509,7 @@ class _MangaGridScreenState extends ConsumerState<MangaGridScreen> {
         actions: [
           IconButton(
             icon: Icon(
-              _isSearching ? RemixIcons.close_line : RemixIcons.search_line,
+              _isSearching ? MdiIcons.close : MdiIcons.magnify,
               color: dark ? Colors.white : const Color(0xFF1C1B1F),
             ),
             onPressed: () {
@@ -529,7 +529,7 @@ class _MangaGridScreenState extends ConsumerState<MangaGridScreen> {
           // Updated dice button tap handler
           IconButton(
             icon: Icon(
-              RemixIcons.dice_line,
+              MdiIcons.diceMultipleOutline,
               color: dark ? Colors.white : const Color(0xFF1C1B1F),
             ),
             onPressed: _openRandomManga,
@@ -538,7 +538,7 @@ class _MangaGridScreenState extends ConsumerState<MangaGridScreen> {
             padding: const EdgeInsets.only(right: 10),
             child: IconButton(
               icon: Icon(
-                RemixIcons.more_2_line,
+                MdiIcons.dotsVertical,
                 color: dark ? Colors.white : const Color(0xFF1C1B1F),
               ),
               onPressed: _showGridMenu,
@@ -635,7 +635,7 @@ class _MangaGridScreenState extends ConsumerState<MangaGridScreen> {
                         child: Row(
                           children: [
                             Icon(
-                              RemixIcons.filter_line,
+                              MdiIcons.filterOutline,
                               color: dark
                                   ? Colors.white70
                                   : const Color(0xFF49454F),
@@ -709,7 +709,7 @@ class _MangaGridScreenState extends ConsumerState<MangaGridScreen> {
                         const SizedBox(height: 16),
                         OutlinedButton.icon(
                           onPressed: _loadManga,
-                          icon: const Icon(RemixIcons.refresh_line),
+                          icon: const Icon(MdiIcons.refresh),
                           label: Text(AppLocalizations.of(context).retry),
                           style: OutlinedButton.styleFrom(
                             foregroundColor: dark
@@ -848,7 +848,7 @@ class _MangaGridScreenState extends ConsumerState<MangaGridScreen> {
       context,
       children: [
         IosMenuRow(
-          icon: RemixIcons.filter_line,
+          icon: MdiIcons.filterOutline,
           label: l.sourceFilter,
           onTap: () {
             Navigator.pop(context);
@@ -856,7 +856,7 @@ class _MangaGridScreenState extends ConsumerState<MangaGridScreen> {
           },
         ),
         IosMenuRow(
-          icon: RemixIcons.list_unordered,
+          icon: MdiIcons.formatListBulleted,
           label: l.sourceListOptions,
           onTap: () {
             Navigator.pop(context);
@@ -864,7 +864,7 @@ class _MangaGridScreenState extends ConsumerState<MangaGridScreen> {
           },
         ),
         IosMenuRow(
-          icon: RemixIcons.settings_3_line,
+          icon: MdiIcons.cogOutline,
           label: l.settings,
           onTap: () {
             Navigator.pop(context);
@@ -918,13 +918,13 @@ class _MangaGridScreenState extends ConsumerState<MangaGridScreen> {
                       children: [
                         _buildSegmentTab(
                           'List',
-                          RemixIcons.list_view,
+                          MdiIcons.viewListOutline,
                           setSheetState,
                         ),
                         const SizedBox(width: 8),
                         _buildSegmentTab(
                           'Grid',
-                          RemixIcons.grid_line,
+                          MdiIcons.viewGridOutline,
                           setSheetState,
                         ),
                       ],
@@ -1083,7 +1083,7 @@ class _MangaGridScreenState extends ConsumerState<MangaGridScreen> {
   Widget _buildMangaGrid(List<Manga> items) {
     if (items.isEmpty) {
       return EmptyState(
-        icon: RemixIcons.book_open_line,
+        icon: MdiIcons.bookOpenVariant,
         title: AppLocalizations.of(context).noMangaFound,
         subtitle: AppLocalizations.of(context).tryDifferentSearch,
       );
@@ -1179,7 +1179,7 @@ class _MangaGridScreenState extends ConsumerState<MangaGridScreen> {
                       color: dark ? const Color(0xFF2C2C2E) : Colors.black12,
                       alignment: Alignment.center,
                       child: const Icon(
-                        RemixIcons.book_open_line,
+                        MdiIcons.bookOpenVariant,
                         color: Colors.white38,
                         size: 20,
                       ),
@@ -1211,7 +1211,7 @@ class _MangaGridScreenState extends ConsumerState<MangaGridScreen> {
               ),
             ),
             Icon(
-              RemixIcons.arrow_right_s_line,
+              MdiIcons.chevronRight,
               size: 20,
               color: dark ? Colors.white24 : Colors.black26,
             ),
@@ -1248,7 +1248,7 @@ class _MangaGridScreenState extends ConsumerState<MangaGridScreen> {
                               color: amoled(context, 0xFF2C2C2E),
                               alignment: Alignment.center,
                               child: const Icon(
-                                RemixIcons.book_open_line,
+                                MdiIcons.bookOpenVariant,
                                 color: Colors.white38,
                                 size: 28,
                               ),
@@ -1266,7 +1266,7 @@ class _MangaGridScreenState extends ConsumerState<MangaGridScreen> {
                                 color: Colors.black12,
                                 alignment: Alignment.center,
                                 child: const Icon(
-                                  RemixIcons.book_open_line,
+                                  MdiIcons.bookOpenVariant,
                                   color: Colors.black38,
                                   size: 28,
                                 ),

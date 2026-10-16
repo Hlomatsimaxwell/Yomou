@@ -1,6 +1,6 @@
 import 'package:flutter/material.dart';
+import 'package:flutter_material_design_icons/flutter_material_design_icons.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
-import 'package:remixicon/remixicon.dart';
 import 'package:yomou/core/database/source_cache.dart';
 import 'package:yomou/core/diagnostics/diag_log.dart';
 import 'package:yomou/core/widgets/empty_state.dart';
@@ -161,7 +161,7 @@ class _MangaPreviewPaneState extends ConsumerState<MangaPreviewPane> {
       child: Row(
         children: [
           IconButton(
-            icon: const Icon(RemixIcons.close_line, size: 22),
+            icon: const Icon(MdiIcons.close, size: 22),
             tooltip: l.close,
             onPressed: widget.onClose,
           ),
@@ -179,7 +179,7 @@ class _MangaPreviewPaneState extends ConsumerState<MangaPreviewPane> {
             ),
           ),
           IconButton(
-            icon: const Icon(RemixIcons.fullscreen_line, size: 20),
+            icon: const Icon(MdiIcons.fullscreen, size: 20),
             tooltip: l.openFullDetails,
             onPressed: widget.onOpenFull,
           ),
@@ -194,7 +194,7 @@ class _MangaPreviewPaneState extends ConsumerState<MangaPreviewPane> {
     // so offering the button there would be a control that lies.
     if (_error == _kUnknownSource) {
       return EmptyState(
-        icon: RemixIcons.link_unlink,
+        icon: MdiIcons.linkVariantOff,
         title: l.previewSourceMissing,
         subtitle: l.previewSourceMissingSubtitle,
       );
@@ -206,7 +206,7 @@ class _MangaPreviewPaneState extends ConsumerState<MangaPreviewPane> {
           mainAxisSize: MainAxisSize.min,
           children: [
             Icon(
-              RemixIcons.error_warning_line,
+              MdiIcons.alertCircleOutline,
               size: 32,
               color: dark ? Colors.white38 : Colors.black38,
             ),
@@ -230,7 +230,7 @@ class _MangaPreviewPaneState extends ConsumerState<MangaPreviewPane> {
                 });
                 _load();
               },
-              icon: const Icon(RemixIcons.refresh_line),
+              icon: const Icon(MdiIcons.refresh),
               label: Text(l.retry),
             ),
           ],
@@ -270,7 +270,7 @@ class _MangaPreviewPaneState extends ConsumerState<MangaPreviewPane> {
                   color: dark ? const Color(0xFF2C2C2E) : Colors.black12,
                   alignment: Alignment.center,
                   child: Icon(
-                    RemixIcons.book_open_line,
+                    MdiIcons.bookOpenVariant,
                     color: dark ? Colors.white38 : Colors.black38,
                     size: 32,
                   ),
@@ -370,7 +370,7 @@ class _MangaPreviewPaneState extends ConsumerState<MangaPreviewPane> {
               mainAxisSize: MainAxisSize.min,
               children: [
                 const Icon(
-                  RemixIcons.book_read_line,
+                  MdiIcons.bookEducationOutline,
                   size: 18,
                   color: Colors.white,
                 ),

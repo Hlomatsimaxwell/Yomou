@@ -1,6 +1,6 @@
 import 'package:flutter/material.dart';
+import 'package:flutter_material_design_icons/flutter_material_design_icons.dart';
 import 'package:flutter_test/flutter_test.dart';
-import 'package:remixicon/remixicon.dart';
 import 'package:yomou/core/widgets/ios/ios_menu.dart';
 
 /// The overflow menu is an options list, so on a wide window it presents the way
@@ -22,7 +22,7 @@ void main() {
                   context,
                   children: [
                     IosMenuRow(
-                      icon: RemixIcons.refresh_line,
+                      icon: MdiIcons.refresh,
                       label: 'Refresh',
                       onTap: () => Navigator.pop(context),
                     ),

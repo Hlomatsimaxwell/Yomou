@@ -1,6 +1,6 @@
 import 'package:flutter/material.dart';
+import 'package:flutter_material_design_icons/flutter_material_design_icons.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
-import 'package:remixicon/remixicon.dart';
 import 'package:yomou/core/widgets/responsive.dart';
 import 'package:yomou/features/settings/providers/reader_settings_provider.dart';
 import 'package:yomou/features/settings/screens/reader_actions_screen.dart';
@@ -41,7 +41,7 @@ class ReaderSettingsScreen extends ConsumerWidget {
       children: [
         M3SectionHeader(title: l.rsetSectionReading),
         _PickerRow(
-          icon: RemixIcons.book_2_line,
+          icon: MdiIcons.bookOutline,
           title: l.rsetDefaultMode,
           subtitle: l.rsetDefaultModeSub,
           value: _modeLabel(l, s.readingMode),
@@ -59,7 +59,7 @@ class ReaderSettingsScreen extends ConsumerWidget {
           ),
         ),
         _ToggleRow(
-          icon: RemixIcons.layout_row_line,
+          icon: MdiIcons.viewAgendaOutline,
           title: l.rsetTwoPages,
           subtitle: paged ? l.rsetTwoPagesSub : l.rsetTwoPagesUnavailable,
           value: s.twoPages,
@@ -67,7 +67,7 @@ class ReaderSettingsScreen extends ConsumerWidget {
           onChanged: n.setTwoPages,
         ),
         _PickerRow(
-          icon: RemixIcons.aspect_ratio_line,
+          icon: MdiIcons.aspectRatio,
           title: l.rsetScaleMode,
           subtitle: l.rsetScaleModeSub,
           value: _scaleLabel(l, s.scaleMode),
@@ -91,7 +91,7 @@ class ReaderSettingsScreen extends ConsumerWidget {
         // to the screen.
         M3SectionHeader(title: l.rsetSectionStrip),
         _SliderRow(
-          icon: RemixIcons.zoom_out_line,
+          icon: MdiIcons.magnifyMinusOutline,
           title: l.rsetWebtoonZoomOut,
           subtitle: strip
               ? l.rsetWebtoonZoomOutSub
@@ -104,7 +104,7 @@ class ReaderSettingsScreen extends ConsumerWidget {
           onChanged: (v) => n.setWebtoonZoomOut(v.round()),
         ),
         _ToggleRow(
-          icon: RemixIcons.stack_line,
+          icon: MdiIcons.layersOutline,
           title: l.rsetWebtoonGaps,
           subtitle: strip ? l.rsetWebtoonGapsSub : l.rsetStripUnavailable,
           value: s.webtoonGaps,
@@ -114,7 +114,7 @@ class ReaderSettingsScreen extends ConsumerWidget {
 
         M3SectionHeader(title: l.rsetSectionControls),
         _NavRow(
-          icon: RemixIcons.cursor_hand,
+          icon: MdiIcons.cursorDefaultOutline,
           title: l.settingsReaderActions,
           subtitle: l.ractMenuSubtitle,
           onTap: () => Navigator.of(context).push(
@@ -131,7 +131,7 @@ class ReaderSettingsScreen extends ConsumerWidget {
             final available =
                 ref.watch(readerVolumeKeysAvailableProvider).value ?? true;
             return _ToggleRow(
-              icon: RemixIcons.volume_up_line,
+              icon: MdiIcons.volumeHigh,
               title: l.rsetVolumeButtons,
               subtitle: available
                   ? l.rsetVolumeButtonsSub
@@ -143,14 +143,14 @@ class ReaderSettingsScreen extends ConsumerWidget {
           },
         ),
         _ToggleRow(
-          icon: RemixIcons.swap_line,
+          icon: MdiIcons.swapHorizontal,
           title: l.rsetInvertNavigation,
           subtitle: l.rsetInvertNavigationSub,
           value: s.invertNavigation,
           onChanged: n.setInvertNavigation,
         ),
         _ToggleRow(
-          icon: RemixIcons.cpu_line,
+          icon: MdiIcons.chip,
           title: l.rsetReduceMemory,
           subtitle: l.rsetReduceMemorySub,
           value: s.reduceMemory,
@@ -161,14 +161,14 @@ class ReaderSettingsScreen extends ConsumerWidget {
         // Shown on every device: Android offers no way to ask whether a
         // panel is e-ink, and the flash is off until the user asks for it.
         _ToggleRow(
-          icon: RemixIcons.flashlight_line,
+          icon: MdiIcons.flashlight,
           title: l.rsetFlashOnChange,
           subtitle: l.rsetFlashOnChangeSub,
           value: s.flashOnPageChange,
           onChanged: n.setFlashOnPageChange,
         ),
         _SliderRow(
-          icon: RemixIcons.timer_line,
+          icon: MdiIcons.timerOutline,
           title: l.rsetFlashDuration,
           subtitle: l.rsetFlashDurationSub,
           value: '${s.flashDurationMs} ms',
@@ -180,7 +180,7 @@ class ReaderSettingsScreen extends ConsumerWidget {
           onChanged: (v) => n.setFlashDuration(v.round()),
         ),
         _SliderRow(
-          icon: RemixIcons.repeat_2_line,
+          icon: MdiIcons.repeat,
           title: l.rsetFlashEvery,
           subtitle: l.rsetFlashEverySub,
           value: l.rsetFlashEveryUnit(s.flashEvery),
@@ -195,7 +195,7 @@ class ReaderSettingsScreen extends ConsumerWidget {
         // sheet that has to be opened, read, and dismissed to change a
         // single bit.
         _SegmentedRow(
-          icon: RemixIcons.drop_line,
+          icon: MdiIcons.waterOutline,
           title: l.rsetFlashWith,
           subtitle: l.rsetFlashWithSub,
           value: s.flashWith,
@@ -209,14 +209,14 @@ class ReaderSettingsScreen extends ConsumerWidget {
 
         M3SectionHeader(title: l.rsetSectionDisplay),
         _ToggleRow(
-          icon: RemixIcons.fullscreen_line,
+          icon: MdiIcons.fullscreen,
           title: l.rsetFullscreen,
           subtitle: l.rsetFullscreenSub,
           value: s.fullscreen,
           onChanged: n.setFullscreen,
         ),
         _PickerRow(
-          icon: RemixIcons.smartphone_line,
+          icon: MdiIcons.cellphone,
           title: l.rsetOrientation,
           subtitle: l.rsetOrientationSub,
           value: _orientationLabel(l, s.orientation),
@@ -234,14 +234,14 @@ class ReaderSettingsScreen extends ConsumerWidget {
           ),
         ),
         _ToggleRow(
-          icon: RemixIcons.sun_line,
+          icon: MdiIcons.whiteBalanceSunny,
           title: l.rsetKeepScreenOn,
           subtitle: l.rsetKeepScreenOnSub,
           value: s.keepScreenOn,
           onChanged: n.setKeepScreenOn,
         ),
         _ToggleRow(
-          icon: RemixIcons.information_line,
+          icon: MdiIcons.informationOutline,
           title: l.rsetShowInfoBar,
           subtitle: l.rsetShowInfoBarSub,
           value: s.showInfoBar,
@@ -249,7 +249,7 @@ class ReaderSettingsScreen extends ConsumerWidget {
         ),
         // Only meaningful while the bar is on, so it dims rather than hides.
         _ToggleRow(
-          icon: RemixIcons.image_line,
+          icon: MdiIcons.imageOutline,
           title: l.rsetTransparentInfoBar,
           subtitle: l.rsetTransparentInfoBarSub,
           value: s.transparentInfoBar,
@@ -257,7 +257,7 @@ class ReaderSettingsScreen extends ConsumerWidget {
           onChanged: n.setTransparentInfoBar,
         ),
         _ToggleRow(
-          icon: RemixIcons.message_2_line,
+          icon: MdiIcons.messageOutline,
           title: l.rsetShowChapterPopup,
           subtitle: l.rsetShowChapterPopupSub,
           value: s.showChapterPopup,
@@ -266,7 +266,7 @@ class ReaderSettingsScreen extends ConsumerWidget {
 
         M3SectionHeader(title: l.rsetSectionPages),
         _PickerRow(
-          icon: RemixIcons.paint_line,
+          icon: MdiIcons.formatColorFill,
           title: l.rsetBackground,
           subtitle: l.rsetBackgroundSub,
           value: _backgroundLabel(l, s.background),
@@ -285,14 +285,14 @@ class ReaderSettingsScreen extends ConsumerWidget {
           ),
         ),
         _ToggleRow(
-          icon: RemixIcons.hashtag,
+          icon: MdiIcons.pound,
           title: l.rsetNumberedPages,
           subtitle: l.rsetNumberedPagesSub,
           value: s.numberedPages,
           onChanged: n.setNumberedPages,
         ),
         _PickerRow(
-          icon: RemixIcons.download_2_line,
+          icon: MdiIcons.downloadOutline,
           title: l.rsetPreload,
           subtitle: l.rsetPreloadSub,
           value: _preloadLabel(l, s.preload),
@@ -310,7 +310,7 @@ class ReaderSettingsScreen extends ConsumerWidget {
         ),
 
         _NavRow(
-          icon: RemixIcons.refresh_line,
+          icon: MdiIcons.refresh,
           title: l.rsetReset,
           subtitle: l.rsetResetSub,
           destructive: true,
@@ -478,7 +478,7 @@ class _NavRow extends StatelessWidget {
       ),
       subtitle: subtitle == null ? null : Text(subtitle!),
       trailing: Icon(
-        RemixIcons.arrow_right_s_line,
+        MdiIcons.chevronRight,
         color: destructive ? cs.error : cs.onSurfaceVariant,
       ),
       onTap: onTap,
@@ -517,7 +517,7 @@ class _PickerRow extends StatelessWidget {
         children: [
           Text(value, style: TextStyle(color: cs.onSurfaceVariant)),
           const SizedBox(width: 4),
-          Icon(RemixIcons.arrow_right_s_line, color: cs.onSurfaceVariant),
+          Icon(MdiIcons.chevronRight, color: cs.onSurfaceVariant),
         ],
       ),
       onTap: onTap,

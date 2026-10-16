@@ -7,7 +7,7 @@ import 'package:yomou/widgets/source_icon.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:shared_preferences/shared_preferences.dart';
-import 'package:remixicon/remixicon.dart';
+import 'package:flutter_material_design_icons/flutter_material_design_icons.dart';
 import 'package:yomou/core/theme/layout.dart';
 import 'package:yomou/features/library/screens/manga_detail_screen.dart';
 import 'package:yomou/features/library/screens/edit_manga_screen.dart';
@@ -100,7 +100,7 @@ class ProgressBadge extends ConsumerWidget {
             ),
             if (completed)
               Icon(
-                RemixIcons.check_line,
+                MdiIcons.check,
                 color: scheme.onSecondaryContainer,
                 // Kotatsu scales the check to 0.6 of the ring's bounds.
                 size: _size * 0.6,
@@ -478,7 +478,7 @@ class _HistoryScreenState extends ConsumerState<HistoryScreen> {
               content: Column(
                 mainAxisSize: MainAxisSize.min,
                 children: [
-                  Icon(RemixIcons.delete_bin_5_line, color: fg, size: 28),
+                  Icon(MdiIcons.deleteOutline, color: fg, size: 28),
                   const SizedBox(height: 12),
                   Text(
                     AppLocalizations.of(context).historyClearTitle,
@@ -661,17 +661,17 @@ class _HistoryScreenState extends ConsumerState<HistoryScreen> {
                       children: [
                         _buildSegmentTab(
                           'Compact',
-                          RemixIcons.list_unordered,
+                          MdiIcons.formatListBulleted,
                           setSheetState,
                         ),
                         _buildSegmentTab(
                           'Details',
-                          RemixIcons.list_view,
+                          MdiIcons.viewListOutline,
                           setSheetState,
                         ),
                         _buildSegmentTab(
                           'Grid',
-                          RemixIcons.grid_line,
+                          MdiIcons.viewGridOutline,
                           setSheetState,
                         ),
                       ],
@@ -751,7 +751,7 @@ class _HistoryScreenState extends ConsumerState<HistoryScreen> {
                       : Colors.white,
                         isExpanded: true,
                         icon: Icon(
-                          RemixIcons.arrow_drop_down_line,
+                          MdiIcons.menuDown,
                           color: dark
                         ? Colors.white70
                         : const Color(0xFF49454F),
@@ -786,7 +786,7 @@ class _HistoryScreenState extends ConsumerState<HistoryScreen> {
                       Row(
                         children: [
                           Icon(
-                            RemixIcons.list_unordered,
+                            MdiIcons.formatListBulleted,
                             color: dark
                           ? Colors.white70
                           : const Color(0xFF49454F),
@@ -969,7 +969,7 @@ class _HistoryScreenState extends ConsumerState<HistoryScreen> {
       context,
       children: [
         IosMenuRow(
-          icon: RemixIcons.refresh_line,
+          icon: MdiIcons.refresh,
           label: l.refresh,
           onTap: () {
             Navigator.pop(context);
@@ -977,7 +977,7 @@ class _HistoryScreenState extends ConsumerState<HistoryScreen> {
           },
         ),
         IosMenuRow(
-          icon: RemixIcons.delete_bin_5_line,
+          icon: MdiIcons.deleteOutline,
           label: l.historyClearTitle,
           destructive: true,
           onTap: () {
@@ -986,7 +986,7 @@ class _HistoryScreenState extends ConsumerState<HistoryScreen> {
           },
         ),
         IosMenuRow(
-          icon: RemixIcons.list_unordered,
+          icon: MdiIcons.formatListBulleted,
           label: l.historyListOptions,
           onTap: () {
             Navigator.pop(context);
@@ -994,7 +994,7 @@ class _HistoryScreenState extends ConsumerState<HistoryScreen> {
           },
         ),
         IosMenuRow(
-          icon: RemixIcons.pie_chart_2_line,
+          icon: MdiIcons.chartDonut,
           label: l.historyStatistics,
           onTap: () {
             Navigator.pop(context);
@@ -1021,7 +1021,7 @@ class _HistoryScreenState extends ConsumerState<HistoryScreen> {
                   children: [
                     const SizedBox(width: 18),
                     Icon(
-                      RemixIcons.eye_off_line,
+                      MdiIcons.eyeOffOutline,
                       size: 20,
                       color: fg.withValues(alpha: 0.9),
                     ),
@@ -1056,7 +1056,7 @@ class _HistoryScreenState extends ConsumerState<HistoryScreen> {
         ),
         const IosMenuDivider(),
         IosMenuRow(
-          icon: RemixIcons.settings_3_line,
+          icon: MdiIcons.cogOutline,
           label: l.settings,
           onTap: () {
             Navigator.pop(context);
@@ -1219,8 +1219,8 @@ class _HistoryScreenState extends ConsumerState<HistoryScreen> {
                   SliverToBoxAdapter(
                     child: EmptyState(
                       icon: _searchQuery.isNotEmpty
-                          ? RemixIcons.search_line
-                          : RemixIcons.history_line,
+                          ? MdiIcons.magnify
+                          : MdiIcons.history,
                       title: _searchQuery.isNotEmpty
                           ? AppLocalizations.of(context).noResultsFound
                           : AppLocalizations.of(context).historyEmptyTitle,
@@ -1287,7 +1287,7 @@ class _HistoryScreenState extends ConsumerState<HistoryScreen> {
               },
               child: Padding(
                 padding: const EdgeInsets.all(8),
-                child: Icon(RemixIcons.close_line, color: iconColor, size: 20),
+                child: Icon(MdiIcons.close, color: iconColor, size: 20),
               ),
             ),
           GestureDetector(
@@ -1296,7 +1296,7 @@ class _HistoryScreenState extends ConsumerState<HistoryScreen> {
             },
             child: Padding(
               padding: const EdgeInsets.all(8),
-              child: Icon(RemixIcons.more_2_line, color: iconColor, size: 22),
+              child: Icon(MdiIcons.dotsVertical, color: iconColor, size: 22),
             ),
           ),
         ],
@@ -1402,7 +1402,7 @@ class _HistoryScreenState extends ConsumerState<HistoryScreen> {
 
     return IosNavBar(
       showBack: false,
-      leading: navAction(RemixIcons.close_line, _exitSelection),
+      leading: navAction(MdiIcons.close, _exitSelection),
       titleWidget: Text(
         AppLocalizations.of(
           context,
@@ -1412,12 +1412,12 @@ class _HistoryScreenState extends ConsumerState<HistoryScreen> {
       actions: [
         navAction(
           _allVisibleSelected
-              ? RemixIcons.checkbox_multiple_fill
-              : RemixIcons.checkbox_multiple_line,
+              ? MdiIcons.checkboxMultipleBlank
+              : MdiIcons.checkboxMultipleBlankOutline,
           _toggleSelectAll,
         ),
-        navAction(RemixIcons.delete_bin_5_line, _deleteSelected),
-        navAction(RemixIcons.more_2_line, _showSelectionActions),
+        navAction(MdiIcons.deleteOutline, _deleteSelected),
+        navAction(MdiIcons.dotsVertical, _showSelectionActions),
       ],
     );
   }
@@ -1469,8 +1469,8 @@ class _HistoryScreenState extends ConsumerState<HistoryScreen> {
             children: [
               _buildSheetRow(
                 icon: allFavorited
-                    ? RemixIcons.heart_3_fill
-                    : RemixIcons.heart_3_line,
+                    ? MdiIcons.heart
+                    : MdiIcons.heartOutline,
                 label: allFavorited ? l.removeFromFavorites : l.favorite,
                 color: fg,
                 onTap: () {
@@ -1479,7 +1479,7 @@ class _HistoryScreenState extends ConsumerState<HistoryScreen> {
                 },
               ),
               _buildSheetRow(
-                icon: RemixIcons.edit_line,
+                icon: MdiIcons.pencilOutline,
                 label: l.historyEdit,
                 color: fg,
                 onTap: () {
@@ -1648,9 +1648,9 @@ class _HistoryScreenState extends ConsumerState<HistoryScreen> {
 
   Widget _buildFilterChips() {
     final filters = [
-      {'icon': RemixIcons.sd_card_line, 'labelKey': 'onDevice'},
-      {'icon': RemixIcons.file_history_line, 'labelKey': 'newChapters'},
-      {'icon': RemixIcons.check_double_line, 'labelKey': 'completed'},
+      {'icon': MdiIcons.sd, 'labelKey': 'onDevice'},
+      {'icon': MdiIcons.fileClockOutline, 'labelKey': 'newChapters'},
+      {'icon': MdiIcons.checkAll, 'labelKey': 'completed'},
     ];
 
     final l = AppLocalizations.of(context);
@@ -1928,7 +1928,7 @@ class _GridHistoryCardState extends State<GridHistoryCard> {
                             color: amoled(context, 0xFF2C2C2E),
                             alignment: Alignment.center,
                             child: const Icon(
-                              RemixIcons.book_open_line,
+                              MdiIcons.bookOpenVariant,
                               color: Colors.white38,
                               size: 20,
                             ),
@@ -1960,7 +1960,7 @@ class _GridHistoryCardState extends State<GridHistoryCard> {
                           shape: BoxShape.circle,
                         ),
                         child: const Icon(
-                          RemixIcons.check_line,
+                          MdiIcons.check,
                           color: Colors.white,
                           size: 18,
                         ),
@@ -2030,7 +2030,7 @@ class _GridHistoryCardState extends State<GridHistoryCard> {
                                 shape: BoxShape.circle,
                               ),
                               child: const Icon(
-                                RemixIcons.sd_card_line,
+                                MdiIcons.sd,
                                 color: Colors.white,
                                 size: 14,
                               ),

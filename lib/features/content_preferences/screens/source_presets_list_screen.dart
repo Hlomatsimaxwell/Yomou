@@ -1,6 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
-import 'package:remixicon/remixicon.dart';
+import 'package:flutter_material_design_icons/flutter_material_design_icons.dart';
 import 'package:yomou/features/content_preferences/widgets/content_preferences_editor.dart';
 import 'package:yomou/features/content_preferences/screens/source_presets_edit_sheet.dart';
 import 'package:yomou/features/content_preferences/providers/source_presets_provider.dart';
@@ -44,7 +44,7 @@ class SourcePresetsListScreen extends ConsumerWidget {
                 mainAxisSize: MainAxisSize.min,
                 children: [
                   IconButton(
-                    icon: const Icon(RemixIcons.pencil_line),
+                    icon: const Icon(MdiIcons.pencilOutline),
                     tooltip: l.presetsEdit,
                     // "All sources" is built in: its name is localized and its
                     // empty language set is the whole point, so there is
@@ -54,7 +54,7 @@ class SourcePresetsListScreen extends ConsumerWidget {
                         : () => showSourcePresetEditSheet(context, preset: p),
                   ),
                   IconButton(
-                    icon: const Icon(RemixIcons.delete_bin_line),
+                    icon: const Icon(MdiIcons.deleteOutline),
                     tooltip: l.presetsDelete,
                     onPressed: p.isAll
                         ? null
@@ -69,7 +69,7 @@ class SourcePresetsListScreen extends ConsumerWidget {
       ),
       floatingActionButton: FloatingActionButton(
         onPressed: () => showSourcePresetEditSheet(context),
-        child: const Icon(RemixIcons.add_line),
+        child: const Icon(MdiIcons.plus),
       ),
     );
   }

@@ -1,7 +1,7 @@
 import 'package:flutter/material.dart';
 import 'dart:math';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
-import 'package:remixicon/remixicon.dart';
+import 'package:flutter_material_design_icons/flutter_material_design_icons.dart';
 import 'package:yomou/core/database/source_cache.dart';
 import 'package:yomou/core/theme/amoled.dart';
 import 'package:yomou/core/widgets/ios/ios_menu.dart';
@@ -43,15 +43,15 @@ class _ExploreScreenState extends ConsumerState<ExploreScreen> {
   bool _loadingRandom = false;
 
   final List<Map<String, dynamic>> _quickButtons = [
-    {'icon': RemixIcons.sd_card_line, 'labelKey': 'storage', 'type': 'storage'},
+    {'icon': MdiIcons.sd, 'labelKey': 'storage', 'type': 'storage'},
     {
-      'icon': RemixIcons.bookmark_3_line,
+      'icon': MdiIcons.bookmarkOutline,
       'labelKey': 'bookmarks',
       'type': 'bookmarks',
     },
-    {'icon': RemixIcons.dice_line, 'labelKey': 'random', 'type': 'random'},
+    {'icon': MdiIcons.diceMultipleOutline, 'labelKey': 'random', 'type': 'random'},
     {
-      'icon': RemixIcons.download_line,
+      'icon': MdiIcons.downloadOutline,
       'labelKey': 'downloads',
       'type': 'downloads',
     },
@@ -137,7 +137,7 @@ class _ExploreScreenState extends ConsumerState<ExploreScreen> {
             context,
             children: [
               IosMenuRow(
-                icon: RemixIcons.equalizer_line,
+                icon: MdiIcons.tune,
                 label: AppLocalizations.of(context).manageSources,
                 onTap: () => Navigator.pop(context, 'manage'),
               ),
@@ -152,7 +152,7 @@ class _ExploreScreenState extends ConsumerState<ExploreScreen> {
               ),
               const IosMenuDivider(),
               IosMenuRow(
-                icon: RemixIcons.settings_3_line,
+                icon: MdiIcons.cogOutline,
                 label: AppLocalizations.of(context).settings,
                 onTap: () => Navigator.pop(context, 'settings'),
               ),
@@ -178,7 +178,7 @@ class _ExploreScreenState extends ConsumerState<ExploreScreen> {
         child: Padding(
           padding: const EdgeInsets.all(8),
           child: Icon(
-            RemixIcons.more_2_line,
+            MdiIcons.dotsVertical,
             color: dark ? Colors.white70 : Colors.black54,
             size: 22,
           ),
@@ -549,7 +549,7 @@ class _ExploreScreenState extends ConsumerState<ExploreScreen> {
                     ),
                   ),
                   Icon(
-                    RemixIcons.arrow_right_s_line,
+                    MdiIcons.chevronRight,
                     size: 20,
                     color: dark ? Colors.white30 : Colors.black26,
                   ),
@@ -628,7 +628,7 @@ class _ExploreScreenState extends ConsumerState<ExploreScreen> {
                             child: Transform.rotate(
                               angle: -0.785398,
                               child: Icon(
-                                RemixIcons.pushpin_2_fill,
+                                MdiIcons.pin,
                                 size: 12,
                                 color: dark ? Colors.white70 : Colors.black54,
                               ),

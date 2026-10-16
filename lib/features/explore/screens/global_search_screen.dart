@@ -1,4 +1,4 @@
-import 'package:remixicon/remixicon.dart';
+import 'package:flutter_material_design_icons/flutter_material_design_icons.dart';
 import 'dart:async';
 import 'dart:convert';
 import 'package:yomou/core/theme/amoled.dart';
@@ -136,7 +136,7 @@ class _GlobalSearchScreenState extends ConsumerState<GlobalSearchScreen> {
         elevation: 0,
         leading: IconButton(
           icon: Icon(
-            RemixIcons.arrow_left_line,
+            MdiIcons.arrowLeft,
             color: dark ? Colors.white : const Color(0xFF1C1B1F),
           ),
           onPressed: () => Navigator.pop(context),
@@ -162,7 +162,7 @@ class _GlobalSearchScreenState extends ConsumerState<GlobalSearchScreen> {
             suffixIcon: _currentQuery.isNotEmpty
                 ? IconButton(
                     icon: Icon(
-                      RemixIcons.close_line,
+                      MdiIcons.close,
                       color: dark ? Colors.white70 : const Color(0xFF49454F),
                     ),
                     onPressed: () {
@@ -181,7 +181,7 @@ class _GlobalSearchScreenState extends ConsumerState<GlobalSearchScreen> {
                 IosMenuItem(
                   value: 'clear_history',
                   label: AppLocalizations.of(context).clearSearchHistory,
-                  icon: RemixIcons.delete_bin_6_line,
+                  icon: MdiIcons.deleteOutline,
                 ),
               ],
               onSelected: (value) {
@@ -307,7 +307,7 @@ class _GlobalSearchScreenState extends ConsumerState<GlobalSearchScreen> {
           (query) => ListTile(
             contentPadding: const EdgeInsets.symmetric(horizontal: 16),
             leading: Icon(
-              RemixIcons.history_line,
+              MdiIcons.history,
               color: dark ? Colors.white70 : const Color(0xFF49454F),
             ),
             title: Text(
@@ -321,7 +321,7 @@ class _GlobalSearchScreenState extends ConsumerState<GlobalSearchScreen> {
               ),
             ),
             trailing: Icon(
-              RemixIcons.arrow_left_up_line,
+              MdiIcons.arrowTopLeft,
               color: dark ? Colors.white54 : Colors.black54,
             ),
             onTap: () {
@@ -379,7 +379,7 @@ class _GlobalSearchScreenState extends ConsumerState<GlobalSearchScreen> {
                         width: 100,
                         alignment: Alignment.center,
                         child: Icon(
-                          RemixIcons.book_open_line,
+                          MdiIcons.bookOpenVariant,
                           color: dark ? Colors.white38 : Colors.black38,
                         ),
                       ),
@@ -428,7 +428,7 @@ class _GlobalSearchScreenState extends ConsumerState<GlobalSearchScreen> {
           (query) => ListTile(
             contentPadding: const EdgeInsets.symmetric(horizontal: 16),
             leading: Icon(
-              RemixIcons.history_line,
+              MdiIcons.history,
               color: dark ? Colors.white70 : const Color(0xFF49454F),
             ),
             title: Text(
@@ -442,7 +442,7 @@ class _GlobalSearchScreenState extends ConsumerState<GlobalSearchScreen> {
               ),
             ),
             trailing: Icon(
-              RemixIcons.arrow_left_up_line,
+              MdiIcons.arrowTopLeft,
               color: dark ? Colors.white54 : Colors.black54,
             ),
             onTap: () {
@@ -496,7 +496,7 @@ class _GlobalSearchScreenState extends ConsumerState<GlobalSearchScreen> {
       data: (results) {
         if (results.isEmpty) {
           return EmptyState(
-            icon: RemixIcons.search_2_line,
+            icon: MdiIcons.magnify,
             title: AppLocalizations.of(context).noResultsFound,
             subtitle: AppLocalizations.of(context).tryDifferentSearch,
             verticalPadding: 24,
@@ -555,7 +555,7 @@ class _GlobalSearchScreenState extends ConsumerState<GlobalSearchScreen> {
                                           : Colors.black12,
                                       alignment: Alignment.center,
                                       child: Icon(
-                                        RemixIcons.book_open_line,
+                                        MdiIcons.bookOpenVariant,
                                         color: dark
                                             ? Colors.white38
                                             : Colors.black38,

@@ -1,8 +1,8 @@
 import 'package:flutter/material.dart';
+import 'package:flutter_material_design_icons/flutter_material_design_icons.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:path/path.dart' as p;
 import 'package:path_provider/path_provider.dart';
-import 'package:remixicon/remixicon.dart';
 import 'package:yomou/core/backup/saf_directory_picker.dart';
 import 'package:yomou/core/storage/storage_stats.dart';
 import 'package:yomou/core/widgets/ios/ios_toast.dart';
@@ -118,7 +118,7 @@ class _MangaDirectoriesScreenState extends ConsumerState<MangaDirectoriesScreen>
       title: l.dlsAddSheetTitle,
       children: [
         ListTile(
-          leading: Icon(RemixIcons.folder_add_line, color: cs.primary),
+          leading: Icon(MdiIcons.folderPlusOutline, color: cs.primary),
           title: Text(l.dlsAddCustom),
           subtitle: Text(l.dlsAddCustomSubtitle),
           onTap: () => Navigator.pop(context, 'pick'),
@@ -200,7 +200,7 @@ class _MangaDirectoriesScreenState extends ConsumerState<MangaDirectoriesScreen>
                           crossAxisAlignment: CrossAxisAlignment.start,
                           children: [
                             Icon(
-                              RemixIcons.information_line,
+                              MdiIcons.informationOutline,
                               size: 18,
                               color: cs.onSurfaceVariant,
                             ),
@@ -258,7 +258,7 @@ class _AddPill extends StatelessWidget {
           child: Row(
             mainAxisSize: MainAxisSize.min,
             children: [
-              Icon(RemixIcons.add_line, size: 20, color: cs.onPrimary),
+              Icon(MdiIcons.plus, size: 20, color: cs.onPrimary),
               const SizedBox(width: 8),
               Text(
                 label,
@@ -319,7 +319,7 @@ class _StorageCard extends StatelessWidget {
               Padding(
                 padding: const EdgeInsets.only(top: 1),
                 child: Icon(
-                  RemixIcons.hard_drive_2_line,
+                  MdiIcons.harddisk,
                   size: 22,
                   color: cs.onSurfaceVariant,
                 ),
@@ -347,7 +347,7 @@ class _StorageCard extends StatelessWidget {
                             visualDensity: VisualDensity.compact,
                             tooltip: l.remove,
                             icon: Icon(
-                              RemixIcons.delete_bin_line,
+                              MdiIcons.deleteOutline,
                               size: 18,
                               color: cs.onSurfaceVariant,
                             ),
@@ -401,7 +401,7 @@ class _StorageCard extends StatelessWidget {
                           crossAxisAlignment: CrossAxisAlignment.start,
                           children: [
                             Icon(
-                              RemixIcons.alert_line,
+                              MdiIcons.alertOutline,
                               size: 14,
                               color: cs.error,
                             ),

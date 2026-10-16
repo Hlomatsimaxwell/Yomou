@@ -3,7 +3,7 @@ import 'package:yomou/widgets/cached_manga_image.dart';
 import 'package:yomou/widgets/manga_hero.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
-import 'package:remixicon/remixicon.dart';
+import 'package:flutter_material_design_icons/flutter_material_design_icons.dart';
 import 'package:yomou/data/models/manga.dart';
 import 'package:yomou/features/library/providers/favorites_provider.dart';
 import 'package:yomou/features/library/widgets/downloaded_badge.dart';
@@ -143,7 +143,7 @@ class _FavoritesScreenState extends ConsumerState<FavoritesScreen> {
         child: Padding(
           padding: const EdgeInsets.all(8),
           child: Icon(
-            RemixIcons.more_2_line,
+            MdiIcons.dotsVertical,
             color: dark ? Colors.white70 : Colors.black54,
             size: 22,
           ),
@@ -239,7 +239,7 @@ class _FavoritesScreenState extends ConsumerState<FavoritesScreen> {
         child: Padding(
           padding: const EdgeInsets.symmetric(vertical: 60, horizontal: 24),
           child: EmptyState(
-            icon: RemixIcons.heart_3_line,
+            icon: MdiIcons.heartOutline,
             title: _searchQuery.isNotEmpty
                 ? l.favoritesNoMatch
                 : l.favoritesEmpty,
@@ -344,7 +344,7 @@ class _FavoritesScreenState extends ConsumerState<FavoritesScreen> {
                               color: amoled(context, 0xFF2C2C2E),
                               alignment: Alignment.center,
                               child: const Icon(
-                                RemixIcons.book_open_line,
+                                MdiIcons.bookOpenVariant,
                                 color: Colors.white38,
                                 size: 28,
                               ),
@@ -362,7 +362,7 @@ class _FavoritesScreenState extends ConsumerState<FavoritesScreen> {
                                 color: Colors.black12,
                                 alignment: Alignment.center,
                                 child: const Icon(
-                                  RemixIcons.book_open_line,
+                                  MdiIcons.bookOpenVariant,
                                   color: Colors.black38,
                                   size: 28,
                                 ),

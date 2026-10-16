@@ -1,6 +1,6 @@
 import 'package:flutter/material.dart';
+import 'package:flutter_material_design_icons/flutter_material_design_icons.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
-import 'package:remixicon/remixicon.dart';
 import 'package:url_launcher/url_launcher.dart';
 import 'package:yomou/core/theme/amoled.dart';
 import 'package:yomou/core/widgets/ios/ios_toast.dart';
@@ -157,7 +157,7 @@ class _SourceSettingsScreenState extends ConsumerState<SourceSettingsScreen> {
   Widget _chevron() {
     final dark = Theme.of(context).brightness == Brightness.dark;
     return Icon(
-      RemixIcons.arrow_right_s_line,
+      MdiIcons.chevronRight,
       size: 20,
       color: dark ? Colors.white30 : Colors.black26,
     );
@@ -208,8 +208,8 @@ class _SourceSettingsScreenState extends ConsumerState<SourceSettingsScreen> {
                     children: [
                       Icon(
                         ok
-                            ? RemixIcons.check_double_fill
-                            : RemixIcons.alert_fill,
+                            ? MdiIcons.checkAll
+                            : MdiIcons.alert,
                         color: Color(color.toARGB32()),
                         size: 22,
                       ),
@@ -356,7 +356,7 @@ class _SourceSettingsScreenState extends ConsumerState<SourceSettingsScreen> {
           elevation: 0,
           leading: IconButton(
             icon: Icon(
-              RemixIcons.arrow_left_line,
+              MdiIcons.arrowLeft,
               color: dark ? Colors.white : const Color(0xFF1C1B1F),
             ),
             onPressed: () => Navigator.pop(context),
@@ -392,7 +392,7 @@ class _SourceSettingsScreenState extends ConsumerState<SourceSettingsScreen> {
         elevation: 0,
         leading: IconButton(
           icon: Icon(
-            RemixIcons.arrow_left_line,
+            MdiIcons.arrowLeft,
             color: dark ? Colors.white : const Color(0xFF1C1B1F),
           ),
           onPressed: () => Navigator.pop(context),
@@ -410,7 +410,7 @@ class _SourceSettingsScreenState extends ConsumerState<SourceSettingsScreen> {
         padding: const EdgeInsets.symmetric(vertical: 8),
         children: [
           _row(
-            icon: RemixIcons.global_line,
+            icon: MdiIcons.earth,
             title: _l.sourceDomain,
             subtitle: _l.sourceDefault(
               config.baseUrlOverride ?? defaultDomain,
@@ -429,7 +429,7 @@ class _SourceSettingsScreenState extends ConsumerState<SourceSettingsScreen> {
           ),
           sectionDivider(),
           _row(
-            icon: RemixIcons.user_smile_line,
+            icon: MdiIcons.accountOutline,
             title: _l.sourceUserAgent,
             subtitle: _l.sourceDefault(
               config.userAgent ?? _defaultUa ?? 'Default',
@@ -449,7 +449,7 @@ class _SourceSettingsScreenState extends ConsumerState<SourceSettingsScreen> {
           sectionDivider(),
           if (supportsSignIn) ...[
             _row(
-              icon: RemixIcons.login_box_line,
+              icon: MdiIcons.loginVariant,
               title: _l.sourceSignIn,
               subtitle: signedInSubtitle,
               trailing: _chevron(),
@@ -458,7 +458,7 @@ class _SourceSettingsScreenState extends ConsumerState<SourceSettingsScreen> {
             sectionDivider(),
           ],
           _row(
-            icon: RemixIcons.delete_bin_line,
+            icon: MdiIcons.deleteOutline,
             title: _l.sourceClearCookies,
             subtitle: _l.sourceClearCookiesSubtitle,
             trailing: _chevron(),
@@ -470,7 +470,7 @@ class _SourceSettingsScreenState extends ConsumerState<SourceSettingsScreen> {
           ),
           sectionDivider(),
           _row(
-            icon: RemixIcons.shield_check_line,
+            icon: MdiIcons.shieldCheckOutline,
             title: _l.sourceCaptchaSolver,
             subtitle: _l.sourceCaptchaSolverSubtitle,
             trailing: Switch(
@@ -486,7 +486,7 @@ class _SourceSettingsScreenState extends ConsumerState<SourceSettingsScreen> {
           ),
           sectionDivider(),
           _row(
-            icon: RemixIcons.notification_badge_line,
+            icon: MdiIcons.bellBadgeOutline,
             title: _l.sourceCaptchaNotif,
             subtitle: _l.sourceCaptchaNotifSubtitle,
             trailing: Switch(
@@ -502,7 +502,7 @@ class _SourceSettingsScreenState extends ConsumerState<SourceSettingsScreen> {
           ),
           sectionDivider(),
           _row(
-            icon: RemixIcons.speed_line,
+            icon: MdiIcons.speedometer,
             title: _l.sourceDownloadSlowdown,
             subtitle: _l.sourceDownloadSlowdownSubtitle,
             trailing: Switch(
@@ -518,7 +518,7 @@ class _SourceSettingsScreenState extends ConsumerState<SourceSettingsScreen> {
           ),
           sectionDivider(),
           _row(
-            icon: RemixIcons.pulse_line,
+            icon: MdiIcons.pulse,
             title: _l.sourceTest,
             subtitle: _l.sourceTestSubtitle,
             trailing: _testing
@@ -532,7 +532,7 @@ class _SourceSettingsScreenState extends ConsumerState<SourceSettingsScreen> {
           ),
           sectionDivider(),
           _row(
-            icon: RemixIcons.external_link_line,
+            icon: MdiIcons.openInNew,
             title: _l.sourceOpenInBrowser,
             subtitle: config.baseUrlOverride ?? websiteDomain,
             trailing: _chevron(),

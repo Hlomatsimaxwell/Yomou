@@ -1,8 +1,8 @@
 import 'dart:math' as math;
 
 import 'package:flutter/material.dart';
+import 'package:flutter_material_design_icons/flutter_material_design_icons.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
-import 'package:remixicon/remixicon.dart';
 import 'package:yomou/core/theme/amoled.dart';
 import 'package:yomou/core/widgets/ios/ios_press.dart';
 import 'package:yomou/data/models/manga.dart';
@@ -594,7 +594,7 @@ class _BookCover extends StatelessWidget {
                         : const Color(0xFFDDD8D0),
                     alignment: Alignment.center,
                     child: Icon(
-                      RemixIcons.book_open_fill,
+                      MdiIcons.bookOpenVariant,
                       color: dark ? Colors.white38 : Colors.black26,
                       size: artWidth * 0.24,
                     ),
@@ -713,7 +713,7 @@ class _CarouselError extends StatelessWidget {
               const SizedBox(height: 14),
               OutlinedButton.icon(
                 onPressed: onRetry,
-                icon: const Icon(RemixIcons.refresh_line, size: 18),
+                icon: const Icon(MdiIcons.refresh, size: 18),
                 label: Text(l.retry),
                 style: OutlinedButton.styleFrom(
                   foregroundColor: dark ? Colors.white : scheme.onSurface,

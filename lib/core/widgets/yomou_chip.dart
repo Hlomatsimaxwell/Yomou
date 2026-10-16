@@ -1,5 +1,5 @@
 import 'package:flutter/material.dart';
-import 'package:remixicon/remixicon.dart';
+import 'package:flutter_material_design_icons/flutter_material_design_icons.dart';
 
 /// The selectable pill behind the content-preference pickers.
 ///
@@ -49,7 +49,7 @@ class YomouChip extends StatelessWidget {
             children: [
               if (selected) ...[
                 Icon(
-                  RemixIcons.check_line,
+                  MdiIcons.check,
                   size: 16,
                   color: effectiveAccent,
                 ),

@@ -1,6 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
-import 'package:remixicon/remixicon.dart';
+import 'package:flutter_material_design_icons/flutter_material_design_icons.dart';
 import 'package:yomou/core/cache/app_cache.dart';
 import 'package:yomou/core/widgets/responsive.dart';
 import 'package:yomou/core/widgets/ios/ios_toast.dart';
@@ -40,7 +40,7 @@ class _StorageSettingsScreenState extends ConsumerState<StorageSettingsScreen> {
           title: Text(l.storageCacheMaxTitle),
           subtitle: Text(l.storageCacheMaxSubtitle(settings.maxCacheObjects)),
           trailing: Icon(
-            RemixIcons.arrow_right_s_line,
+            MdiIcons.chevronRight,
             color: Theme.of(context).colorScheme.outline,
           ),
           onTap: () => _showMaxCacheSelector(context, l, notifier),
@@ -49,7 +49,7 @@ class _StorageSettingsScreenState extends ConsumerState<StorageSettingsScreen> {
           title: Text(l.storageCacheStaleTitle),
           subtitle: Text(l.storageCacheStaleSubtitle(settings.staleDays)),
           trailing: Icon(
-            RemixIcons.arrow_right_s_line,
+            MdiIcons.chevronRight,
             color: Theme.of(context).colorScheme.outline,
           ),
           onTap: () => _showStaleSelector(context, l, notifier),
@@ -65,7 +65,7 @@ class _StorageSettingsScreenState extends ConsumerState<StorageSettingsScreen> {
           future: _usageFuture,
           builder: (context, snapshot) => ListTile(
             leading: Icon(
-              RemixIcons.delete_bin_line,
+              MdiIcons.deleteOutline,
               color: Theme.of(context).colorScheme.error,
             ),
             title: Text(l.storageClearTitle),
@@ -99,7 +99,7 @@ class _StorageSettingsScreenState extends ConsumerState<StorageSettingsScreen> {
           ListTile(
             title: Text(l.storageCacheMaxSubtitle(value)),
             trailing: ref.read(cacheSettingsProvider).maxCacheObjects == value
-                ? Icon(RemixIcons.check_line,
+                ? Icon(MdiIcons.check,
                     color: Theme.of(context).colorScheme.primary)
                 : null,
             onTap: () {
@@ -125,7 +125,7 @@ class _StorageSettingsScreenState extends ConsumerState<StorageSettingsScreen> {
           ListTile(
             title: Text(l.storageCacheStaleSubtitle(value)),
             trailing: ref.read(cacheSettingsProvider).staleDays == value
-                ? Icon(RemixIcons.check_line,
+                ? Icon(MdiIcons.check,
                     color: Theme.of(context).colorScheme.primary)
                 : null,
             onTap: () {

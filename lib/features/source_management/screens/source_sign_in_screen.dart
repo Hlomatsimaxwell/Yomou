@@ -1,6 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_inappwebview/flutter_inappwebview.dart';
-import 'package:remixicon/remixicon.dart';
+import 'package:flutter_material_design_icons/flutter_material_design_icons.dart';
 import 'package:url_launcher/url_launcher.dart';
 import 'package:yomou/core/widgets/webview_support.dart';
 import 'package:yomou/data/sources/source_network.dart';
@@ -77,7 +77,7 @@ class _SourceSignInScreenState extends State<SourceSignInScreen> {
           elevation: 0,
           leading: IconButton(
             icon: Icon(
-              RemixIcons.close_line,
+              MdiIcons.close,
               color: dark ? Colors.white : const Color(0xFF1C1B1F),
             ),
             onPressed: () {
@@ -113,7 +113,7 @@ class _SourceSignInScreenState extends State<SourceSignInScreen> {
           actions: [
             IconButton(
               icon: Icon(
-                RemixIcons.external_link_line,
+                MdiIcons.openInNew,
                 color: dark ? Colors.white : const Color(0xFF1C1B1F),
               ),
               onPressed: () async {

@@ -1,6 +1,6 @@
 import 'package:flutter/material.dart';
+import 'package:flutter_material_design_icons/flutter_material_design_icons.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
-import 'package:remixicon/remixicon.dart';
 import 'package:yomou/core/storage/storage_stats.dart';
 import 'package:yomou/features/settings/providers/download_settings_provider.dart';
 import 'package:yomou/l10n/generated/app_localizations.dart';
@@ -93,7 +93,7 @@ class _MeteredDownloadDialog extends StatelessWidget {
       shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(22)),
       titlePadding: const EdgeInsets.fromLTRB(24, 24, 24, 8),
       contentPadding: const EdgeInsets.fromLTRB(24, 0, 24, 8),
-      icon: Icon(RemixIcons.signal_wifi_line, color: cs.primary, size: 28),
+      icon: Icon(MdiIcons.wifiStrength3, color: cs.primary, size: 28),
       title: Text(
         l.dlsCellularConfirmTitle,
         textAlign: TextAlign.center,

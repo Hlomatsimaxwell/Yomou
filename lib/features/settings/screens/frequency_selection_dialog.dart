@@ -1,6 +1,6 @@
 import 'package:flutter/material.dart';
+import 'package:flutter_material_design_icons/flutter_material_design_icons.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
-import 'package:remixicon/remixicon.dart';
 import 'package:yomou/features/settings/providers/cache_settings_provider.dart';
 import 'package:yomou/l10n/generated/app_localizations.dart';
 import 'package:yomou/widgets/m3_components.dart';
@@ -35,7 +35,7 @@ Future<void> showFrequencySelectionSheet(
           title: Text(entry.key),
           trailing: entry.value == current
               ? Icon(
-                  RemixIcons.check_line,
+                  MdiIcons.check,
                   color: Theme.of(context).colorScheme.primary,
                 )
               : null,

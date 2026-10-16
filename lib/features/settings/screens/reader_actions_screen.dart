@@ -1,6 +1,6 @@
 import 'package:flutter/material.dart';
+import 'package:flutter_material_design_icons/flutter_material_design_icons.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
-import 'package:remixicon/remixicon.dart';
 import 'package:yomou/core/theme/colors.dart';
 import 'package:yomou/core/widgets/ios/ios_toast.dart';
 import 'package:yomou/features/settings/providers/reader_actions_provider.dart';
@@ -28,7 +28,7 @@ class ReaderActionsScreen extends ConsumerWidget {
         actions: [
           IconButton(
             tooltip: l.ractMenuOverflow,
-            icon: const Icon(RemixIcons.more_2_line),
+            icon: const Icon(MdiIcons.dotsVertical),
             onPressed: () => _showOverflow(context, ref),
           ),
         ],
@@ -129,7 +129,7 @@ class ReaderActionsScreen extends ConsumerWidget {
       title: title,
       // The reference list asks for `hand_line`, which this icon set version
       // does not ship; `cursor_hand` is the same pointing-finger glyph.
-      titleLeading: RemixIcons.cursor_hand,
+      titleLeading: MdiIcons.cursorDefaultOutline,
       options: [for (final id in kActIds) (id, actionLabel(l, id))],
       selected: selected,
     );

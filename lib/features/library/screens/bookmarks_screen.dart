@@ -3,7 +3,7 @@ import 'package:yomou/widgets/cached_manga_image.dart';
 import 'package:yomou/widgets/manga_hero.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
-import 'package:remixicon/remixicon.dart';
+import 'package:flutter_material_design_icons/flutter_material_design_icons.dart';
 import 'package:yomou/core/database/database_helper.dart';
 import 'package:yomou/core/widgets/empty_state.dart';
 import 'package:yomou/core/widgets/ios/ios_press.dart';
@@ -126,7 +126,7 @@ class _BookmarksScreenState extends ConsumerState<BookmarksScreen> {
             )
           : _rows.isEmpty
           ? EmptyState(
-              icon: RemixIcons.bookmark_3_line,
+              icon: MdiIcons.bookmarkOutline,
               title: l.bookmarksEmpty,
               subtitle: l.bookmarksEmptySubtitle,
             )
@@ -216,7 +216,7 @@ class _BookmarkTile extends StatelessWidget {
                           color: amoled(context, 0xFF2C2C2E),
                           alignment: Alignment.center,
                           child: const Icon(
-                            RemixIcons.book_open_line,
+                            MdiIcons.bookOpenVariant,
                             color: Colors.white38,
                           ),
                         ),
@@ -237,7 +237,7 @@ class _BookmarkTile extends StatelessWidget {
                             color: Colors.black12,
                             alignment: Alignment.center,
                             child: const Icon(
-                              RemixIcons.book_open_line,
+                              MdiIcons.bookOpenVariant,
                               color: Colors.black38,
                             ),
                           ),
@@ -287,7 +287,7 @@ class _BookmarkTile extends StatelessWidget {
             ),
             IconButton(
               icon: Icon(
-                RemixIcons.delete_bin_6_line,
+                MdiIcons.deleteOutline,
                 color: dark ? Colors.white38 : Colors.black38,
                 size: 20,
               ),

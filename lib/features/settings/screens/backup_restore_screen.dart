@@ -3,7 +3,7 @@ import 'dart:io';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:file_picker/file_picker.dart';
-import 'package:remixicon/remixicon.dart';
+import 'package:flutter_material_design_icons/flutter_material_design_icons.dart';
 import 'package:yomou/core/backup/backup_picker.dart';
 import 'package:yomou/core/backup/backup_restore.dart';
 import 'package:yomou/core/backup/kotatsu_backup.dart';
@@ -392,13 +392,13 @@ class _BackupRestoreScreenState extends ConsumerState<BackupRestoreScreen> {
       children: [
         _AppSectionHeader(title: l.kotatsuSectionTitle),
         _BuildButton(
-          icon: RemixIcons.stack_line,
+          icon: MdiIcons.layersOutline,
           title: l.exportKotatsu,
           subtitle: l.exportKotatsuSubtitle,
           onTap: _exportKotatsu,
         ),
         _BuildButton(
-          icon: RemixIcons.archive_drawer_line,
+          icon: MdiIcons.archiveOutline,
           title: l.importKotatsu,
           subtitle: l.importKotatsuSubtitle,
           onTap: _importKotatsu,
@@ -406,26 +406,26 @@ class _BackupRestoreScreenState extends ConsumerState<BackupRestoreScreen> {
         const SizedBox(height: 8),
         _AppSectionHeader(title: l.tachiyomiSectionTitle),
         _BuildButton(
-          icon: RemixIcons.upload_2_line,
+          icon: MdiIcons.uploadOutline,
           title: l.exportTachiyomi,
           subtitle: l.exportTachiyomiSubtitle,
           onTap: _exportTachiyomi,
         ),
         _BuildButton(
-          icon: RemixIcons.download_2_line,
+          icon: MdiIcons.downloadOutline,
           title: l.importTachiyomi,
           subtitle: l.importTachiyomiSubtitle,
           onTap: _importTachiyomi,
         ),
         _BuildButton(
-          icon: RemixIcons.scissors_cut_line,
+          icon: MdiIcons.contentCut,
           title: l.backupFixLibrary,
           subtitle: l.backupFixLibrarySubtitle,
           onTap: _fixLibrary,
         ),
         const SizedBox(height: 8),
         _BuildButton(
-          icon: RemixIcons.time_line,
+          icon: MdiIcons.clockOutline,
           title: l.periodicBackups,
           onTap: () {
             Navigator.push(

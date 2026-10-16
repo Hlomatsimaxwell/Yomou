@@ -1,7 +1,7 @@
 import 'dart:convert';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
-import 'package:remixicon/remixicon.dart';
+import 'package:flutter_material_design_icons/flutter_material_design_icons.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import 'package:yomou/core/theme/amoled.dart';
 import 'package:yomou/core/widgets/ios/ios_menu.dart';
@@ -272,13 +272,13 @@ class _MangaFilterSheetState extends ConsumerState<MangaFilterSheet> {
       context,
       children: [
         IosMenuRow(
-          icon: RemixIcons.edit_2_line,
+          icon: MdiIcons.pencilOutline,
           label: l.filterRename,
           onTap: () => Navigator.pop(context, 'rename'),
         ),
         const IosMenuDivider(),
         IosMenuRow(
-          icon: RemixIcons.delete_bin_5_line,
+          icon: MdiIcons.deleteOutline,
           label: l.filterDelete,
           destructive: true,
           onTap: () => Navigator.pop(context, 'delete'),
@@ -400,7 +400,7 @@ class _MangaFilterSheetState extends ConsumerState<MangaFilterSheet> {
               // control only appears when its owner gave it something to do.
               if (!widget.inline || widget.onClose != null)
                 IconButton(
-                  icon: const Icon(RemixIcons.close_line, size: 22),
+                  icon: const Icon(MdiIcons.close, size: 22),
                   tooltip: AppLocalizations.of(context).filterClose,
                   onPressed: _close,
                 ),
@@ -415,7 +415,7 @@ class _MangaFilterSheetState extends ConsumerState<MangaFilterSheet> {
                 ),
               ),
               IconButton(
-                icon: const Icon(RemixIcons.refresh_line, size: 20),
+                icon: const Icon(MdiIcons.refresh, size: 20),
                 tooltip: l.filterReset,
                 onPressed: _reset,
               ),
@@ -610,7 +610,7 @@ class _MangaFilterSheetState extends ConsumerState<MangaFilterSheet> {
           isExpanded: true,
           dropdownColor: fill,
           icon: Icon(
-            RemixIcons.arrow_down_s_line,
+            MdiIcons.chevronDown,
             size: 18,
             color: dark ? Colors.white70 : const Color(0xFF49454F),
           ),
@@ -714,7 +714,7 @@ class _MangaFilterSheetState extends ConsumerState<MangaFilterSheet> {
                 mainAxisSize: MainAxisSize.min,
                 children: [
                   Icon(
-                    RemixIcons.bookmark_3_fill,
+                    MdiIcons.bookmark,
                     size: 15,
                     color: scheme.primary,
                   ),
@@ -737,7 +737,7 @@ class _MangaFilterSheetState extends ConsumerState<MangaFilterSheet> {
             child: Padding(
               padding: const EdgeInsets.only(right: 10, top: 4, bottom: 4),
               child: Icon(
-                RemixIcons.arrow_down_s_line,
+                MdiIcons.chevronDown,
                 size: 16,
                 color: dark ? Colors.white54 : Colors.black45,
               ),

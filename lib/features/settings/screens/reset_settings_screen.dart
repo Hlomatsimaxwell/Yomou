@@ -1,5 +1,5 @@
 import 'package:flutter/material.dart';
-import 'package:remixicon/remixicon.dart';
+import 'package:flutter_material_design_icons/flutter_material_design_icons.dart';
 import 'package:yomou/core/settings/settings_reset.dart';
 import 'package:yomou/core/widgets/responsive.dart';
 import 'package:yomou/l10n/generated/app_localizations.dart';
@@ -31,26 +31,26 @@ class _ResetSettingsScreenState extends State<ResetSettingsScreen> {
     final groups = <(SettingsGroup, IconData, String)>[
       (
         SettingsGroup.appearance,
-        RemixIcons.palette_line,
+        MdiIcons.paletteOutline,
         l.settingsGroupAppearance,
       ),
       (
         SettingsGroup.contentPreferences,
-        RemixIcons.earth_line,
+        MdiIcons.earth,
         l.settingsGroupContent,
       ),
-      (SettingsGroup.reader, RemixIcons.book_open_line, l.settingsGroupReader),
+      (SettingsGroup.reader, MdiIcons.bookOpenVariant, l.settingsGroupReader),
       (
         SettingsGroup.notifications,
-        RemixIcons.rss_line,
+        MdiIcons.rss,
         l.settingsGroupNotifications,
       ),
       (
         SettingsGroup.storage,
-        RemixIcons.download_line,
+        MdiIcons.downloadOutline,
         l.settingsGroupStorage,
       ),
-      (SettingsGroup.sources, RemixIcons.window_2_line, l.settingsGroupSources),
+      (SettingsGroup.sources, MdiIcons.applicationOutline, l.settingsGroupSources),
     ];
 
     return Scaffold(
@@ -92,7 +92,7 @@ class _ResetSettingsScreenState extends State<ResetSettingsScreen> {
           _Hint(text: l.settingsEraseSubtitle),
           ListTile(
             leading: Icon(
-              RemixIcons.delete_bin_line,
+              MdiIcons.deleteOutline,
               color: theme.colorScheme.error,
             ),
             title: Text(

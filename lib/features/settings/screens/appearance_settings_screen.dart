@@ -1,6 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
-import 'package:remixicon/remixicon.dart';
+import 'package:flutter_material_design_icons/flutter_material_design_icons.dart';
 import 'package:yomou/core/widgets/kotatsu_icon.dart';
 import 'package:yomou/core/widgets/responsive.dart';
 import 'package:yomou/features/settings/providers/appearance_provider.dart';
@@ -331,7 +331,7 @@ class AppearanceSettingsScreen extends ConsumerWidget {
     return ListTile(
       title: Text(label),
       trailing: mode == current
-          ? Icon(RemixIcons.check_line, color: Theme.of(context).colorScheme.primary)
+          ? Icon(MdiIcons.check, color: Theme.of(context).colorScheme.primary)
           : null,
       onTap: () {
         notifier.setThemeMode(mode);
@@ -365,7 +365,7 @@ class AppearanceSettingsScreen extends ConsumerWidget {
           ListTile(
             title: Text(labels[i]),
             trailing: languages[i] == settings.language
-                ? Icon(RemixIcons.check_line, color: Theme.of(context).colorScheme.primary)
+                ? Icon(MdiIcons.check, color: Theme.of(context).colorScheme.primary)
                 : null,
             onTap: () {
               notifier.setLanguage(languages[i]);
@@ -403,7 +403,7 @@ class AppearanceSettingsScreen extends ConsumerWidget {
     return ListTile(
       title: Text(label),
       trailing: mode == current
-          ? Icon(RemixIcons.check_line, color: Theme.of(context).colorScheme.primary)
+          ? Icon(MdiIcons.check, color: Theme.of(context).colorScheme.primary)
           : null,
       onTap: () {
         notifier.setListMode(mode);
@@ -435,7 +435,7 @@ class AppearanceSettingsScreen extends ConsumerWidget {
           ListTile(
             title: Text(tab.$2),
             trailing: tab.$1 == settings.defaultTab
-                ? Icon(RemixIcons.check_line, color: Theme.of(context).colorScheme.primary)
+                ? Icon(MdiIcons.check, color: Theme.of(context).colorScheme.primary)
                 : null,
             onTap: () {
               notifier.setDefaultTab(tab.$1);
@@ -631,7 +631,7 @@ class AppearanceSettingsScreen extends ConsumerWidget {
           ListTile(
             title: Text(policyLabels[i]),
             trailing: policyCodes[i] == settings.screenshotPolicy
-                ? Icon(RemixIcons.check_line, color: Theme.of(context).colorScheme.primary)
+                ? Icon(MdiIcons.check, color: Theme.of(context).colorScheme.primary)
                 : null,
             onTap: () {
               notifier.setScreenshotPolicy(policyCodes[i]);

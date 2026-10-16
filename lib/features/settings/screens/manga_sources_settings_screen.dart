@@ -1,6 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
-import 'package:remixicon/remixicon.dart';
+import 'package:flutter_material_design_icons/flutter_material_design_icons.dart';
 import 'package:yomou/core/widgets/responsive.dart';
 import 'package:yomou/l10n/generated/app_localizations.dart';
 import 'package:yomou/data/providers/sources_provider.dart';
@@ -104,7 +104,7 @@ class _MangaSourcesSettingsScreenState
             ? const SizedBox.shrink()
             : IconButton(
                 icon: Icon(
-                  RemixIcons.arrow_left_line,
+                  MdiIcons.arrowLeft,
                   color: dark ? Colors.white : const Color(0xFF1C1B1F),
                 ),
                 onPressed: () => Navigator.pop(context),
@@ -122,7 +122,7 @@ class _MangaSourcesSettingsScreenState
       padding: const EdgeInsets.symmetric(vertical: 8),
       children: [
         _row(
-          icon: RemixIcons.sort_asc,
+          icon: MdiIcons.sortAscending,
           title: l.sourcesSortingOrder,
           subtitle: _sortLabel(sortOrder, l),
           trailing: _chevron(),
@@ -130,7 +130,7 @@ class _MangaSourcesSettingsScreenState
         ),
         sectionDivider(),
         _row(
-          icon: RemixIcons.file_list_3_line,
+          icon: MdiIcons.newspaperVariantOutline,
           title: l.sourcesManage,
           subtitle: l.settingsMangaSourcesSubtitle(enabledCount, totalCount),
           trailing: _chevron(),
@@ -145,7 +145,7 @@ class _MangaSourcesSettingsScreenState
         ),
         sectionDivider(),
         _row(
-          icon: RemixIcons.grid_line,
+          icon: MdiIcons.viewGridOutline,
           title: l.sourcesShowInGrid,
           trailing: Switch(
             value: showInGrid,
@@ -155,7 +155,7 @@ class _MangaSourcesSettingsScreenState
         ),
         sectionDivider(),
         _row(
-          icon: RemixIcons.checkbox_circle_line,
+          icon: MdiIcons.checkboxBlankCircleOutline,
           title: l.sourcesEnableAll,
           trailing: Switch(
             value: enableAll,
@@ -164,7 +164,7 @@ class _MangaSourcesSettingsScreenState
         ),
         sectionDivider(),
         _row(
-          icon: RemixIcons.shield_flash_line,
+          icon: MdiIcons.shieldOutline,
           title: l.disableNsfw,
           trailing: Switch(
             value: enabled,
@@ -174,7 +174,7 @@ class _MangaSourcesSettingsScreenState
         ),
         sectionDivider(),
         _row(
-          icon: RemixIcons.refresh_line,
+          icon: MdiIcons.refresh,
           title: l.sourcesChooseMirror,
           trailing: Switch(
             value: chooseMirror,
@@ -185,7 +185,7 @@ class _MangaSourcesSettingsScreenState
         ),
         sectionDivider(),
         _row(
-          icon: RemixIcons.link,
+          icon: MdiIcons.linkVariant,
           title: l.sourcesHandleLinks,
           trailing: Switch(
             value: handleLinks,
@@ -195,7 +195,7 @@ class _MangaSourcesSettingsScreenState
         ),
         sectionDivider(),
         _row(
-          icon: RemixIcons.eye_off_line,
+          icon: MdiIcons.eyeOffOutline,
           title: l.sourcesIncognitoNsfw,
           subtitle: _incognitoLabel(incognitoMode, l),
           trailing: _chevron(),
@@ -203,7 +203,7 @@ class _MangaSourcesSettingsScreenState
         ),
         sectionDivider(),
         _row(
-          icon: RemixIcons.database_2_line,
+          icon: MdiIcons.databaseOutline,
           title: l.sourcesCatalog,
           subtitle: l.sourcesCatalogSubtitle,
           enabled: false,
@@ -216,7 +216,7 @@ class _MangaSourcesSettingsScreenState
   Widget _chevron() {
     final dark = Theme.of(context).brightness == Brightness.dark;
     return Icon(
-      RemixIcons.arrow_right_s_line,
+      MdiIcons.chevronRight,
       size: 20,
       color: dark ? Colors.white30 : Colors.black26,
     );

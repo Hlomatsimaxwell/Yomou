@@ -1,6 +1,6 @@
 import 'package:flutter/material.dart';
+import 'package:flutter_material_design_icons/flutter_material_design_icons.dart';
 
-import 'package:remixicon/remixicon.dart';
 import 'ios_menu.dart';
 
 /// iOS-style navigation bar: leading button close to the screen edge, centered
@@ -41,7 +41,7 @@ class IosNavBar extends StatelessWidget {
                 child: Padding(
                   padding: const EdgeInsets.all(8),
                   child: Icon(
-                    RemixIcons.arrow_left_s_line,
+                    MdiIcons.chevronLeft,
                     size: 32,
                     color:
                         (dark

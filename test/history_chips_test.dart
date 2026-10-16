@@ -5,9 +5,9 @@ import 'dart:ui' as ui;
 import 'package:flutter/material.dart';
 import 'package:flutter/rendering.dart';
 import 'package:flutter/services.dart';
+import 'package:flutter_material_design_icons/flutter_material_design_icons.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_test/flutter_test.dart';
-import 'package:remixicon/remixicon.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import 'package:yomou/core/cache/app_cache.dart';
 import 'package:yomou/core/database/database_helper.dart';
@@ -63,13 +63,13 @@ void main() {
       SharedPreferences.setMockInitialValues({});
 
       await tester.pumpWidget(ring(100));
-      expect(find.byIcon(RemixIcons.check_line), findsOneWidget);
+      expect(find.byIcon(MdiIcons.check), findsOneWidget);
       expect(find.text('100%'), findsNothing);
 
       // The same widget, mid-read: the percentage is back and the check is not.
       await tester.pumpWidget(ring(40));
       expect(find.text('40%'), findsOneWidget);
-      expect(find.byIcon(RemixIcons.check_line), findsNothing);
+      expect(find.byIcon(MdiIcons.check), findsNothing);
     });
 
     testWidgets('paints a tonal disc, an accent arc and a real track', (

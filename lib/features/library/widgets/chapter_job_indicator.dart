@@ -1,5 +1,5 @@
 import 'package:flutter/material.dart';
-import 'package:remixicon/remixicon.dart';
+import 'package:flutter_material_design_icons/flutter_material_design_icons.dart';
 
 /// Where a chapter sits in the live download job's queue.
 enum ChapterJobState {
@@ -51,12 +51,12 @@ class ChapterJobIndicator extends StatelessWidget {
         );
       case ChapterJobState.pending:
         return Icon(
-          RemixIcons.time_line,
+          MdiIcons.clockOutline,
           size: 18,
           color: isDark ? Colors.white38 : Colors.black38,
         );
       case ChapterJobState.saved:
-        return Icon(RemixIcons.check_double_line, size: 18, color: accent);
+        return Icon(MdiIcons.checkAll, size: 18, color: accent);
     }
   }
 }

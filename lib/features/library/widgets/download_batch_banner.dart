@@ -1,5 +1,5 @@
 import 'package:flutter/material.dart';
-import 'package:remixicon/remixicon.dart';
+import 'package:flutter_material_design_icons/flutter_material_design_icons.dart';
 import 'package:yomou/core/theme/amoled.dart';
 import 'package:yomou/features/reader/services/download_job.dart';
 import 'package:yomou/l10n/generated/app_localizations.dart';
@@ -102,13 +102,13 @@ class DownloadBatchBanner extends StatelessWidget {
                 ),
               _BannerButton(
                 icon: paused
-                    ? RemixIcons.play_line
-                    : RemixIcons.pause_line,
+                    ? MdiIcons.playOutline
+                    : MdiIcons.pause,
                 label: paused ? l.dlgDownloadResume : l.dlgDownloadPause,
                 onTap: onPause,
               ),
               _BannerButton(
-                icon: RemixIcons.close_line,
+                icon: MdiIcons.close,
                 label: l.dlgDownloadCancel,
                 onTap: onCancel,
                 tint: dark ? Colors.white70 : const Color(0xFF49454F),

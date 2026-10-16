@@ -1,9 +1,9 @@
 import 'dart:io';
 
 import 'package:flutter/material.dart';
+import 'package:flutter_material_design_icons/flutter_material_design_icons.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_test/flutter_test.dart';
-import 'package:remixicon/remixicon.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import 'package:yomou/core/widgets/manga_grid_metrics.dart';
 import 'package:yomou/data/models/manga.dart';
@@ -323,7 +323,7 @@ void main() {
       kMangaGridSizeDefault,
     );
 
-    await tester.tap(find.byIcon(RemixIcons.more_2_line));
+    await tester.tap(find.byIcon(MdiIcons.dotsVertical));
     await tester.pumpAndSettle();
 
     final slider = find.byType(Slider);

@@ -1,7 +1,7 @@
 import 'dart:io';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
-import 'package:remixicon/remixicon.dart';
+import 'package:flutter_material_design_icons/flutter_material_design_icons.dart';
 import 'package:yomou/core/backup/backup_picker.dart';
 import 'package:yomou/core/backup/backup_restore.dart';
 import 'package:yomou/core/widgets/ios/ios_sheet.dart';
@@ -55,7 +55,7 @@ class WelcomeSheetContent extends ConsumerWidget {
 
     final header = Row(
       children: [
-        Icon(RemixIcons.user_3_line, size: 22, color: accent),
+        Icon(MdiIcons.accountOutline, size: 22, color: accent),
         const SizedBox(width: 8),
         Expanded(
           child: Text(
@@ -67,7 +67,7 @@ class WelcomeSheetContent extends ConsumerWidget {
         ),
         if (sidePanel)
           IconButton(
-            icon: const Icon(RemixIcons.close_line),
+            icon: const Icon(MdiIcons.close),
             tooltip: l.close,
             onPressed: () => Navigator.of(context).pop(),
           ),
@@ -80,13 +80,13 @@ class WelcomeSheetContent extends ConsumerWidget {
         scrollDirection: Axis.horizontal,
         children: [
           _QuickAction(
-            icon: RemixIcons.download_2_line,
+            icon: MdiIcons.downloadOutline,
             label: l.welcomeRestoreBackup,
             onTap: () => _restoreFromBackup(context, ref),
           ),
           const SizedBox(width: 8),
           _QuickAction(
-            icon: RemixIcons.restart_line,
+            icon: MdiIcons.restart,
             label: l.welcomeLoginSync,
             // No account system exists yet. A button that led nowhere would be
             // worse than one that says so.
@@ -94,7 +94,7 @@ class WelcomeSheetContent extends ConsumerWidget {
           ),
           const SizedBox(width: 8),
           _QuickAction(
-            icon: RemixIcons.folder_2_line,
+            icon: MdiIcons.folderOutline,
             label: l.welcomeLocalDirs,
             onTap: () => Navigator.of(context).push(
               MaterialPageRoute(builder: (_) => const MangaDirectoriesScreen()),

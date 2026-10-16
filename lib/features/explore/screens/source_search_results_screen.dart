@@ -5,7 +5,7 @@ import 'package:yomou/widgets/cached_manga_image.dart';
 import 'package:yomou/widgets/manga_hero.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
-import 'package:remixicon/remixicon.dart';
+import 'package:flutter_material_design_icons/flutter_material_design_icons.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import 'package:yomou/core/database/source_cache.dart';
 import 'package:yomou/data/models/manga.dart';
@@ -304,7 +304,7 @@ class _SourceSearchResultsScreenState
         centerTitle: false,
         leading: IconButton(
           icon: Icon(
-            RemixIcons.arrow_left_line,
+            MdiIcons.arrowLeft,
             color: dark ? Colors.white : const Color(0xFF1C1B1F),
           ),
           onPressed: () => Navigator.pop(context),
@@ -321,7 +321,7 @@ class _SourceSearchResultsScreenState
           IconButton(
             tooltip: AppLocalizations.of(context).randomMangaTooltip,
             icon: Icon(
-              RemixIcons.dice_line,
+              MdiIcons.diceMultipleOutline,
               color: dark ? Colors.white : const Color(0xFF1C1B1F),
             ),
             onPressed: _openRandomManga,
@@ -333,12 +333,12 @@ class _SourceSearchResultsScreenState
                 IosMenuItem(
                   value: 'refresh',
                   label: AppLocalizations.of(context).refreshResults,
-                  icon: RemixIcons.refresh_line,
+                  icon: MdiIcons.refresh,
                 ),
                 IosMenuItem(
                   value: 'clear_query',
                   label: AppLocalizations.of(context).clearSearchQuery,
-                  icon: RemixIcons.close_line,
+                  icon: MdiIcons.close,
                 ),
               ],
               onSelected: (value) {
@@ -380,7 +380,7 @@ class _SourceSearchResultsScreenState
           children: [
             const SizedBox(width: 14),
             Icon(
-              RemixIcons.search_line,
+              MdiIcons.magnify,
               size: 18,
               color: dark ? Colors.white54 : Colors.black38,
             ),
@@ -415,7 +415,7 @@ class _SourceSearchResultsScreenState
             if (_searchController.text.isNotEmpty)
               IconButton(
                 icon: Icon(
-                  RemixIcons.close_line,
+                  MdiIcons.close,
                   size: 18,
                   color: dark ? Colors.white54 : Colors.black38,
                 ),
@@ -497,7 +497,7 @@ class _SourceSearchResultsScreenState
                       mainAxisSize: MainAxisSize.min,
                       children: [
                         Icon(
-                          RemixIcons.history_line,
+                          MdiIcons.history,
                           size: 14,
                           color:
                               dark ? Colors.white54 : Colors.black38,
@@ -551,7 +551,7 @@ class _SourceSearchResultsScreenState
                 mainAxisSize: MainAxisSize.min,
                 children: [
                   Icon(
-                    RemixIcons.search_line,
+                    MdiIcons.magnify,
                     size: 16,
                     color: dark
                         ? Colors.white
@@ -574,7 +574,7 @@ class _SourceSearchResultsScreenState
                   ),
                   const SizedBox(width: 6),
                   Icon(
-                    RemixIcons.close_line,
+                    MdiIcons.close,
                     size: 16,
                     color: dark ? Colors.white70 : const Color(0xFF49454F),
                   ),
@@ -615,7 +615,7 @@ class _SourceSearchResultsScreenState
               mainAxisSize: MainAxisSize.min,
               children: [
                 Icon(
-                  RemixIcons.equalizer_line,
+                  MdiIcons.tune,
                   size: 16,
                   color: _genrePrefixSelected
                       ? (dark ? Colors.black : Colors.white)
@@ -734,7 +734,7 @@ class _SourceSearchResultsScreenState
             const SizedBox(height: 16),
             OutlinedButton.icon(
               onPressed: _runSearch,
-              icon: const Icon(RemixIcons.refresh_line),
+              icon: const Icon(MdiIcons.refresh),
               label: Text(AppLocalizations.of(context).retry),
               style: OutlinedButton.styleFrom(
                 foregroundColor: dark
@@ -752,7 +752,7 @@ class _SourceSearchResultsScreenState
 
     if (_mangaList.isEmpty) {
       return EmptyState(
-        icon: RemixIcons.search_2_line,
+        icon: MdiIcons.magnify,
         title: AppLocalizations.of(context).noMangaFound,
         subtitle: AppLocalizations.of(context).tryDifferentSearch,
       );
@@ -838,7 +838,7 @@ class _SourceSearchResultsScreenState
                               : Colors.black12,
                           alignment: Alignment.center,
                           child: Icon(
-                            RemixIcons.book_open_line,
+                            MdiIcons.bookOpenVariant,
                             color: dark ? Colors.white38 : Colors.black38,
                             size: 28,
                           ),

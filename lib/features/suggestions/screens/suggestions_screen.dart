@@ -4,7 +4,7 @@ import 'package:yomou/widgets/cached_manga_image.dart';
 import 'package:yomou/widgets/manga_hero.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
-import 'package:remixicon/remixicon.dart';
+import 'package:flutter_material_design_icons/flutter_material_design_icons.dart';
 import 'package:yomou/data/models/manga.dart';
 import 'package:yomou/core/database/source_cache.dart';
 import 'package:yomou/data/providers/sources_provider.dart';
@@ -198,7 +198,7 @@ class _SuggestionsScreenState extends ConsumerState<SuggestionsScreen> {
         child: Padding(
           padding: const EdgeInsets.all(8),
           child: Icon(
-            RemixIcons.more_2_line,
+            MdiIcons.dotsVertical,
             color: dark ? Colors.white70 : Colors.black54,
             size: 22,
           ),
@@ -212,19 +212,19 @@ class _SuggestionsScreenState extends ConsumerState<SuggestionsScreen> {
       context,
       children: [
         IosMenuRow(
-          icon: RemixIcons.list_unordered,
+          icon: MdiIcons.formatListBulleted,
           label: AppLocalizations.of(context).historyListOptions,
           onTap: () => Navigator.pop(context, 'listOptions'),
         ),
         const IosMenuDivider(),
         IosMenuRow(
-          icon: RemixIcons.refresh_line,
+          icon: MdiIcons.refresh,
           label: AppLocalizations.of(context).refresh,
           onTap: () => Navigator.pop(context, 'update'),
         ),
         const IosMenuDivider(),
         IosMenuRow(
-          icon: RemixIcons.time_line,
+          icon: MdiIcons.clockOutline,
           label: AppLocalizations.of(context).suggestionsRefresh,
           onTap: () => Navigator.pop(context, 'refreshInterval'),
         ),
@@ -238,7 +238,7 @@ class _SuggestionsScreenState extends ConsumerState<SuggestionsScreen> {
         ),
         const IosMenuDivider(),
         IosMenuRow(
-          icon: RemixIcons.settings_3_line,
+          icon: MdiIcons.cogOutline,
           label: AppLocalizations.of(context).settings,
           onTap: () => Navigator.pop(context, 'settings'),
         ),
@@ -342,19 +342,19 @@ class _SuggestionsScreenState extends ConsumerState<SuggestionsScreen> {
                       children: [
                         _buildSegmentTab(
                           'Compact',
-                          RemixIcons.list_unordered,
+                          MdiIcons.formatListBulleted,
                           setSheetState,
                         ),
                         const SizedBox(width: 8),
                         _buildSegmentTab(
                           'Details',
-                          RemixIcons.list_view,
+                          MdiIcons.viewListOutline,
                           setSheetState,
                         ),
                         const SizedBox(width: 8),
                         _buildSegmentTab(
                           'Grid',
-                          RemixIcons.grid_line,
+                          MdiIcons.viewGridOutline,
                           setSheetState,
                         ),
                       ],
@@ -509,7 +509,7 @@ class _SuggestionsScreenState extends ConsumerState<SuggestionsScreen> {
                 child: Row(
                   mainAxisSize: MainAxisSize.min,
                   children: [
-                    Icon(RemixIcons.price_tag_3_line, size: 16, color: fg),
+                    Icon(MdiIcons.tagOutline, size: 16, color: fg),
                     const SizedBox(width: 6),
                     Text(
                       tag,
@@ -540,7 +540,7 @@ class _SuggestionsScreenState extends ConsumerState<SuggestionsScreen> {
         child: Padding(
           padding: const EdgeInsets.symmetric(vertical: 60, horizontal: 24),
           child: EmptyState(
-            icon: RemixIcons.lightbulb_line,
+            icon: MdiIcons.lightbulbOutline,
             title: AppLocalizations.of(context).suggestionsNoResults,
             subtitle: _selectedGenre != null
                 ? AppLocalizations.of(context).suggestionsNoGenreResults
@@ -745,7 +745,7 @@ class _SuggestionsScreenState extends ConsumerState<SuggestionsScreen> {
         child: Padding(
           padding: const EdgeInsets.symmetric(vertical: 60, horizontal: 24),
           child: EmptyState(
-            icon: RemixIcons.lightbulb_line,
+            icon: MdiIcons.lightbulbOutline,
             title: AppLocalizations.of(context).suggestionsNoResults,
             subtitle: _selectedGenre != null
                 ? AppLocalizations.of(context).suggestionsNoGenreResults
@@ -868,7 +868,7 @@ class _SuggestionsScreenState extends ConsumerState<SuggestionsScreen> {
                           color: amoled(context, 0xFF2C2C2E),
                           alignment: Alignment.center,
                           child: const Icon(
-                            RemixIcons.book_open_line,
+                            MdiIcons.bookOpenVariant,
                             color: Colors.white38,
                             size: 28,
                           ),
