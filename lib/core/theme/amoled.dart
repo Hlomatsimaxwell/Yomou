@@ -33,8 +33,13 @@ class AmoledMode extends ThemeExtension<AmoledMode> {
 }
 
 /// The dark chrome tone [rgb] -- written the way the widget has always written
-/// it, `0xFF2C2C2E` or `0xFF1C1C1E` -- unless the reader turned on "Black", in
-/// which case every one of those tones collapses to pure black.
+/// it, `0xFF2C2C2E` or `0x661C1C1E` -- unless the reader turned on "Black", in
+/// which case the tone's colour collapses to black.
+///
+/// The alpha channel survives: a frosted pill written `0x661C1C1E` comes back
+/// `0x66000000`, still translucent and still blurred, so turning the setting on
+/// does not quietly trade the glass away. Most tones are opaque anyway, and for
+/// those this is just [Colors.black].
 ///
 /// Takes the ARGB value rather than a [Color] so a call site stays inside the
 /// line width the rest of the file keeps to. The hex itself is still in the
@@ -43,4 +48,4 @@ class AmoledMode extends ThemeExtension<AmoledMode> {
 /// Light mode is never touched: the flag is false whenever the app is light,
 /// and the tone is only ever asked for from the dark branch.
 Color amoled(BuildContext context, int rgb) =>
-    AmoledMode.of(context) ? Colors.black : Color(rgb);
+    AmoledMode.of(context) ? Color(rgb & 0xFF000000) : Color(rgb);

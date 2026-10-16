@@ -4447,7 +4447,7 @@ class _TrayJumpButton extends StatelessWidget {
     final dark = Theme.of(context).brightness == Brightness.dark;
     final fg = dark ? Colors.white : const Color(0xFF1C1B1F);
     return Material(
-      color: dark ? const Color(0xF22A2A2C) : Colors.white,
+      color: dark ? amoled(context, 0xF22A2A2C) : Colors.white,
       shape: const CircleBorder(),
       elevation: 4,
       child: InkWell(

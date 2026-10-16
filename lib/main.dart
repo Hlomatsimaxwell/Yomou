@@ -817,10 +817,10 @@ class _HomeScreenState extends ConsumerState<HomeScreen>
     final frosted = settings.useFrostedGlass;
     final pillColor = frosted
         ? dark
-              ? const Color(0x661C1C1E)
+              ? amoled(context, 0x661C1C1E)
               : Colors.white.withValues(alpha: 0.62)
         : dark
-            ? const Color(0xF21C1C1E)
+            ? amoled(context, 0xF21C1C1E)
             : Colors.white;
     final pillBorder = dark
         ? const Color(0x332C2C30)
@@ -1176,7 +1176,7 @@ class _HomeScreenState extends ConsumerState<HomeScreen>
     // Pill's frosted recipe, gelled with the app accent: reads like the pill's
     // active-nav capsule while staying visible over busy covers.
     final glass = dark
-        ? const Color(0x661C1C1E)
+        ? amoled(context, 0x661C1C1E)
         : Colors.white.withValues(alpha: 0.62);
     final tint = accent.withValues(alpha: dark ? 0.45 : 0.32);
     final gel = Color.alphaBlend(tint, glass);

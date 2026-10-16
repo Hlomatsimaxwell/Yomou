@@ -2,6 +2,7 @@ import 'dart:async';
 
 import 'package:flutter/material.dart';
 
+import 'package:yomou/core/theme/amoled.dart';
 import 'package:yomou/core/theme/layout.dart';
 
 /// The pill currently on screen, if any; showing a new toast replaces it.
@@ -135,7 +136,7 @@ class _IosToastPillState extends State<_IosToastPill>
   Widget build(BuildContext context) {
     final dark = Theme.of(context).brightness == Brightness.dark;
     final fg = Theme.of(context).colorScheme.onSurface;
-    final pillColor = dark ? const Color(0xF21C1C1E) : Colors.white;
+    final pillColor = dark ? amoled(context, 0xF21C1C1E) : Colors.white;
     final pillBorder = dark
         ? const Color(0x332C2C30)
         : Colors.black.withValues(alpha: 0.08);

@@ -3,6 +3,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:yomou/core/backup/tachiyomi_backup.dart';
 import 'package:yomou/core/backup/tachiyomi_import_resolver.dart';
+import 'package:yomou/core/theme/amoled.dart';
 import 'package:yomou/core/theme/layout.dart';
 import 'package:yomou/data/providers/sources_provider.dart';
 import 'package:yomou/features/content_preferences/providers/content_preferences_provider.dart';
@@ -94,7 +95,7 @@ class _TachiyomiScanPill extends StatelessWidget {
     final l = AppLocalizations.of(context);
     final dark = Theme.of(context).brightness == Brightness.dark;
     final fg = Theme.of(context).colorScheme.onSurface;
-    final pillColor = dark ? const Color(0xF21C1C1E) : Colors.white;
+    final pillColor = dark ? amoled(context, 0xF21C1C1E) : Colors.white;
     final pillBorder = dark
         ? const Color(0x332C2C30)
         : Colors.black.withValues(alpha: 0.08);

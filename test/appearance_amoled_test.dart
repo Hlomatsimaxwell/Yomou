@@ -58,7 +58,7 @@ void main() {
     // carries no AmoledMode at all, as a test or a preview does -- never throw
     // for the want of the extension.
     var pump = 0;
-    Future<Color> toneUnder(ThemeData theme) async {
+    Future<Color> toneUnder(ThemeData theme, {int rgb = 0xFF2C2C2E}) async {
       Color? painted;
       await tester.pumpWidget(
         MaterialApp(
@@ -66,7 +66,7 @@ void main() {
           theme: theme,
           home: Builder(
             builder: (context) {
-              painted = amoled(context, 0xFF2C2C2E);
+              painted = amoled(context, rgb);
               return const SizedBox.shrink();
             },
           ),
@@ -95,6 +95,21 @@ void main() {
         ),
       ),
       Colors.black,
+    );
+
+    // Translucent chrome -- the frosted nav pill, the toast -- keeps its alpha
+    // when it blackens: a glass pill that went opaque would lose the blur it
+    // was built for, over a background that is black anyway.
+    expect(
+      await toneUnder(
+        ThemeData.dark().copyWith(
+          extensions: const <ThemeExtension<dynamic>>[
+            AmoledMode(enabled: true),
+          ],
+        ),
+        rgb: 0x661C1C1E,
+      ),
+      const Color(0x66000000),
     );
   });
 }
