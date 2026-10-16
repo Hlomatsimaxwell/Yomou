@@ -80,12 +80,16 @@ void main() {
     }
   });
 
-  test('every slider inherits one thick track plus a range grip', () async {
-    // The slider look lives in the theme now rather than in the two screens
-    // that used to restyle their own. That only holds if the theme actually
-    // carries it, so this pins the pieces the screens relied on: a thick
-    // track, the scheme primary filling it, and no floating circle on a
-    // Slider -- plus the one control that still needs something to grab.
+  test('every slider opts into the expressive spec', () async {
+    // Restyling the slider by hand is what let its look drift, so the theme no
+    // longer describes one: it only asks for the Material 3 Expressive slider
+    // and leaves the drawing to the framework. That request is the switch
+    // `year2023: false` -- Flutter 3.41 still defaults to the year-2023 slider
+    // (a 4px track under a 10px circle) -- and every field below stays null so
+    // the framework supplies the spec: a 16px track, a primary fill over a
+    // secondary-container trough, a primary 4x44 handle standing in the gap cut
+    // through the track, and a stop dot at each division. Overriding any of
+    // them here would shadow that, so they are asserted empty on purpose.
     SharedPreferences.setMockInitialValues({});
     await SharedPreferences.getInstance();
     final container = ProviderContainer();
@@ -95,35 +99,98 @@ void main() {
 
     for (final theme in [bundle.lightTheme, bundle.darkTheme]) {
       final slider = theme.sliderTheme;
-      final primary = theme.colorScheme.primary;
+      // ignore: deprecated_member_use
+      expect(slider.year2023, isFalse);
 
-      // Not the 4px stock track.
-      expect(slider.trackHeight, 16);
-      expect(slider.activeTrackColor, primary);
-      // The remainder is a pale wash of that primary, not a grey.
-      expect(slider.inactiveTrackColor, primary.withValues(alpha: 0.16));
+      expect(slider.trackHeight, isNull);
+      expect(slider.activeTrackColor, isNull);
+      expect(slider.inactiveTrackColor, isNull);
+      expect(slider.thumbColor, isNull);
+      expect(slider.thumbSize, isNull);
 
-      // A radius of zero is what removes the circle from the Slider...
-      expect(
-        (slider.thumbShape! as RoundSliderThumbShape).enabledThumbRadius,
-        0,
-      );
-      // ...and the RangeSlider's ends are a grip rather than a circle: a bar
-      // narrower than the track is tall and taller than the track is wide, so
-      // it can only read as a handle poking out of the pill.
-      expect(slider.rangeThumbShape, isA<HandleRangeSliderThumbShape>());
-      final grip = slider.thumbSize!.resolve(const <WidgetState>{})!;
-      expect(grip.width, lessThan(slider.trackHeight!));
-      expect(grip.height, greaterThan(slider.trackHeight!));
-
-      // The halo is absent at rest and only shows up on interaction.
-      final overlay = slider.overlayColor! as WidgetStateColor;
-      expect(overlay.resolve(const <WidgetState>{}), Colors.transparent);
-      expect(overlay.resolve({WidgetState.dragged}).a, 0.12);
-
-      // Tick marks are invisible; every slider is labelled already.
-      expect(slider.activeTickMarkColor, Colors.transparent);
-      expect(slider.inactiveTickMarkColor, Colors.transparent);
+      expect(slider.trackShape, isNull);
+      expect(slider.thumbShape, isNull);
+      expect(slider.rangeThumbShape, isNull);
+      expect(slider.activeTickMarkColor, isNull);
+      expect(slider.inactiveTickMarkColor, isNull);
     }
   });
+
+  testWidgets('both sliders paint the expressive spec, not just ask for it', (
+    tester,
+  ) async {
+    // Opting in with `year2023: false` is only a request. A slider merges its
+    // own arguments, the ambient theme and the framework defaults into a fresh
+    // SliderThemeData at build time and hands that straight to its render
+    // object, so the ambient theme cannot show what the control will draw --
+    // reading the values back off the render object is what ties the flag to
+    // the 16px track, the bar handle and the secondary-container trough. Only a
+    // discrete slider paints the handle, the gapped track and the stop dots, so
+    // this also fails loudly if any of them finds the merged theme incomplete.
+    SharedPreferences.setMockInitialValues({});
+    await SharedPreferences.getInstance();
+    final container = ProviderContainer();
+    addTearDown(container.dispose);
+    final theme = container.read(themeNotifierProvider).darkTheme;
+    final scheme = theme.colorScheme;
+
+    await tester.pumpWidget(
+      MaterialApp(
+        theme: theme,
+        home: Scaffold(
+          body: Column(
+            children: <Widget>[
+              Slider(value: 0.4, divisions: 5, onChanged: (_) {}),
+              RangeSlider(
+                values: const RangeValues(0.2, 0.8),
+                divisions: 5,
+                onChanged: (_) {},
+              ),
+            ],
+          ),
+        ),
+      ),
+    );
+
+    // Reading the theme builds the settings notifier, which starts an async load
+    // of its own; its channel hops leave zero-duration timers queued, and
+    // flutter_test fails a widget test that ends with one still pending. Each
+    // pump only drains the timers already due, since a hop can queue the next.
+    for (var i = 0; i < 5; i++) {
+      await tester.pump(const Duration(milliseconds: 10));
+    }
+
+    expect(tester.takeException(), isNull);
+
+    final slider = _paintedTheme(tester, '_SliderRenderObjectWidget');
+    expect(slider.trackHeight, 16);
+    expect(slider.activeTrackColor, scheme.primary);
+    expect(slider.inactiveTrackColor, scheme.secondaryContainer);
+    expect(slider.thumbColor, scheme.primary);
+    expect(slider.thumbShape, isA<HandleThumbShape>());
+    expect(slider.trackShape, isA<GappedSliderTrackShape>());
+    expect(slider.thumbSize!.resolve(const <WidgetState>{}), const Size(4, 44));
+    expect(slider.tickMarkShape, isA<RoundSliderTickMarkShape>());
+
+    final range = _paintedTheme(tester, '_RangeSliderRenderObjectWidget');
+    expect(range.trackHeight, 16);
+    expect(range.activeTrackColor, scheme.primary);
+    expect(range.inactiveTrackColor, scheme.secondaryContainer);
+    expect(range.rangeThumbShape, isA<HandleRangeSliderThumbShape>());
+    expect(range.rangeTrackShape, isA<GappedRangeSliderTrackShape>());
+    expect(range.thumbSize!.resolve(const <WidgetState>{}), const Size(4, 44));
+    expect(range.rangeTickMarkShape, isA<RoundRangeSliderTickMarkShape>());
+  });
+}
+
+/// The theme a slider actually paints with. Both `Slider` and `RangeSlider`
+/// resolve one at build time and pass it to their render object, which is the
+/// only place it can be read back; the render object is private, so its public
+/// getter is reached by name rather than off a type.
+SliderThemeData _paintedTheme(WidgetTester tester, String renderObjectWidget) {
+  final finder = find.byWidgetPredicate(
+    (widget) => widget.runtimeType.toString() == renderObjectWidget,
+  );
+  final render = tester.renderObject(finder) as dynamic;
+  return render.sliderTheme as SliderThemeData;
 }

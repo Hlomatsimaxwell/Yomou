@@ -669,50 +669,24 @@ ColorScheme monochromeScheme(Brightness brightness) {
   );
 }
 
-/// The app-wide slider look: one thick, rounded pill that fills from left to
-/// right, tinted with the scheme's primary and backed by a pale wash of it.
+/// The app-wide slider look: Material 3 Expressive's own slider, opted into
+/// once here instead of being restyled by hand.
 ///
-/// Flutter 3.41 still defaults to the year-2023 slider (a 4px track under a
-/// 10px circle) unless `year2023: false` opts into the newer spec. Opting in
-/// would also swap the track for the expressive *gapped* one and set a handle
-/// bar down in the gap; we want neither, so we keep the older track shape and
-/// zero the thumb instead. The leading edge of the fill then reads as the
-/// value, and no circle floats above the track.
-SliderThemeData _sliderTheme(ColorScheme cs) {
-  return SliderThemeData(
-    trackHeight: 16,
-    activeTrackColor: cs.primary,
-    inactiveTrackColor: cs.primary.withValues(alpha: 0.16),
-    thumbColor: cs.primary,
-    // A radius of zero paints no circle at all. Both elevations are zeroed so
-    // that the now-invisible thumb skips its shadow pass every frame too.
-    thumbShape: const RoundSliderThumbShape(
-      enabledThumbRadius: 0,
-      elevation: 0,
-      pressedElevation: 0,
-    ),
-    // A range slider fills between two values rather than up to one, so both
-    // of its ends are draggable. Thumbless, it fails as a control: with the
-    // range at full span the whole track is filled and there is no fill edge
-    // to hint that anything can move. The circle is still unwanted, so the
-    // grip is a short bar that pokes out above and below the pill -- the
-    // handle M3's own expressive range slider draws -- which reads as a grip
-    // without putting a disc on top of the track.
-    rangeThumbShape: const HandleRangeSliderThumbShape(),
-    thumbSize: WidgetStateProperty.all(const Size(5, 30)),
-    // The halo is only there while the thumb is held, focused or hovered.
-    overlayColor: WidgetStateColor.resolveWith((states) {
-      final active = states.contains(WidgetState.dragged) ||
-          states.contains(WidgetState.focused) ||
-          states.contains(WidgetState.hovered);
-      return active
-          ? cs.primary.withValues(alpha: 0.12)
-          : Colors.transparent;
-    }),
-    // Every slider in the app is labelled, so tick marks are noise.
-    activeTickMarkColor: Colors.transparent,
-    inactiveTickMarkColor: Colors.transparent,
-  );
+/// Flutter still defaults to the year-2023 slider -- a 4px track under a 10px
+/// circle -- so without this every `Slider` and `RangeSlider` in the app would
+/// get the older look. `year2023: false` selects the expressive spec instead:
+/// a 16px track, a primary fill over a secondary-container trough, a primary
+/// 4x44 handle standing in a gap cut through the track, and a stop dot at
+/// every division. Every other field stays null so the framework supplies the
+/// spec, which means a spec change reaches the app for free.
+///
+/// The flag is deprecated only because it is scheduled to default to false and
+/// then go away; until it does, setting it is how the spec is requested at all
+/// -- the alternative is spelling out each of the dozens of tokens it selects,
+/// which would pin the look to whatever they are today.
+SliderThemeData _sliderTheme() {
+  // ignore: deprecated_member_use
+  return const SliderThemeData(year2023: false);
 }
 
 /// Creates the final ThemeData for a given brightness. Dark mode always uses
@@ -753,7 +727,7 @@ ThemeData _applyBrightness(
     canvasColor: surfaceColor,
     cardColor: surfaceColor,
     textTheme: textTheme,
-    sliderTheme: _sliderTheme(colorScheme),
+    sliderTheme: _sliderTheme(),
   );
 }
 
