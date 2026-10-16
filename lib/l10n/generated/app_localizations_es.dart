@@ -583,6 +583,13 @@ class AppLocalizationsEs extends AppLocalizations {
   String get appearanceThemeDark => 'Oscuro';
 
   @override
+  String get appearanceAmoledBlack => 'Negro';
+
+  @override
+  String get appearanceAmoledBlackSubtitle =>
+      'Usa menos energía en pantallas AMOLED';
+
+  @override
   String get appearanceLanguageTitle => 'Idioma';
 
   @override

@@ -2,6 +2,7 @@ import 'dart:async';
 import 'dart:ui' show ImageFilter;
 import 'package:flutter/gestures.dart' show DragStartBehavior;
 import 'package:flutter/rendering.dart' show ScrollDirection;
+import 'package:yomou/core/theme/amoled.dart';
 import 'package:yomou/widgets/cached_manga_image.dart';
 import 'package:yomou/widgets/manga_hero.dart';
 import 'package:yomou/widgets/cover_viewer.dart';
@@ -1040,7 +1041,7 @@ class _MangaDetailScreenState extends ConsumerState<MangaDetailScreen> {
             ? Colors.white
             : Theme.of(context).colorScheme.onSurface;
         return Dialog(
-          backgroundColor: dark ? const Color(0xFF2C2C2E) : Colors.white,
+          backgroundColor: dark ? amoled(context, 0xFF2C2C2E) : Colors.white,
           shape: RoundedRectangleBorder(
             borderRadius: BorderRadius.circular(24),
           ),
@@ -1246,7 +1247,7 @@ class _MangaDetailScreenState extends ConsumerState<MangaDetailScreen> {
                 final dark = Theme.of(context).brightness == Brightness.dark;
                 return Container(
                   decoration: BoxDecoration(
-                    color: dark ? const Color(0xFF1E1E20) : Colors.white,
+                    color: dark ? amoled(context, 0xFF1E1E20) : Colors.white,
                     borderRadius: _isExpanded
                         ? BorderRadius.zero
                         : const BorderRadius.vertical(top: Radius.circular(28)),
@@ -1607,7 +1608,7 @@ class _MangaDetailScreenState extends ConsumerState<MangaDetailScreen> {
                   )
                 : null,
             tileColor: isSelected
-                ? (dark ? const Color(0xFF2C2C2C) : const Color(0xFFE2E8F0))
+                ? (dark ? amoled(context, 0xFF2C2C2C) : const Color(0xFFE2E8F0))
                 : null,
             title: Row(
               children: [
@@ -2101,7 +2102,7 @@ class _MangaDetailScreenState extends ConsumerState<MangaDetailScreen> {
               imageUrl: _previewPages[index],
               fit: BoxFit.cover,
               placeholder: (context, url) => Container(
-                color: dark ? const Color(0xFF2C2C2E) : Colors.white,
+                color: dark ? amoled(context, 0xFF2C2C2E) : Colors.white,
                 child: Center(
                   child: CircularProgressIndicator(
                     color: dark ? Colors.white24 : Colors.black12,
@@ -2110,7 +2111,7 @@ class _MangaDetailScreenState extends ConsumerState<MangaDetailScreen> {
                 ),
               ),
               errorWidget: (context, url, error) => Container(
-                color: dark ? const Color(0xFF2C2C2E) : Colors.white,
+                color: dark ? amoled(context, 0xFF2C2C2E) : Colors.white,
                 child: Center(
                   child: Icon(
                     RemixIcons.image_2_line,
@@ -2174,7 +2175,7 @@ class _MangaDetailScreenState extends ConsumerState<MangaDetailScreen> {
                 errorWidget: (context, url, error) => Container(
                   width: 48,
                   height: 64,
-                  color: dark ? const Color(0xFF2C2C2E) : Colors.white,
+                  color: dark ? amoled(context, 0xFF2C2C2E) : Colors.white,
                   alignment: Alignment.center,
                   child: Icon(
                     RemixIcons.image_2_line,
@@ -2636,7 +2637,7 @@ class _MangaDetailScreenState extends ConsumerState<MangaDetailScreen> {
                     fontSize: 14,
                     fontWeight: FontWeight.bold,
                   ),
-                  dropdownColor: dark ? const Color(0xFF2E2E33) : Colors.white,
+                  dropdownColor: dark ? amoled(context, 0xFF2E2E33) : Colors.white,
                   items: [
                     for (final n in countChoices)
                       DropdownMenuItem(
@@ -2689,7 +2690,7 @@ class _MangaDetailScreenState extends ConsumerState<MangaDetailScreen> {
                           fontWeight: FontWeight.bold,
                         ),
                         dropdownColor: dark
-                            ? const Color(0xFF2E2E33)
+                            ? amoled(context, 0xFF2E2E33)
                             : Colors.white,
                         items: [
                           for (var i = 0; i < options.length; i++)
@@ -2716,7 +2717,7 @@ class _MangaDetailScreenState extends ConsumerState<MangaDetailScreen> {
               }
 
               return AlertDialog(
-                backgroundColor: dark ? const Color(0xFF2E2E33) : Colors.white,
+                backgroundColor: dark ? amoled(context, 0xFF2E2E33) : Colors.white,
                 shape: RoundedRectangleBorder(
                   borderRadius: BorderRadius.circular(24),
                 ),
@@ -3281,7 +3282,7 @@ class _MangaDetailScreenState extends ConsumerState<MangaDetailScreen> {
             // cramped rather than spacious.
             padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 16),
             decoration: BoxDecoration(
-              color: (dark ? const Color(0xFF1E1E22) : Colors.white).withValues(
+              color: (dark ? amoled(context, 0xFF1E1E22) : Colors.white).withValues(
                 alpha: 0.80,
               ),
               borderRadius: BorderRadius.circular(24),
@@ -3849,7 +3850,7 @@ class _MangaDetailScreenState extends ConsumerState<MangaDetailScreen> {
                       errorWidget: (context, url, error) => Container(
                         height: 120,
                         width: 100,
-                        color: dark ? const Color(0xFF2C2C2E) : Colors.white,
+                        color: dark ? amoled(context, 0xFF2C2C2E) : Colors.white,
                         alignment: Alignment.center,
                         child: Icon(
                           RemixIcons.book_open_line,
@@ -3995,7 +3996,7 @@ class _SheetHeaderDelegate extends SliverPersistentHeaderDelegate {
       onVerticalDragEnd: isSelectionMode ? null : onBarDragEnd,
       child: Container(
         decoration: BoxDecoration(
-          color: dark ? const Color(0xFF1E1E20) : Colors.white,
+          color: dark ? amoled(context, 0xFF1E1E20) : Colors.white,
           border: dark
               ? null
               : const Border(bottom: BorderSide(color: Colors.black12)),
@@ -4117,7 +4118,7 @@ class _SheetHeaderDelegate extends SliverPersistentHeaderDelegate {
             onTap: onOverflow,
           ),
           const SizedBox(width: 6),
-          _buildExpandButton(dark: dark, scheme: scheme),
+          _buildExpandButton(context: context, dark: dark, scheme: scheme),
         ] else ...[
           // Continue/Read action, only for the chapter list tab.
           if (showContinueButton) ...[
@@ -4141,7 +4142,7 @@ class _SheetHeaderDelegate extends SliverPersistentHeaderDelegate {
             ),
             const SizedBox(width: 6),
           ],
-          _buildExpandButton(dark: dark, scheme: scheme),
+          _buildExpandButton(context: context, dark: dark, scheme: scheme),
         ],
       ],
     );
@@ -4290,13 +4291,19 @@ class _SheetHeaderDelegate extends SliverPersistentHeaderDelegate {
   }
 
   // Subtle chevron that expands the tray.
-  Widget _buildExpandButton({required bool dark, required ColorScheme scheme}) {
+  Widget _buildExpandButton({
+    required BuildContext context,
+    required bool dark,
+    required ColorScheme scheme,
+  }) {
     return GestureDetector(
       onTap: onBarTap,
       child: Container(
         padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 6),
         decoration: BoxDecoration(
-          color: dark ? const Color(0xFF2C2C2E) : Colors.white,
+          color: dark
+              ? amoled(context, 0xFF2C2C2E)
+              : Colors.white,
           borderRadius: BorderRadius.circular(10),
           border: dark ? null : Border.all(color: Colors.black12),
         ),

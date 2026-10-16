@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:remixicon/remixicon.dart';
 import 'package:url_launcher/url_launcher.dart';
+import 'package:yomou/core/theme/amoled.dart';
 import 'package:yomou/core/widgets/ios/ios_toast.dart';
 import 'package:yomou/data/providers/sources_provider.dart';
 import 'package:yomou/data/sources/source_network.dart';
@@ -73,7 +74,7 @@ class _SourceSettingsScreenState extends ConsumerState<SourceSettingsScreen> {
     final result = await showDialog<String>(
       context: context,
       builder: (context) => AlertDialog(
-        backgroundColor: dark ? const Color(0xFF1C1C1E) : Colors.white,
+        backgroundColor: dark ? amoled(context, 0xFF1C1C1E) : Colors.white,
         shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(24)),
         title: Text(
           title,
@@ -190,7 +191,7 @@ class _SourceSettingsScreenState extends ConsumerState<SourceSettingsScreen> {
       context: context,
       showDragHandle: true,
       isScrollControlled: true,
-      backgroundColor: dark ? const Color(0xFF1C1C1E) : Colors.white,
+      backgroundColor: dark ? amoled(context, 0xFF1C1C1E) : Colors.white,
       builder: (sheetContext) {
         return SafeArea(
           child: ConstrainedBox(

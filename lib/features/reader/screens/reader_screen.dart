@@ -12,6 +12,7 @@ import 'package:http/http.dart' as http;
 import 'package:intl/intl.dart';
 import 'package:path_provider/path_provider.dart';
 import 'package:shared_preferences/shared_preferences.dart';
+import 'package:yomou/core/theme/amoled.dart';
 import 'package:yomou/widgets/safe_image.dart';
 import 'package:yomou/widgets/sheet_snap.dart';
 import 'package:yomou/core/cache/app_cache.dart';
@@ -1151,7 +1152,7 @@ class _ReaderScreenState extends ConsumerState<ReaderScreen>
           final dark = Theme.of(context).brightness == Brightness.dark;
           final l = AppLocalizations.of(context);
           return AlertDialog(
-            backgroundColor: dark ? const Color(0xFF1C1C1E) : Colors.white,
+            backgroundColor: dark ? amoled(context, 0xFF1C1C1E) : Colors.white,
             shape: RoundedRectangleBorder(
               borderRadius: BorderRadius.circular(20),
             ),
@@ -1452,7 +1453,7 @@ class _ReaderScreenState extends ConsumerState<ReaderScreen>
                 final dark = Theme.of(context).brightness == Brightness.dark;
                 return Container(
                   decoration: BoxDecoration(
-                    color: dark ? const Color(0xFF1C1C1E) : Colors.white,
+                    color: dark ? amoled(context, 0xFF1C1C1E) : Colors.white,
                     borderRadius: const BorderRadius.vertical(
                       top: Radius.circular(28),
                     ),
@@ -1832,7 +1833,7 @@ class _ReaderScreenState extends ConsumerState<ReaderScreen>
                 )
               : null,
           tileColor: isSelected
-              ? (dark ? const Color(0xFF2C2C2C) : const Color(0xFFE2E8F0))
+              ? (dark ? amoled(context, 0xFF2C2C2C) : const Color(0xFFE2E8F0))
               : null,
           title: Row(
             children: [
@@ -2169,7 +2170,7 @@ class _ReaderScreenState extends ConsumerState<ReaderScreen>
                         final dark =
                             Theme.of(context).brightness == Brightness.dark;
                         return Container(
-                          color: dark ? const Color(0xFF2C2C2E) : Colors.white,
+                          color: dark ? amoled(context, 0xFF2C2C2E) : Colors.white,
                           child: Icon(
                             RemixIcons.book_open_line,
                             color: dark ? Colors.white38 : Colors.black38,
@@ -2186,7 +2187,7 @@ class _ReaderScreenState extends ConsumerState<ReaderScreen>
                         final dark =
                             Theme.of(context).brightness == Brightness.dark;
                         return Container(
-                          color: dark ? const Color(0xFF2C2C2E) : Colors.white,
+                          color: dark ? amoled(context, 0xFF2C2C2E) : Colors.white,
                           child: Icon(
                             RemixIcons.book_open_line,
                             color: dark ? Colors.white38 : Colors.black38,
@@ -2236,7 +2237,7 @@ class _ReaderScreenState extends ConsumerState<ReaderScreen>
         final dark = Theme.of(context).brightness == Brightness.dark;
         final l = AppLocalizations.of(context);
         return AlertDialog(
-          backgroundColor: dark ? const Color(0xFF2C2C2E) : Colors.white,
+          backgroundColor: dark ? amoled(context, 0xFF2C2C2E) : Colors.white,
           title: Text(
             l.readerRemoveBookmarkTitle,
             style: TextStyle(
@@ -3263,7 +3264,7 @@ class _ReaderScreenState extends ConsumerState<ReaderScreen>
         final dark = Theme.of(context).brightness == Brightness.dark;
         final l = AppLocalizations.of(context);
         return AlertDialog(
-          backgroundColor: dark ? const Color(0xFF2C2C2E) : Colors.white,
+          backgroundColor: dark ? amoled(context, 0xFF2C2C2E) : Colors.white,
           title: Text(
             l.readerRemoveDownloadTitle,
             style: TextStyle(
@@ -4309,7 +4310,7 @@ class _ReaderScreenState extends ConsumerState<ReaderScreen>
     );
     return Container(
       height: 200,
-      color: const Color(0xFF1E1E20),
+      color: amoled(context, 0xFF1E1E20),
       child: Column(
         mainAxisAlignment: MainAxisAlignment.center,
         children: [

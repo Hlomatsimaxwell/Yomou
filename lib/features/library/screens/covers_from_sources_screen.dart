@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:remixicon/remixicon.dart';
 
+import 'package:yomou/core/theme/amoled.dart';
 import 'package:yomou/core/widgets/ios/ios_press.dart';
 import 'package:yomou/core/widgets/manga_grid_metrics.dart';
 import 'package:yomou/data/models/manga_source.dart';
@@ -440,7 +441,7 @@ class _CoversFromSourcesScreenState
             decoration: BoxDecoration(
               color: enabled
                   ? scheme.primary
-                  : (dark ? const Color(0xFF2C2C2E) : const Color(0xFFE2E8F0)),
+                  : (dark ? amoled(context, 0xFF2C2C2E) : const Color(0xFFE2E8F0)),
               borderRadius: BorderRadius.circular(25),
             ),
             child: Text(

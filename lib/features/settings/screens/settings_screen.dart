@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:package_info_plus/package_info_plus.dart';
 import 'package:remixicon/remixicon.dart';
+import 'package:yomou/core/theme/amoled.dart';
 import 'package:yomou/core/theme/layout.dart';
 import 'package:yomou/core/changelog/changelog.dart';
 import 'package:yomou/core/notifications/notification_service.dart';
@@ -284,7 +285,7 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
       builder: (dialogContext) {
         final dark = Theme.of(dialogContext).brightness == Brightness.dark;
         return AlertDialog(
-          backgroundColor: dark ? const Color(0xFF2C2C2E) : Colors.white,
+          backgroundColor: dark ? amoled(context, 0xFF2C2C2E) : Colors.white,
           shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(14)),
           title: Text(
             l.settingsAbout,

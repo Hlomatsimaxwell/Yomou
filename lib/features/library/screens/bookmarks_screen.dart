@@ -1,3 +1,4 @@
+import 'package:yomou/core/theme/amoled.dart';
 import 'package:yomou/widgets/cached_manga_image.dart';
 import 'package:yomou/widgets/manga_hero.dart';
 import 'package:flutter/material.dart';
@@ -53,7 +54,7 @@ class _BookmarksScreenState extends ConsumerState<BookmarksScreen> {
         final dark = Theme.of(context).brightness == Brightness.dark;
         final l = AppLocalizations.of(context);
         return AlertDialog(
-          backgroundColor: dark ? const Color(0xFF2C2C2E) : Colors.white,
+          backgroundColor: dark ? amoled(context, 0xFF2C2C2E) : Colors.white,
           title: Text(
             l.deleteBookmarkTitle,
             style: TextStyle(
@@ -181,7 +182,7 @@ class _BookmarkTile extends StatelessWidget {
       },
       child: Container(
         decoration: BoxDecoration(
-          color: dark ? const Color(0xFF1C1C1E) : Colors.white,
+          color: dark ? amoled(context, 0xFF1C1C1E) : Colors.white,
           borderRadius: BorderRadius.circular(14),
           boxShadow: dark
               ? null
@@ -212,7 +213,7 @@ class _BookmarkTile extends StatelessWidget {
                         errorWidget: (context, url, error) => Container(
                           width: 48,
                           height: 64,
-                          color: const Color(0xFF2C2C2E),
+                          color: amoled(context, 0xFF2C2C2E),
                           alignment: Alignment.center,
                           child: const Icon(
                             RemixIcons.book_open_line,

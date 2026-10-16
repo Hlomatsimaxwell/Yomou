@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:yomou/core/theme/amoled.dart';
 import 'package:yomou/widgets/safe_image.dart';
 
 /// Universal "Premium Icon Plate": every source icon, everywhere, sits on the
@@ -98,7 +99,7 @@ class SourceIcon extends StatelessWidget {
       width: size,
       height: size,
       decoration: BoxDecoration(
-        color: dark ? const Color(0xFF2C2C2E) : const Color(0xFFF5F5F5),
+        color: dark ? amoled(context, 0xFF2C2C2E) : const Color(0xFFF5F5F5),
         borderRadius: BorderRadius.circular(radius),
         border: Border.all(
           color: dark

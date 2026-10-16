@@ -1,5 +1,6 @@
 import 'dart:math' as math;
 
+import 'package:yomou/core/theme/amoled.dart';
 import 'package:yomou/widgets/cached_manga_image.dart';
 import 'package:yomou/widgets/manga_hero.dart';
 import 'package:yomou/widgets/source_icon.dart';
@@ -466,7 +467,7 @@ class _HistoryScreenState extends ConsumerState<HistoryScreen> {
             void select(int? val) =>
                 setDialogState(() => selectedOption = val ?? 0);
             return AlertDialog(
-              backgroundColor: dark ? const Color(0xFF2C2C2E) : Colors.white,
+              backgroundColor: dark ? amoled(context, 0xFF2C2C2E) : Colors.white,
               shape: RoundedRectangleBorder(
                 borderRadius: BorderRadius.circular(28),
                 side: dark
@@ -727,7 +728,7 @@ class _HistoryScreenState extends ConsumerState<HistoryScreen> {
                       vertical: 4,
                     ),
                     decoration: BoxDecoration(
-                      color: dark ? const Color(0xFF2C2C2E) : Colors.white,
+                      color: dark ? amoled(context, 0xFF2C2C2E) : Colors.white,
                       borderRadius: BorderRadius.circular(12),
                       border: Border.all(
                         color: dark ? Colors.white12 : Colors.black12,
@@ -746,7 +747,7 @@ class _HistoryScreenState extends ConsumerState<HistoryScreen> {
                       child: DropdownButton<String>(
                         value: _sortingOrder,
                         dropdownColor: dark
-                      ? const Color(0xFF2C2C2E)
+                      ? amoled(context, 0xFF2C2C2E)
                       : Colors.white,
                         isExpanded: true,
                         icon: Icon(
@@ -812,7 +813,7 @@ class _HistoryScreenState extends ConsumerState<HistoryScreen> {
                       ? Colors.white54
                       : Colors.black54,
                         inactiveTrackColor: dark
-                      ? const Color(0xFF2C2C2E)
+                      ? amoled(context, 0xFF2C2C2E)
                       : Colors.black12,
                         onChanged: (value) {
                           setSheetState(() {
@@ -1040,7 +1041,7 @@ class _HistoryScreenState extends ConsumerState<HistoryScreen> {
                       inactiveThumbColor:
                           dark ? Colors.white54 : Colors.black54,
                       inactiveTrackColor: dark
-                          ? const Color(0xFF2C2C2E)
+                          ? amoled(context, 0xFF2C2C2E)
                           : Colors.black12,
                       onChanged: (value) {
                         ref.read(incognitoProvider.notifier).set(value);
@@ -1924,7 +1925,7 @@ class _GridHistoryCardState extends State<GridHistoryCard> {
                           height: constraints.maxHeight,
                           fit: BoxFit.cover,
                           errorWidget: (context, url, error) => Container(
-                            color: const Color(0xFF2C2C2E),
+                            color: amoled(context, 0xFF2C2C2E),
                             alignment: Alignment.center,
                             child: const Icon(
                               RemixIcons.book_open_line,
@@ -2086,7 +2087,7 @@ class _DetailedHistoryCardState extends State<DetailedHistoryCard> {
     return Container(
       margin: const EdgeInsets.only(bottom: 12),
       decoration: BoxDecoration(
-        color: dark ? const Color(0xFF1E1E20) : Colors.white,
+        color: dark ? amoled(context, 0xFF1E1E20) : Colors.white,
         borderRadius: BorderRadius.circular(12),
         boxShadow: dark
             ? null

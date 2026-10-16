@@ -6,6 +6,7 @@ import 'dart:ui' show ImageFilter;
 import 'dart:io';
 import 'package:sqflite_common_ffi/sqflite_ffi.dart';
 
+import 'package:yomou/core/theme/amoled.dart';
 import 'package:yomou/features/suggestions/screens/suggestions_screen.dart';
 import 'features/history/screens/history_screen.dart';
 import 'features/library/screens/favorites_screen.dart';
@@ -860,7 +861,7 @@ class _HomeScreenState extends ConsumerState<HomeScreen>
         height: kBottomBarHeight + MediaQuery.paddingOf(context).bottom,
         padding: EdgeInsets.only(bottom: MediaQuery.paddingOf(context).bottom),
           color: Theme.of(context).brightness == Brightness.dark
-              ? const Color(0xFF1C1C1E)
+              ? amoled(context, 0xFF1C1C1E)
               : Colors.white,
         child: _buildNavRow(updatesCount, accent, settings, enabledTabs),
       ),
@@ -959,7 +960,7 @@ class _HomeScreenState extends ConsumerState<HomeScreen>
     final dark = Theme.of(context).brightness == Brightness.dark;
     return Container(
       width: kNavRailWidth,
-      color: dark ? const Color(0xFF1C1C1E) : Colors.white,
+      color: dark ? amoled(context, 0xFF1C1C1E) : Colors.white,
       child: SafeArea(
         right: false,
         child: Column(
@@ -1180,12 +1181,12 @@ class _HomeScreenState extends ConsumerState<HomeScreen>
     final tint = accent.withValues(alpha: dark ? 0.45 : 0.32);
     final gel = Color.alphaBlend(tint, glass);
     final gelSolid =
-        Color.alphaBlend(tint, dark ? const Color(0xFF1C1C1E) : Colors.white);
+        Color.alphaBlend(tint, dark ? amoled(context, 0xFF1C1C1E) : Colors.white);
 
     final inner = Container(
       width: 60,
       height: 60,
-      color: _isContinuing ? const Color(0xFF2A2A2E) : gel,
+      color: _isContinuing ? amoled(context, 0xFF2A2A2E) : gel,
       child: Center(
         child: _isContinuing
             ? const SizedBox(
@@ -1213,7 +1214,7 @@ class _HomeScreenState extends ConsumerState<HomeScreen>
         height: 60,
         decoration: BoxDecoration(
           shape: BoxShape.circle,
-          color: _isContinuing ? const Color(0xFF2A2A2E) : Colors.transparent,
+          color: _isContinuing ? amoled(context, 0xFF2A2A2E) : Colors.transparent,
           boxShadow: [
             BoxShadow(
               color: Colors.black.withValues(alpha: 0.35),
@@ -1232,7 +1233,7 @@ class _HomeScreenState extends ConsumerState<HomeScreen>
                   width: 60,
                   height: 60,
                   color: _isContinuing
-                      ? const Color(0xFF2A2A2E)
+                      ? amoled(context, 0xFF2A2A2E)
                       : gelSolid,
                   child: Center(
                     child: _isContinuing

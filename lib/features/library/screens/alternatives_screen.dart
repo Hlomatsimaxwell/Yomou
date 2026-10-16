@@ -4,6 +4,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:remixicon/remixicon.dart';
 import 'package:yomou/core/database/source_cache.dart';
+import 'package:yomou/core/theme/amoled.dart';
 import 'package:yomou/core/theme/layout.dart';
 import 'package:yomou/core/widgets/empty_state.dart';
 import 'package:yomou/core/widgets/ios/ios_toast.dart';
@@ -384,7 +385,7 @@ class _AlternativesScreenState extends ConsumerState<AlternativesScreen> {
               padding: const EdgeInsets.symmetric(horizontal: 12),
               alignment: Alignment.center,
               decoration: BoxDecoration(
-                color: dark ? const Color(0xFF2C2C2E) : const Color(0xFFF1F3F4),
+                color: dark ? amoled(context, 0xFF2C2C2E) : const Color(0xFFF1F3F4),
                 borderRadius: BorderRadius.circular(18),
                 border: Border.all(
                   color: dark ? Colors.white12 : const Color(0xFFE0E0E0),
@@ -426,7 +427,7 @@ class _AlternativesScreenState extends ConsumerState<AlternativesScreen> {
               height: 32,
               alignment: Alignment.center,
               decoration: BoxDecoration(
-                color: dark ? const Color(0xFF2C2C2E) : const Color(0xFFF1F3F4),
+                color: dark ? amoled(context, 0xFF2C2C2E) : const Color(0xFFF1F3F4),
                 borderRadius: BorderRadius.circular(16),
                 border: Border.all(
                   color: dark ? Colors.white24 : const Color(0xFFE0E0E0),
@@ -454,7 +455,7 @@ class _AlternativesScreenState extends ConsumerState<AlternativesScreen> {
                 decoration: BoxDecoration(
                   color: _showOnlyEnabled
                       ? _lavender.withValues(alpha: 0.14)
-                      : (dark ? const Color(0xFF2C2C2E) : const Color(0xFFF1F3F4)),
+                      : (dark ? amoled(context, 0xFF2C2C2E) : const Color(0xFFF1F3F4)),
                   borderRadius: BorderRadius.circular(16),
                   border: Border.all(
                     color: _showOnlyEnabled ? _lavender : (dark ? Colors.white24 : const Color(0xFFE0E0E0)),
@@ -522,7 +523,7 @@ class _AlternativesScreenState extends ConsumerState<AlternativesScreen> {
 
     return RefreshIndicator(
       color: dark ? Colors.white : _metaLight,
-      backgroundColor: dark ? const Color(0xFF2C2C2E) : Colors.white,
+      backgroundColor: dark ? amoled(context, 0xFF2C2C2E) : Colors.white,
       onRefresh: _refresh,
       child: LayoutBuilder(
         builder: (context, constraints) => candidates.isEmpty
@@ -553,7 +554,7 @@ class _AlternativesScreenState extends ConsumerState<AlternativesScreen> {
     return Container(
       padding: const EdgeInsets.all(12),
       decoration: BoxDecoration(
-        color: dark ? const Color(0xFF232326) : _cardLightBg,
+        color: dark ? amoled(context, 0xFF232326) : _cardLightBg,
         borderRadius: BorderRadius.circular(14),
         border: Border.all(color: dark ? Colors.white12 : const Color(0xFFE0E0E0)),
       ),
@@ -616,7 +617,7 @@ class _AlternativesScreenState extends ConsumerState<AlternativesScreen> {
     showDialog<bool>(
       context: context,
       builder: (ctx) => AlertDialog(
-        backgroundColor: dark ? const Color(0xFF2C2C2E) : Colors.white,
+        backgroundColor: dark ? amoled(context, 0xFF2C2C2E) : Colors.white,
         surfaceTintColor: Colors.transparent,
         shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(24)),
         contentPadding: const EdgeInsets.fromLTRB(24, 28, 24, 12),
@@ -731,7 +732,7 @@ class _AlternativesScreenState extends ConsumerState<AlternativesScreen> {
     final dark = Theme.of(context).brightness == Brightness.dark;
     showModalBottomSheet<void>(
       context: context,
-      backgroundColor: dark ? const Color(0xFF2E2E33) : Colors.white,
+      backgroundColor: dark ? amoled(context, 0xFF2E2E33) : Colors.white,
       // The rows already scroll, so this one cannot overflow -- but without
       // this the sheet is still capped at about 9/16 of the viewport, which in
       // landscape leaves a usable but needlessly cramped panel.

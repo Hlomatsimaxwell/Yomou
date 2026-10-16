@@ -5,6 +5,7 @@ import 'package:yomou/core/widgets/responsive.dart';
 import 'package:yomou/features/settings/providers/appearance_provider.dart';
 import 'package:yomou/core/security/app_lock.dart';
 import 'package:yomou/core/security/pin_lock_screen.dart';
+import 'package:yomou/core/theme/amoled.dart';
 import 'package:yomou/l10n/generated/app_localizations.dart';
 import 'package:yomou/widgets/m3_components.dart';
 
@@ -68,6 +69,15 @@ class AppearanceSettingsScreen extends ConsumerWidget {
           subtitle: Text(_themeModeLabel(l, settings.themeMode)),
           onTap: () => _showThemeModeSelector(context, ref, settings, notifier),
         ),
+        // Only meaningful against a dark background, so it is offered only
+        // when one is showing: a switch that changes nothing reads as broken.
+        if (Theme.of(context).brightness == Brightness.dark)
+          SwitchListTile(
+            title: Text(l.appearanceAmoledBlack),
+            subtitle: Text(l.appearanceAmoledBlackSubtitle),
+            value: settings.amoledBlack,
+            onChanged: (_) => notifier.toggleBool('amoledBlack'),
+          ),
         ListTile(
           title: Text(l.appearanceLanguageTitle),
           subtitle: Text(_languageLabel(l, settings.language)),
@@ -93,6 +103,11 @@ class AppearanceSettingsScreen extends ConsumerWidget {
         ),
 
         // Manga List Section
+        //
+        // A wider break than the other headings get: this is where the theme
+        // half of the screen ends and the list half begins, and at the shared
+        // spacing the two read as one long column of settings.
+        const SizedBox(height: 16),
         M3SectionHeader(title: l.appearanceSectionMangaList),
         ListTile(
           title: Text(l.appearanceListModeTitle),
@@ -519,7 +534,7 @@ class AppearanceSettingsScreen extends ConsumerWidget {
     return showModalBottomSheet<String>(
       context: context,
       backgroundColor: Theme.of(context).brightness == Brightness.dark
-          ? const Color(0xFF1C1C1E)
+          ? amoled(context, 0xFF1C1C1E)
           : Colors.white,
       isScrollControlled: true,
       showDragHandle: true,
@@ -604,7 +619,11 @@ class _SchemePreset extends StatelessWidget {
               height: 116,
               padding: const EdgeInsets.all(6),
               decoration: BoxDecoration(
-                color: presetSurfaceFor(name, brightness),
+                color: presetSurfaceFor(
+                  name,
+                  brightness,
+                  amoled: AmoledMode.of(context),
+                ),
                 borderRadius: BorderRadius.circular(16),
                 // Neutral on every card: the outline just defines the swatch
                 // against the settings background, and selection is announced

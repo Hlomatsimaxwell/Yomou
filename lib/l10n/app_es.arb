@@ -92,6 +92,8 @@
   "appearanceThemeSystem": "Sistema",
   "appearanceThemeLight": "Claro",
   "appearanceThemeDark": "Oscuro",
+  "appearanceAmoledBlack": "Negro",
+  "appearanceAmoledBlackSubtitle": "Usa menos energía en pantallas AMOLED",
   "appearanceLanguageTitle": "Idioma",
   "appearanceFrostedGlass": "Vidrio esmerilado",
   "appearanceFrostedGlassSubtitle": "Desenfoque esmerilado en la barra de navegación, controles del lector y botones flotantes",

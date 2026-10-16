@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:remixicon/remixicon.dart';
+import 'package:yomou/core/theme/amoled.dart';
 import 'package:yomou/features/reader/services/download_job.dart';
 import 'package:yomou/l10n/generated/app_localizations.dart';
 
@@ -153,7 +154,7 @@ class _Shell extends StatelessWidget {
       margin: const EdgeInsets.fromLTRB(16, 4, 16, 12),
       padding: const EdgeInsets.fromLTRB(14, 12, 8, 14),
       decoration: BoxDecoration(
-        color: dark ? const Color(0xFF2A2A2E) : cs.surface,
+        color: dark ? amoled(context, 0xFF2A2A2E) : cs.surface,
         borderRadius: BorderRadius.circular(20),
         border: Border.all(
           color: cs.primary.withValues(alpha: dark ? 0.35 : 0.18),

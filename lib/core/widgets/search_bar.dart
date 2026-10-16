@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:remixicon/remixicon.dart';
+import 'package:yomou/core/theme/amoled.dart';
 
 /// The single shared search bar look used across the app: a rounded pill with
 /// a leading search icon, a hint/text field, and an optional clear button.
@@ -128,7 +129,7 @@ class YomouSearchBar extends StatelessWidget {
       margin: margin,
       height: height,
       decoration: BoxDecoration(
-        color: dark ? const Color(0xFF2C2C2E) : const Color(0xFFEBEFEF),
+        color: dark ? amoled(context, 0xFF2C2C2E) : const Color(0xFFEBEFEF),
         borderRadius: BorderRadius.circular(28),
       ),
       child: child,

@@ -1,6 +1,7 @@
 import 'package:remixicon/remixicon.dart';
 import 'dart:async';
 import 'dart:convert';
+import 'package:yomou/core/theme/amoled.dart';
 import 'package:yomou/widgets/cached_manga_image.dart';
 import 'package:yomou/widgets/manga_hero.dart';
 import 'package:flutter/material.dart';
@@ -550,7 +551,7 @@ class _GlobalSearchScreenState extends ConsumerState<GlobalSearchScreen> {
                                 errorWidget: (context, url, error) =>
                                     Container(
                                       color: dark
-                                          ? const Color(0xFF2C2C2E)
+                                          ? amoled(context, 0xFF2C2C2E)
                                           : Colors.black12,
                                       alignment: Alignment.center,
                                       child: Icon(

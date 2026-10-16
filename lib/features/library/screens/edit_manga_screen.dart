@@ -4,6 +4,7 @@ import 'package:image_picker/image_picker.dart';
 import 'package:remixicon/remixicon.dart';
 
 import 'package:yomou/core/database/database_helper.dart';
+import 'package:yomou/core/theme/amoled.dart';
 import 'package:yomou/widgets/cached_manga_image.dart';
 import 'package:yomou/core/widgets/ios/ios_nav_bar.dart';
 import 'package:yomou/core/widgets/ios/ios_press.dart';
@@ -112,7 +113,7 @@ class _EditMangaScreenState extends ConsumerState<EditMangaScreen> {
     final result = await showDialog<bool>(
       context: context,
       builder: (dialogContext) => AlertDialog(
-        backgroundColor: dark ? const Color(0xFF2C2C2E) : Colors.white,
+        backgroundColor: dark ? amoled(context, 0xFF2C2C2E) : Colors.white,
         title: Text(
           l.editDiscardTitle,
           style: TextStyle(
@@ -392,7 +393,7 @@ class _EditMangaScreenState extends ConsumerState<EditMangaScreen> {
             borderRadius: BorderRadius.circular(14),
             child: _effectiveCover.isEmpty
                 ? Container(
-                    color: const Color(0xFF2C2C2E),
+                    color: amoled(context, 0xFF2C2C2E),
                     child: const Icon(
                       RemixIcons.book_open_line,
                       color: Colors.white38,
@@ -481,7 +482,7 @@ class _EditMangaScreenState extends ConsumerState<EditMangaScreen> {
         width: double.infinity,
         padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 13),
         decoration: BoxDecoration(
-          color: dark ? const Color(0xFF2C2C2E) : const Color(0xFFF1F3F5),
+          color: dark ? amoled(context, 0xFF2C2C2E) : const Color(0xFFF1F3F5),
           borderRadius: BorderRadius.circular(12),
         ),
         child: Row(
@@ -528,7 +529,7 @@ class _EditMangaScreenState extends ConsumerState<EditMangaScreen> {
         hintText: AppLocalizations.of(context).editTitleHint,
         hintStyle: TextStyle(color: dark ? Colors.white38 : Colors.black38),
         filled: true,
-        fillColor: dark ? const Color(0xFF2C2C2E) : const Color(0xFFF1F3F5),
+        fillColor: dark ? amoled(context, 0xFF2C2C2E) : const Color(0xFFF1F3F5),
         contentPadding: const EdgeInsets.symmetric(
           horizontal: 14,
           vertical: 14,

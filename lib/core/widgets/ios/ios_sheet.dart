@@ -1,11 +1,12 @@
 import 'package:flutter/material.dart';
 import 'package:remixicon/remixicon.dart';
+import 'package:yomou/core/theme/amoled.dart';
 import 'package:yomou/core/widgets/responsive.dart';
 import 'package:yomou/l10n/generated/app_localizations.dart';
 
 Color iosSheetBackground(BuildContext context) {
   final dark = Theme.of(context).brightness == Brightness.dark;
-  return dark ? const Color(0xFF1C1C1E) : Colors.white;
+  return dark ? amoled(context, 0xFF1C1C1E) : Colors.white;
 }
 
 Color iosSheetGrabber(BuildContext context) {

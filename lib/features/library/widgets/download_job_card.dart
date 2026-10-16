@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:remixicon/remixicon.dart';
+import 'package:yomou/core/theme/amoled.dart';
 import 'package:yomou/features/reader/services/download_job.dart';
 import 'package:yomou/l10n/generated/app_localizations.dart';
 import 'package:yomou/widgets/cached_manga_image.dart';
@@ -44,7 +45,7 @@ class DownloadJobCard extends StatelessWidget {
     return Container(
       padding: const EdgeInsets.fromLTRB(12, 12, 6, 12),
       decoration: BoxDecoration(
-        color: dark ? const Color(0xFF1E1E20) : cs.surface,
+        color: dark ? amoled(context, 0xFF1E1E20) : cs.surface,
         borderRadius: BorderRadius.circular(20),
         border: Border.all(
           color: active

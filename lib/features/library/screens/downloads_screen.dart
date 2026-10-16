@@ -4,6 +4,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:remixicon/remixicon.dart';
 import 'package:yomou/core/database/database_helper.dart';
 import 'package:yomou/core/storage/storage_stats.dart';
+import 'package:yomou/core/theme/amoled.dart';
 import 'package:yomou/core/utils/relative_time.dart';
 import 'package:yomou/core/widgets/empty_state.dart';
 import 'package:yomou/core/widgets/ios/ios_press.dart';
@@ -702,7 +703,7 @@ class _DownloadCard extends StatelessWidget {
 
     return Container(
       decoration: BoxDecoration(
-        color: isDark ? const Color(0xFF1C1C1E) : cs.surface,
+        color: isDark ? amoled(context, 0xFF1C1C1E) : cs.surface,
         borderRadius: BorderRadius.circular(16),
         border: isDark ? null : Border.all(color: cs.outlineVariant),
       ),

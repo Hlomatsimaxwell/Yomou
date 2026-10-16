@@ -3,6 +3,7 @@ import 'dart:math' as math;
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:remixicon/remixicon.dart';
+import 'package:yomou/core/theme/amoled.dart';
 import 'package:yomou/core/widgets/ios/ios_press.dart';
 import 'package:yomou/data/models/manga.dart';
 import 'package:yomou/features/library/screens/manga_detail_screen.dart';
@@ -268,8 +269,8 @@ class _FeaturedCardState extends ConsumerState<_FeaturedCard>
                     end: Alignment.bottomRight,
                     colors: [
                       accent.withValues(alpha: 0.34),
-                      const Color(0xFF26262A),
-                      const Color(0xFF111114),
+                      amoled(context, 0xFF26262A),
+                      amoled(context, 0xFF111114),
                     ],
                     stops: const [0, 0.42, 1],
                   )
@@ -589,7 +590,7 @@ class _BookCover extends StatelessWidget {
                   fit: BoxFit.cover,
                   errorWidget: (context, url, error) => Container(
                     color: dark
-                        ? const Color(0xFF2A2A2C)
+                        ? amoled(context, 0xFF2A2A2C)
                         : const Color(0xFFDDD8D0),
                     alignment: Alignment.center,
                     child: Icon(
@@ -755,7 +756,7 @@ class _CarouselSkeletonState extends State<_CarouselSkeleton>
   Widget build(BuildContext context) {
     final dark = Theme.of(context).brightness == Brightness.dark;
     final layout = widget.layout;
-    final base = dark ? const Color(0xFF2C2C2E) : const Color(0xFFEDEDEF);
+    final base = dark ? amoled(context, 0xFF2C2C2E) : const Color(0xFFEDEDEF);
     final fill = dark
         ? Colors.white.withValues(alpha: 0.08)
         : Colors.black.withValues(alpha: 0.08);

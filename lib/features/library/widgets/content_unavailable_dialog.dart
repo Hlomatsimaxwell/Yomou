@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 
+import 'package:yomou/core/theme/amoled.dart';
 import 'package:yomou/l10n/generated/app_localizations.dart';
 import 'package:yomou/widgets/cached_manga_image.dart';
 
@@ -37,7 +38,7 @@ class _ContentUnavailableDialog extends StatelessWidget {
     final dark = Theme.of(context).brightness == Brightness.dark;
 
     return Dialog(
-      backgroundColor: dark ? const Color(0xFF2C2C2E) : Colors.white,
+      backgroundColor: dark ? amoled(context, 0xFF2C2C2E) : Colors.white,
       shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(28)),
       child: Padding(
         padding: const EdgeInsets.fromLTRB(24, 24, 24, 16),
@@ -65,7 +66,7 @@ class _ContentUnavailableDialog extends StatelessWidget {
                       color: scheme.error,
                       shape: BoxShape.circle,
                       border: Border.all(
-                        color: dark ? const Color(0xFF2C2C2E) : Colors.white,
+                        color: dark ? amoled(context, 0xFF2C2C2E) : Colors.white,
                         width: 2,
                       ),
                     ),

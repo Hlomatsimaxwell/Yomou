@@ -10,6 +10,7 @@ import 'package:yomou/core/backup/kotatsu_backup.dart';
 import 'package:yomou/core/backup/tachiyomi_backup.dart';
 import 'package:yomou/core/database/database_helper.dart';
 import 'package:yomou/core/notifications/notification_service.dart';
+import 'package:yomou/core/theme/amoled.dart';
 import 'package:yomou/core/widgets/responsive.dart';
 import 'package:yomou/core/widgets/ios/ios_toast.dart';
 import 'package:yomou/features/history/providers/history_provider.dart';
@@ -323,7 +324,7 @@ class _BackupRestoreScreenState extends ConsumerState<BackupRestoreScreen> {
     final confirmed = await showDialog<bool>(
       context: context,
       builder: (context) => AlertDialog(
-        backgroundColor: dark ? const Color(0xFF2C2C2E) : Colors.white,
+        backgroundColor: dark ? amoled(context, 0xFF2C2C2E) : Colors.white,
         contentPadding: const EdgeInsets.fromLTRB(24, 24, 24, 8),
         actionsPadding: const EdgeInsets.only(right: 16, bottom: 12),
         shape: RoundedRectangleBorder(

@@ -1,3 +1,4 @@
+import 'package:yomou/core/theme/amoled.dart';
 import 'package:yomou/widgets/cached_manga_image.dart';
 import 'package:yomou/widgets/manga_hero.dart';
 import 'package:flutter/material.dart';
@@ -99,7 +100,7 @@ class _GlobalSearchResultsScreenState
       backgroundColor: Theme.of(context).scaffoldBackgroundColor,
       body: RefreshIndicator(
         color: dark ? Colors.white : Theme.of(context).colorScheme.onSurface,
-        backgroundColor: dark ? const Color(0xFF2C2C2E) : Colors.white,
+        backgroundColor: dark ? amoled(context, 0xFF2C2C2E) : Colors.white,
         onRefresh: _refresh,
         child: CustomScrollView(
           physics: const AlwaysScrollableScrollPhysics(),
@@ -367,7 +368,7 @@ class _GlobalSearchResultsScreenState
                               fit: BoxFit.cover,
                               errorWidget: (context, url, error) => Container(
                                 color: dark
-                                    ? const Color(0xFF2C2C2E)
+                                    ? amoled(context, 0xFF2C2C2E)
                                     : Colors.black12,
                                 height: 140,
                                 width: 100,
@@ -419,7 +420,7 @@ class _GlobalSearchResultsScreenState
       child: Container(
         padding: const EdgeInsets.all(12),
         decoration: BoxDecoration(
-          color: dark ? const Color(0xFF1C1C1E) : Colors.white,
+          color: dark ? amoled(context, 0xFF1C1C1E) : Colors.white,
           borderRadius: BorderRadius.circular(12),
           border: Border.all(color: dark ? Colors.white12 : Colors.black12),
         ),

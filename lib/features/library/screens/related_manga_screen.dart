@@ -1,3 +1,4 @@
+import 'package:yomou/core/theme/amoled.dart';
 import 'package:yomou/widgets/cached_manga_image.dart';
 import 'package:yomou/widgets/manga_hero.dart';
 import 'package:flutter/material.dart';
@@ -67,7 +68,7 @@ class _RelatedMangaScreenState extends ConsumerState<RelatedMangaScreen> {
                   Container(
                     decoration: BoxDecoration(
                       color: dark
-                          ? const Color(0xFF1C1C1E)
+                          ? amoled(context, 0xFF1C1C1E)
                           : const Color(0xFFEBEFEF),
                       borderRadius: BorderRadius.circular(30),
                     ),
@@ -294,7 +295,7 @@ class _RelatedMangaScreenState extends ConsumerState<RelatedMangaScreen> {
                                     width: double.infinity,
                                     errorWidget: (context, url, error) =>
                                         Container(
-                                          color: const Color(0xFF2C2C2E),
+                                          color: amoled(context, 0xFF2C2C2E),
                                           alignment: Alignment.center,
                                           child: const Icon(
                                             RemixIcons.book_open_line,
@@ -381,7 +382,7 @@ class _RelatedMangaScreenState extends ConsumerState<RelatedMangaScreen> {
                                       Container(
                                         width: isDetails ? 60 : 45,
                                         height: isDetails ? 80 : 60,
-                                        color: const Color(0xFF2C2C2E),
+                                        color: amoled(context, 0xFF2C2C2E),
                                         alignment: Alignment.center,
                                         child: const Icon(
                                           RemixIcons.book_open_line,

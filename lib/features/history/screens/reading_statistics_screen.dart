@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:remixicon/remixicon.dart';
 import 'package:yomou/core/database/database_helper.dart';
+import 'package:yomou/core/theme/amoled.dart';
 import 'package:yomou/core/theme/layout.dart';
 import 'package:yomou/core/widgets/empty_state.dart';
 import 'package:yomou/core/widgets/ios/ios_nav_bar.dart';
@@ -130,7 +131,7 @@ class _ReadingStatisticsScreenState
     final confirmed = await showDialog<bool>(
       context: context,
       builder: (context) => AlertDialog(
-        backgroundColor: dark ? const Color(0xFF2C2C2E) : Colors.white,
+        backgroundColor: dark ? amoled(context, 0xFF2C2C2E) : Colors.white,
         shape: RoundedRectangleBorder(
           borderRadius: BorderRadius.circular(28),
           side: dark ? BorderSide.none : const BorderSide(color: Colors.black12),
@@ -476,7 +477,7 @@ class _ActionPill extends StatelessWidget {
         height: 40,
         padding: const EdgeInsets.symmetric(horizontal: 14),
         decoration: BoxDecoration(
-          color: tint ?? (dark ? const Color(0xFF1C1C1E) : const Color(0xFFF2F3F5)),
+          color: tint ?? (dark ? amoled(context, 0xFF1C1C1E) : const Color(0xFFF2F3F5)),
           borderRadius: BorderRadius.circular(22),
           border: border != null
               ? Border.all(color: border!)

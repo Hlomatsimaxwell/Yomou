@@ -1,3 +1,4 @@
+import 'package:yomou/core/theme/amoled.dart';
 import 'package:yomou/widgets/cached_manga_image.dart';
 import 'package:yomou/widgets/manga_hero.dart';
 import 'package:flutter/material.dart';
@@ -340,7 +341,7 @@ class _FavoritesScreenState extends ConsumerState<FavoritesScreen> {
                             imageUrl: item.coverUrl,
                             fit: BoxFit.cover,
                             errorWidget: (context, url, error) => Container(
-                              color: const Color(0xFF2C2C2E),
+                              color: amoled(context, 0xFF2C2C2E),
                               alignment: Alignment.center,
                               child: const Icon(
                                 RemixIcons.book_open_line,

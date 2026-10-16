@@ -1112,6 +1112,18 @@ abstract class AppLocalizations {
   /// **'Dark'**
   String get appearanceThemeDark;
 
+  /// No description provided for @appearanceAmoledBlack.
+  ///
+  /// In en, this message translates to:
+  /// **'Black'**
+  String get appearanceAmoledBlack;
+
+  /// No description provided for @appearanceAmoledBlackSubtitle.
+  ///
+  /// In en, this message translates to:
+  /// **'Uses less power on AMOLED screens'**
+  String get appearanceAmoledBlackSubtitle;
+
   /// No description provided for @appearanceLanguageTitle.
   ///
   /// In en, this message translates to:

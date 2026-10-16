@@ -3,6 +3,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:remixicon/remixicon.dart';
 import 'package:shared_preferences/shared_preferences.dart';
+import 'package:yomou/core/theme/amoled.dart';
 import 'package:yomou/core/widgets/ios/ios_menu.dart';
 import 'package:yomou/core/widgets/ios/ios_sheet.dart';
 import 'package:yomou/core/widgets/ios/ios_toast.dart';
@@ -194,7 +195,7 @@ class _MangaFilterSheetState extends ConsumerState<MangaFilterSheet> {
       builder: (dialogContext) {
         return AlertDialog(
           backgroundColor:
-              dark ? const Color(0xFF2C2C2E) : Colors.white,
+              dark ? amoled(context, 0xFF2C2C2E) : Colors.white,
           shape: RoundedRectangleBorder(
             borderRadius: BorderRadius.circular(14),
           ),
@@ -305,7 +306,7 @@ class _MangaFilterSheetState extends ConsumerState<MangaFilterSheet> {
         context: context,
         builder: (dialogContext) => AlertDialog(
           backgroundColor:
-              dark ? const Color(0xFF2C2C2E) : Colors.white,
+              dark ? amoled(context, 0xFF2C2C2E) : Colors.white,
           shape: RoundedRectangleBorder(
             borderRadius: BorderRadius.circular(14),
           ),
@@ -583,7 +584,7 @@ class _MangaFilterSheetState extends ConsumerState<MangaFilterSheet> {
     required ValueChanged<String?> onChanged,
     String? hint,
   }) {
-    final fill = dark ? const Color(0xFF2C2C2E) : Colors.white;
+    final fill = dark ? amoled(context, 0xFF2C2C2E) : Colors.white;
     return Container(
       padding: const EdgeInsets.symmetric(horizontal: 14),
       decoration: BoxDecoration(
@@ -833,7 +834,7 @@ class _MangaFilterSheetState extends ConsumerState<MangaFilterSheet> {
         decoration: BoxDecoration(
           color: filled
               ? scheme.primary
-              : (dark ? const Color(0xFF2C2C2E) : const Color(0xFFE8EAF0)),
+              : (dark ? amoled(context, 0xFF2C2C2E) : const Color(0xFFE8EAF0)),
           borderRadius: BorderRadius.circular(23),
         ),
         child: Text(

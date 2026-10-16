@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:shared_preferences/shared_preferences.dart';
+import 'package:yomou/core/theme/amoled.dart';
 import 'package:yomou/features/settings/providers/appearance_provider.dart';
 
 /// ThemeData only picks an icon color from the brightness handed to its own
@@ -181,6 +182,88 @@ void main() {
     expect(range.thumbSize!.resolve(const <WidgetState>{}), const Size(4, 44));
     expect(range.rangeTickMarkShape, isA<RoundRangeSliderTickMarkShape>());
   });
+
+  test('"Black" flattens the dark surfaces and leaves light mode alone',
+      () async {
+    // The switch is a background, not an accent, so what it has to move is
+    // every surface role the scheme carries -- not just `surface`. A scheme
+    // from ColorScheme.fromSeed fills surfaceContainerLowest..Highest in with
+    // near-blacks of their own, and the scaffold was already pure black, so a
+    // setting that only re-tinted `surface` would look like it did nothing.
+    SharedPreferences.setMockInitialValues({'appearance.amoledBlack': true});
+    await SharedPreferences.getInstance();
+    final container = ProviderContainer();
+    addTearDown(container.dispose);
+    // The notifier loads from SharedPreferences on construction; wait for that
+    // hop or the theme is built from the defaults, with Black still off.
+    container.read(appearanceSettingsProvider.notifier);
+    await Future<void>.delayed(const Duration(milliseconds: 20));
+
+    final bundle = container.read(themeNotifierProvider);
+    final dark = bundle.darkTheme;
+    final light = bundle.lightTheme;
+
+    expect(dark.extension<AmoledMode>()!.enabled, isTrue);
+    for (final color in [
+      dark.colorScheme.surface,
+      dark.colorScheme.surfaceDim,
+      dark.colorScheme.surfaceBright,
+      dark.colorScheme.surfaceContainerLowest,
+      dark.colorScheme.surfaceContainerLow,
+      dark.colorScheme.surfaceContainer,
+      dark.colorScheme.surfaceContainerHigh,
+      dark.colorScheme.surfaceContainerHighest,
+      dark.canvasColor,
+      dark.cardColor,
+      dark.scaffoldBackgroundColor,
+    ]) {
+      expect(color, Colors.black, reason: '$color is not pure black');
+    }
+
+    // Light mode has no dark background to flatten, so the switch is inert
+    // there: the flag stays false and the surfaces stay white.
+    expect(light.extension<AmoledMode>()!.enabled, isFalse);
+    expect(light.canvasColor, Colors.white);
+    expect(presetSurfaceFor('totoro', Brightness.light, amoled: true),
+        Colors.white);
+
+    // Contrast: black surfaces are only worth having if what sits on them is
+    // still legible. onSurface and onSurfaceVariant are what a Text or an Icon
+    // with no color of its own resolves to.
+    expect(_contrast(dark.colorScheme.onSurface, Colors.black),
+        greaterThanOrEqualTo(4.5));
+    expect(_contrast(dark.colorScheme.onSurfaceVariant, Colors.black),
+        greaterThanOrEqualTo(4.5));
+  });
+
+  test('with Black off the dark surfaces keep their near-black', () async {
+    // The guard on the setting's default. Everything above has to hinge on the
+    // switch, not on dark mode: the app has always drawn #121212 cards.
+    SharedPreferences.setMockInitialValues({});
+    await SharedPreferences.getInstance();
+    final container = ProviderContainer();
+    addTearDown(container.dispose);
+    container.read(appearanceSettingsProvider.notifier);
+    await Future<void>.delayed(const Duration(milliseconds: 20));
+
+    final dark = container.read(themeNotifierProvider).darkTheme;
+    expect(dark.extension<AmoledMode>()!.enabled, isFalse);
+    expect(dark.canvasColor, const Color(0xFF121212));
+    expect(dark.cardColor, const Color(0xFF121212));
+    expect(dark.colorScheme.surfaceContainerHighest, isNot(Colors.black));
+    expect(presetSurfaceFor('totoro', Brightness.dark),
+        const Color(0xFF121212));
+  });
+}
+
+/// WCAG relative-luminance contrast, so the assertion above reads as the 4.5:1
+/// ratio a body-text pairing is expected to clear rather than a raw luminance.
+double _contrast(Color a, Color b) {
+  final la = a.computeLuminance();
+  final lb = b.computeLuminance();
+  final hi = la > lb ? la : lb;
+  final lo = la > lb ? lb : la;
+  return (hi + 0.05) / (lo + 0.05);
 }
 
 /// The theme a slider actually paints with. Both `Slider` and `RangeSlider`

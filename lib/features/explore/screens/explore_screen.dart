@@ -3,6 +3,7 @@ import 'dart:math';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:remixicon/remixicon.dart';
 import 'package:yomou/core/database/source_cache.dart';
+import 'package:yomou/core/theme/amoled.dart';
 import 'package:yomou/core/widgets/ios/ios_menu.dart';
 import 'package:yomou/core/widgets/ios/ios_press.dart';
 import 'package:yomou/core/widgets/ios/ios_toast.dart';
@@ -194,7 +195,7 @@ class _ExploreScreenState extends ConsumerState<ExploreScreen> {
 
   Widget _buildQuickButtonsGrid() {
     final dark = Theme.of(context).brightness == Brightness.dark;
-    final pillColor = dark ? const Color(0xFF2C2C2E) : const Color(0xFFF8F9FA);
+    final pillColor = dark ? amoled(context, 0xFF2C2C2E) : const Color(0xFFF8F9FA);
     final fgColor = dark ? Colors.white : const Color(0xFF1C1B1F);
     return Padding(
       padding: const EdgeInsets.symmetric(horizontal: _quickGridPadding),

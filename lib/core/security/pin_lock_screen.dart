@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:remixicon/remixicon.dart';
 import 'package:yomou/core/security/app_lock.dart';
+import 'package:yomou/core/theme/amoled.dart';
 import 'package:yomou/l10n/generated/app_localizations.dart';
 
 /// Numeric keypad + PIN dots. Calls [onVerify] when 4 digits are entered; on a
@@ -60,7 +61,7 @@ class _PinEntryViewState extends State<PinEntryView> {
     final dark = Theme.of(context).brightness == Brightness.dark;
     final bg =
         cs.brightness == Brightness.dark
-            ? const Color(0xFF232326)
+            ? amoled(context, 0xFF232326)
             : const Color(0xFFF0F1F5);
 
     return Column(

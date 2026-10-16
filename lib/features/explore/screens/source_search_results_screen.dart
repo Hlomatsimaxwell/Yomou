@@ -1,5 +1,6 @@
 import 'dart:convert';
 import 'dart:math';
+import 'package:yomou/core/theme/amoled.dart';
 import 'package:yomou/widgets/cached_manga_image.dart';
 import 'package:yomou/widgets/manga_hero.dart';
 import 'package:flutter/material.dart';
@@ -372,7 +373,7 @@ class _SourceSearchResultsScreenState
       child: Container(
         height: 44,
         decoration: BoxDecoration(
-          color: dark ? const Color(0xFF2C2C2E) : const Color(0xFFF0F0F5),
+          color: dark ? amoled(context, 0xFF2C2C2E) : const Color(0xFFF0F0F5),
           borderRadius: BorderRadius.circular(22),
         ),
         child: Row(
@@ -540,7 +541,7 @@ class _SourceSearchResultsScreenState
               constraints: const BoxConstraints(maxWidth: 240),
               padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
               decoration: BoxDecoration(
-                color: dark ? const Color(0xFF2C2C2E) : const Color(0xFFEBEFEF),
+                color: dark ? amoled(context, 0xFF2C2C2E) : const Color(0xFFEBEFEF),
                 borderRadius: BorderRadius.circular(20),
                 border: Border.all(
                   color: dark ? Colors.white38 : Colors.black12,
@@ -759,7 +760,7 @@ class _SourceSearchResultsScreenState
 
     return RefreshIndicator(
       color: dark ? Colors.white : Theme.of(context).colorScheme.onSurface,
-      backgroundColor: dark ? const Color(0xFF2C2C2E) : Colors.white,
+      backgroundColor: dark ? amoled(context, 0xFF2C2C2E) : Colors.white,
       onRefresh: _refresh,
       child: CustomScrollView(
         controller: _scrollController,
@@ -833,7 +834,7 @@ class _SourceSearchResultsScreenState
                         fit: BoxFit.cover,
                         errorWidget: (context, url, error) => Container(
                           color: dark
-                              ? const Color(0xFF2C2C2E)
+                              ? amoled(context, 0xFF2C2C2E)
                               : Colors.black12,
                           alignment: Alignment.center,
                           child: Icon(

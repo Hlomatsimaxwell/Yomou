@@ -3,6 +3,7 @@ import 'dart:async';
 import 'dart:math';
 import 'dart:convert';
 import 'package:shared_preferences/shared_preferences.dart';
+import 'package:yomou/core/theme/amoled.dart';
 import 'package:yomou/widgets/cached_manga_image.dart';
 import 'package:yomou/widgets/manga_hero.dart';
 import 'package:flutter/material.dart';
@@ -594,7 +595,7 @@ class _MangaGridScreenState extends ConsumerState<MangaGridScreen> {
 
     return RefreshIndicator(
       color: dark ? Colors.white : scheme.primary,
-      backgroundColor: dark ? const Color(0xFF2C2C2E) : Colors.white,
+      backgroundColor: dark ? amoled(context, 0xFF2C2C2E) : Colors.white,
       onRefresh: _refresh,
       child: SingleChildScrollView(
         controller: _scrollController,
@@ -1244,7 +1245,7 @@ class _MangaGridScreenState extends ConsumerState<MangaGridScreen> {
                             imageUrl: item.coverUrl,
                             fit: BoxFit.cover,
                             errorWidget: (context, url, error) => Container(
-                              color: const Color(0xFF2C2C2E),
+                              color: amoled(context, 0xFF2C2C2E),
                               alignment: Alignment.center,
                               child: const Icon(
                                 RemixIcons.book_open_line,

@@ -278,6 +278,8 @@
   "appearanceThemeSystem": "System",
   "appearanceThemeLight": "Light",
   "appearanceThemeDark": "Dark",
+  "appearanceAmoledBlack": "Black",
+  "appearanceAmoledBlackSubtitle": "Uses less power on AMOLED screens",
   "appearanceLanguageTitle": "Language",
   "appearanceFrostedGlass": "Frosted glass",
   "appearanceFrostedGlassSubtitle": "Frosted blur on the nav bar, reader controls and floating buttons",

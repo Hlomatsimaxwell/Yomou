@@ -3,6 +3,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import 'package:yomou/core/security/screenshot_policy.dart';
+import 'package:yomou/core/theme/amoled.dart';
 
 /// Named color schemes matching Kotatsu's preset themes.
 enum AppColorScheme { totoro, dynamic, expressive, miku, monochrome }
@@ -103,6 +104,7 @@ class AppearanceSettings {
     required this.useFrostedGlass,
     required this.reduceMotion,
     required this.hapticsEnabled,
+    required this.amoledBlack,
   });
 
   // All requested defaults from spec
@@ -143,6 +145,7 @@ class AppearanceSettings {
         useFrostedGlass: true,
         reduceMotion: false,
         hapticsEnabled: true,
+        amoledBlack: false,
       );
 
   final String colorScheme;
@@ -178,6 +181,11 @@ class AppearanceSettings {
   /// favouriting a title, and finishing a chapter.
   final bool hapticsEnabled;
 
+  /// When true, dark mode drops its near-black surfaces for pure black, which
+  /// an OLED panel draws with the pixels off. Off by default: on an LCD the
+  /// setting buys nothing and flattens the cards against the background.
+  final bool amoledBlack;
+
   AppearanceSettings copyWith({
     String? colorScheme,
     ThemeMode? themeMode,
@@ -204,6 +212,7 @@ class AppearanceSettings {
     bool? useFrostedGlass,
     bool? reduceMotion,
     bool? hapticsEnabled,
+    bool? amoledBlack,
   }) =>
       AppearanceSettings(
         colorScheme: colorScheme ?? this.colorScheme,
@@ -237,6 +246,7 @@ class AppearanceSettings {
         useFrostedGlass: useFrostedGlass ?? this.useFrostedGlass,
         reduceMotion: reduceMotion ?? this.reduceMotion,
         hapticsEnabled: hapticsEnabled ?? this.hapticsEnabled,
+        amoledBlack: amoledBlack ?? this.amoledBlack,
       );
 }
 
@@ -271,6 +281,7 @@ class _AppearancePersistence {
   static const _frostedGlass = '${_prefix}frostedGlass';
   static const _reduceMotion = '${_prefix}reduceMotion';
   static const _haptics = '${_prefix}hapticsEnabled';
+  static const _amoledBlack = '${_prefix}amoledBlack';
 
   static Future<AppearanceSettings> load() async {
     final p = await SharedPreferences.getInstance();
@@ -305,6 +316,7 @@ class _AppearancePersistence {
       useFrostedGlass: p.getBool(_frostedGlass) ?? true,
       reduceMotion: p.getBool(_reduceMotion) ?? false,
       hapticsEnabled: p.getBool(_haptics) ?? true,
+      amoledBlack: p.getBool(_amoledBlack) ?? false,
     );
   }
 
@@ -335,6 +347,7 @@ class _AppearancePersistence {
     await p.setBool(_frostedGlass, s.useFrostedGlass);
     await p.setBool(_reduceMotion, s.reduceMotion);
     await p.setBool(_haptics, s.hapticsEnabled);
+    await p.setBool(_amoledBlack, s.amoledBlack);
   }
 
   static Map<String, bool>? _decodeMap(String? json) {
@@ -411,6 +424,8 @@ class AppearanceSettingsNotifier extends StateNotifier<AppearanceSettings> {
         set((s) => s.copyWith(reduceMotion: !s.reduceMotion));
       case 'hapticsEnabled':
         set((s) => s.copyWith(hapticsEnabled: !s.hapticsEnabled));
+      case 'amoledBlack':
+        set((s) => s.copyWith(amoledBlack: !s.amoledBlack));
     }
   }
 
@@ -553,9 +568,20 @@ ColorScheme colorSchemeFor(String schemeName, Brightness brightness) {
 /// pure black for Monochrome's AMOLED dark mode and near-black for every other
 /// scheme. Shared with [_applyBrightness] so a preview card cannot drift from
 /// the surface it imitates.
-Color presetSurfaceFor(String schemeName, Brightness brightness) {
+///
+/// With [amoled] the near-black goes too: the reader has asked to trade the
+/// card/scaffold contrast for a panel that is really off, which is the whole
+/// point of the setting on an OLED screen.
+Color presetSurfaceFor(
+  String schemeName,
+  Brightness brightness, {
+  bool amoled = false,
+}) {
   if (brightness == Brightness.light) {
     return Colors.white;
+  }
+  if (amoled) {
+    return Colors.black;
   }
   return schemeName.toLowerCase() == 'monochrome'
       ? Colors.black
@@ -689,16 +715,41 @@ SliderThemeData _sliderTheme() {
   return const SliderThemeData(year2023: false);
 }
 
-/// Creates the final ThemeData for a given brightness. Dark mode always uses
-/// pure black (#000000) scaffold and surfaces.
+/// [scheme] with every surface role flattened to pure black.
+///
+/// `ColorScheme.fromSeed` fills the `surfaceContainer*` tones in explicitly
+/// rather than leaving them to default off `surface`, so overriding `surface`
+/// alone would leave cards, sheets and menus sitting on their near-black. Each
+/// role is named here so "Black" reaches the chrome that draws itself from the
+/// scheme rather than from a literal.
+ColorScheme _blackSurfaces(ColorScheme scheme) => scheme.copyWith(
+      surface: Colors.black,
+      surfaceDim: Colors.black,
+      surfaceBright: Colors.black,
+      surfaceContainerLowest: Colors.black,
+      surfaceContainerLow: Colors.black,
+      surfaceContainer: Colors.black,
+      surfaceContainerHigh: Colors.black,
+      surfaceContainerHighest: Colors.black,
+      surfaceTint: Colors.black,
+    );
+
+/// Creates the final ThemeData for a given brightness. Dark mode uses a pure
+/// black scaffold over near-black surfaces, or over pure black throughout when
+/// "Black" (AMOLED) is on.
 ThemeData _applyBrightness(
   ThemeData base,
   Brightness brightness, {
   required String schemeName,
+  required bool amoled,
 }) {
-  final colorScheme = colorSchemeFor(schemeName, brightness);
-
   final dark = brightness == Brightness.dark;
+
+  // "Black" only has a dark theme to act on.
+  final black = amoled && dark;
+
+  final preset = colorSchemeFor(schemeName, brightness);
+  final colorScheme = black ? _blackSurfaces(preset) : preset;
 
   final scaffoldBg = dark
       ? Colors.black
@@ -706,8 +757,13 @@ ThemeData _applyBrightness(
 
   // Dark surfaces are all near-black for OLED displays; light cards are pure
   // white so they lift off the soft off-white scaffold. Monochrome opts out
-  // of the near-black and stays pure black (AMOLED) in dark mode.
-  final surfaceColor = presetSurfaceFor(schemeName, brightness);
+  // of the near-black and stays pure black (AMOLED) in dark mode, and the
+  // "Black" setting takes every other scheme there too.
+  final surfaceColor = presetSurfaceFor(
+    schemeName,
+    brightness,
+    amoled: black,
+  );
 
   // High-contrast text roles: the dark branch must build its own text theme
   // from a dark scheme (ThemeData() defaults to light, so reusing the light
@@ -720,6 +776,12 @@ ThemeData _applyBrightness(
     displayColor: dark ? Colors.white : const Color(0xFF1C1B1F),
   );
 
+  // The one near-black surface the base theme paints on a widget's behalf
+  // rather than being spelled out at a call site: the snackbar's slab.
+  final snackBarTheme = black
+      ? base.snackBarTheme.copyWith(backgroundColor: Colors.black)
+      : base.snackBarTheme;
+
   return base.copyWith(
     brightness: brightness,
     colorScheme: colorScheme,
@@ -728,6 +790,10 @@ ThemeData _applyBrightness(
     cardColor: surfaceColor,
     textTheme: textTheme,
     sliderTheme: _sliderTheme(),
+    snackBarTheme: snackBarTheme,
+    // Carried on the theme so the widgets that paint their own near-black
+    // chrome can ask whether to go black without a provider lookup.
+    extensions: [AmoledMode(enabled: black)],
   );
 }
 
@@ -738,11 +804,13 @@ final themeNotifierProvider = Provider<ThemeDataBundle>((ref) {
     _baseTheme(false),
     Brightness.light,
     schemeName: settings.colorScheme,
+    amoled: settings.amoledBlack,
   );
   final dark = _applyBrightness(
     _baseTheme(true),
     Brightness.dark,
     schemeName: settings.colorScheme,
+    amoled: settings.amoledBlack,
   );
   return ThemeDataBundle(
     lightTheme: light,

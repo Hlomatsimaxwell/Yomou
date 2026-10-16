@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:yomou/core/theme/amoled.dart';
 
 /// Surfaces for a settings screen, kept in one place so the sidebar and the
 /// detail pane cannot drift apart.
@@ -13,7 +14,7 @@ class SettingsSurfaces {
   /// Sidebar column.
   static Color sidebar(BuildContext context) {
     final dark = Theme.of(context).brightness == Brightness.dark;
-    return dark ? const Color(0xFF141416) : Colors.white;
+    return dark ? amoled(context, 0xFF141416) : Colors.white;
   }
 
   /// The detail pane behind the category's own list.
@@ -23,7 +24,7 @@ class SettingsSurfaces {
   /// differ from, so the pane carries the tint in both layouts.
   static Color pane(BuildContext context) {
     final dark = Theme.of(context).brightness == Brightness.dark;
-    return dark ? const Color(0xFF0A0A0C) : const Color(0xFFF2F2F7);
+    return dark ? amoled(context, 0xFF0A0A0C) : const Color(0xFFF2F2F7);
   }
 
   /// Divider between the sidebar and the detail pane.
