@@ -22,6 +22,7 @@ import 'package:yomou/features/library/providers/favorites_provider.dart';
 import 'package:yomou/features/library/providers/downloads_provider.dart';
 import 'package:yomou/features/history/providers/history_provider.dart';
 import 'package:yomou/features/library/widgets/downloaded_badge.dart';
+import 'package:yomou/features/library/widgets/mode_segment_control.dart';
 import 'package:yomou/features/library/widgets/chapter_job_indicator.dart';
 import 'package:yomou/features/library/widgets/content_unavailable_dialog.dart';
 import 'package:yomou/features/library/widgets/download_batch_banner.dart';
@@ -138,21 +139,6 @@ String mangaDetailChapterLabel({
 }) {
   if (chapterNumber == 'Chapter' || chapterNumber.isEmpty) return title;
   return l.chapterNumShort(chapterNumber);
-}
-
-/// Where the mode control's indicator sits when [activeTab] is the selected one
-/// out of [tabs].
-///
-/// The indicator is a segment wide and slides between fixed stops across the
-/// track, so what it needs is the fraction of the track's free space it should
-/// sit at -- -1 at the left, 0 in the middle, 1 at the right -- which is what
-/// `Alignment.x` means. Kept out of the widget rather than inlined so the
-/// arithmetic can be pinned by a test: an indicator that lands under the wrong
-/// label is the kind of bug that reads as a styling choice and survives review.
-Alignment modeSegmentIndicatorAlignment(int activeTab, int tabs) {
-  if (tabs <= 1) return Alignment.center;
-  final index = activeTab.clamp(0, tabs - 1);
-  return Alignment(-1 + (index / (tabs - 1)) * 2, 0);
 }
 
 class MangaDetailScreen extends ConsumerStatefulWidget {
@@ -1678,13 +1664,18 @@ class _MangaDetailScreenState extends ConsumerState<MangaDetailScreen> {
                 return '';
               }(),
               style: TextStyle(
-                // The row's supporting line, and it is deliberately almost
-                // invisible: the reference's date is barely there at all, and
-                // anything with more presence than that starts competing with
-                // the chapter number for the eye. This is lighter than the
-                // details card's own labels, on purpose -- it is the least
-                // important text on the screen.
-                color: dark ? Colors.white30 : const Color(0xFFC0C0C5),
+                // The row's supporting line, and it has to stay clearly under
+                // the chapter number: the number is the only thing the eye
+                // should land on, so this is deliberately a step down in both
+                // weight and colour. Not *lighter* than this, though -- at
+                // 10.5px a very faint grey stops being quiet and starts being
+                // unreadable, which is a different thing, and the reference's
+                // ghosted date gets away with its low contrast by being set
+                // several points larger. Around 45% of the title's colour is
+                // about as quiet as this can go and still read as a date.
+                color: Theme.of(
+                  context,
+                ).colorScheme.onSurface.withValues(alpha: 0.45),
                 fontSize: 10.5,
               ),
             ),
@@ -3985,15 +3976,6 @@ class _SheetHeaderDelegate extends SliverPersistentHeaderDelegate {
   final bool reverseOrder;
   final VoidCallback onToggleOrder;
 
-  /// How many places the list can be in. Fixed at three: Chapters, Pages,
-  /// Bookmarks.
-  static const int _kModeCount = 3;
-
-  /// The mode control's indicator slide. Shared by the indicator and the
-  /// labels it moves under, so the two never fall out of step.
-  static const Duration _kSegmentSlide = Duration(milliseconds: 220);
-  static const Curve _kSegmentCurve = Curves.easeOutCubic;
-
   _SheetHeaderDelegate({
     this.docked = false,
     required this.isExpanded,
@@ -4109,7 +4091,7 @@ class _SheetHeaderDelegate extends SliverPersistentHeaderDelegate {
               alignment: Alignment.centerLeft,
               child: ConstrainedBox(
                 constraints: const BoxConstraints(maxWidth: 320),
-                child: _buildModeSegments(context, dark: dark, scheme: scheme),
+                child: _buildModeSegments(),
               ),
             ),
           ),
@@ -4266,177 +4248,16 @@ class _SheetHeaderDelegate extends SliverPersistentHeaderDelegate {
     );
   }
 
-  /// The pane's mode control: one track, one background, one indicator that
-  /// slides between the three places the list can be.
-  ///
-  /// Labelled rather than icon-only, because the pane has the width and because
-  /// the middle one is easy to misread: it shows the pages of the chapter you
-  /// are on, not a grid of chapters.
-  Widget _buildModeSegments(
-    BuildContext context, {
-    required bool dark,
-    required ColorScheme scheme,
-  }) {
-    final l = AppLocalizations.of(context);
-    const count = _kModeCount;
-    final segments = <Widget>[
-      _buildSegment(
-        icon: RemixIcons.list_unordered,
-        label: l.detailTabChapters,
-        active: activeTab == 0,
-        scheme: scheme,
-        onTap: () => onTabSelected(0),
-        badge: unreadCount > 0 ? _buildBadge(unreadCount) : null,
-      ),
-      _buildSegment(
-        icon: RemixIcons.grid_line,
-        label: l.detailTabPages,
-        active: activeTab == 1,
-        scheme: scheme,
-        onTap: () => onTabSelected(1),
-      ),
-      _buildSegment(
-        icon: RemixIcons.bookmark_2_line,
-        label: l.bookmarks,
-        active: activeTab == 2,
-        scheme: scheme,
-        onTap: () => onTabSelected(2),
-      ),
-    ];
-    return Container(
-      padding: const EdgeInsets.all(3),
-      decoration: BoxDecoration(
-        // A definite track colour, not a wash over the header. At 70% alpha on
-        // a white bar it was faint enough to read as three loose labels rather
-        // than one control, which is how it was first described back.
-        color: scheme.surfaceContainerHighest,
-        borderRadius: BorderRadius.circular(12),
-      ),
-      child: Stack(
-        // The indicator spills a pixel or two past the track's inner edge and
-        // must not be cut off; the track's own padding absorbs the rest.
-        clipBehavior: Clip.none,
-        children: [
-          // The single indicator, sliding. Three chips that each light
-          // themselves up is a row of buttons however it is dressed -- it is
-          // the movement between positions that makes this read as one switch,
-          // and the travel is also what tells the eye where the selection went
-          // when it changes. Hence one indicator that moves rather than three
-          // that fade.
-          Positioned.fill(
-            child: AnimatedAlign(
-              duration: _kSegmentSlide,
-              curve: _kSegmentCurve,
-              alignment: modeSegmentIndicatorAlignment(activeTab, count),
-              child: FractionallySizedBox(
-                widthFactor: 1 / count,
-                heightFactor: 1,
-                child: DecoratedBox(
-                  decoration: BoxDecoration(
-                    // The indicator has to differ from the track in *lightness*,
-                    // not in hue. Two earlier passes reached for a tonal role
-                    // here and both times the selection came back invisible:
-                    // `surface` is near-white on a white bar, and
-                    // `secondaryContainer` is the *same tone* as
-                    // `surfaceContainerHighest`, so on the track it was a chip
-                    // painted in the colour of the thing it sat on. Something
-                    // inside a container reads as raised only if it is lighter
-                    // than that container: plain white on the grey track in
-                    // light, a lift off the track in dark.
-                    color: dark
-                        ? Colors.white.withValues(alpha: 0.16)
-                        : Colors.white,
-                    borderRadius: BorderRadius.circular(9),
-                    // The pixel of shadow is what makes it a pressed physical
-                    // toggle rather than a flat patch on the track.
-                    boxShadow: dark
-                        ? null
-                        : [
-                            BoxShadow(
-                              color: Colors.black.withValues(alpha: 0.10),
-                              blurRadius: 3,
-                              offset: const Offset(0, 1),
-                            ),
-                          ],
-                  ),
-                ),
-              ),
-            ),
-          ),
-          Row(
-            children: [
-              for (final segment in segments) Expanded(child: segment),
-            ],
-          ),
-        ],
-      ),
-    );
-  }
-
-  /// One segment of [this._buildModeSegments]: a label and its icon.
-  ///
-  /// The selected state lives on the indicator behind it, so this only has to
-  /// decide how loudly to say its own name -- and to animate that, so the
-  /// label and the indicator arrive together rather than in two beats.
-  Widget _buildSegment({
-    required IconData icon,
-    required String label,
-    required bool active,
-    required ColorScheme scheme,
-    required VoidCallback onTap,
-    Widget? badge,
-  }) {
-    final dark = scheme.brightness == Brightness.dark;
-    return GestureDetector(
-      onTap: onTap,
-      behavior: HitTestBehavior.opaque,
-      child: TweenAnimationBuilder<double>(
-        tween: Tween<double>(begin: 0, end: active ? 1 : 0),
-        duration: _kSegmentSlide,
-        curve: _kSegmentCurve,
-        builder: (context, t, _) {
-          final fg = Color.lerp(
-            scheme.onSurfaceVariant,
-            dark ? Colors.white : scheme.onSurface,
-            t,
-          )!;
-          return Padding(
-            padding: const EdgeInsets.symmetric(vertical: 8),
-            child: Stack(
-              clipBehavior: Clip.none,
-              children: [
-                Row(
-                  mainAxisAlignment: MainAxisAlignment.center,
-                  children: [
-                    Icon(icon, color: fg, size: 16),
-                    const SizedBox(width: 6),
-                    Flexible(
-                      child: Text(
-                        label,
-                        maxLines: 1,
-                        overflow: TextOverflow.ellipsis,
-                        style: TextStyle(
-                          color: fg,
-                          fontSize: 13,
-                          fontWeight: FontWeight.lerp(
-                            FontWeight.w500,
-                            FontWeight.w700,
-                            t,
-                          ),
-                        ),
-                      ),
-                    ),
-                  ],
-                ),
-                // The unread count rides the segment rather than the icon, so
-                // it sits at the segment's corner and stays legible whether the
-                // indicator is under it or not.
-                if (badge != null) Positioned(top: -9, right: 6, child: badge),
-              ],
-            ),
-          );
-        },
-      ),
+  /// The pane's mode control. The component itself lives in
+  /// `widgets/mode_segment_control.dart`: it is the one piece of this header
+  /// that is worth building and testing on its own, and it is what the phone
+  /// tray's icon tabs are *not*.
+  Widget _buildModeSegments() {
+    return ModeSegmentControl(
+      activeTab: activeTab,
+      unreadCount: unreadCount,
+      badge: unreadCount > 0 ? _buildBadge(unreadCount) : null,
+      onTabSelected: onTabSelected,
     );
   }
 
