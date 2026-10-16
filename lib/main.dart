@@ -50,6 +50,21 @@ GlobalKey<NavigatorState> appNavigatorKey = GlobalKey<NavigatorState>();
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();
 
+  // Draw edge-to-edge: the app's canvas runs under both system bars, so the
+  // floating nav pill and the lists' bottom clearance (bottomBarClearance)
+  // can sit on top of the system navigation area. The bars are transparent so
+  // whatever is behind them -- covers, lists, the pill -- shows through,
+  // instead of the opaque black strip the platform theme would otherwise
+  // paint around the gesture handle.
+  SystemChrome.setEnabledSystemUIMode(SystemUiMode.edgeToEdge);
+  SystemChrome.setSystemUIOverlayStyle(
+    const SystemUiOverlayStyle(
+      statusBarColor: Colors.transparent,
+      systemNavigationBarColor: Colors.transparent,
+      systemNavigationBarDividerColor: Colors.transparent,
+    ),
+  );
+
   // 1. Fix the Database Crash for Linux/Windows/MacOS
   if (Platform.isLinux || Platform.isWindows || Platform.isMacOS) {
     sqfliteFfiInit();
@@ -267,21 +282,36 @@ class YomouApp extends ConsumerWidget {
       locale: language == 'system' ? null : Locale(language),
       supportedLocales: AppLocalizations.supportedLocales,
       localizationsDelegates: AppLocalizations.localizationsDelegates,
-      builder: (context, child) => Stack(
-        children: [
-          child!,
-          // Sits above every route so the PIN lock covers the whole app
-          // (reader, detail views, settings) whenever it's active.
-          Consumer(
-            builder: (context, ref, _) {
-              final lock = ref.watch(appLockProvider);
-              return lock.locked
-                  ? const PinLockScreen()
-                  : const SizedBox.shrink();
-            },
+      builder: (context, child) {
+        // The system navigation bar is transparent, so its gesture handle and
+        // icons must stay readable against whatever the app draws behind them.
+        // Match the app's current brightness. (An enclosing region supersedes
+        // an AppBar's navigation-bar properties, so this wins app-wide.)
+        final dark = Theme.of(context).brightness == Brightness.dark;
+        return AnnotatedRegion<SystemUiOverlayStyle>(
+          value: SystemUiOverlayStyle(
+            systemNavigationBarColor: Colors.transparent,
+            systemNavigationBarDividerColor: Colors.transparent,
+            systemNavigationBarIconBrightness:
+                dark ? Brightness.light : Brightness.dark,
           ),
-        ],
-      ),
+          child: Stack(
+            children: [
+              child!,
+              // Sits above every route so the PIN lock covers the whole app
+              // (reader, detail views, settings) whenever it's active.
+              Consumer(
+                builder: (context, ref, _) {
+                  final lock = ref.watch(appLockProvider);
+                  return lock.locked
+                      ? const PinLockScreen()
+                      : const SizedBox.shrink();
+                },
+              ),
+            ],
+          ),
+        );
+      },
       home: const HomeScreen(),
     );
   }
