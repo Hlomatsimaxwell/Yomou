@@ -1,14 +1,14 @@
 import 'package:flutter_test/flutter_test.dart';
 import 'package:yomou/features/library/screens/manga_detail_screen.dart';
 
-/// The detail header's cover was a fixed 125x175 at every width. That is the
-/// right size for a phone -- the column is 328px there, so it filled the space
-/// as intended -- and far too small on a desktop, where the same section sits
-/// in the left pane of a 5:6 split and had a third of the column to itself.
+/// The detail header's cover was a fixed 125x175 at every width, then reduced
+/// to a smaller footprint so the title and metadata beside it keep their room.
+/// The phone lands on a 110px floor, a wide pane grows to a larger cover, and
+/// a 200px ceiling holds so a large monitor does not turn the header into a
+/// poster.
 ///
-/// These pin the two ends of that change: a phone must land on exactly the
-/// number it had before, a wide pane must get a noticeably bigger cover, and
-/// the ceiling has to hold or a large monitor turns the header into a poster.
+/// These pin the ends of that change: the floor, the growth, the ceiling, and
+/// that the cover never reshapes as it grows.
 void main() {
   /// The width the header section is actually given, which is what the cover is
   /// measured against.
@@ -23,20 +23,20 @@ void main() {
   /// The gap between the cover and the title block, which the cover may not eat.
   const double gap = 16;
 
-  test('a phone gets exactly the cover it always had', () {
+  test('a phone gets the smaller cover the redesign asks for', () {
     // 360 is the narrowest phone this app is used on, and 328 is what its
-    // header section is given. The old fixed cover was 125 wide.
+    // header section is given. The floor is 110 wide.
     expect(columnWidth(360), 328.0);
-    expect(mangaDetailCoverWidth(328.0), 125.0);
+    expect(mangaDetailCoverWidth(328.0), 110.0);
   });
 
   test('a phone in any other width is not made smaller or larger by mistake', () {
     // A 320px phone has a narrower column than the 328 the share was solved
     // against, so it has to be held at the floor rather than shrink.
-    expect(mangaDetailCoverWidth(288.0), 125.0);
+    expect(mangaDetailCoverWidth(288.0), 110.0);
     // A large-font phone in landscape, and a small tablet in portrait: both are
     // wide layouts, so both get a real cover rather than the phone's.
-    expect(mangaDetailCoverWidth(740.0), greaterThan(125.0));
+    expect(mangaDetailCoverWidth(740.0), greaterThan(110.0));
   });
 
   test('a desktop pane gets a cover worth looking at', () {
@@ -45,9 +45,9 @@ void main() {
     final column = columnWidth(1245);
     final cover = mangaDetailCoverWidth(column);
 
-    // Around 200 against the old 125: the report was that the art looked lost,
-    // and a cover that moved 5% would not have answered it.
-    expect(cover, greaterThan(190.0));
+    // Around 170 against the old 125: bigger than the phone, but deliberately
+    // smaller than the old poster-sized ceiling so the metadata keeps its room.
+    expect(cover, greaterThan(160.0));
     expect(cover, lessThan(215.0));
     // And the pane it left over is still wide enough for a title and a
     // metadata line rather than being a sliver beside a poster.
@@ -58,7 +58,7 @@ void main() {
     for (final width in [1536.0, 1920.0, 2560.0, 3440.0]) {
       expect(
         mangaDetailCoverWidth(columnWidth(width)),
-        240.0,
+        200.0,
         reason: 'a ${width}px window should cap the cover, not fill the pane',
       );
     }
@@ -68,10 +68,7 @@ void main() {
     // 125:175 is what the fixed cover used, and a cover that grew in width while
     // keeping its height would have been squashed.
     for (final width in [125.0, 203.0, 240.0]) {
-      expect(
-        mangaDetailCoverHeight(width) / width,
-        closeTo(175 / 125, 0.0001),
-      );
+      expect(mangaDetailCoverHeight(width) / width, closeTo(175 / 125, 0.0001));
     }
     // The old pair is still one of the answers.
     expect(mangaDetailCoverHeight(125.0), 175.0);
@@ -93,8 +90,8 @@ void main() {
           greaterThanOrEqualTo(previous),
           reason: 'the cover shrank at a ${screen}px window',
         );
-        expect(cover, greaterThanOrEqualTo(125.0));
-        expect(cover, lessThanOrEqualTo(240.0));
+        expect(cover, greaterThanOrEqualTo(110.0));
+        expect(cover, lessThanOrEqualTo(200.0));
         previous = cover;
       }
     }
@@ -103,6 +100,6 @@ void main() {
   test('the cover stays legible either side of the two-pane switch', () {
     // 832 is the widest single-column screen and 840 the narrowest two-pane
     // one, so between them the cover is at its smallest in the wide layout.
-    expect(mangaDetailCoverWidth(columnWidth(840)), greaterThan(125.0));
+    expect(mangaDetailCoverWidth(columnWidth(840)), greaterThan(110.0));
   });
 }

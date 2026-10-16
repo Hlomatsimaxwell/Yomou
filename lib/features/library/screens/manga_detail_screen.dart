@@ -200,7 +200,6 @@ class _MangaDetailScreenState extends ConsumerState<MangaDetailScreen> {
 
   List<Chapter> _chapters = [];
   bool _isLoadingChapters = true;
-  bool _isRefreshing = false;
   String? _chapterError;
   MangaSource? _source;
 
@@ -255,9 +254,8 @@ class _MangaDetailScreenState extends ConsumerState<MangaDetailScreen> {
   // what the jump-to-end button and the "can this scroll" check read, so they
   // follow whichever layout is showing instead of each having to know which.
   final ScrollController _widePaneController = ScrollController();
-  ScrollController? get _listScrollController => usesWideLayout(context)
-      ? _widePaneController
-      : _sheetContentController;
+  ScrollController? get _listScrollController =>
+      usesWideLayout(context) ? _widePaneController : _sheetContentController;
 
   // The wide pane owns its controller outright, so it attaches the scroll
   // listener once when it is built. The tray hands us its controller inside
@@ -482,6 +480,9 @@ class _MangaDetailScreenState extends ConsumerState<MangaDetailScreen> {
     }
   }
 
+  // Total size of the pages this manga has on disk, for the card's "On Device"
+  // row. Queried after the chapters load rather than computed up front: it
+  // walks the file tree, and there is no reason to hold up the list for it.
   Future<void> _loadDownloadSize() async {
     final size = await ChapterDownloader.getDownloadSize(widget.mangaId);
     if (mounted) setState(() => _downloadSize = size);
@@ -1286,14 +1287,16 @@ class _MangaDetailScreenState extends ConsumerState<MangaDetailScreen> {
             ),
           ),
 
-          // Floating jump button shown on top of the tray when it is full screen.
+          // Floating jump button shown on top of the tray when it is full
+          // screen. Lifted clear of the safe-area lip rather than parked on
+          // its edge: down there it read as part of the phone's own chrome
+          // instead of a control on the list. The earlier 90dp placement is
+          // the ceiling to avoid -- that floated in the middle of the last
+          // chapters rather than over them.
           if (_showSheetContent && _trayCanScroll && !_selectionMode)
             Positioned(
               right: 14,
-              // Just clear of the bottom safe area rather than parked up the
-              // screen: it was sitting 90dp up, which read as floating in the
-              // middle of the last chapters instead of over them.
-              bottom: 40 + _bottomClearance(context),
+              bottom: 64 + _bottomClearance(context),
               child: IgnorePointer(
                 ignoring: !_isExpanded,
                 child: AnimatedOpacity(
@@ -1366,8 +1369,7 @@ class _MangaDetailScreenState extends ConsumerState<MangaDetailScreen> {
       onBarDragStart: docked ? null : _onTrayBarDragStart,
       onBarDragUpdate: docked ? null : _onTrayBarDragUpdate,
       onBarDragEnd: docked ? null : _onTrayBarDragEnd,
-      reverseOrder: _reverseOrder,
-      onToggleOrder: () => setState(() => _reverseOrder = !_reverseOrder),
+      onOverflow: () => _showOverflowMenu(context),
       onTabSelected: (index) {
         setState(() => _activeTab = index);
         if (docked) return;
@@ -1404,9 +1406,7 @@ class _MangaDetailScreenState extends ConsumerState<MangaDetailScreen> {
           child: SingleChildScrollView(
             // Distinct from the tray: the bottom inset here is only the safe
             // area, because there is no bar to clear.
-            padding: EdgeInsets.only(
-              bottom: 24 + _bottomClearance(context),
-            ),
+            padding: EdgeInsets.only(bottom: 24 + _bottomClearance(context)),
             // The same art plate the phone layout scrolls its header over. It
             // rides up and off with the content rather than staying pinned
             // behind the pane, and it is what the details card is translucent
@@ -1476,15 +1476,18 @@ class _MangaDetailScreenState extends ConsumerState<MangaDetailScreen> {
                     _buildBookmarksSliver(),
                 ],
               ),
+
               // Live whenever the list is actually long enough to need it. The
               // tray version also fades this in only at full screen; a pane has
               // the full height from the start, so there is no state to wait
               // for -- but the length check still applies, or a three-chapter
-              // manga would show a button that cannot do anything.
+              // manga would show a button that cannot do anything. Sat at 16dp
+              // it read as pinned to the pane's bottom edge alongside the safe
+              // area; lifted to 40 it floats over the last rows instead.
               if (_trayCanScroll && !_selectionMode)
                 Positioned(
                   right: 14,
-                  bottom: 16 + _bottomClearance(context),
+                  bottom: 40 + _bottomClearance(context),
                   child: _TrayJumpButton(
                     atBottom: _trayAtBottom,
                     onTap: _trayAtBottom ? _jumpTrayToTop : _jumpTrayToBottom,
@@ -1569,12 +1572,7 @@ class _MangaDetailScreenState extends ConsumerState<MangaDetailScreen> {
     }
 
     return SliverPadding(
-      padding: EdgeInsets.fromLTRB(
-        16,
-        0,
-        16,
-        16 + _bottomClearance(context),
-      ),
+      padding: EdgeInsets.fromLTRB(16, 0, 16, 16 + _bottomClearance(context)),
       sliver: SliverList(
         delegate: SliverChildBuilderDelegate((context, index) {
           final originalIndex = _reverseOrder
@@ -1618,7 +1616,7 @@ class _MangaDetailScreenState extends ConsumerState<MangaDetailScreen> {
                     padding: const EdgeInsets.only(right: 8),
                     child: Icon(
                       RemixIcons.play_fill,
-                      color: Theme.of(context).colorScheme.primary,
+                      color: Colors.green,
                       size: 20,
                     ),
                   ),
@@ -1631,19 +1629,12 @@ class _MangaDetailScreenState extends ConsumerState<MangaDetailScreen> {
                     ),
                     maxLines: 1,
                     overflow: TextOverflow.ellipsis,
-                    // The heading of the row, and it has to look like one. Bold,
-                    // and near-black in every state: the reference's whole idea
-                    // is that the eye lands on the chapter number and nothing
-                    // else, and this is the half of the pair that earns that.
-                    // It used to fade a full step for a read chapter, which
-                    // shrank exactly the gap the row is built on -- and since
-                    // most of a long list is read, most of the list lost its
-                    // anchor. Read still reads as read, one notch off full
-                    // rather than a different colour.
                     style: TextStyle(
-                      color: isRead
-                          ? titleBase.withValues(alpha: 0.75)
-                          : titleBase,
+                      color: isCurrent
+                          ? Colors.green
+                          : (isRead
+                                ? titleBase.withValues(alpha: 0.75)
+                                : titleBase),
                       fontWeight: FontWeight.w700,
                       fontSize: 15,
                     ),
@@ -2095,12 +2086,7 @@ class _MangaDetailScreenState extends ConsumerState<MangaDetailScreen> {
     }
 
     return SliverPadding(
-      padding: EdgeInsets.fromLTRB(
-        16,
-        16,
-        16,
-        16 + _bottomClearance(context),
-      ),
+      padding: EdgeInsets.fromLTRB(16, 16, 16, 16 + _bottomClearance(context)),
       sliver: SliverGrid(
         gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
           crossAxisCount: 3,
@@ -2172,12 +2158,7 @@ class _MangaDetailScreenState extends ConsumerState<MangaDetailScreen> {
     }
 
     return SliverPadding(
-      padding: EdgeInsets.fromLTRB(
-        16,
-        0,
-        16,
-        16 + _bottomClearance(context),
-      ),
+      padding: EdgeInsets.fromLTRB(16, 0, 16, 16 + _bottomClearance(context)),
       sliver: SliverList(
         delegate: SliverChildBuilderDelegate((context, index) {
           final bm = _bookmarks[index];
@@ -2253,30 +2234,6 @@ class _MangaDetailScreenState extends ConsumerState<MangaDetailScreen> {
             onPressed: () => Navigator.of(context).pop(),
           ),
           const Spacer(),
-          IconButton(
-            icon: _isRefreshing
-                ? SizedBox(
-                    width: 22,
-                    height: 22,
-                    child: CircularProgressIndicator(
-                      strokeWidth: 2,
-                      color: iconColor,
-                    ),
-                  )
-                : Icon(RemixIcons.refresh_line, color: iconColor),
-            onPressed: _isRefreshing
-                ? null
-                : () async {
-                    setState(() => _isRefreshing = true);
-                    await _loadChapters(forceRefresh: true);
-                    if (!mounted) return;
-                    setState(() => _isRefreshing = false);
-                    showIosToast(
-                      context,
-                      message: AppLocalizations.of(context).refreshed,
-                    );
-                  },
-          ),
           IconButton(
             icon: Icon(RemixIcons.share_line, color: iconColor),
             onPressed: () => _showShareSheet(context),
@@ -2370,6 +2327,12 @@ class _MangaDetailScreenState extends ConsumerState<MangaDetailScreen> {
               l.replaceSource,
               'replace',
             ),
+            _buildOverflowRow(
+              ctx,
+              RemixIcons.arrow_up_down_line,
+              l.detailReverseOrder,
+              'reverse',
+            ),
             const SizedBox(height: 8),
           ],
         ),
@@ -2389,6 +2352,8 @@ class _MangaDetailScreenState extends ConsumerState<MangaDetailScreen> {
         _createShortcut();
       case 'replace':
         _openAlternativesSearch();
+      case 'reverse':
+        setState(() => _reverseOrder = !_reverseOrder);
     }
   }
 
@@ -2405,8 +2370,9 @@ class _MangaDetailScreenState extends ConsumerState<MangaDetailScreen> {
     // it reported one (Asura Scans' public_url), else the source's best link
     // for this manga id.
     final knownPage = _details?.publicUrl ?? '';
-    final siteUrl =
-        knownPage.isNotEmpty ? knownPage : source.websiteMangaUrl(widget.mangaId);
+    final siteUrl = knownPage.isNotEmpty
+        ? knownPage
+        : source.websiteMangaUrl(widget.mangaId);
     final yomouLink = buildYomouShareLink(
       sourceId: source.id,
       mangaId: widget.mangaId,
@@ -2450,8 +2416,10 @@ class _MangaDetailScreenState extends ConsumerState<MangaDetailScreen> {
                 l.shareLinkInYomou,
                 style: TextStyle(color: textColor, fontWeight: FontWeight.bold),
               ),
-              contentPadding:
-                  const EdgeInsets.symmetric(vertical: 12, horizontal: 16),
+              contentPadding: const EdgeInsets.symmetric(
+                vertical: 12,
+                horizontal: 16,
+              ),
               onTap: () async {
                 await shareText(yomouLink);
                 if (ctx.mounted) Navigator.pop(ctx);
@@ -2463,8 +2431,10 @@ class _MangaDetailScreenState extends ConsumerState<MangaDetailScreen> {
                 l.shareLinkOnSource(source.name),
                 style: TextStyle(color: textColor, fontWeight: FontWeight.bold),
               ),
-              contentPadding:
-                  const EdgeInsets.symmetric(vertical: 12, horizontal: 16),
+              contentPadding: const EdgeInsets.symmetric(
+                vertical: 12,
+                horizontal: 16,
+              ),
               onTap: () async {
                 await shareText(siteUrl);
                 if (ctx.mounted) Navigator.pop(ctx);
@@ -2515,10 +2485,7 @@ class _MangaDetailScreenState extends ConsumerState<MangaDetailScreen> {
   /// search; Close or dismissing leaves the failure line on screen.
   Future<void> _promptFindOnOtherSources() async {
     if (!mounted) return;
-    final go = await showContentUnavailableDialog(
-      context,
-      imageUrl: _coverUrl,
-    );
+    final go = await showContentUnavailableDialog(context, imageUrl: _coverUrl);
     if (go == true && mounted) {
       _openAlternativesSearch();
     }
@@ -2564,8 +2531,9 @@ class _MangaDetailScreenState extends ConsumerState<MangaDetailScreen> {
     // `public_url`, which carries the site's volatile slug hash), open that;
     // otherwise let the source build its best link for the manga id.
     final knownPage = _details?.publicUrl ?? '';
-    final url =
-        knownPage.isNotEmpty ? knownPage : source.websiteMangaUrl(widget.mangaId);
+    final url = knownPage.isNotEmpty
+        ? knownPage
+        : source.websiteMangaUrl(widget.mangaId);
     final uri = Uri.parse(url);
     try {
       final launched = await launchUrl(
@@ -3313,8 +3281,9 @@ class _MangaDetailScreenState extends ConsumerState<MangaDetailScreen> {
             // cramped rather than spacious.
             padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 16),
             decoration: BoxDecoration(
-              color: (dark ? const Color(0xFF1E1E22) : Colors.white)
-                  .withValues(alpha: 0.80),
+              color: (dark ? const Color(0xFF1E1E22) : Colors.white).withValues(
+                alpha: 0.80,
+              ),
               borderRadius: BorderRadius.circular(24),
               border: Border.all(
                 color: (dark ? Colors.white : Colors.black).withValues(
@@ -3331,40 +3300,29 @@ class _MangaDetailScreenState extends ConsumerState<MangaDetailScreen> {
                   // Only when the source still resolves: an unknown name falls
                   // back to MangaDex in [getSourceByName], which would open the
                   // wrong catalogue rather than nothing.
-                  onTap: ref
+                  onTap:
+                      ref
                           .watch(sourcesProvider)
                           .any((row) => row['name'] == (_sourceName ?? ''))
                       ? _openSourceCatalogue
                       : null,
                 ),
-                _buildCardRow(
-                  l.detailAuthor,
-                  _details?.author.isEmpty ?? true ? l.unknown : _details!.author,
-                  icon: RemixIcons.user_line,
-                ),
+                // Author only earns a row when there is one. An empty author
+                // is the common case on scraped sources, and a row whose value
+                // is "Unknown" is noise -- the card is meant to be facts, and
+                // this is the one field that is regularly absent.
+                if (!(_details?.author.isEmpty ?? true))
+                  _buildCardRow(l.detailAuthor, _details!.author),
                 _buildTranslationRow(),
                 _buildCardRow(
                   l.detailYear,
                   _details?.year.isEmpty ?? true ? '—' : _details!.year,
-                  icon: RemixIcons.calendar_line,
                 ),
                 if ((_details?.status.isEmpty ?? true) == false)
-                  _buildCardRow(
-                    l.detailState,
-                    _details!.status,
-                    icon: RemixIcons.pulse_line,
-                  ),
-                _buildCardRow(
-                  l.detailChapters,
-                  chaptersText,
-                  icon: RemixIcons.list_unordered,
-                ),
+                  _buildCardRow(l.detailState, _details!.status),
+                _buildCardRow(l.detailChapters, chaptersText),
                 if (_downloadSize > 0)
-                  _buildCardRow(
-                    l.detailOnDevice,
-                    _formatBytes(_downloadSize),
-                    icon: RemixIcons.sd_card_line,
-                  ),
+                  _buildCardRow(l.detailOnDevice, _formatBytes(_downloadSize)),
                 const SizedBox(height: 8),
                 Row(
                   children: [
@@ -3383,7 +3341,9 @@ class _MangaDetailScreenState extends ConsumerState<MangaDetailScreen> {
                           value: _lastReadChapter >= 0
                               ? (_progressPercent / 100).clamp(0.0, 1.0)
                               : 0,
-                          backgroundColor: dark ? Colors.white12 : Colors.black12,
+                          backgroundColor: dark
+                              ? Colors.white12
+                              : Colors.black12,
                           valueColor: AlwaysStoppedAnimation<Color>(
                             ref.watch(accentProvider),
                           ),
@@ -3541,14 +3501,6 @@ class _MangaDetailScreenState extends ConsumerState<MangaDetailScreen> {
     );
   }
 
-  static String _formatBytes(int bytes) {
-    if (bytes < 1024) return '$bytes B';
-    if (bytes < 1024 * 1024) return '${(bytes / 1024).toStringAsFixed(1)} KB';
-    if (bytes < 1024 * 1024 * 1024) {
-      return '${(bytes / (1024 * 1024)).toStringAsFixed(1)} MB';
-    }
-    return '${(bytes / (1024 * 1024 * 1024)).toStringAsFixed(1)} GB';
-  }
 
   /// Opens the catalogue of the source this manga came from -- the same screen
   /// Explore pushes when a source is tapped. Only offered when the name still
@@ -3558,9 +3510,7 @@ class _MangaDetailScreenState extends ConsumerState<MangaDetailScreen> {
   void _openSourceCatalogue() {
     final name = _sourceName;
     if (name == null || name.isEmpty) return;
-    final known = ref
-        .read(sourcesProvider)
-        .any((row) => row['name'] == name);
+    final known = ref.read(sourcesProvider).any((row) => row['name'] == name);
     if (!known) return;
     Navigator.of(context).push(
       MaterialPageRoute(builder: (_) => MangaGridScreen(sourceName: name)),
@@ -3573,6 +3523,16 @@ class _MangaDetailScreenState extends ConsumerState<MangaDetailScreen> {
     final name = _sourceName ?? '';
     final source = getSourceBySourceId(widget.sourceId ?? '');
     return SourceIcon(name: name, iconUrl: source?.iconUrl ?? '', size: 20);
+  }
+
+  /// Human-readable byte counts for the "On Device" row.
+  static String _formatBytes(int bytes) {
+    if (bytes < 1024) return '$bytes B';
+    if (bytes < 1024 * 1024) return '${(bytes / 1024).toStringAsFixed(1)} KB';
+    if (bytes < 1024 * 1024 * 1024) {
+      return '${(bytes / (1024 * 1024)).toStringAsFixed(1)} MB';
+    }
+    return '${(bytes / (1024 * 1024 * 1024)).toStringAsFixed(1)} GB';
   }
 
   /// The muted colour of a metadata label ("Source", "Author", ...).
@@ -3634,10 +3594,6 @@ class _MangaDetailScreenState extends ConsumerState<MangaDetailScreen> {
                     ),
                   ),
                 ),
-                if (onTap != null) ...[
-                  const SizedBox(width: 4),
-                  Icon(Icons.chevron_right, size: 18, color: labelColor),
-                ],
               ],
             ),
           ),
@@ -3660,10 +3616,16 @@ class _MangaDetailScreenState extends ConsumerState<MangaDetailScreen> {
     final description = hasDescription
         ? _details!.description
         : AppLocalizations.of(context).noDescription;
+    // Collapse only when the user asked for it: the appearance setting is the
+    // whole reason this section has two states, and ignoring it left the
+    // settings screen with a switch that did nothing.
     final collapseByDefault = settings.collapseDescription && hasDescription;
 
     return LayoutBuilder(
       builder: (context, constraints) {
+        // "More" earns its place by being needed. A description that already
+        // fits in the collapsed three lines has nothing to reveal, and a
+        // permanent More button on a short blurb reads as decoration.
         final canShowToggle =
             collapseByDefault &&
             _exceedsLineLimit(description, constraints.maxWidth - 32);
@@ -3714,7 +3676,7 @@ class _MangaDetailScreenState extends ConsumerState<MangaDetailScreen> {
                   child: Text(
                     description,
                     maxLines: collapseByDefault && !_descriptionExpanded
-                        ? 4
+                        ? 3
                         : null,
                     overflow: collapseByDefault && !_descriptionExpanded
                         ? TextOverflow.ellipsis
@@ -3734,13 +3696,18 @@ class _MangaDetailScreenState extends ConsumerState<MangaDetailScreen> {
     );
   }
 
+  /// Whether [text] runs past [maxLines] at the width it is about to be given.
+  ///
+  /// The description used to be clamped and let go without ever asking if it
+  /// needed it, which is how a three-line blurb ended up with a More button
+  /// leading nowhere. Measured with the same metrics the Text renders at.
   bool _exceedsLineLimit(String text, double maxWidth) {
     final painter = TextPainter(
       text: TextSpan(
         text: text,
         style: const TextStyle(fontSize: 14, height: 1.4),
       ),
-      maxLines: 4,
+      maxLines: 3,
       textDirection: TextDirection.ltr,
     )..layout(maxWidth: maxWidth);
     return painter.didExceedMaxLines;
@@ -3754,7 +3721,7 @@ class _MangaDetailScreenState extends ConsumerState<MangaDetailScreen> {
     if (tags.isEmpty) return const SizedBox.shrink();
     return SingleChildScrollView(
       scrollDirection: Axis.horizontal,
-      padding: const EdgeInsets.symmetric(horizontal: 16),
+      padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 4),
       child: Row(
         children: tags.map((tag) {
           return GestureDetector(
@@ -3973,8 +3940,7 @@ class _SheetHeaderDelegate extends SliverPersistentHeaderDelegate {
   final bool hasDownloaded;
   final VoidCallback onRemoveDownloads;
   final VoidCallback onDownload;
-  final bool reverseOrder;
-  final VoidCallback onToggleOrder;
+  final VoidCallback onOverflow;
 
   _SheetHeaderDelegate({
     this.docked = false,
@@ -4006,8 +3972,7 @@ class _SheetHeaderDelegate extends SliverPersistentHeaderDelegate {
     this.hasDownloaded = false,
     required this.onRemoveDownloads,
     required this.onDownload,
-    this.reverseOrder = false,
-    required this.onToggleOrder,
+    required this.onOverflow,
   });
 
   @override
@@ -4096,20 +4061,16 @@ class _SheetHeaderDelegate extends SliverPersistentHeaderDelegate {
             ),
           ),
           const SizedBox(width: 24),
-          // A docked pane keeps the Continue pill: it is the primary action on
-          // this screen, and the fullscreen tray only drops it because the
-          // reader is already the thing filling the screen. Here the reader is
-          // still a tap away, so Continue and the order toggle both stay.
           if (showContinueButton) ...[
             _buildPrimaryButton(context: context, dark: dark, scheme: scheme),
             const SizedBox(width: 8),
           ],
           _buildTabIcon(
-            RemixIcons.arrow_up_down_line,
-            reverseOrder,
+            Icons.more_vert,
+            false,
             dark: dark,
             scheme: scheme,
-            onTap: onToggleOrder,
+            onTap: onOverflow,
           ),
         ],
       );
@@ -4121,7 +4082,7 @@ class _SheetHeaderDelegate extends SliverPersistentHeaderDelegate {
       children: [
         // Chapter list tab (shows unread count when there are unread chapters).
         _buildTabIcon(
-          RemixIcons.list_unordered,
+          Icons.format_list_bulleted,
           activeTab == 0,
           dark: dark,
           scheme: scheme,
@@ -4130,7 +4091,7 @@ class _SheetHeaderDelegate extends SliverPersistentHeaderDelegate {
         ),
         const SizedBox(width: 2),
         _buildTabIcon(
-          RemixIcons.grid_line,
+          Icons.grid_view,
           activeTab == 1,
           dark: dark,
           scheme: scheme,
@@ -4138,31 +4099,23 @@ class _SheetHeaderDelegate extends SliverPersistentHeaderDelegate {
         ),
         const SizedBox(width: 2),
         _buildTabIcon(
-          RemixIcons.bookmark_2_line,
+          Icons.bookmark_border,
           activeTab == 2,
           dark: dark,
           scheme: scheme,
           onTap: () => onTabSelected(2),
         ),
         const Spacer(),
-        // Fullscreen: the Continue pill and chevron give way to the search and
-        // order icons in the tray's trailing corner. The docked pane never
-        // reaches here -- it returns above with a header of its own.
+        // Fullscreen: the Continue pill gives way to the search and overflow
+        // icons in the tray's trailing corner. The docked pane never reaches
+        // here -- it returns above with a header of its own.
         if (isExpanded) ...[
           _buildTabIcon(
-            RemixIcons.search_line,
+            Icons.more_vert,
             false,
             dark: dark,
             scheme: scheme,
-            onTap: () {},
-          ),
-          const SizedBox(width: 2),
-          _buildTabIcon(
-            RemixIcons.arrow_up_down_line,
-            reverseOrder,
-            dark: dark,
-            scheme: scheme,
-            onTap: onToggleOrder,
+            onTap: onOverflow,
           ),
           const SizedBox(width: 6),
           _buildExpandButton(dark: dark, scheme: scheme),
@@ -4170,6 +4123,23 @@ class _SheetHeaderDelegate extends SliverPersistentHeaderDelegate {
           // Continue/Read action, only for the chapter list tab.
           if (showContinueButton) ...[
             _buildPrimaryButton(context: context, dark: dark, scheme: scheme),
+            const SizedBox(width: 2),
+            _buildTabIcon(
+              Icons.more_vert,
+              false,
+              dark: dark,
+              scheme: scheme,
+              onTap: onOverflow,
+            ),
+            const SizedBox(width: 6),
+          ] else ...[
+            _buildTabIcon(
+              Icons.more_vert,
+              false,
+              dark: dark,
+              scheme: scheme,
+              onTap: onOverflow,
+            ),
             const SizedBox(width: 6),
           ],
           _buildExpandButton(dark: dark, scheme: scheme),
@@ -4255,13 +4225,13 @@ class _SheetHeaderDelegate extends SliverPersistentHeaderDelegate {
   Widget _buildModeSegments() {
     return ModeSegmentControl(
       activeTab: activeTab,
+      onTabSelected: onTabSelected,
       unreadCount: unreadCount,
       badge: unreadCount > 0 ? _buildBadge(unreadCount) : null,
-      onTabSelected: onTabSelected,
     );
   }
 
-  // A single consistent, tappable tab icon with a circular active highlight --
+  // A single consistent, tappable tab icon with a square active highlight --
   // the tray's own idiom, for the phone sheet.
   Widget _buildTabIcon(
     IconData icon,
@@ -4282,7 +4252,7 @@ class _SheetHeaderDelegate extends SliverPersistentHeaderDelegate {
               color: active
                   ? (dark ? const Color(0xFF2C2C2E) : Colors.black12)
                   : Colors.transparent,
-              shape: BoxShape.circle,
+              borderRadius: BorderRadius.circular(9),
             ),
             child: Icon(
               icon,
@@ -4364,7 +4334,7 @@ class _SheetHeaderDelegate extends SliverPersistentHeaderDelegate {
       accent,
     );
     final onAccent =
-        ThemeData.estimateBrightnessForColor(accent) == Brightness.dark
+        ThemeData.estimateBrightnessForColor(leftColor) == Brightness.dark
         ? Colors.white
         : Colors.black;
     return Container(
@@ -4389,27 +4359,29 @@ class _SheetHeaderDelegate extends SliverPersistentHeaderDelegate {
           GestureDetector(
             onTap: onContinuePressed,
             child: Container(
-              // Roomier than it was: at 13px on 16/8 the pill read as a chip
-              // rather than the screen's primary action. 14px on 18/10 makes it
-              // a 40px pill -- the same height as the favourite pill beside the
-              // cover.
-              padding: const EdgeInsets.symmetric(horizontal: 18, vertical: 10),
+              padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
               color: leftColor,
-              child: Text(
-                label,
-                style: TextStyle(
-                  color: onAccent,
-                  fontSize: 14,
-                  fontWeight: FontWeight.w700,
-                  letterSpacing: 0.1,
-                ),
+              child: Row(
+                children: [
+                  Icon(RemixIcons.arrow_right_line, color: onAccent, size: 18),
+                  const SizedBox(width: 4),
+                  Text(
+                    label,
+                    style: TextStyle(
+                      color: onAccent,
+                      fontSize: 14,
+                      fontWeight: FontWeight.w700,
+                      letterSpacing: 0.1,
+                    ),
+                  ),
+                ],
               ),
             ),
           ),
-          GestureDetector(
+          InkWell(
             onTap: onContinuePressed,
             child: Container(
-              padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 10),
+              padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
               decoration: BoxDecoration(
                 color: rightColor,
                 border: Border(
@@ -4454,20 +4426,10 @@ class _SheetHeaderDelegate extends SliverPersistentHeaderDelegate {
         oldDelegate.isSelectionMode != isSelectionMode ||
         oldDelegate.selectedCount != selectedCount ||
         oldDelegate.isAllSelectedRead != isAllSelectedRead ||
-        oldDelegate.hasDownloaded != hasDownloaded ||
-        oldDelegate.reverseOrder != reverseOrder;
+        oldDelegate.hasDownloaded != hasDownloaded;
   }
 }
 
-// Floating circular button on the right edge of the tray: jump to the other end
-// of the chapter list.
-//
-// It only ever exists at full screen, on a list long enough to have somewhere
-// to travel to, and it is not offered at all in selection mode -- all of that
-// is settled by the callers. What is left is its direction, and that follows
-// the drag: the arrow points the way the list is being read, so it is the down
-// arrow while the reader is working towards the last chapter and the up arrow
-// as soon as they turn back, and tapping carries on to that end.
 class _TrayJumpButton extends StatelessWidget {
   final bool atBottom;
   final VoidCallback onTap;
@@ -4507,20 +4469,19 @@ class _TrayJumpButton extends StatelessWidget {
 /// fifth of the column empty on a desktop while the title block beside it kept
 /// growing. That is the whole of the "the art is too small on a desktop" report.
 ///
-/// The share is picked so a phone still lands on the old number: 328 * 0.38 is
-/// 124.6, so the floor is what a phone gets and nothing about the phone changes.
-const double _detailCoverShareOfColumn = 0.38;
+/// The share is picked so a phone still lands on a smaller number: 328 * 0.32 is
+/// ~105px (minimum clamps to 110), giving a smaller footprint relative to card.
+const double _detailCoverShareOfColumn = 0.32;
 
 /// Smallest the cover gets, which is what a phone column resolves to.
-const double _detailCoverMinWidth = 125;
+const double _detailCoverMinWidth = 110;
 
 /// Where the cover stops growing.
 ///
-/// Past a 240px plate it stops being a thumbnail beside the title and becomes
+/// Past a 200px plate it stops being a thumbnail beside the title and becomes
 /// the subject of the screen, and the title and metadata are pushed into a
-/// column too narrow to hold a synopsis. Reached around a 1536px window; a
-/// larger one spends the extra width on the pane instead.
-const double _detailCoverMaxWidth = 240;
+/// column too narrow to hold a synopsis.
+const double _detailCoverMaxWidth = 200;
 
 /// The shape the fixed cover had, so growing it does not also reshape it.
 const double _detailCoverAspect = 175 / 125;

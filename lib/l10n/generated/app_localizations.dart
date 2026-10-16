@@ -2240,6 +2240,12 @@ abstract class AppLocalizations {
   /// **'On Device'**
   String get detailOnDevice;
 
+  /// No description provided for @detailReverseOrder.
+  ///
+  /// In en, this message translates to:
+  /// **'Reverse order'**
+  String get detailReverseOrder;
+
   /// No description provided for @unknown.
   ///
   /// In en, this message translates to:

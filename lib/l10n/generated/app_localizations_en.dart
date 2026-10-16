@@ -1193,6 +1193,9 @@ class AppLocalizationsEn extends AppLocalizations {
   String get detailOnDevice => 'On Device';
 
   @override
+  String get detailReverseOrder => 'Reverse order';
+
+  @override
   String get unknown => 'Unknown';
 
   @override

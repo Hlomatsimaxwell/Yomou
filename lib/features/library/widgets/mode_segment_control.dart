@@ -1,6 +1,4 @@
 import 'package:flutter/material.dart';
-import 'package:remixicon/remixicon.dart';
-import 'package:yomou/l10n/generated/app_localizations.dart';
 
 /// How many places the detail list can be in. Fixed at three: Chapters, Pages,
 /// Bookmarks.
@@ -35,9 +33,11 @@ Alignment modeSegmentIndicatorAlignment(int activeTab, int tabs) {
 /// switch, and the travel is also what tells the eye where the selection went
 /// when it changes.
 ///
-/// Labelled rather than icon-only, because the pane has the width and because
-/// the middle one is easy to misread: it shows the pages of the chapter you are
-/// on, not a grid of chapters.
+/// Icon-only, three square toggles on one track: the redesign drops the text
+/// labels so the control reads as a switch rather than a row of labelled
+/// buttons. The unread pip is deliberately kept -- it is a count of chapters
+/// waiting, not a label on a button, and taking it out would leave the pane
+/// with no way to say that anything is unread.
 ///
 /// The active fill is a plain white pill on a deliberately darkened track.
 /// White on the untinted M3 container is real but quiet -- the container roles
@@ -63,36 +63,35 @@ class ModeSegmentControl extends StatelessWidget {
   final int unreadCount;
 
   /// Overrides the default unread badge. The badge is a slot because the tray's
-  /// icon tabs next to this control wear the same one, and there is no sense in
-  /// building it twice.
+  /// own pip is drawn by its tab idiom, and this control should not get to
+  /// decide how the tray counts.
   final Widget? badge;
 
   @override
   Widget build(BuildContext context) {
-    final l = AppLocalizations.of(context);
     final scheme = Theme.of(context).colorScheme;
     final dark = scheme.brightness == Brightness.dark;
     final segments = <Widget>[
-      _buildSegment(
-        icon: RemixIcons.list_unordered,
-        label: l.detailTabChapters,
+      _buildSquareIconSegment(
+        icon: Icons.format_list_bulleted,
         active: activeTab == 0,
         scheme: scheme,
+        dark: dark,
         onTap: () => onTabSelected(0),
         badge: unreadCount > 0 ? (badge ?? _UnreadBadge(unreadCount)) : null,
       ),
-      _buildSegment(
-        icon: RemixIcons.grid_line,
-        label: l.detailTabPages,
+      _buildSquareIconSegment(
+        icon: Icons.grid_view,
         active: activeTab == 1,
         scheme: scheme,
+        dark: dark,
         onTap: () => onTabSelected(1),
       ),
-      _buildSegment(
-        icon: RemixIcons.bookmark_2_line,
-        label: l.bookmarks,
+      _buildSquareIconSegment(
+        icon: Icons.bookmark_border,
         active: activeTab == 2,
         scheme: scheme,
+        dark: dark,
         onTap: () => onTabSelected(2),
       ),
     ];
@@ -149,7 +148,9 @@ class ModeSegmentControl extends StatelessWidget {
                     // drop -- this is a toggle, not a card.
                     boxShadow: [
                       BoxShadow(
-                        color: Colors.black.withValues(alpha: dark ? 0.40 : 0.18),
+                        color: Colors.black.withValues(
+                          alpha: dark ? 0.40 : 0.18,
+                        ),
                         blurRadius: 4,
                         offset: const Offset(0, 1),
                       ),
@@ -169,20 +170,20 @@ class ModeSegmentControl extends StatelessWidget {
     );
   }
 
-  /// One segment: a label and its icon.
+  /// One square toggle: its icon, lit as the indicator slides under it.
   ///
-  /// The selected state lives on the indicator behind it, so this only has to
-  /// decide how loudly to say its own name -- and to animate that, so the label
-  /// and the indicator arrive together rather than in two beats.
-  Widget _buildSegment({
+  /// Icon-only because the redesign drops the text labels -- the control reads
+  /// as a switch rather than a row of labelled buttons. The unread pip stays
+  /// on the Chapters segment: it is a count, not a label, and it is the only
+  /// place in the pane that says how much is waiting.
+  Widget _buildSquareIconSegment({
     required IconData icon,
-    required String label,
     required bool active,
     required ColorScheme scheme,
+    required bool dark,
     required VoidCallback onTap,
     Widget? badge,
   }) {
-    final dark = scheme.brightness == Brightness.dark;
     return GestureDetector(
       onTap: onTap,
       behavior: HitTestBehavior.opaque,
@@ -196,38 +197,14 @@ class ModeSegmentControl extends StatelessWidget {
             dark ? Colors.white : scheme.onSurface,
             t,
           )!;
-          return Padding(
-            padding: const EdgeInsets.symmetric(vertical: 8),
+          return Container(
+            height: 36,
+            decoration: BoxDecoration(borderRadius: BorderRadius.circular(8)),
             child: Stack(
               clipBehavior: Clip.none,
               children: [
-                Row(
-                  mainAxisAlignment: MainAxisAlignment.center,
-                  children: [
-                    Icon(icon, color: fg, size: 16),
-                    const SizedBox(width: 6),
-                    Flexible(
-                      child: Text(
-                        label,
-                        maxLines: 1,
-                        overflow: TextOverflow.ellipsis,
-                        style: TextStyle(
-                          color: fg,
-                          fontSize: 13,
-                          fontWeight: FontWeight.lerp(
-                            FontWeight.w500,
-                            FontWeight.w700,
-                            t,
-                          ),
-                        ),
-                      ),
-                    ),
-                  ],
-                ),
-                // The unread count rides the segment rather than the icon, so
-                // it sits at the segment's corner and stays legible whether the
-                // indicator is under it or not.
-                if (badge != null) Positioned(top: -9, right: 6, child: badge),
+                Center(child: Icon(icon, color: fg, size: 20)),
+                if (badge != null) Positioned(top: 2, right: 4, child: badge),
               ],
             ),
           );

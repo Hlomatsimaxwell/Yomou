@@ -1206,6 +1206,9 @@ class AppLocalizationsEs extends AppLocalizations {
   String get detailOnDevice => 'En dispositivo';
 
   @override
+  String get detailReverseOrder => 'Invertir orden';
+
+  @override
   String get unknown => 'Desconocido';
 
   @override
