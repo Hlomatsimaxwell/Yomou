@@ -1214,6 +1214,17 @@ class AppLocalizationsEn extends AppLocalizations {
   String get readAction => 'Read';
 
   @override
+  String chapterNumShort(Object number) {
+    return 'Ch.$number';
+  }
+
+  @override
+  String get detailTabChapters => 'Chapters';
+
+  @override
+  String get detailTabPages => 'Pages';
+
+  @override
   String get chapterDateToday => 'Today';
 
   @override

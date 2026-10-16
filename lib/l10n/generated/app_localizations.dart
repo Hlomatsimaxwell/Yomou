@@ -2282,6 +2282,24 @@ abstract class AppLocalizations {
   /// **'Read'**
   String get readAction;
 
+  /// Compact chapter label for a list row. The full word is too heavy at list weight, so the row abbreviates it and lets the metadata carry the detail.
+  ///
+  /// In en, this message translates to:
+  /// **'Ch.{number}'**
+  String chapterNumShort(Object number);
+
+  /// No description provided for @detailTabChapters.
+  ///
+  /// In en, this message translates to:
+  /// **'Chapters'**
+  String get detailTabChapters;
+
+  /// No description provided for @detailTabPages.
+  ///
+  /// In en, this message translates to:
+  /// **'Pages'**
+  String get detailTabPages;
+
   /// No description provided for @chapterDateToday.
   ///
   /// In en, this message translates to:

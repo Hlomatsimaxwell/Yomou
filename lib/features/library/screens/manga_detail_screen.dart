@@ -121,6 +121,25 @@ String mangaDetailChapterFailure({
   return sourceMissing ? l.sourceNotSupported : l.noChaptersAvailable;
 }
 
+/// The label on a chapter row: "Ch.12", or the chapter's own title when it has
+/// no number.
+///
+/// The row reads as a chapter and a date, and the word "Chapter" is the heaviest
+/// thing in it -- at list weight, spelled out on every row, it turns a scan down
+/// the list into reading. The number is what identifies a chapter, so the list
+/// abbreviates and the metadata line underneath carries the rest.
+///
+/// A chapter the source published without a number (a special, an extra) has
+/// only its title to go on, and that is worth more to the reader than "Ch.".
+String mangaDetailChapterLabel({
+  required AppLocalizations l,
+  required String chapterNumber,
+  required String title,
+}) {
+  if (chapterNumber == 'Chapter' || chapterNumber.isEmpty) return title;
+  return l.chapterNumShort(chapterNumber);
+}
+
 class MangaDetailScreen extends ConsumerStatefulWidget {
   final String mangaId;
   final String title;
@@ -1387,19 +1406,36 @@ class _MangaDetailScreenState extends ConsumerState<MangaDetailScreen> {
             padding: EdgeInsets.only(
               bottom: 24 + _bottomClearance(context),
             ),
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
+            // The same art plate the phone layout scrolls its header over. It
+            // rides up and off with the content rather than staying pinned
+            // behind the pane, and it is what the details card is translucent
+            // over -- without it that card sits on a flat page and reads as a
+            // plain filled block, which is what it used to be.
+            child: Stack(
+              fit: StackFit.passthrough,
               children: [
-                _buildTopAppBar(),
-                _buildHeaderSection(),
-                const SizedBox(height: 16),
-                _buildSourceCard(),
-                const SizedBox(height: 16),
-                _buildDescriptionSection(),
-                const SizedBox(height: 12),
-                _buildTagChips(),
-                const SizedBox(height: 20),
-                _buildRelatedMangaSection(),
+                Positioned(
+                  top: 0,
+                  left: 0,
+                  right: 0,
+                  height: _kBackdropHeight,
+                  child: _buildImmersiveBackdrop(),
+                ),
+                Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    _buildTopAppBar(),
+                    _buildHeaderSection(),
+                    const SizedBox(height: 16),
+                    _buildSourceCard(),
+                    const SizedBox(height: 16),
+                    _buildDescriptionSection(),
+                    const SizedBox(height: 12),
+                    _buildTagChips(),
+                    const SizedBox(height: 20),
+                    _buildRelatedMangaSection(),
+                  ],
+                ),
               ],
             ),
           ),
@@ -1552,13 +1588,12 @@ class _MangaDetailScreenState extends ConsumerState<MangaDetailScreen> {
 
           return ListTile(
             key: ValueKey(ch.id),
-            // Two-line tiles reserve 72dp, and the title and subtitle only
-            // fill 40 of it, so most of the space between one chapter and the
-            // next is the tile's own air rather than anything this list asked
-            // for. -2 takes 8dp of it back (76dp a row becomes 68) without
-            // touching the text styles the way `dense` would.
-            visualDensity: const VisualDensity(vertical: -2),
-            contentPadding: const EdgeInsets.symmetric(vertical: 2),
+            // A chapter row is a title with one line of metadata under it, and
+            // this list is the screen's main body of information -- so give the
+            // pair room rather than compressing it. `dense` would shrink the
+            // text along with the box, which is the opposite of what this
+            // wants.
+            contentPadding: const EdgeInsets.symmetric(vertical: 8),
             shape: isSelected
                 ? RoundedRectangleBorder(
                     borderRadius: BorderRadius.circular(12),
@@ -1584,21 +1619,25 @@ class _MangaDetailScreenState extends ConsumerState<MangaDetailScreen> {
                   ),
                 Expanded(
                   child: Text(
-                    ch.chapterNumber == 'Chapter'
-                        ? ch.title
-                        : AppLocalizations.of(
-                            context,
-                          ).chapterNum(ch.chapterNumber),
+                    mangaDetailChapterLabel(
+                      l: AppLocalizations.of(context),
+                      chapterNumber: ch.chapterNumber,
+                      title: ch.title,
+                    ),
                     maxLines: 1,
                     overflow: TextOverflow.ellipsis,
+                    // Smaller and lighter than it was: a row should read as a
+                    // chapter and a date, not as a headline with a footnote
+                    // under it. The current chapter still steps up -- it is the
+                    // one thing on the row that is about the reader.
                     style: TextStyle(
                       color: isRead
                           ? Colors.grey
                           : (dark ? Colors.white : onSurface),
                       fontWeight: isCurrent
-                          ? FontWeight.bold
+                          ? FontWeight.w600
                           : FontWeight.normal,
-                      fontSize: 16,
+                      fontSize: 15,
                     ),
                   ),
                 ),
@@ -1617,7 +1656,11 @@ class _MangaDetailScreenState extends ConsumerState<MangaDetailScreen> {
                 return '';
               }(),
               style: TextStyle(
-                color: dark ? Colors.white38 : Colors.grey.shade400,
+                color: dark ? Colors.white38 : const Color(0xFF8A8A8E),
+                // Held at the size the list already used: this line is meant to
+                // read as subordinate to the chapter above it, and the muted
+                // grey it now shares with the details card is what carries that
+                // -- the darker tint is for legibility, not for weight.
                 fontSize: 11,
               ),
             ),
@@ -3135,14 +3178,19 @@ class _MangaDetailScreenState extends ConsumerState<MangaDetailScreen> {
   Widget _buildFavoriteButton() {
     final l = AppLocalizations.of(context);
     final scheme = Theme.of(context).colorScheme;
-    final fg = scheme.onPrimaryContainer;
-    final divider = fg.withValues(alpha: 0.2);
+    // Outlined rather than filled. The cover is the loudest thing on this
+    // screen, and a solid accent block sitting beside it competes with the
+    // thing the page is actually about -- so the button drops to a hairline and
+    // the heart carries the colour, and only once the work is in the library.
+    final fg = scheme.onSurface;
+    final heartColor = _isFavorite ? scheme.primary : fg;
+    final border = scheme.outlineVariant;
 
     return Container(
       constraints: const BoxConstraints(minHeight: 40),
       decoration: BoxDecoration(
-        color: scheme.primaryContainer,
         borderRadius: BorderRadius.circular(20),
+        border: Border.all(color: border),
       ),
       child: Row(
         mainAxisSize: MainAxisSize.min,
@@ -3161,7 +3209,7 @@ class _MangaDetailScreenState extends ConsumerState<MangaDetailScreen> {
                     _isFavorite
                         ? RemixIcons.heart_3_fill
                         : RemixIcons.heart_3_line,
-                    color: fg,
+                    color: heartColor,
                     size: 18,
                   ),
                   const SizedBox(width: 8),
@@ -3177,7 +3225,7 @@ class _MangaDetailScreenState extends ConsumerState<MangaDetailScreen> {
               ),
             ),
           ),
-          Container(width: 1, height: 20, color: divider),
+          Container(width: 1, height: 20, color: border),
           InkWell(
             onTap: () => _showOverflowMenu(context),
             borderRadius: const BorderRadius.horizontal(
@@ -3188,7 +3236,7 @@ class _MangaDetailScreenState extends ConsumerState<MangaDetailScreen> {
               child: Icon(
                 RemixIcons.arrow_down_s_line,
                 size: 16,
-                color: fg.withValues(alpha: 0.8),
+                color: scheme.onSurfaceVariant,
               ),
             ),
           ),
@@ -3210,14 +3258,16 @@ class _MangaDetailScreenState extends ConsumerState<MangaDetailScreen> {
       margin: const EdgeInsets.symmetric(horizontal: 16),
       padding: const EdgeInsets.all(16),
       decoration: BoxDecoration(
-        // A plain filled card, level with the page -- exactly what the
-        // reference uses (`materialCardViewFilledStyle`, zero elevation). It
-        // reads as "almost invisible" because the art above it is only at a
-        // quarter opacity, not because the card is transparent. A translucent
-        // card over an already-washed backdrop just looks like a lighter
-        // rectangle, which is what the frosted-glass attempt turned into.
-        color: Theme.of(context).colorScheme.surfaceContainerHighest,
-        borderRadius: BorderRadius.circular(20),
+        // Semi-translucent, so the art plate behind the pane reads faintly
+        // through the card instead of stopping dead at its edge. An earlier
+        // note here argued for an opaque fill -- a wash over an already-washed
+        // backdrop is just a lighter rectangle -- but that was when the card sat
+        // on a flat page with nothing behind it. With the plate behind it there
+        // is something to be translucent over.
+        color: Theme.of(
+          context,
+        ).colorScheme.surfaceContainerHighest.withValues(alpha: 0.72),
+        borderRadius: BorderRadius.circular(24),
       ),
       child: Column(
         children: [
@@ -3237,17 +3287,31 @@ class _MangaDetailScreenState extends ConsumerState<MangaDetailScreen> {
           _buildCardRow(
             l.detailAuthor,
             _details?.author.isEmpty ?? true ? l.unknown : _details!.author,
+            icon: RemixIcons.user_line,
           ),
           _buildTranslationRow(),
           _buildCardRow(
             l.detailYear,
             _details?.year.isEmpty ?? true ? '—' : _details!.year,
+            icon: RemixIcons.calendar_line,
           ),
           if ((_details?.status.isEmpty ?? true) == false)
-            _buildCardRow(l.detailState, _details!.status),
-          _buildCardRow(l.detailChapters, chaptersText),
+            _buildCardRow(
+              l.detailState,
+              _details!.status,
+              icon: RemixIcons.pulse_line,
+            ),
+          _buildCardRow(
+            l.detailChapters,
+            chaptersText,
+            icon: RemixIcons.list_unordered,
+          ),
           if (_downloadSize > 0)
-            _buildCardRow(l.detailOnDevice, _formatBytes(_downloadSize)),
+            _buildCardRow(
+              l.detailOnDevice,
+              _formatBytes(_downloadSize),
+              icon: RemixIcons.sd_card_line,
+            ),
           const SizedBox(height: 8),
           Row(
             children: [
@@ -3329,6 +3393,9 @@ class _MangaDetailScreenState extends ConsumerState<MangaDetailScreen> {
     return _buildCardRow(
       l.detailTranslation,
       MangaLanguage.label(current),
+      // A flag, because the value is a language: it is the one row where the
+      // icon says more than the label does.
+      icon: RemixIcons.flag_line,
       onTap: tappable ? () => _showTranslationPicker(all, current) : null,
     );
   }
@@ -3938,12 +4005,44 @@ class _SheetHeaderDelegate extends SliverPersistentHeaderDelegate {
     );
   }
 
-  // Default tray: tab icons, primary Continue/Read pill, and tray controls.
+  // Default header: the pane's mode control and its primary action, or -- in
+  // the tray -- the icon row that is all a phone sheet has room for.
   Widget _buildDefaultHeader(
     BuildContext context, {
     required bool dark,
     required ColorScheme scheme,
   }) {
+    // A docked pane has the width for a labelled control and the height for a
+    // real header, so it gets one. Everything below this is the tray, where
+    // three bare icons are what fits between a drag handle and the screen edge.
+    if (docked) {
+      return Row(
+        key: const ValueKey('defaultTrayHeader'),
+        crossAxisAlignment: CrossAxisAlignment.center,
+        children: [
+          Expanded(
+            child: _buildModeSegments(context, dark: dark, scheme: scheme),
+          ),
+          const SizedBox(width: 12),
+          // A docked pane keeps the Continue pill: it is the primary action on
+          // this screen, and the fullscreen tray only drops it because the
+          // reader is already the thing filling the screen. Here the reader is
+          // still a tap away, so Continue and the order toggle both stay.
+          if (showContinueButton) ...[
+            _buildPrimaryButton(context: context, dark: dark, scheme: scheme),
+            const SizedBox(width: 6),
+          ],
+          _buildTabIcon(
+            RemixIcons.arrow_up_down_line,
+            reverseOrder,
+            dark: dark,
+            scheme: scheme,
+            onTap: onToggleOrder,
+          ),
+        ],
+      );
+    }
+
     return Row(
       key: const ValueKey('defaultTrayHeader'),
       crossAxisAlignment: CrossAxisAlignment.center,
@@ -3974,26 +4073,10 @@ class _SheetHeaderDelegate extends SliverPersistentHeaderDelegate {
           onTap: () => onTabSelected(2),
         ),
         const Spacer(),
-        // A docked pane keeps the Continue pill: it is the primary action on
-        // this screen, and the fullscreen tray only drops it because the
-        // reader is already the thing filling the screen. Here the reader is
-        // still a tap away, so Continue and the order toggle both stay.
-        if (docked) ...[
-          if (showContinueButton) ...[
-            _buildPrimaryButton(context: context, dark: dark, scheme: scheme),
-            const SizedBox(width: 6),
-          ],
-          _buildTabIcon(
-            RemixIcons.arrow_up_down_line,
-            reverseOrder,
-            dark: dark,
-            scheme: scheme,
-            onTap: onToggleOrder,
-          ),
-        ]
-        // Fullscreen: Continue pill and chevron are replaced by the
-        // search and overflow menu icons in the tray's trailing corner.
-        else if (isExpanded) ...[
+        // Fullscreen: the Continue pill and chevron give way to the search and
+        // order icons in the tray's trailing corner. The docked pane never
+        // reaches here -- it returns above with a header of its own.
+        if (isExpanded) ...[
           _buildTabIcon(
             RemixIcons.search_line,
             false,
@@ -4094,6 +4177,114 @@ class _SheetHeaderDelegate extends SliverPersistentHeaderDelegate {
   }
 
   // A single consistent, tappable tab icon with a circular active highlight.
+  /// The pane's mode control: one track holding the three places the list can
+  /// be, rather than three circles that happen to sit next to each other.
+  ///
+  /// Labelled rather than icon-only, because the pane has the width and because
+  /// the middle one is easy to misread: it shows the pages of the chapter you
+  /// are on, not a grid of chapters.
+  Widget _buildModeSegments(
+    BuildContext context, {
+    required bool dark,
+    required ColorScheme scheme,
+  }) {
+    final l = AppLocalizations.of(context);
+    return Container(
+      padding: const EdgeInsets.all(2),
+      decoration: BoxDecoration(
+        color: scheme.surfaceContainerHighest.withValues(alpha: 0.7),
+        borderRadius: BorderRadius.circular(9),
+      ),
+      child: Row(
+        children: [
+          _buildSegment(
+            icon: RemixIcons.list_unordered,
+            label: l.detailTabChapters,
+            active: activeTab == 0,
+            scheme: scheme,
+            onTap: () => onTabSelected(0),
+            badge: unreadCount > 0 ? _buildBadge(unreadCount) : null,
+          ),
+          _buildSegment(
+            icon: RemixIcons.grid_line,
+            label: l.detailTabPages,
+            active: activeTab == 1,
+            scheme: scheme,
+            onTap: () => onTabSelected(1),
+          ),
+          _buildSegment(
+            icon: RemixIcons.bookmark_2_line,
+            label: l.bookmarks,
+            active: activeTab == 2,
+            scheme: scheme,
+            onTap: () => onTabSelected(2),
+          ),
+        ],
+      ),
+    );
+  }
+
+  /// One segment of [this._buildModeSegments]: accent block when it is the
+  /// place you are in, plain label when it is not.
+  Widget _buildSegment({
+    required IconData icon,
+    required String label,
+    required bool active,
+    required ColorScheme scheme,
+    required VoidCallback onTap,
+    Widget? badge,
+  }) {
+    final fg = active ? scheme.onSurface : scheme.onSurfaceVariant;
+    return Expanded(
+      child: GestureDetector(
+        onTap: onTap,
+        child: AnimatedContainer(
+          duration: const Duration(milliseconds: 150),
+          curve: Curves.easeOut,
+          padding: const EdgeInsets.symmetric(vertical: 7),
+          decoration: BoxDecoration(
+            // A raised chip, not an accent fill. The Continue pill sits in this
+            // same bar and is already accent-filled, and the reference's own
+            // list-mode control is an outlined button group whose checked state
+            // is tonal rather than accent. So this follows the reference and
+            // the app's other segmented row rather than inventing a third
+            // treatment that competes with the button beside it.
+            color: active ? scheme.surface : Colors.transparent,
+            borderRadius: BorderRadius.circular(7),
+          ),
+          child: Stack(
+            clipBehavior: Clip.none,
+            children: [
+              Row(
+                mainAxisAlignment: MainAxisAlignment.center,
+                children: [
+                  Icon(icon, color: fg, size: 16),
+                  const SizedBox(width: 6),
+                  Flexible(
+                    child: Text(
+                      label,
+                      maxLines: 1,
+                      overflow: TextOverflow.ellipsis,
+                      style: TextStyle(
+                        color: fg,
+                        fontSize: 13,
+                        fontWeight: active ? FontWeight.w600 : FontWeight.w500,
+                      ),
+                    ),
+                  ),
+                ],
+              ),
+              // The unread count rides the segment rather than the icon, so it
+              // sits at the chip's corner and stays legible whether the chip is
+              // raised or not.
+              if (badge != null) Positioned(top: -9, right: 6, child: badge),
+            ],
+          ),
+        ),
+      ),
+    );
+  }
+
   Widget _buildTabIcon(
     IconData icon,
     bool active, {

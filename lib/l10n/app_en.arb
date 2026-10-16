@@ -586,6 +586,15 @@
   "showAll": "Show all",
   "continueAction": "Continue",
   "readAction": "Read",
+  "chapterNumShort": "Ch.{number}",
+  "@chapterNumShort": {
+    "description": "Compact chapter label for a list row. The full word is too heavy at list weight, so the row abbreviates it and lets the metadata carry the detail.",
+    "placeholders": {
+      "number": {}
+    }
+  },
+  "detailTabChapters": "Chapters",
+  "detailTabPages": "Pages",
   "chapterDateToday": "Today",
   "chapterDateYesterday": "Yesterday",
   "chapterDaysAgo": "{days} days ago",
