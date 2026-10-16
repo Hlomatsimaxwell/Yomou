@@ -140,6 +140,21 @@ String mangaDetailChapterLabel({
   return l.chapterNumShort(chapterNumber);
 }
 
+/// Where the mode control's indicator sits when [activeTab] is the selected one
+/// out of [tabs].
+///
+/// The indicator is a segment wide and slides between fixed stops across the
+/// track, so what it needs is the fraction of the track's free space it should
+/// sit at -- -1 at the left, 0 in the middle, 1 at the right -- which is what
+/// `Alignment.x` means. Kept out of the widget rather than inlined so the
+/// arithmetic can be pinned by a test: an indicator that lands under the wrong
+/// label is the kind of bug that reads as a styling choice and survives review.
+Alignment modeSegmentIndicatorAlignment(int activeTab, int tabs) {
+  if (tabs <= 1) return Alignment.center;
+  final index = activeTab.clamp(0, tabs - 1);
+  return Alignment(-1 + (index / (tabs - 1)) * 2, 0);
+}
+
 class MangaDetailScreen extends ConsumerStatefulWidget {
   final String mangaId;
   final String title;
@@ -1514,7 +1529,6 @@ class _MangaDetailScreenState extends ConsumerState<MangaDetailScreen> {
   Widget _buildChapterListSliver() {
     final dark = Theme.of(context).brightness == Brightness.dark;
     final scheme = Theme.of(context).colorScheme;
-    final onSurface = scheme.onSurface;
     final downloadedChapterIds =
         ref
             .watch(downloadedChaptersForMangaProvider(widget.mangaId))
@@ -1586,6 +1600,10 @@ class _MangaDetailScreenState extends ConsumerState<MangaDetailScreen> {
           final isCurrent = originalIndex == _currentDisplayIndex;
           final downloaded = downloadedChapterIds.contains(ch.id);
           final isSelected = _selectedIds.contains(ch.id);
+          // The label's base colour, before the read step. Near-black in light,
+          // white in dark: the row is built on the gap between this and the
+          // metadata under it, so it has to be as strong as the surface allows.
+          final titleBase = dark ? Colors.white : scheme.onSurface;
 
           return ListTile(
             key: ValueKey(ch.id),
@@ -1627,20 +1645,20 @@ class _MangaDetailScreenState extends ConsumerState<MangaDetailScreen> {
                     ),
                     maxLines: 1,
                     overflow: TextOverflow.ellipsis,
-                    // The heading of the row, and it has to look like one. A
-                    // read chapter used plain `Colors.grey`, which sits close
-                    // enough to the metadata grey that the two lines merged
-                    // into one uniform block -- and because most of a long list
-                    // is read, most of the list looked like that. Read chapters
-                    // now dim by one step rather than all the way to grey, and
-                    // the label is semibold in every state: it is two or three
-                    // characters now, so weight is what makes it a heading
-                    // rather than the word that used to.
+                    // The heading of the row, and it has to look like one. Bold,
+                    // and near-black in every state: the reference's whole idea
+                    // is that the eye lands on the chapter number and nothing
+                    // else, and this is the half of the pair that earns that.
+                    // It used to fade a full step for a read chapter, which
+                    // shrank exactly the gap the row is built on -- and since
+                    // most of a long list is read, most of the list lost its
+                    // anchor. Read still reads as read, one notch off full
+                    // rather than a different colour.
                     style: TextStyle(
                       color: isRead
-                          ? (dark ? Colors.white70 : scheme.onSurfaceVariant)
-                          : (dark ? Colors.white : onSurface),
-                      fontWeight: FontWeight.w600,
+                          ? titleBase.withValues(alpha: 0.75)
+                          : titleBase,
+                      fontWeight: FontWeight.w700,
                       fontSize: 15,
                     ),
                   ),
@@ -1660,14 +1678,13 @@ class _MangaDetailScreenState extends ConsumerState<MangaDetailScreen> {
                 return '';
               }(),
               style: TextStyle(
-                // The row's supporting line, and these three greys have now
-                // walked up the scale twice on review. It has to be a ghost
-                // next to the chapter label: at #9E9EA3 it was only a step
-                // less prominent than the heading, so the eye landed on the
-                // date as often as on the number. Lighter than the details
-                // card's own labels for the same reason -- this is the least
+                // The row's supporting line, and it is deliberately almost
+                // invisible: the reference's date is barely there at all, and
+                // anything with more presence than that starts competing with
+                // the chapter number for the eye. This is lighter than the
+                // details card's own labels, on purpose -- it is the least
                 // important text on the screen.
-                color: dark ? Colors.white38 : const Color(0xFFB0B0B5),
+                color: dark ? Colors.white30 : const Color(0xFFC0C0C5),
                 fontSize: 10.5,
               ),
             ),
@@ -3188,11 +3205,16 @@ class _MangaDetailScreenState extends ConsumerState<MangaDetailScreen> {
     // A very light fill rather than an outline. The outline gave the pill a hard
     // edge of its own, which read as heavier than the cover sitting next to it;
     // a tint this faint keeps the shape and the tap target without drawing a box
-    // on the page. The heart still carries the colour, and only once the work is
-    // in the library.
-    final fg = scheme.onSurface;
-    final heartColor = _isFavorite ? scheme.primary : fg;
-    final fill = scheme.onSurface.withValues(alpha: 0.05);
+    // on the page. Favourited takes a wash of the accent instead of a wash of
+    // ink: the heart already says the work is saved, and a solid pill next to
+    // the cover pulls the eye off the art, which is the thing on this screen
+    // worth looking at.
+    final favorited = _isFavorite;
+    final fg = favorited ? scheme.primary : scheme.onSurface;
+    final heartColor = fg;
+    final fill = favorited
+        ? scheme.primary.withValues(alpha: 0.12)
+        : scheme.onSurface.withValues(alpha: 0.05);
 
     return Container(
       constraints: const BoxConstraints(minHeight: 40),
@@ -3268,104 +3290,133 @@ class _MangaDetailScreenState extends ConsumerState<MangaDetailScreen> {
 
     return Container(
       margin: const EdgeInsets.symmetric(horizontal: 16),
-      // More room at the sides than above and below: the card is the widest
-      // block in the pane and its label and value columns were running right up
-      // to the edges, which is what made it read as cramped rather than
-      // spacious.
-      padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 16),
       decoration: BoxDecoration(
-        // Semi-translucent, so the art plate behind the pane reads faintly
-        // through the card instead of stopping dead at its edge. An earlier
-        // note here argued for an opaque fill -- a wash over an already-washed
-        // backdrop is just a lighter rectangle -- but that was when the card sat
-        // on a flat page with nothing behind it. With the plate behind it there
-        // is something to be translucent over.
-        color: Theme.of(
-          context,
-        ).colorScheme.surfaceContainerHighest.withValues(alpha: 0.72),
         borderRadius: BorderRadius.circular(24),
-      ),
-      child: Column(
-        children: [
-          _buildCardRow(
-            l.detailSource,
-            _sourceName ?? l.unknown,
-            leading: _buildSourceIcon(),
-            // Only when the source still resolves: an unknown name falls back
-            // to MangaDex in [getSourceByName], which would open the wrong
-            // catalogue rather than nothing.
-            onTap: ref
-                    .watch(sourcesProvider)
-                    .any((row) => row['name'] == (_sourceName ?? ''))
-                ? _openSourceCatalogue
-                : null,
-          ),
-          _buildCardRow(
-            l.detailAuthor,
-            _details?.author.isEmpty ?? true ? l.unknown : _details!.author,
-            icon: RemixIcons.user_line,
-          ),
-          _buildTranslationRow(),
-          _buildCardRow(
-            l.detailYear,
-            _details?.year.isEmpty ?? true ? '—' : _details!.year,
-            icon: RemixIcons.calendar_line,
-          ),
-          if ((_details?.status.isEmpty ?? true) == false)
-            _buildCardRow(
-              l.detailState,
-              _details!.status,
-              icon: RemixIcons.pulse_line,
-            ),
-          _buildCardRow(
-            l.detailChapters,
-            chaptersText,
-            icon: RemixIcons.list_unordered,
-          ),
-          if (_downloadSize > 0)
-            _buildCardRow(
-              l.detailOnDevice,
-              _formatBytes(_downloadSize),
-              icon: RemixIcons.sd_card_line,
-            ),
-          const SizedBox(height: 8),
-          Row(
-            children: [
-              Text(
-                l.detailProgress,
-                style: TextStyle(
-                  color: _detailLabelColor(dark),
-                  fontSize: 14,
-                ),
-              ),
-              const SizedBox(width: 16),
-              Expanded(
-                child: ClipRRect(
-                  borderRadius: BorderRadius.circular(4),
-                  child: LinearProgressIndicator(
-                    value: _lastReadChapter >= 0
-                        ? (_progressPercent / 100).clamp(0.0, 1.0)
-                        : 0,
-                    backgroundColor: dark ? Colors.white12 : Colors.black12,
-                    valueColor: AlwaysStoppedAnimation<Color>(
-                      ref.watch(accentProvider),
-                    ),
-                    minHeight: 6,
-                  ),
-                ),
-              ),
-              const SizedBox(width: 12),
-              Text(
-                _lastReadChapter >= 0 ? '${_progressPercent.round()}%' : '0%',
-                style: TextStyle(
-                  color: _detailValueColor(dark),
-                  fontSize: 13,
-                  fontWeight: FontWeight.w600,
-                ),
-              ),
-            ],
+        // The shadow sits on the outer box, not the frosted one: a blur inside
+        // the clip would be cut off at the rounded edge and the card would stop
+        // floating. This is the "soft shadow" half of the effect -- the blur is
+        // the other half.
+        boxShadow: [
+          BoxShadow(
+            color: Colors.black.withValues(alpha: dark ? 0.30 : 0.07),
+            blurRadius: 24,
+            offset: const Offset(0, 8),
           ),
         ],
+      ),
+      // Frosted glass, which is three things and not one: a blur of whatever is
+      // behind the pane, a translucent fill over that blur, and a hairline edge
+      // to give the sheet a boundary the fill alone cannot. An opaque card here
+      // read as paper laid on the screen -- it had no relationship to the art
+      // plate behind it, which is the thing the pane is built around. The blur
+      // has to sample the plate, which is why it is a `BackdropFilter` inside
+      // the pane's stack rather than a translucent colour on its own.
+      child: ClipRRect(
+        borderRadius: BorderRadius.circular(24),
+        child: BackdropFilter(
+          filter: ImageFilter.blur(sigmaX: 18, sigmaY: 18),
+          child: Container(
+            // More room at the sides than above and below: the card is the
+            // widest block in the pane and its label and value columns were
+            // running right up to the edges, which is what made it read as
+            // cramped rather than spacious.
+            padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 16),
+            decoration: BoxDecoration(
+              color: (dark ? const Color(0xFF1E1E22) : Colors.white)
+                  .withValues(alpha: 0.80),
+              borderRadius: BorderRadius.circular(24),
+              border: Border.all(
+                color: (dark ? Colors.white : Colors.black).withValues(
+                  alpha: 0.06,
+                ),
+              ),
+            ),
+            child: Column(
+              children: [
+                _buildCardRow(
+                  l.detailSource,
+                  _sourceName ?? l.unknown,
+                  leading: _buildSourceIcon(),
+                  // Only when the source still resolves: an unknown name falls
+                  // back to MangaDex in [getSourceByName], which would open the
+                  // wrong catalogue rather than nothing.
+                  onTap: ref
+                          .watch(sourcesProvider)
+                          .any((row) => row['name'] == (_sourceName ?? ''))
+                      ? _openSourceCatalogue
+                      : null,
+                ),
+                _buildCardRow(
+                  l.detailAuthor,
+                  _details?.author.isEmpty ?? true ? l.unknown : _details!.author,
+                  icon: RemixIcons.user_line,
+                ),
+                _buildTranslationRow(),
+                _buildCardRow(
+                  l.detailYear,
+                  _details?.year.isEmpty ?? true ? '—' : _details!.year,
+                  icon: RemixIcons.calendar_line,
+                ),
+                if ((_details?.status.isEmpty ?? true) == false)
+                  _buildCardRow(
+                    l.detailState,
+                    _details!.status,
+                    icon: RemixIcons.pulse_line,
+                  ),
+                _buildCardRow(
+                  l.detailChapters,
+                  chaptersText,
+                  icon: RemixIcons.list_unordered,
+                ),
+                if (_downloadSize > 0)
+                  _buildCardRow(
+                    l.detailOnDevice,
+                    _formatBytes(_downloadSize),
+                    icon: RemixIcons.sd_card_line,
+                  ),
+                const SizedBox(height: 8),
+                Row(
+                  children: [
+                    Text(
+                      l.detailProgress,
+                      style: TextStyle(
+                        color: _detailLabelColor(dark),
+                        fontSize: 14,
+                      ),
+                    ),
+                    const SizedBox(width: 16),
+                    Expanded(
+                      child: ClipRRect(
+                        borderRadius: BorderRadius.circular(4),
+                        child: LinearProgressIndicator(
+                          value: _lastReadChapter >= 0
+                              ? (_progressPercent / 100).clamp(0.0, 1.0)
+                              : 0,
+                          backgroundColor: dark ? Colors.white12 : Colors.black12,
+                          valueColor: AlwaysStoppedAnimation<Color>(
+                            ref.watch(accentProvider),
+                          ),
+                          minHeight: 6,
+                        ),
+                      ),
+                    ),
+                    const SizedBox(width: 12),
+                    Text(
+                      _lastReadChapter >= 0
+                          ? '${_progressPercent.round()}%'
+                          : '0%',
+                      style: TextStyle(
+                        color: _detailValueColor(dark),
+                        fontSize: 13,
+                        fontWeight: FontWeight.w600,
+                      ),
+                    ),
+                  ],
+                ),
+              ],
+            ),
+          ),
+        ),
       ),
     );
   }
@@ -3535,13 +3586,14 @@ class _MangaDetailScreenState extends ConsumerState<MangaDetailScreen> {
 
   /// The muted colour of a metadata label ("Source", "Author", ...).
   ///
-  /// Kept clearly lighter than the value beside it, and it went lighter again
-  /// on review: at #8A8A8E the label held almost as much weight as the value,
+  /// Kept clearly lighter than the value beside it, and it has gone lighter on
+  /// every pass: at #8A8A8E the label held almost as much weight as the value,
   /// so a column of them read as a block of text rather than a list of facts
   /// and made the left pane feel heavy. The label is a caption; the value is
-  /// the content.
+  /// the content. Slightly darker than the chapter rows' metadata on purpose --
+  /// this text is 14px next to a value, that one is 10.5px next to a heading.
   Color _detailLabelColor(bool dark) =>
-      dark ? Colors.white38 : const Color(0xFFA8A8AE);
+      dark ? Colors.white38 : const Color(0xFFB4B4B9);
 
   /// The charcoal colour of a metadata value.
   Color _detailValueColor(bool dark) =>
@@ -3933,6 +3985,15 @@ class _SheetHeaderDelegate extends SliverPersistentHeaderDelegate {
   final bool reverseOrder;
   final VoidCallback onToggleOrder;
 
+  /// How many places the list can be in. Fixed at three: Chapters, Pages,
+  /// Bookmarks.
+  static const int _kModeCount = 3;
+
+  /// The mode control's indicator slide. Shared by the indicator and the
+  /// labels it moves under, so the two never fall out of step.
+  static const Duration _kSegmentSlide = Duration(milliseconds: 220);
+  static const Curve _kSegmentCurve = Curves.easeOutCubic;
+
   _SheetHeaderDelegate({
     this.docked = false,
     required this.isExpanded,
@@ -4047,7 +4108,7 @@ class _SheetHeaderDelegate extends SliverPersistentHeaderDelegate {
             child: Align(
               alignment: Alignment.centerLeft,
               child: ConstrainedBox(
-                constraints: const BoxConstraints(maxWidth: 340),
+                constraints: const BoxConstraints(maxWidth: 320),
                 child: _buildModeSegments(context, dark: dark, scheme: scheme),
               ),
             ),
@@ -4205,9 +4266,8 @@ class _SheetHeaderDelegate extends SliverPersistentHeaderDelegate {
     );
   }
 
-  // A single consistent, tappable tab icon with a circular active highlight.
-  /// The pane's mode control: one track holding the three places the list can
-  /// be, rather than three circles that happen to sit next to each other.
+  /// The pane's mode control: one track, one background, one indicator that
+  /// slides between the three places the list can be.
   ///
   /// Labelled rather than icon-only, because the pane has the width and because
   /// the middle one is easy to misread: it shows the pages of the chapter you
@@ -4218,46 +4278,106 @@ class _SheetHeaderDelegate extends SliverPersistentHeaderDelegate {
     required ColorScheme scheme,
   }) {
     final l = AppLocalizations.of(context);
+    const count = _kModeCount;
+    final segments = <Widget>[
+      _buildSegment(
+        icon: RemixIcons.list_unordered,
+        label: l.detailTabChapters,
+        active: activeTab == 0,
+        scheme: scheme,
+        onTap: () => onTabSelected(0),
+        badge: unreadCount > 0 ? _buildBadge(unreadCount) : null,
+      ),
+      _buildSegment(
+        icon: RemixIcons.grid_line,
+        label: l.detailTabPages,
+        active: activeTab == 1,
+        scheme: scheme,
+        onTap: () => onTabSelected(1),
+      ),
+      _buildSegment(
+        icon: RemixIcons.bookmark_2_line,
+        label: l.bookmarks,
+        active: activeTab == 2,
+        scheme: scheme,
+        onTap: () => onTabSelected(2),
+      ),
+    ];
     return Container(
       padding: const EdgeInsets.all(3),
       decoration: BoxDecoration(
         // A definite track colour, not a wash over the header. At 70% alpha on
         // a white bar it was faint enough to read as three loose labels rather
-        // than one control, which is exactly how it was described back.
+        // than one control, which is how it was first described back.
         color: scheme.surfaceContainerHighest,
-        borderRadius: BorderRadius.circular(10),
+        borderRadius: BorderRadius.circular(12),
       ),
-      child: Row(
+      child: Stack(
+        // The indicator spills a pixel or two past the track's inner edge and
+        // must not be cut off; the track's own padding absorbs the rest.
+        clipBehavior: Clip.none,
         children: [
-          _buildSegment(
-            icon: RemixIcons.list_unordered,
-            label: l.detailTabChapters,
-            active: activeTab == 0,
-            scheme: scheme,
-            onTap: () => onTabSelected(0),
-            badge: unreadCount > 0 ? _buildBadge(unreadCount) : null,
+          // The single indicator, sliding. Three chips that each light
+          // themselves up is a row of buttons however it is dressed -- it is
+          // the movement between positions that makes this read as one switch,
+          // and the travel is also what tells the eye where the selection went
+          // when it changes. Hence one indicator that moves rather than three
+          // that fade.
+          Positioned.fill(
+            child: AnimatedAlign(
+              duration: _kSegmentSlide,
+              curve: _kSegmentCurve,
+              alignment: modeSegmentIndicatorAlignment(activeTab, count),
+              child: FractionallySizedBox(
+                widthFactor: 1 / count,
+                heightFactor: 1,
+                child: DecoratedBox(
+                  decoration: BoxDecoration(
+                    // The indicator has to differ from the track in *lightness*,
+                    // not in hue. Two earlier passes reached for a tonal role
+                    // here and both times the selection came back invisible:
+                    // `surface` is near-white on a white bar, and
+                    // `secondaryContainer` is the *same tone* as
+                    // `surfaceContainerHighest`, so on the track it was a chip
+                    // painted in the colour of the thing it sat on. Something
+                    // inside a container reads as raised only if it is lighter
+                    // than that container: plain white on the grey track in
+                    // light, a lift off the track in dark.
+                    color: dark
+                        ? Colors.white.withValues(alpha: 0.16)
+                        : Colors.white,
+                    borderRadius: BorderRadius.circular(9),
+                    // The pixel of shadow is what makes it a pressed physical
+                    // toggle rather than a flat patch on the track.
+                    boxShadow: dark
+                        ? null
+                        : [
+                            BoxShadow(
+                              color: Colors.black.withValues(alpha: 0.10),
+                              blurRadius: 3,
+                              offset: const Offset(0, 1),
+                            ),
+                          ],
+                  ),
+                ),
+              ),
+            ),
           ),
-          _buildSegment(
-            icon: RemixIcons.grid_line,
-            label: l.detailTabPages,
-            active: activeTab == 1,
-            scheme: scheme,
-            onTap: () => onTabSelected(1),
-          ),
-          _buildSegment(
-            icon: RemixIcons.bookmark_2_line,
-            label: l.bookmarks,
-            active: activeTab == 2,
-            scheme: scheme,
-            onTap: () => onTabSelected(2),
+          Row(
+            children: [
+              for (final segment in segments) Expanded(child: segment),
+            ],
           ),
         ],
       ),
     );
   }
 
-  /// One segment of [this._buildModeSegments]: a raised chip when it is the
-  /// place you are in, a plain label when it is not.
+  /// One segment of [this._buildModeSegments]: a label and its icon.
+  ///
+  /// The selected state lives on the indicator behind it, so this only has to
+  /// decide how loudly to say its own name -- and to animate that, so the
+  /// label and the indicator arrive together rather than in two beats.
   Widget _buildSegment({
     required IconData icon,
     required String label,
@@ -4267,75 +4387,61 @@ class _SheetHeaderDelegate extends SliverPersistentHeaderDelegate {
     Widget? badge,
   }) {
     final dark = scheme.brightness == Brightness.dark;
-    final fg = active
-        ? (dark ? Colors.white : scheme.onSurface)
-        : scheme.onSurfaceVariant;
-    return Expanded(
-      child: GestureDetector(
-        onTap: onTap,
-        child: AnimatedContainer(
-          duration: const Duration(milliseconds: 150),
-          curve: Curves.easeOut,
-          padding: const EdgeInsets.symmetric(vertical: 7),
-          decoration: BoxDecoration(
-            // The chip has to differ from the track in *lightness*, not in hue.
-            // Two earlier passes reached for a tonal role here and both times
-            // the selection came back invisible: `surface` is near-white on a
-            // white bar, and `secondaryContainer` is the *same tone* as
-            // `surfaceContainerHighest`, so on the track it was a chip painted
-            // in the colour of the thing it sat on. A chip inside a container
-            // reads as raised only if it is lighter than that container, which
-            // is what this is: plain white on the grey track in light, a lift
-            // off the track in dark.
-            color: active
-                ? (dark ? Colors.white.withValues(alpha: 0.16) : Colors.white)
-                : Colors.transparent,
-            borderRadius: BorderRadius.circular(7),
-            // A one-pixel shadow is what makes it a pressed physical toggle
-            // rather than a flat white patch on a grey bar.
-            boxShadow: active && !dark
-                ? [
-                    BoxShadow(
-                      color: Colors.black.withValues(alpha: 0.10),
-                      blurRadius: 3,
-                      offset: const Offset(0, 1),
-                    ),
-                  ]
-                : null,
-          ),
-          child: Stack(
-            clipBehavior: Clip.none,
-            children: [
-              Row(
-                mainAxisAlignment: MainAxisAlignment.center,
-                children: [
-                  Icon(icon, color: fg, size: 16),
-                  const SizedBox(width: 6),
-                  Flexible(
-                    child: Text(
-                      label,
-                      maxLines: 1,
-                      overflow: TextOverflow.ellipsis,
-                      style: TextStyle(
-                        color: fg,
-                        fontSize: 13,
-                        fontWeight: active ? FontWeight.w600 : FontWeight.w500,
+    return GestureDetector(
+      onTap: onTap,
+      behavior: HitTestBehavior.opaque,
+      child: TweenAnimationBuilder<double>(
+        tween: Tween<double>(begin: 0, end: active ? 1 : 0),
+        duration: _kSegmentSlide,
+        curve: _kSegmentCurve,
+        builder: (context, t, _) {
+          final fg = Color.lerp(
+            scheme.onSurfaceVariant,
+            dark ? Colors.white : scheme.onSurface,
+            t,
+          )!;
+          return Padding(
+            padding: const EdgeInsets.symmetric(vertical: 8),
+            child: Stack(
+              clipBehavior: Clip.none,
+              children: [
+                Row(
+                  mainAxisAlignment: MainAxisAlignment.center,
+                  children: [
+                    Icon(icon, color: fg, size: 16),
+                    const SizedBox(width: 6),
+                    Flexible(
+                      child: Text(
+                        label,
+                        maxLines: 1,
+                        overflow: TextOverflow.ellipsis,
+                        style: TextStyle(
+                          color: fg,
+                          fontSize: 13,
+                          fontWeight: FontWeight.lerp(
+                            FontWeight.w500,
+                            FontWeight.w700,
+                            t,
+                          ),
+                        ),
                       ),
                     ),
-                  ),
-                ],
-              ),
-              // The unread count rides the segment rather than the icon, so it
-              // sits at the chip's corner and stays legible whether the chip is
-              // filled or not.
-              if (badge != null) Positioned(top: -9, right: 6, child: badge),
-            ],
-          ),
-        ),
+                  ],
+                ),
+                // The unread count rides the segment rather than the icon, so
+                // it sits at the segment's corner and stays legible whether the
+                // indicator is under it or not.
+                if (badge != null) Positioned(top: -9, right: 6, child: badge),
+              ],
+            ),
+          );
+        },
       ),
     );
   }
 
+  // A single consistent, tappable tab icon with a circular active highlight --
+  // the tray's own idiom, for the phone sheet.
   Widget _buildTabIcon(
     IconData icon,
     bool active, {
@@ -4440,56 +4546,70 @@ class _SheetHeaderDelegate extends SliverPersistentHeaderDelegate {
         ThemeData.estimateBrightnessForColor(accent) == Brightness.dark
         ? Colors.white
         : Colors.black;
-    return Row(
-      mainAxisSize: MainAxisSize.min,
-      children: [
-        GestureDetector(
-          onTap: onContinuePressed,
-          child: Container(
-            padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
-            decoration: BoxDecoration(
-              color: leftColor,
-              borderRadius: const BorderRadius.horizontal(
-                left: Radius.circular(20),
-              ),
-            ),
-            child: Text(
-              label,
-              style: TextStyle(
-                color: onAccent,
-                fontSize: 13,
-                fontWeight: FontWeight.bold,
-              ),
-            ),
+    return Container(
+      // The shadow belongs to the whole pill, not to either half: put on one
+      // half it would cast onto the other. The tinted glow is what stops the
+      // accent from reading as a flat swatch of colour stuck on the bar, and it
+      // is why the pill now has the weight of the primary action.
+      decoration: BoxDecoration(
+        borderRadius: BorderRadius.circular(22),
+        boxShadow: [
+          BoxShadow(
+            color: accent.withValues(alpha: 0.30),
+            blurRadius: 10,
+            offset: const Offset(0, 3),
           ),
-        ),
-        GestureDetector(
-          onTap: onContinuePressed,
-          child: Container(
-            padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 8),
-            decoration: BoxDecoration(
-              color: rightColor,
-              borderRadius: const BorderRadius.horizontal(
-                right: Radius.circular(20),
-              ),
-              border: Border(
-                left: BorderSide(
-                  color: Color.alphaBlend(
-                    Colors.white.withValues(alpha: 0.35),
-                    accent,
-                  ),
-                  width: 0.5,
+        ],
+      ),
+      clipBehavior: Clip.antiAlias,
+      child: Row(
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          GestureDetector(
+            onTap: onContinuePressed,
+            child: Container(
+              // Roomier than it was: at 13px on 16/8 the pill read as a chip
+              // rather than the screen's primary action. 14px on 18/10 makes it
+              // a 40px pill -- the same height as the favourite pill beside the
+              // cover.
+              padding: const EdgeInsets.symmetric(horizontal: 18, vertical: 10),
+              color: leftColor,
+              child: Text(
+                label,
+                style: TextStyle(
+                  color: onAccent,
+                  fontSize: 14,
+                  fontWeight: FontWeight.w700,
+                  letterSpacing: 0.1,
                 ),
               ),
             ),
-            child: Icon(
-              RemixIcons.arrow_down_s_line,
-              color: onAccent,
-              size: 20,
+          ),
+          GestureDetector(
+            onTap: onContinuePressed,
+            child: Container(
+              padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 10),
+              decoration: BoxDecoration(
+                color: rightColor,
+                border: Border(
+                  left: BorderSide(
+                    color: Color.alphaBlend(
+                      Colors.white.withValues(alpha: 0.35),
+                      accent,
+                    ),
+                    width: 0.5,
+                  ),
+                ),
+              ),
+              child: Icon(
+                RemixIcons.arrow_down_s_line,
+                color: onAccent,
+                size: 20,
+              ),
             ),
           ),
-        ),
-      ],
+        ],
+      ),
     );
   }
 
