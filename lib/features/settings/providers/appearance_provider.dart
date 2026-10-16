@@ -691,14 +691,15 @@ SliderThemeData _sliderTheme(ColorScheme cs) {
       elevation: 0,
       pressedElevation: 0,
     ),
-    // A range slider fills between two values rather than up to one, so its
-    // ends have no fill edge to aim at. It loses the circle for the same
-    // reason a slider does: the span itself is the control.
-    rangeThumbShape: const RoundRangeSliderThumbShape(
-      enabledThumbRadius: 0,
-      elevation: 0,
-      pressedElevation: 0,
-    ),
+    // A range slider fills between two values rather than up to one, so both
+    // of its ends are draggable. Thumbless, it fails as a control: with the
+    // range at full span the whole track is filled and there is no fill edge
+    // to hint that anything can move. The circle is still unwanted, so the
+    // grip is a short bar that pokes out above and below the pill -- the
+    // handle M3's own expressive range slider draws -- which reads as a grip
+    // without putting a disc on top of the track.
+    rangeThumbShape: const HandleRangeSliderThumbShape(),
+    thumbSize: WidgetStateProperty.all(const Size(5, 30)),
     // The halo is only there while the thumb is held, focused or hovered.
     overlayColor: WidgetStateColor.resolveWith((states) {
       final active = states.contains(WidgetState.dragged) ||

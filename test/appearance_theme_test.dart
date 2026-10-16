@@ -80,12 +80,12 @@ void main() {
     }
   });
 
-  test('every slider inherits one thick, thumbless track', () async {
+  test('every slider inherits one thick track plus a range grip', () async {
     // The slider look lives in the theme now rather than in the two screens
     // that used to restyle their own. That only holds if the theme actually
     // carries it, so this pins the pieces the screens relied on: a thick
-    // track, the scheme primary filling it, and no floating circle on either
-    // a Slider or a RangeSlider.
+    // track, the scheme primary filling it, and no floating circle on a
+    // Slider -- plus the one control that still needs something to grab.
     SharedPreferences.setMockInitialValues({});
     await SharedPreferences.getInstance();
     final container = ProviderContainer();
@@ -108,12 +108,13 @@ void main() {
         (slider.thumbShape! as RoundSliderThumbShape).enabledThumbRadius,
         0,
       );
-      // ...and from both ends of a RangeSlider.
-      expect(
-        (slider.rangeThumbShape! as RoundRangeSliderThumbShape)
-            .enabledThumbRadius,
-        0,
-      );
+      // ...and the RangeSlider's ends are a grip rather than a circle: a bar
+      // narrower than the track is tall and taller than the track is wide, so
+      // it can only read as a handle poking out of the pill.
+      expect(slider.rangeThumbShape, isA<HandleRangeSliderThumbShape>());
+      final grip = slider.thumbSize!.resolve(const <WidgetState>{})!;
+      expect(grip.width, lessThan(slider.trackHeight!));
+      expect(grip.height, greaterThan(slider.trackHeight!));
 
       // The halo is absent at rest and only shows up on interaction.
       final overlay = slider.overlayColor! as WidgetStateColor;
