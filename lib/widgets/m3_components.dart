@@ -1,7 +1,13 @@
 import 'package:flutter/material.dart';
 import 'package:remixicon/remixicon.dart';
+import 'package:yomou/core/widgets/responsive.dart';
 
-/// Material 3 section header (labelMedium / onSurfaceVariant, title case).
+/// Material 3 section header (titleSmall-ish / primary, title case).
+///
+/// Tinted with the scheme's primary rather than onSurfaceVariant, so a section
+/// boundary reads as part of the app's accent rather than as a slightly
+/// bolder body label. Used app-wide, so this is one decision, not a per-screen
+/// preference.
 class M3SectionHeader extends StatelessWidget {
   const M3SectionHeader({super.key, required this.title});
 
@@ -15,9 +21,9 @@ class M3SectionHeader extends StatelessWidget {
       child: Text(
         title,
         style: TextStyle(
-          color: cs.onSurfaceVariant,
-          fontSize: 12,
-          fontWeight: FontWeight.w500,
+          color: cs.primary,
+          fontSize: 13,
+          fontWeight: FontWeight.w600,
           letterSpacing: 0.4,
         ),
       ),
@@ -176,6 +182,18 @@ class SettingsAppBar extends StatelessWidget implements PreferredSizeWidget {
   /// Optional trailing widgets, e.g. an overflow menu button.
   final List<Widget>? actions;
 
+  /// The one app-bar title style, shared by the phone bar and the pane bar so
+  /// the two cannot drift apart.
+  static const TextStyle titleStyle = TextStyle(
+    fontSize: 22,
+    fontWeight: FontWeight.w400,
+  );
+
+  /// The column's own content margin: a `ListTile`'s start padding, and what a
+  /// section header is inset by. A pane title lines up with it rather than with
+  /// the pane's edge.
+  static const double _contentMargin = 16;
+
   @override
   Size get preferredSize => const Size.fromHeight(kToolbarHeight);
 
@@ -183,25 +201,46 @@ class SettingsAppBar extends StatelessWidget implements PreferredSizeWidget {
   Widget build(BuildContext context) {
     // Inside a pane there is nothing behind this screen to go back to -- the
     // sibling categories are a selection, not history -- so the arrow goes.
+    if (!SettingsPaneScope.of(context)) {
+      return AppBar(
+        automaticallyImplyLeading: false,
+        leading: IconButton(
+          icon: const Icon(RemixIcons.arrow_left_line),
+          onPressed: () => Navigator.pop(context),
+        ),
+        title: Text(title, style: titleStyle),
+        actions: actions,
+      );
+    }
+
+    // The pane's body is a centred, width-capped column, so a title pinned to
+    // the pane's own left edge sits out in the empty gutter whenever the pane
+    // is wider than the cap -- which is exactly the case on a tablet, where the
+    // title ended up ~70px left of everything under it. Laying the bar out
+    // against the pane's width lets the title start on the same line as the
+    // column's content margin instead.
     //
-    // Both halves are needed. `leading: null` alone is not enough: AppBar then
-    // falls back to automatically implying a back button whenever the route can
-    // pop, which inside a pushed route it always can, so the arrow comes back.
-    // An explicit empty leading is what actually removes it.
-    final inPane = SettingsPaneScope.of(context);
-    return AppBar(
-      automaticallyImplyLeading: false,
-      leading: inPane
-          ? const SizedBox.shrink()
-          : IconButton(
-              icon: const Icon(RemixIcons.arrow_left_line),
-              onPressed: () => Navigator.pop(context),
-            ),
-      title: Text(
-        title,
-        style: const TextStyle(fontSize: 22, fontWeight: FontWeight.w400),
-      ),
-      actions: actions,
+    // The empty leading is not incidental. `leading: null` alone is not enough:
+    // AppBar then falls back to automatically implying a back button whenever
+    // the route can pop, which inside a pushed route it always can, so the
+    // arrow comes back. At zero width it reserves none of the bar either, which
+    // the title offset below relies on: the toolbar starts the title at
+    // `leadingWidth + titleSpacing`.
+    return LayoutBuilder(
+      builder: (context, constraints) {
+        final cap = widthClassOf(context).contentMaxWidth;
+        final gutter = constraints.maxWidth > cap
+            ? (constraints.maxWidth - cap) / 2
+            : 0.0;
+        return AppBar(
+          automaticallyImplyLeading: false,
+          leading: const SizedBox.shrink(),
+          leadingWidth: 0,
+          titleSpacing: gutter + _contentMargin,
+          title: Text(title, style: titleStyle),
+          actions: actions,
+        );
+      },
     );
   }
 }
