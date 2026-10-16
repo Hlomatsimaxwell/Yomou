@@ -29,6 +29,9 @@ dependencies:
   shared_preferences: ^2.2.3
   intl: ^0.20.2
   remixicon: ^4.9.3
+  # Renders the settings row icons ported from Kotatsu-Redo, which ship as
+  # their original SVG geometry rather than a font.
+  flutter_svg: ^2.0.17
   url_launcher: ^6.3.1
   image_picker: ^1.1.2
   file_picker: ^10.3.0
@@ -50,6 +53,10 @@ flutter:
   generate: true
   assets:
     - assets/source_icons/
+    # Leading icons for settings rows, ported from Kotatsu-Redo. See
+    # assets/kotatsu_icons/PROVENANCE.md for where each file came from and the
+    # licence it carries.
+    - assets/kotatsu_icons/
     # Bundled so the "What's new" sheet and the About screen can show the
     # release notes without a network round-trip. The file is the single source
     # of truth: a release shows exactly what is written under its heading.

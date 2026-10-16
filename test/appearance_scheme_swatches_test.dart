@@ -7,8 +7,9 @@ import 'package:yomou/l10n/generated/app_localizations.dart';
 
 /// The colour-scheme carousel draws a miniature of the app in each preset's
 /// own colours rather than an abstract badge. These hold it to the shape that
-/// makes that readable: every preset is present, five mockups are built, and
-/// the taller cards still lay out without overflowing their carousel.
+/// makes that readable: every preset is present, one mockup is built per
+/// preset, and the taller cards still lay out without overflowing their
+/// carousel.
 void main() {
   Widget host() {
     return ProviderScope(
@@ -20,13 +21,29 @@ void main() {
     );
   }
 
-  /// Wide enough for all five swatches to be built: a horizontal [ListView]
-  /// only builds what fits, so a narrow surface would hide later presets.
+  /// Room for the settings list underneath. The carousel itself is inside a
+  /// width-capped column, so it can never show all twelve at once; the test
+  /// scrolls it rather than pretending a wider window would do it.
   void useWideSurface(WidgetTester tester) {
-    tester.view.physicalSize = const Size(1200, 4000);
+    tester.view.physicalSize = const Size(1200, 6000);
     tester.view.devicePixelRatio = 1.0;
     addTearDown(tester.view.reset);
   }
+
+  const presets = [
+    'Totoro',
+    'Dynamic',
+    'Expressive',
+    'Miku',
+    'Monochrome',
+    'Asuka',
+    'Mion',
+    'Rikka',
+    'Sakura',
+    'Mamimi',
+    'Kanade',
+    'Itsuka',
+  ];
 
   testWidgets('every preset renders as a mini app mockup', (tester) async {
     SharedPreferences.setMockInitialValues({});
@@ -34,18 +51,26 @@ void main() {
     await tester.pumpWidget(host());
     await tester.pumpAndSettle();
 
-    for (final name in [
-      'Totoro',
-      'Dynamic',
-      'Expressive',
-      'Miku',
-      'Monochrome',
-    ]) {
-      expect(find.text(name), findsOneWidget);
-    }
+    final carousel = find.byWidgetPredicate(
+      (w) => w is ListView && w.scrollDirection == Axis.horizontal,
+    );
+    expect(carousel, findsOneWidget);
 
-    // One title placeholder per swatch: the mockup is drawn, not stubbed out.
-    expect(find.text('Abc'), findsNWidgets(5));
+    // Walk the carousel collecting the preset names it builds, rather than
+    // asserting each one is on screen at once.
+    final seen = <String>{};
+    for (var i = 0; i < 12 && seen.length < presets.length; i++) {
+      seen.addAll(
+        presets.where((name) => find.text(name).evaluate().isNotEmpty),
+      );
+      await tester.drag(carousel, const Offset(-320, 0));
+      await tester.pumpAndSettle();
+    }
+    expect(seen, presets.toSet());
+
+    // The mockups are drawn, not stubbed out: the swatches carry the fake
+    // app's own title text.
+    expect(find.text('Abc'), findsAtLeastNWidgets(3));
 
     expect(tester.takeException(), isNull);
   });

@@ -6,7 +6,20 @@ import 'package:yomou/core/security/screenshot_policy.dart';
 import 'package:yomou/core/theme/amoled.dart';
 
 /// Named color schemes matching Kotatsu's preset themes.
-enum AppColorScheme { totoro, dynamic, expressive, miku, monochrome }
+enum AppColorScheme {
+  totoro,
+  dynamic,
+  expressive,
+  miku,
+  monochrome,
+  asuka,
+  mion,
+  rikka,
+  sakura,
+  mamimi,
+  kanade,
+  itsuka,
+}
 
 /// Palettes for each named scheme: (accent, accentLight, accentDark, surface).
 class SchemePalette {
@@ -61,6 +74,61 @@ const Map<AppColorScheme, SchemePalette> schemePalettes = {
     accentDark: Colors.white,
     surface: Color(0xFF000000),
     secondary: Color(0xFF666666),
+  ),
+  // The rest of Kotatsu's preset themes, so the picker offers the whole set
+  // rather than our first five. Each keeps its namesake's hue but wears it in
+  // this app's palette style: the accent is painted straight onto the chrome
+  // (progress arcs, the reader's tint, the detail screen), so it sits at the
+  // mid tone those need rather than at the tone-40 primary an Android theme
+  // overlay is free to use because it only ever draws against white.
+  AppColorScheme.asuka: SchemePalette(
+    accent: Color(0xFFD37669),
+    accentLight: Color(0xFFEABEB8),
+    accentDark: Color(0xFFC64B39),
+    surface: Color(0xFF3F2622),
+    secondary: Color(0xFFEABEB8),
+  ),
+  AppColorScheme.mion: SchemePalette(
+    accent: Color(0xFF62DD60),
+    accentLight: Color(0xFFB5EFB4),
+    accentDark: Color(0xFF31D22D),
+    surface: Color(0xFF233F22),
+    secondary: Color(0xFFB5EFB4),
+  ),
+  AppColorScheme.rikka: SchemePalette(
+    accent: Color(0xFF8051D7),
+    accentLight: Color(0xFFC9B4EE),
+    accentDark: Color(0xFF6830CF),
+    surface: Color(0xFF2C223F),
+    secondary: Color(0xFFC9B4EE),
+  ),
+  AppColorScheme.sakura: SchemePalette(
+    accent: Color(0xFFDD5F89),
+    accentLight: Color(0xFFEFB3C7),
+    accentDark: Color(0xFFD32C64),
+    surface: Color(0xFF3F222C),
+    secondary: Color(0xFFEFB3C7),
+  ),
+  AppColorScheme.mamimi: SchemePalette(
+    accent: Color(0xFF7EA2F1),
+    accentLight: Color(0xFFACC3F6),
+    accentDark: Color(0xFF1958E6),
+    surface: Color(0xFF222B3F),
+    secondary: Color(0xFFACC3F6),
+  ),
+  AppColorScheme.kanade: SchemePalette(
+    accent: Color(0xFF8F8FAE),
+    accentLight: Color(0xFFCACAD8),
+    accentDark: Color(0xFF6B6B94),
+    surface: Color(0xFF22223F),
+    secondary: Color(0xFFCACAD8),
+  ),
+  AppColorScheme.itsuka: SchemePalette(
+    accent: Color(0xFFF09542),
+    accentLight: Color(0xFFF8CFAA),
+    accentDark: Color(0xFFEC7A13),
+    surface: Color(0xFF3F3022),
+    secondary: Color(0xFFF8CFAA),
   ),
 };
 

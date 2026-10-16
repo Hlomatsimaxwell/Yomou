@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:remixicon/remixicon.dart';
+import 'package:yomou/core/widgets/kotatsu_icon.dart';
 import 'package:yomou/core/widgets/responsive.dart';
 import 'package:yomou/features/settings/providers/appearance_provider.dart';
 import 'package:yomou/core/security/app_lock.dart';
@@ -58,6 +59,44 @@ class AppearanceSettingsScreen extends ConsumerWidget {
                 isActive: settings.colorScheme == 'Monochrome',
                 onTap: () => notifier.setColorScheme('Monochrome'),
               ),
+              // The rest of Kotatsu's preset themes, in the order it lists
+              // them, so switching between the two apps feels like the same
+              // picker.
+              _SchemePreset(
+                name: 'Asuka',
+                isActive: settings.colorScheme == 'Asuka',
+                onTap: () => notifier.setColorScheme('Asuka'),
+              ),
+              _SchemePreset(
+                name: 'Mion',
+                isActive: settings.colorScheme == 'Mion',
+                onTap: () => notifier.setColorScheme('Mion'),
+              ),
+              _SchemePreset(
+                name: 'Rikka',
+                isActive: settings.colorScheme == 'Rikka',
+                onTap: () => notifier.setColorScheme('Rikka'),
+              ),
+              _SchemePreset(
+                name: 'Sakura',
+                isActive: settings.colorScheme == 'Sakura',
+                onTap: () => notifier.setColorScheme('Sakura'),
+              ),
+              _SchemePreset(
+                name: 'Mamimi',
+                isActive: settings.colorScheme == 'Mamimi',
+                onTap: () => notifier.setColorScheme('Mamimi'),
+              ),
+              _SchemePreset(
+                name: 'Kanade',
+                isActive: settings.colorScheme == 'Kanade',
+                onTap: () => notifier.setColorScheme('Kanade'),
+              ),
+              _SchemePreset(
+                name: 'Itsuka',
+                isActive: settings.colorScheme == 'Itsuka',
+                onTap: () => notifier.setColorScheme('Itsuka'),
+              ),
             ],
           ),
         ),
@@ -65,6 +104,7 @@ class AppearanceSettingsScreen extends ConsumerWidget {
         // Theme Options
         M3SectionHeader(title: l.appearanceSectionThemeOptions),
         ListTile(
+          leading: const KotatsuIcon('ic_theme_mode'),
           title: Text(l.appearanceThemeTitle),
           subtitle: Text(_themeModeLabel(l, settings.themeMode)),
           onTap: () => _showThemeModeSelector(context, ref, settings, notifier),
@@ -73,29 +113,34 @@ class AppearanceSettingsScreen extends ConsumerWidget {
         // when one is showing: a switch that changes nothing reads as broken.
         if (Theme.of(context).brightness == Brightness.dark)
           SwitchListTile(
+            secondary: const KotatsuIcon('ic_dark_mode'),
             title: Text(l.appearanceAmoledBlack),
             subtitle: Text(l.appearanceAmoledBlackSubtitle),
             value: settings.amoledBlack,
             onChanged: (_) => notifier.toggleBool('amoledBlack'),
           ),
         ListTile(
+          leading: const KotatsuIcon('ic_language'),
           title: Text(l.appearanceLanguageTitle),
           subtitle: Text(_languageLabel(l, settings.language)),
           onTap: () => _showLanguageSelector(context, ref, settings, notifier),
         ),
         SwitchListTile(
+          secondary: const KotatsuIcon('ic_blur'),
           title: Text(l.appearanceFrostedGlass),
           subtitle: Text(l.appearanceFrostedGlassSubtitle),
           value: settings.useFrostedGlass,
           onChanged: (_) => notifier.toggleBool('useFrostedGlass'),
         ),
         SwitchListTile(
+          secondary: const KotatsuIcon('ic_motion_pause'),
           title: Text(l.appearanceReduceMotion),
           subtitle: Text(l.appearanceReduceMotionSubtitle),
           value: settings.reduceMotion,
           onChanged: (_) => notifier.toggleBool('reduceMotion'),
         ),
         SwitchListTile(
+          secondary: const KotatsuIcon('ic_vibrate'),
           title: Text(l.appearanceHaptics),
           subtitle: Text(l.appearanceHapticsSubtitle),
           value: settings.hapticsEnabled,
@@ -110,36 +155,35 @@ class AppearanceSettingsScreen extends ConsumerWidget {
         const SizedBox(height: 16),
         M3SectionHeader(title: l.appearanceSectionMangaList),
         ListTile(
+          leading: const KotatsuIcon('ic_list'),
           title: Text(l.appearanceListModeTitle),
           subtitle: Text(_listModeLabel(l, settings.listMode)),
           onTap: () => _showListModeSelector(context, ref, settings, notifier),
         ),
-        Padding(
-          padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
-          child: Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              Text(l.appearanceGridSize(settings.gridSize.round())),
-              Slider(
-                value: settings.gridSize,
-                min: 50,
-                max: 150,
-                onChanged: (v) => notifier.setGridSize(v),
-              ),
-            ],
+        ListTile(
+          leading: const KotatsuIcon('ic_grid'),
+          title: Text(l.appearanceGridSize(settings.gridSize.round())),
+          subtitle: Slider(
+            value: settings.gridSize,
+            min: 50,
+            max: 150,
+            onChanged: (v) => notifier.setGridSize(v),
           ),
         ),
         SwitchListTile(
+          secondary: const KotatsuIcon('ic_filter_menu'),
           title: Text(l.appearanceQuickFilters),
           value: settings.showQuickFilters,
           onChanged: (_) => notifier.toggleBool('showQuickFilters'),
         ),
         SwitchListTile(
+          secondary: const KotatsuIcon('ic_timelapse'),
           title: Text(l.appearanceReadingProgress),
           value: settings.showReadingProgress,
           onChanged: (_) => notifier.toggleBool('showReadingProgress'),
         ),
         SwitchListTile(
+          secondary: const KotatsuIcon('ic_badges'),
           title: Text(l.appearanceBadges),
           value: settings.showListBadges,
           onChanged: (_) => notifier.toggleBool('showListBadges'),
@@ -148,11 +192,13 @@ class AppearanceSettingsScreen extends ConsumerWidget {
         // Details Section
         M3SectionHeader(title: l.appearanceDetails),
         SwitchListTile(
+          secondary: const KotatsuIcon('ic_expand_more'),
           title: Text(l.appearanceCollapseDescription),
           value: settings.collapseDescription,
           onChanged: (_) => notifier.toggleBool('collapseDescription'),
         ),
         ListTile(
+          leading: const KotatsuIcon('ic_list_detailed'),
           title: Text(l.appearanceDefaultTabTitle),
           subtitle: Text(_tabLabel(l, settings.defaultTab)),
           onTap: () => _showDefaultTabSelector(context, ref, settings, notifier),
@@ -161,48 +207,57 @@ class AppearanceSettingsScreen extends ConsumerWidget {
         // Main Screen Section
         M3SectionHeader(title: l.appearanceSectionMainScreen),
         ListTile(
+          leading: const KotatsuIcon('ic_suggestion'),
           title: Text(l.appearanceSearchSuggestionsTitle),
           subtitle: Text(_suggestionSummary(context, settings)),
           onTap: () => _showSearchSuggestionsSheet(context, ref, settings, notifier),
         ),
         ListTile(
+          leading: const KotatsuIcon('ic_drawer_menu'),
           title: Text(l.appearanceMainSectionsTitle),
           subtitle: Text(l.appearanceMainSectionsSubtitle),
           onTap: () => _showMainSectionsSheet(context, ref, settings, notifier),
         ),
         SwitchListTile(
+          secondary: const KotatsuIcon('ic_add'),
           title: Text(l.appearanceFloatingContinue),
           value: settings.showFloatingContinueButton,
           onChanged: (_) => notifier.toggleBool('showFloatingContinueButton'),
         ),
         SwitchListTile(
+          secondary: const KotatsuIcon('ic_tag'),
           title: Text(l.appearanceNavLabels),
           value: settings.showNavLabels,
           onChanged: (_) => notifier.toggleBool('showNavLabels'),
         ),
         SwitchListTile(
+          secondary: const KotatsuIcon('ic_nav_bar'),
           title: Text(l.appearanceFloatingNav),
           value: settings.useFloatingNavBar,
           onChanged: (_) => notifier.toggleBool('useFloatingNavBar'),
         ),
         SwitchListTile(
+          secondary: const KotatsuIcon('ic_pin'),
           title: Text(l.appearancePinNav),
           subtitle: Text(l.appearancePinNavSubtitle),
           value: settings.pinNavUiOnScroll,
           onChanged: (_) => notifier.toggleBool('pinNavUiOnScroll'),
         ),
         SwitchListTile(
+          secondary: const KotatsuIcon('ic_alert_outline'),
           title: Text(l.appearanceExitConfirmation),
           subtitle: Text(l.appearanceExitConfirmationSubtitle),
           value: settings.exitConfirmation,
           onChanged: (_) => notifier.toggleBool('exitConfirmation'),
         ),
         SwitchListTile(
+          secondary: const KotatsuIcon('ic_shortcut'),
           title: Text(l.appearanceRecentShortcuts),
           value: settings.showRecentShortcuts,
           onChanged: (_) => notifier.toggleBool('showRecentShortcuts'),
         ),
         SwitchListTile(
+          secondary: const KotatsuIcon('ic_sfw'),
           title: Text(l.appearanceHideNsfwShortcuts),
           value: settings.hideNsfwFromShortcuts,
           onChanged: (_) => notifier.toggleBool('hideNsfwFromShortcuts'),
@@ -211,12 +266,14 @@ class AppearanceSettingsScreen extends ConsumerWidget {
         // Privacy Section
         M3SectionHeader(title: l.appearancePrivacy),
         SwitchListTile(
+          secondary: const KotatsuIcon('ic_lock'),
           title: Text(l.appearanceProtectApp),
           subtitle: Text(l.appearanceProtectAppSubtitle),
           value: settings.protectApp,
           onChanged: (v) => _handleProtectAppToggle(context, ref, v),
         ),
         ListTile(
+          leading: const KotatsuIcon('ic_data_privacy'),
           title: Text(l.appearanceScreenshotPolicyTitle),
           subtitle: Text(settings.screenshotPolicy),
           onTap: () => _showScreenshotPolicySheet(context, ref, settings, notifier),
