@@ -50,6 +50,19 @@
         <meta-data
             android:name="flutterEmbedding"
             android:value="2" />
+        <!-- The Android WebView registers a barcode/text shape detector as it
+             starts, and that registration reads this Play Services version
+             tag from the host app's manifest. Without it the WebView throws a
+             fatal GooglePlayServicesMissingManifestValueException on its GPU
+             thread and takes the whole process down with it. That happens
+             wherever the WebView's bundled shape-detection code runs, which
+             includes AOSP builds with no Google Play Services installed at
+             all, so the tag cannot be left to a Play Services dependency to
+             merge in. The value is the current google_play_services_version
+             (12.4.51); no Play Services code is shipped or used. -->
+        <meta-data
+            android:name="com.google.android.gms.version"
+            android:value="12451000" />
     </application>
     <!-- Required to query activities that can process text, see:
          https://developer.android.com/training/package-visibility and
