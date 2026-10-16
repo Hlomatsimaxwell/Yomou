@@ -1,7 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:remixicon/remixicon.dart';
 import 'package:yomou/core/settings/settings_reset.dart';
-import 'package:yomou/core/theme/layout.dart';
 import 'package:yomou/core/widgets/responsive.dart';
 import 'package:yomou/l10n/generated/app_localizations.dart';
 import 'package:yomou/main.dart' show restartApp;
@@ -56,62 +55,58 @@ class _ResetSettingsScreenState extends State<ResetSettingsScreen> {
 
     return Scaffold(
       appBar: SettingsAppBar(title: l.settingsReset),
-      body: SafeArea(
-        top: false,
-        minimum: const EdgeInsets.only(bottom: kBottomChromeClearance),
-        child: CappedContentWidth(
-        child: ListView(
-          padding: const EdgeInsets.only(bottom: 24),
-          children: [
-            M3SectionHeader(title: l.settingsResetSettingsSection),
-            _Hint(text: l.settingsResetSettingsSubtitle),
-            for (final (group, icon, label) in groups)
-              CheckboxListTile(
-                value: _selected.contains(group),
-                onChanged: _busy
-                    ? null
-                    : (value) => setState(() {
-                        if (value == true) {
-                          _selected.add(group);
-                        } else {
-                          _selected.remove(group);
-                        }
-                      }),
-                secondary: Icon(icon, color: theme.colorScheme.onSurfaceVariant),
-                title: Text(label),
-                controlAffinity: ListTileControlAffinity.trailing,
-              ),
-            Padding(
-              padding: const EdgeInsets.fromLTRB(16, 12, 16, 0),
-              child: SizedBox(
-                width: double.infinity,
-                child: FilledButton(
-                  onPressed: _selected.isEmpty || _busy ? null : _resetSelected,
-                  child: Text(l.settingsResetSelected),
-                ),
+      body: CappedContentWidth(
+      child: ListView(
+        padding: const EdgeInsets.only(bottom: 24),
+        children: [
+          M3SectionHeader(title: l.settingsResetSettingsSection),
+          _Hint(text: l.settingsResetSettingsSubtitle),
+          for (final (group, icon, label) in groups)
+            CheckboxListTile(
+              value: _selected.contains(group),
+              onChanged: _busy
+                  ? null
+                  : (value) => setState(() {
+                      if (value == true) {
+                        _selected.add(group);
+                      } else {
+                        _selected.remove(group);
+                      }
+                    }),
+              secondary: Icon(icon, color: theme.colorScheme.onSurfaceVariant),
+              title: Text(label),
+              controlAffinity: ListTileControlAffinity.trailing,
+            ),
+          Padding(
+            padding: const EdgeInsets.fromLTRB(16, 12, 16, 0),
+            child: SizedBox(
+              width: double.infinity,
+              child: FilledButton(
+                onPressed: _selected.isEmpty || _busy ? null : _resetSelected,
+                child: Text(l.settingsResetSelected),
               ),
             ),
-            const SizedBox(height: 28),
-            M3SectionHeader(title: l.settingsEraseSection),
-            _Hint(text: l.settingsEraseSubtitle),
-            ListTile(
-              leading: Icon(
-                RemixIcons.delete_bin_line,
+          ),
+          const SizedBox(height: 28),
+          M3SectionHeader(title: l.settingsEraseSection),
+          _Hint(text: l.settingsEraseSubtitle),
+          ListTile(
+            leading: Icon(
+              RemixIcons.delete_bin_line,
+              color: theme.colorScheme.error,
+            ),
+            title: Text(
+              l.settingsEraseTitle,
+              style: TextStyle(
                 color: theme.colorScheme.error,
+                fontWeight: FontWeight.w600,
               ),
-              title: Text(
-                l.settingsEraseTitle,
-                style: TextStyle(
-                  color: theme.colorScheme.error,
-                  fontWeight: FontWeight.w600,
-                ),
-              ),
-              onTap: _busy ? null : _confirmErase,
             ),
-          ],
-        ),
+            onTap: _busy ? null : _confirmErase,
+          ),
+        ],
       ),
-      ),
+    ),
     );
   }
 

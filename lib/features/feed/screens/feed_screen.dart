@@ -63,65 +63,63 @@ class _FeedScreenState extends ConsumerState<FeedScreen> {
 
     return Scaffold(
       backgroundColor: Theme.of(context).scaffoldBackgroundColor,
-      body: SafeArea(
-        child: TabHeader(
-          mode: usesWideLayout(context)
-              ? TabHeaderMode.fixed
-              : TabHeaderMode.collapsing,
-          title: AppLocalizations.of(context).updates,
-          searchBar: _buildSearchBar(context),
-          body: SingleChildScrollView(
-            padding: EdgeInsets.only(bottom: bottomBarClearance(context)),
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                const SizedBox(height: 12),
-                updatesAsync.when(
-                  data: (updates) {
-                    if (updates.isEmpty) {
-                      return EmptyState(
-                        icon: RemixIcons.rss_line,
-                        title: AppLocalizations.of(context).feedNoNewUpdates,
-                        subtitle: AppLocalizations.of(context).feedUpdatesHint,
-                      );
-                    }
-                    return Column(
-                      crossAxisAlignment: CrossAxisAlignment.start,
-                      children: [
-                        // The newest release group's label ("Today") doubles
-                        // as the screen header, sitting next to refresh.
-                        _buildSectionHeader(context, updates.first.dateGroup),
-                        const SizedBox(height: 8),
-                        ..._groupByDate(context, updates, skipFirstLabel: true),
-                      ],
+      body: TabHeader(
+        mode: usesWideLayout(context)
+            ? TabHeaderMode.fixed
+            : TabHeaderMode.collapsing,
+        title: AppLocalizations.of(context).updates,
+        searchBar: _buildSearchBar(context),
+        body: SingleChildScrollView(
+          padding: EdgeInsets.only(bottom: bottomBarClearance(context)),
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              const SizedBox(height: 12),
+              updatesAsync.when(
+                data: (updates) {
+                  if (updates.isEmpty) {
+                    return EmptyState(
+                      icon: RemixIcons.rss_line,
+                      title: AppLocalizations.of(context).feedNoNewUpdates,
+                      subtitle: AppLocalizations.of(context).feedUpdatesHint,
                     );
-                  },
-                  loading: () => Padding(
-                    padding: const EdgeInsets.symmetric(vertical: 60),
-                    child: Center(
-                      child: CircularProgressIndicator(
-                        color: Theme.of(context).colorScheme.primary,
-                      ),
+                  }
+                  return Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      // The newest release group's label ("Today") doubles
+                      // as the screen header, sitting next to refresh.
+                      _buildSectionHeader(context, updates.first.dateGroup),
+                      const SizedBox(height: 8),
+                      ..._groupByDate(context, updates, skipFirstLabel: true),
+                    ],
+                  );
+                },
+                loading: () => Padding(
+                  padding: const EdgeInsets.symmetric(vertical: 60),
+                  child: Center(
+                    child: CircularProgressIndicator(
+                      color: Theme.of(context).colorScheme.primary,
                     ),
                   ),
-                  error: (e, _) => Padding(
-                    padding: const EdgeInsets.symmetric(vertical: 60),
-                    child: Center(
-                      child: Text(
-                        AppLocalizations.of(context).failedToLoadUpdates,
-                        style: TextStyle(
-                          color:
-                              Theme.of(context).brightness == Brightness.dark
-                                  ? Colors.white54
-                                  : const Color(0xFF49454F),
-                          fontSize: 16,
-                        ),
+                ),
+                error: (e, _) => Padding(
+                  padding: const EdgeInsets.symmetric(vertical: 60),
+                  child: Center(
+                    child: Text(
+                      AppLocalizations.of(context).failedToLoadUpdates,
+                      style: TextStyle(
+                        color:
+                            Theme.of(context).brightness == Brightness.dark
+                                ? Colors.white54
+                                : const Color(0xFF49454F),
+                        fontSize: 16,
                       ),
                     ),
                   ),
                 ),
-              ],
-            ),
+              ),
+            ],
           ),
         ),
       ),

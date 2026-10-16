@@ -1,7 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:remixicon/remixicon.dart';
-import 'package:yomou/core/theme/layout.dart';
 import 'package:yomou/core/widgets/responsive.dart';
 import 'package:yomou/features/settings/providers/appearance_provider.dart';
 import 'package:yomou/core/security/app_lock.dart';
@@ -20,205 +19,201 @@ class AppearanceSettingsScreen extends ConsumerWidget {
 
     return Scaffold(
       appBar: SettingsAppBar(title: l.appearanceTitle),
-      body: SafeArea(
-        top: false,
-        minimum: const EdgeInsets.only(bottom: kBottomChromeClearance),
-        child: CappedContentWidth(child: ListView(
-        padding: const EdgeInsets.symmetric(vertical: 8),
-        children: [
-          // Color Scheme Carousel
-          M3SectionHeader(title: l.appearanceColorScheme),
-          SizedBox(
-            height: 90,
-            child: ListView(
-              scrollDirection: Axis.horizontal,
-              physics: const BouncingScrollPhysics(),
-              padding: const EdgeInsets.symmetric(horizontal: 16),
-              children: [
-                _SchemePreset(
-                  name: 'Totoro',
-                  palette: schemePalettes[AppColorScheme.totoro]!,
-                  isActive: settings.colorScheme == 'Totoro',
-                  onTap: () => notifier.setColorScheme('Totoro'),
-                ),
-                _SchemePreset(
-                  name: 'Dynamic',
-                  palette: schemePalettes[AppColorScheme.dynamic]!,
-                  isActive: settings.colorScheme == 'Dynamic',
-                  onTap: () => notifier.setColorScheme('Dynamic'),
-                ),
-                _SchemePreset(
-                  name: 'Expressive',
-                  palette: schemePalettes[AppColorScheme.expressive]!,
-                  isActive: settings.colorScheme == 'Expressive',
-                  onTap: () => notifier.setColorScheme('Expressive'),
-                ),
-                _SchemePreset(
-                  name: 'Miku',
-                  palette: schemePalettes[AppColorScheme.miku]!,
-                  isActive: settings.colorScheme == 'Miku',
-                  onTap: () => notifier.setColorScheme('Miku'),
-                ),
-                _SchemePreset(
-                  name: 'Monochrome',
-                  palette: schemePalettes[AppColorScheme.monochrome]!,
-                  isActive: settings.colorScheme == 'Monochrome',
-                  onTap: () => notifier.setColorScheme('Monochrome'),
-                ),
-              ],
-            ),
+      body: CappedContentWidth(child: ListView(
+      padding: const EdgeInsets.symmetric(vertical: 8),
+      children: [
+        // Color Scheme Carousel
+        M3SectionHeader(title: l.appearanceColorScheme),
+        SizedBox(
+          height: 90,
+          child: ListView(
+            scrollDirection: Axis.horizontal,
+            physics: const BouncingScrollPhysics(),
+            padding: const EdgeInsets.symmetric(horizontal: 16),
+            children: [
+              _SchemePreset(
+                name: 'Totoro',
+                palette: schemePalettes[AppColorScheme.totoro]!,
+                isActive: settings.colorScheme == 'Totoro',
+                onTap: () => notifier.setColorScheme('Totoro'),
+              ),
+              _SchemePreset(
+                name: 'Dynamic',
+                palette: schemePalettes[AppColorScheme.dynamic]!,
+                isActive: settings.colorScheme == 'Dynamic',
+                onTap: () => notifier.setColorScheme('Dynamic'),
+              ),
+              _SchemePreset(
+                name: 'Expressive',
+                palette: schemePalettes[AppColorScheme.expressive]!,
+                isActive: settings.colorScheme == 'Expressive',
+                onTap: () => notifier.setColorScheme('Expressive'),
+              ),
+              _SchemePreset(
+                name: 'Miku',
+                palette: schemePalettes[AppColorScheme.miku]!,
+                isActive: settings.colorScheme == 'Miku',
+                onTap: () => notifier.setColorScheme('Miku'),
+              ),
+              _SchemePreset(
+                name: 'Monochrome',
+                palette: schemePalettes[AppColorScheme.monochrome]!,
+                isActive: settings.colorScheme == 'Monochrome',
+                onTap: () => notifier.setColorScheme('Monochrome'),
+              ),
+            ],
           ),
+        ),
 
-          // Theme Options
-          M3SectionHeader(title: l.appearanceSectionThemeOptions),
-          ListTile(
-            title: Text(l.appearanceThemeTitle),
-            subtitle: Text(_themeModeLabel(l, settings.themeMode)),
-            onTap: () => _showThemeModeSelector(context, ref, settings, notifier),
-          ),
-          ListTile(
-            title: Text(l.appearanceLanguageTitle),
-            subtitle: Text(_languageLabel(l, settings.language)),
-            onTap: () => _showLanguageSelector(context, ref, settings, notifier),
-          ),
-          SwitchListTile(
-            title: Text(l.appearanceFrostedGlass),
-            subtitle: Text(l.appearanceFrostedGlassSubtitle),
-            value: settings.useFrostedGlass,
-            onChanged: (_) => notifier.toggleBool('useFrostedGlass'),
-          ),
-          SwitchListTile(
-            title: Text(l.appearanceReduceMotion),
-            subtitle: Text(l.appearanceReduceMotionSubtitle),
-            value: settings.reduceMotion,
-            onChanged: (_) => notifier.toggleBool('reduceMotion'),
-          ),
-          SwitchListTile(
-            title: Text(l.appearanceHaptics),
-            subtitle: Text(l.appearanceHapticsSubtitle),
-            value: settings.hapticsEnabled,
-            onChanged: (_) => notifier.toggleBool('hapticsEnabled'),
-          ),
+        // Theme Options
+        M3SectionHeader(title: l.appearanceSectionThemeOptions),
+        ListTile(
+          title: Text(l.appearanceThemeTitle),
+          subtitle: Text(_themeModeLabel(l, settings.themeMode)),
+          onTap: () => _showThemeModeSelector(context, ref, settings, notifier),
+        ),
+        ListTile(
+          title: Text(l.appearanceLanguageTitle),
+          subtitle: Text(_languageLabel(l, settings.language)),
+          onTap: () => _showLanguageSelector(context, ref, settings, notifier),
+        ),
+        SwitchListTile(
+          title: Text(l.appearanceFrostedGlass),
+          subtitle: Text(l.appearanceFrostedGlassSubtitle),
+          value: settings.useFrostedGlass,
+          onChanged: (_) => notifier.toggleBool('useFrostedGlass'),
+        ),
+        SwitchListTile(
+          title: Text(l.appearanceReduceMotion),
+          subtitle: Text(l.appearanceReduceMotionSubtitle),
+          value: settings.reduceMotion,
+          onChanged: (_) => notifier.toggleBool('reduceMotion'),
+        ),
+        SwitchListTile(
+          title: Text(l.appearanceHaptics),
+          subtitle: Text(l.appearanceHapticsSubtitle),
+          value: settings.hapticsEnabled,
+          onChanged: (_) => notifier.toggleBool('hapticsEnabled'),
+        ),
 
-          // Manga List Section
-          M3SectionHeader(title: l.appearanceSectionMangaList),
-          ListTile(
-            title: Text(l.appearanceListModeTitle),
-            subtitle: Text(_listModeLabel(l, settings.listMode)),
-            onTap: () => _showListModeSelector(context, ref, settings, notifier),
+        // Manga List Section
+        M3SectionHeader(title: l.appearanceSectionMangaList),
+        ListTile(
+          title: Text(l.appearanceListModeTitle),
+          subtitle: Text(_listModeLabel(l, settings.listMode)),
+          onTap: () => _showListModeSelector(context, ref, settings, notifier),
+        ),
+        Padding(
+          padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Text(l.appearanceGridSize(settings.gridSize.round())),
+              Slider(
+                value: settings.gridSize,
+                min: 50,
+                max: 150,
+                onChanged: (v) => notifier.setGridSize(v),
+              ),
+            ],
           ),
-          Padding(
-            padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                Text(l.appearanceGridSize(settings.gridSize.round())),
-                Slider(
-                  value: settings.gridSize,
-                  min: 50,
-                  max: 150,
-                  onChanged: (v) => notifier.setGridSize(v),
-                ),
-              ],
-            ),
-          ),
-          SwitchListTile(
-            title: Text(l.appearanceQuickFilters),
-            value: settings.showQuickFilters,
-            onChanged: (_) => notifier.toggleBool('showQuickFilters'),
-          ),
-          SwitchListTile(
-            title: Text(l.appearanceReadingProgress),
-            value: settings.showReadingProgress,
-            onChanged: (_) => notifier.toggleBool('showReadingProgress'),
-          ),
-          SwitchListTile(
-            title: Text(l.appearanceBadges),
-            value: settings.showListBadges,
-            onChanged: (_) => notifier.toggleBool('showListBadges'),
-          ),
+        ),
+        SwitchListTile(
+          title: Text(l.appearanceQuickFilters),
+          value: settings.showQuickFilters,
+          onChanged: (_) => notifier.toggleBool('showQuickFilters'),
+        ),
+        SwitchListTile(
+          title: Text(l.appearanceReadingProgress),
+          value: settings.showReadingProgress,
+          onChanged: (_) => notifier.toggleBool('showReadingProgress'),
+        ),
+        SwitchListTile(
+          title: Text(l.appearanceBadges),
+          value: settings.showListBadges,
+          onChanged: (_) => notifier.toggleBool('showListBadges'),
+        ),
 
-          // Details Section
-          M3SectionHeader(title: l.appearanceDetails),
-          SwitchListTile(
-            title: Text(l.appearanceCollapseDescription),
-            value: settings.collapseDescription,
-            onChanged: (_) => notifier.toggleBool('collapseDescription'),
-          ),
-          ListTile(
-            title: Text(l.appearanceDefaultTabTitle),
-            subtitle: Text(_tabLabel(l, settings.defaultTab)),
-            onTap: () => _showDefaultTabSelector(context, ref, settings, notifier),
-          ),
+        // Details Section
+        M3SectionHeader(title: l.appearanceDetails),
+        SwitchListTile(
+          title: Text(l.appearanceCollapseDescription),
+          value: settings.collapseDescription,
+          onChanged: (_) => notifier.toggleBool('collapseDescription'),
+        ),
+        ListTile(
+          title: Text(l.appearanceDefaultTabTitle),
+          subtitle: Text(_tabLabel(l, settings.defaultTab)),
+          onTap: () => _showDefaultTabSelector(context, ref, settings, notifier),
+        ),
 
-          // Main Screen Section
-          M3SectionHeader(title: l.appearanceSectionMainScreen),
-          ListTile(
-            title: Text(l.appearanceSearchSuggestionsTitle),
-            subtitle: Text(_suggestionSummary(context, settings)),
-            onTap: () => _showSearchSuggestionsSheet(context, ref, settings, notifier),
-          ),
-          ListTile(
-            title: Text(l.appearanceMainSectionsTitle),
-            subtitle: Text(l.appearanceMainSectionsSubtitle),
-            onTap: () => _showMainSectionsSheet(context, ref, settings, notifier),
-          ),
-          SwitchListTile(
-            title: Text(l.appearanceFloatingContinue),
-            value: settings.showFloatingContinueButton,
-            onChanged: (_) => notifier.toggleBool('showFloatingContinueButton'),
-          ),
-          SwitchListTile(
-            title: Text(l.appearanceNavLabels),
-            value: settings.showNavLabels,
-            onChanged: (_) => notifier.toggleBool('showNavLabels'),
-          ),
-          SwitchListTile(
-            title: Text(l.appearanceFloatingNav),
-            value: settings.useFloatingNavBar,
-            onChanged: (_) => notifier.toggleBool('useFloatingNavBar'),
-          ),
-          SwitchListTile(
-            title: Text(l.appearancePinNav),
-            subtitle: Text(l.appearancePinNavSubtitle),
-            value: settings.pinNavUiOnScroll,
-            onChanged: (_) => notifier.toggleBool('pinNavUiOnScroll'),
-          ),
-          SwitchListTile(
-            title: Text(l.appearanceExitConfirmation),
-            subtitle: Text(l.appearanceExitConfirmationSubtitle),
-            value: settings.exitConfirmation,
-            onChanged: (_) => notifier.toggleBool('exitConfirmation'),
-          ),
-          SwitchListTile(
-            title: Text(l.appearanceRecentShortcuts),
-            value: settings.showRecentShortcuts,
-            onChanged: (_) => notifier.toggleBool('showRecentShortcuts'),
-          ),
-          SwitchListTile(
-            title: Text(l.appearanceHideNsfwShortcuts),
-            value: settings.hideNsfwFromShortcuts,
-            onChanged: (_) => notifier.toggleBool('hideNsfwFromShortcuts'),
-          ),
+        // Main Screen Section
+        M3SectionHeader(title: l.appearanceSectionMainScreen),
+        ListTile(
+          title: Text(l.appearanceSearchSuggestionsTitle),
+          subtitle: Text(_suggestionSummary(context, settings)),
+          onTap: () => _showSearchSuggestionsSheet(context, ref, settings, notifier),
+        ),
+        ListTile(
+          title: Text(l.appearanceMainSectionsTitle),
+          subtitle: Text(l.appearanceMainSectionsSubtitle),
+          onTap: () => _showMainSectionsSheet(context, ref, settings, notifier),
+        ),
+        SwitchListTile(
+          title: Text(l.appearanceFloatingContinue),
+          value: settings.showFloatingContinueButton,
+          onChanged: (_) => notifier.toggleBool('showFloatingContinueButton'),
+        ),
+        SwitchListTile(
+          title: Text(l.appearanceNavLabels),
+          value: settings.showNavLabels,
+          onChanged: (_) => notifier.toggleBool('showNavLabels'),
+        ),
+        SwitchListTile(
+          title: Text(l.appearanceFloatingNav),
+          value: settings.useFloatingNavBar,
+          onChanged: (_) => notifier.toggleBool('useFloatingNavBar'),
+        ),
+        SwitchListTile(
+          title: Text(l.appearancePinNav),
+          subtitle: Text(l.appearancePinNavSubtitle),
+          value: settings.pinNavUiOnScroll,
+          onChanged: (_) => notifier.toggleBool('pinNavUiOnScroll'),
+        ),
+        SwitchListTile(
+          title: Text(l.appearanceExitConfirmation),
+          subtitle: Text(l.appearanceExitConfirmationSubtitle),
+          value: settings.exitConfirmation,
+          onChanged: (_) => notifier.toggleBool('exitConfirmation'),
+        ),
+        SwitchListTile(
+          title: Text(l.appearanceRecentShortcuts),
+          value: settings.showRecentShortcuts,
+          onChanged: (_) => notifier.toggleBool('showRecentShortcuts'),
+        ),
+        SwitchListTile(
+          title: Text(l.appearanceHideNsfwShortcuts),
+          value: settings.hideNsfwFromShortcuts,
+          onChanged: (_) => notifier.toggleBool('hideNsfwFromShortcuts'),
+        ),
 
-          // Privacy Section
-          M3SectionHeader(title: l.appearancePrivacy),
-          SwitchListTile(
-            title: Text(l.appearanceProtectApp),
-            subtitle: Text(l.appearanceProtectAppSubtitle),
-            value: settings.protectApp,
-            onChanged: (v) => _handleProtectAppToggle(context, ref, v),
-          ),
-          ListTile(
-            title: Text(l.appearanceScreenshotPolicyTitle),
-            subtitle: Text(settings.screenshotPolicy),
-            onTap: () => _showScreenshotPolicySheet(context, ref, settings, notifier),
-          ),
+        // Privacy Section
+        M3SectionHeader(title: l.appearancePrivacy),
+        SwitchListTile(
+          title: Text(l.appearanceProtectApp),
+          subtitle: Text(l.appearanceProtectAppSubtitle),
+          value: settings.protectApp,
+          onChanged: (v) => _handleProtectAppToggle(context, ref, v),
+        ),
+        ListTile(
+          title: Text(l.appearanceScreenshotPolicyTitle),
+          subtitle: Text(settings.screenshotPolicy),
+          onTap: () => _showScreenshotPolicySheet(context, ref, settings, notifier),
+        ),
 
-          const SizedBox(height: 24),
-        ],
-      )),
-      ),
+        const SizedBox(height: 24),
+      ],
+    )),
     );
   }
 

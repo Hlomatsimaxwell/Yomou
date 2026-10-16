@@ -74,54 +74,52 @@ class _ExploreScreenState extends ConsumerState<ExploreScreen> {
 
     return Scaffold(
       backgroundColor: Theme.of(context).scaffoldBackgroundColor,
-      body: SafeArea(
-        child: TabHeader(
-          mode: usesWideLayout(context)
-              ? TabHeaderMode.fixed
-              : TabHeaderMode.collapsing,
-          title: AppLocalizations.of(context).explore,
-          searchBar: _buildSearchBar(),
-          body: RefreshIndicator(
-            onRefresh: _refresh,
-            // Slivers, not a Column inside a scroll view: the sources wall is
-            // long (a row and a network icon per source) and a Column builds and
-            // decodes all of it up front. A sliver only builds what is on
-            // screen, so opening Explore and scrolling it cost the visible rows
-            // rather than the whole catalogue.
-            child: CustomScrollView(
-              physics: const AlwaysScrollableScrollPhysics(),
-              slivers: [
-                const SliverToBoxAdapter(child: SizedBox(height: 16)),
-                SliverToBoxAdapter(child: _buildQuickButtonsGrid()),
-                const SliverToBoxAdapter(child: SizedBox(height: 20)),
-                const SliverToBoxAdapter(child: FeaturedCarousel()),
-                const SliverToBoxAdapter(child: SizedBox(height: 20)),
-                SliverToBoxAdapter(child: _buildPresetSection()),
-                const SliverToBoxAdapter(child: SizedBox(height: 12)),
-                SliverToBoxAdapter(
-                  child: _buildSectionHeader(
-                    AppLocalizations.of(context).mangaSources,
-                    actionLabel: AppLocalizations.of(context).exploreManage,
-                    actionColor: Theme.of(context).colorScheme.primary,
-                    onMorePressed: () {
-                      Navigator.push(
-                        context,
-                        MaterialPageRoute(
-                          builder: (context) => const ManageSourcesScreen(),
-                        ),
-                      );
-                    },
-                  ),
+      body: TabHeader(
+        mode: usesWideLayout(context)
+            ? TabHeaderMode.fixed
+            : TabHeaderMode.collapsing,
+        title: AppLocalizations.of(context).explore,
+        searchBar: _buildSearchBar(),
+        body: RefreshIndicator(
+          onRefresh: _refresh,
+          // Slivers, not a Column inside a scroll view: the sources wall is
+          // long (a row and a network icon per source) and a Column builds and
+          // decodes all of it up front. A sliver only builds what is on
+          // screen, so opening Explore and scrolling it cost the visible rows
+          // rather than the whole catalogue.
+          child: CustomScrollView(
+            physics: const AlwaysScrollableScrollPhysics(),
+            slivers: [
+              const SliverToBoxAdapter(child: SizedBox(height: 16)),
+              SliverToBoxAdapter(child: _buildQuickButtonsGrid()),
+              const SliverToBoxAdapter(child: SizedBox(height: 20)),
+              const SliverToBoxAdapter(child: FeaturedCarousel()),
+              const SliverToBoxAdapter(child: SizedBox(height: 20)),
+              SliverToBoxAdapter(child: _buildPresetSection()),
+              const SliverToBoxAdapter(child: SizedBox(height: 12)),
+              SliverToBoxAdapter(
+                child: _buildSectionHeader(
+                  AppLocalizations.of(context).mangaSources,
+                  actionLabel: AppLocalizations.of(context).exploreManage,
+                  actionColor: Theme.of(context).colorScheme.primary,
+                  onMorePressed: () {
+                    Navigator.push(
+                      context,
+                      MaterialPageRoute(
+                        builder: (context) => const ManageSourcesScreen(),
+                      ),
+                    );
+                  },
                 ),
-                const SliverToBoxAdapter(child: SizedBox(height: 8)),
-                showInGrid
-                    ? _buildSourcesGrid(enabledSources)
-                    : _buildSourcesList(enabledSources),
-                SliverToBoxAdapter(
-                  child: SizedBox(height: bottomBarClearance(context)),
-                ),
-              ],
-            ),
+              ),
+              const SliverToBoxAdapter(child: SizedBox(height: 8)),
+              showInGrid
+                  ? _buildSourcesGrid(enabledSources)
+                  : _buildSourcesList(enabledSources),
+              SliverToBoxAdapter(
+                child: SizedBox(height: bottomBarClearance(context)),
+              ),
+            ],
           ),
         ),
       ),

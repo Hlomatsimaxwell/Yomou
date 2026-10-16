@@ -126,49 +126,47 @@ class _SourceSignInScreenState extends State<SourceSignInScreen> {
             ),
           ],
         ),
-        body: SafeArea(
-          child: inAppWebViewAvailable
-              ? InAppWebView(
-                  initialUrlRequest:
-                      URLRequest(url: WebUri(widget.initialUrl)),
-                  initialSettings: InAppWebViewSettings(
-                    javaScriptEnabled: true,
-                    domStorageEnabled: true,
-                    databaseEnabled: true,
-                    supportMultipleWindows: true,
-                    mediaPlaybackRequiresUserGesture: false,
-                  ),
-                  onCreateWindow: (controller, createWindowAction) async {
-                    final url = createWindowAction.request.url;
-                    if (url == null) return false;
-                    showDialog(
-                      context: context,
-                      builder: (context) => AlertDialog(
-                        title: const Text('New window'),
-                        content: const Text('Open in external browser?'),
-                        actions: [
-                          TextButton(
-                            onPressed: () => Navigator.pop(context),
-                            child: const Text('Cancel'),
-                          ),
-                          TextButton(
-                            onPressed: () async {
-                              Navigator.pop(context);
-                              await launchUrl(
-                                url,
-                                mode: LaunchMode.externalApplication,
-                              );
-                            },
-                            child: const Text('Open'),
-                          ),
-                        ],
-                      ),
-                    );
-                    return true;
-                  },
-                )
-              : const WebviewUnavailableBody(icon: Icons.login_outlined),
-        ),
+        body: inAppWebViewAvailable
+            ? InAppWebView(
+                initialUrlRequest:
+                    URLRequest(url: WebUri(widget.initialUrl)),
+                initialSettings: InAppWebViewSettings(
+                  javaScriptEnabled: true,
+                  domStorageEnabled: true,
+                  databaseEnabled: true,
+                  supportMultipleWindows: true,
+                  mediaPlaybackRequiresUserGesture: false,
+                ),
+                onCreateWindow: (controller, createWindowAction) async {
+                  final url = createWindowAction.request.url;
+                  if (url == null) return false;
+                  showDialog(
+                    context: context,
+                    builder: (context) => AlertDialog(
+                      title: const Text('New window'),
+                      content: const Text('Open in external browser?'),
+                      actions: [
+                        TextButton(
+                          onPressed: () => Navigator.pop(context),
+                          child: const Text('Cancel'),
+                        ),
+                        TextButton(
+                          onPressed: () async {
+                            Navigator.pop(context);
+                            await launchUrl(
+                              url,
+                              mode: LaunchMode.externalApplication,
+                            );
+                          },
+                          child: const Text('Open'),
+                        ),
+                      ],
+                    ),
+                  );
+                  return true;
+                },
+              )
+            : const WebviewUnavailableBody(icon: Icons.login_outlined),
       ),
     );
   }

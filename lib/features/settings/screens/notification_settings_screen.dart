@@ -9,7 +9,6 @@ import 'package:yomou/core/database/database_helper.dart';
 import 'package:yomou/core/notifications/background_tasks.dart';
 import 'package:yomou/core/notifications/notification_service.dart';
 import 'package:yomou/core/notifications/notification_settings.dart';
-import 'package:yomou/core/theme/layout.dart';
 import 'package:yomou/core/widgets/responsive.dart';
 import 'package:yomou/core/widgets/ios/ios_toast.dart';
 import 'package:yomou/features/settings/screens/notification_log_screen.dart';
@@ -333,151 +332,147 @@ class _NotificationSettingsScreenState
     return Scaffold(
       backgroundColor: Theme.of(context).scaffoldBackgroundColor,
       appBar: SettingsAppBar(title: l.settingsNewChapters),
-      body: SafeArea(
-        top: false,
-        minimum: const EdgeInsets.only(bottom: kBottomChromeClearance),
-        child: CappedContentWidth(child: ListView(
-        padding: const EdgeInsets.symmetric(vertical: 8),
-        children: [
-          Padding(
-            padding: const EdgeInsets.fromLTRB(16, 8, 16, 16),
-            child: Text(
-              l.notificationSettingsDescription,
-              style: TextStyle(color: cs.onSurfaceVariant, fontSize: 14),
-            ),
+      body: CappedContentWidth(child: ListView(
+      padding: const EdgeInsets.symmetric(vertical: 8),
+      children: [
+        Padding(
+          padding: const EdgeInsets.fromLTRB(16, 8, 16, 16),
+          child: Text(
+            l.notificationSettingsDescription,
+            style: TextStyle(color: cs.onSurfaceVariant, fontSize: 14),
           ),
+        ),
+        SwitchListTile(
+          value: _enabled,
+          onChanged: _setEnabled,
+          secondary: const Icon(RemixIcons.notification_3_line),
+          title: Text(l.notificationSettingsEnable),
+          subtitle: Text(
+            _enabled ? l.notificationSettingsOn : l.notificationSettingsOff,
+          ),
+        ),
+        if (_enabled) ...[
+          M3SectionHeader(title: l.notificationOptionsSection),
           SwitchListTile(
-            value: _enabled,
-            onChanged: _setEnabled,
-            secondary: const Icon(RemixIcons.notification_3_line),
-            title: Text(l.notificationSettingsEnable),
-            subtitle: Text(
-              _enabled ? l.notificationSettingsOn : l.notificationSettingsOff,
-            ),
+            value: _wifiOnly,
+            onChanged: _setWifiOnly,
+            secondary: const Icon(RemixIcons.wifi_line),
+            title: Text(l.notificationWifiOnly),
+            subtitle: Text(l.notificationWifiOnlySubtitle),
           ),
-          if (_enabled) ...[
-            M3SectionHeader(title: l.notificationOptionsSection),
-            SwitchListTile(
-              value: _wifiOnly,
-              onChanged: _setWifiOnly,
-              secondary: const Icon(RemixIcons.wifi_line),
-              title: Text(l.notificationWifiOnly),
-              subtitle: Text(l.notificationWifiOnlySubtitle),
-            ),
-            ListTile(
-              leading: const Icon(RemixIcons.time_line),
-              title: Text(l.notificationFrequency),
-              trailing: _trailingValue(
-                _frequencyLabel(l),
-                onTap: _showFrequencySheet,
-              ),
+          ListTile(
+            leading: const Icon(RemixIcons.time_line),
+            title: Text(l.notificationFrequency),
+            trailing: _trailingValue(
+              _frequencyLabel(l),
               onTap: _showFrequencySheet,
             ),
-            ListTile(
-              leading: const Icon(RemixIcons.bookmark_line),
-              title: Text(l.notificationScope),
-              subtitle: Text(
-                scopeEnabledCount == 0
-                    ? l.notificationSettingsOff
-                    : l.notificationScopeSubtitle(scopeEnabledCount, 2),
-              ),
-              trailing: Icon(
-                RemixIcons.arrow_right_s_line,
-                color: cs.onSurfaceVariant,
-              ),
-              onTap: _showScopeSheet,
+            onTap: _showFrequencySheet,
+          ),
+          ListTile(
+            leading: const Icon(RemixIcons.bookmark_line),
+            title: Text(l.notificationScope),
+            subtitle: Text(
+              scopeEnabledCount == 0
+                  ? l.notificationSettingsOff
+                  : l.notificationScopeSubtitle(scopeEnabledCount, 2),
             ),
-            ListTile(
-              leading: const Icon(RemixIcons.price_tag_3_line),
-              title: Text(l.notificationCategories),
-              subtitle: Text(
-                _categoryCandidates.isEmpty
-                    ? l.notificationCategoriesNone
-                    : l.notificationCategoriesSubtitle(
-                        _categoryAll
-                            ? _categoryCandidates.length
-                            : _categorySelected.length,
-                        _categoryCandidates.length,
-                      ),
-              ),
-              trailing: Icon(
-                RemixIcons.arrow_right_s_line,
-                color: cs.onSurfaceVariant,
-              ),
-              onTap: _showCategoriesSheet,
+            trailing: Icon(
+              RemixIcons.arrow_right_s_line,
+              color: cs.onSurfaceVariant,
             ),
-            SwitchListTile(
-              value: !_nsfwAllowed,
-              onChanged: _setNsfw,
-              secondary: const Icon(RemixIcons.eye_off_line),
-              title: Text(l.notificationNsfw),
-              subtitle: Text(l.notificationNsfwSubtitle),
+            onTap: _showScopeSheet,
+          ),
+          ListTile(
+            leading: const Icon(RemixIcons.price_tag_3_line),
+            title: Text(l.notificationCategories),
+            subtitle: Text(
+              _categoryCandidates.isEmpty
+                  ? l.notificationCategoriesNone
+                  : l.notificationCategoriesSubtitle(
+                      _categoryAll
+                          ? _categoryCandidates.length
+                          : _categorySelected.length,
+                      _categoryCandidates.length,
+                    ),
             ),
-            ListTile(
-              leading: const Icon(RemixIcons.download_2_line),
-              title: Text(l.notificationDownload),
-              trailing: _trailingValue(
-                _autoDownloadLabel(l),
-                onTap: _showAutoDownloadSheet,
-              ),
+            trailing: Icon(
+              RemixIcons.arrow_right_s_line,
+              color: cs.onSurfaceVariant,
+            ),
+            onTap: _showCategoriesSheet,
+          ),
+          SwitchListTile(
+            value: !_nsfwAllowed,
+            onChanged: _setNsfw,
+            secondary: const Icon(RemixIcons.eye_off_line),
+            title: Text(l.notificationNsfw),
+            subtitle: Text(l.notificationNsfwSubtitle),
+          ),
+          ListTile(
+            leading: const Icon(RemixIcons.download_2_line),
+            title: Text(l.notificationDownload),
+            trailing: _trailingValue(
+              _autoDownloadLabel(l),
               onTap: _showAutoDownloadSheet,
             ),
-          ],
-          M3SectionHeader(title: l.notificationPreviewSection),
-          ListTile(
-            leading: const Icon(RemixIcons.book_read_line),
-            title: Text(l.notificationPreviewNewChapters),
-            trailing: Icon(
-              RemixIcons.arrow_right_s_line,
-              color: cs.onSurfaceVariant,
-            ),
-            onTap: () => NotificationService.instance.showTestNewChapters(),
+            onTap: _showAutoDownloadSheet,
           ),
-          ListTile(
-            leading: const Icon(RemixIcons.sparkling_2_line),
-            title: Text(l.notificationPreviewSuggested),
-            trailing: Icon(
-              RemixIcons.arrow_right_s_line,
-              color: cs.onSurfaceVariant,
-            ),
-            onTap: () => NotificationService.instance.showTestSuggested(),
-          ),
-          M3SectionHeader(title: l.notificationCheckLogSection),
-          ListTile(
-            leading: _checking
-                ? const SizedBox(
-                    width: 22,
-                    height: 22,
-                    child: CircularProgressIndicator(strokeWidth: 2.5),
-                  )
-                : const Icon(RemixIcons.refresh_line),
-            title: Text(l.notificationCheckNow),
-            onTap: _checking ? null : _runManualCheck,
-          ),
-          ListTile(
-            leading: const Icon(RemixIcons.file_list_3_line),
-            title: Text(l.notificationLog),
-            trailing: Icon(
-              RemixIcons.arrow_right_s_line,
-              color: cs.onSurfaceVariant,
-            ),
-            onTap: () => Navigator.push(
-              context,
-              MaterialPageRoute(builder: (_) => const NotificationLogScreen()),
-            ),
-          ),
-          if (Platform.isAndroid) ...[
-            ListTile(
-              leading: const Icon(RemixIcons.battery_2_line),
-              title: Text(l.notificationBattery),
-              subtitle: Text(l.notificationBatterySubtitle),
-              onTap: _openBatterySettings,
-            ),
-          ],
-          const SizedBox(height: 24),
         ],
-      )),
-      ),
+        M3SectionHeader(title: l.notificationPreviewSection),
+        ListTile(
+          leading: const Icon(RemixIcons.book_read_line),
+          title: Text(l.notificationPreviewNewChapters),
+          trailing: Icon(
+            RemixIcons.arrow_right_s_line,
+            color: cs.onSurfaceVariant,
+          ),
+          onTap: () => NotificationService.instance.showTestNewChapters(),
+        ),
+        ListTile(
+          leading: const Icon(RemixIcons.sparkling_2_line),
+          title: Text(l.notificationPreviewSuggested),
+          trailing: Icon(
+            RemixIcons.arrow_right_s_line,
+            color: cs.onSurfaceVariant,
+          ),
+          onTap: () => NotificationService.instance.showTestSuggested(),
+        ),
+        M3SectionHeader(title: l.notificationCheckLogSection),
+        ListTile(
+          leading: _checking
+              ? const SizedBox(
+                  width: 22,
+                  height: 22,
+                  child: CircularProgressIndicator(strokeWidth: 2.5),
+                )
+              : const Icon(RemixIcons.refresh_line),
+          title: Text(l.notificationCheckNow),
+          onTap: _checking ? null : _runManualCheck,
+        ),
+        ListTile(
+          leading: const Icon(RemixIcons.file_list_3_line),
+          title: Text(l.notificationLog),
+          trailing: Icon(
+            RemixIcons.arrow_right_s_line,
+            color: cs.onSurfaceVariant,
+          ),
+          onTap: () => Navigator.push(
+            context,
+            MaterialPageRoute(builder: (_) => const NotificationLogScreen()),
+          ),
+        ),
+        if (Platform.isAndroid) ...[
+          ListTile(
+            leading: const Icon(RemixIcons.battery_2_line),
+            title: Text(l.notificationBattery),
+            subtitle: Text(l.notificationBatterySubtitle),
+            onTap: _openBatterySettings,
+          ),
+        ],
+        const SizedBox(height: 24),
+      ],
+    )),
     );
   }
 

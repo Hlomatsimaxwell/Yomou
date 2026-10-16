@@ -2,7 +2,6 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:remixicon/remixicon.dart';
 import 'package:yomou/core/cache/app_cache.dart';
-import 'package:yomou/core/theme/layout.dart';
 import 'package:yomou/core/widgets/responsive.dart';
 import 'package:yomou/core/widgets/ios/ios_toast.dart';
 import 'package:yomou/features/settings/providers/cache_settings_provider.dart';
@@ -33,56 +32,52 @@ class _StorageSettingsScreenState extends ConsumerState<StorageSettingsScreen> {
 
     return Scaffold(
       appBar: SettingsAppBar(title: l.settingsStorage),
-      body: SafeArea(
-        top: false,
-        minimum: const EdgeInsets.only(bottom: kBottomChromeClearance),
-        child: CappedContentWidth(child: ListView(
-        padding: const EdgeInsets.symmetric(vertical: 8),
-        children: [
-          M3SectionHeader(title: l.storageCacheSection),
-          ListTile(
-            title: Text(l.storageCacheMaxTitle),
-            subtitle: Text(l.storageCacheMaxSubtitle(settings.maxCacheObjects)),
-            trailing: Icon(
-              RemixIcons.arrow_right_s_line,
-              color: Theme.of(context).colorScheme.outline,
+      body: CappedContentWidth(child: ListView(
+      padding: const EdgeInsets.symmetric(vertical: 8),
+      children: [
+        M3SectionHeader(title: l.storageCacheSection),
+        ListTile(
+          title: Text(l.storageCacheMaxTitle),
+          subtitle: Text(l.storageCacheMaxSubtitle(settings.maxCacheObjects)),
+          trailing: Icon(
+            RemixIcons.arrow_right_s_line,
+            color: Theme.of(context).colorScheme.outline,
+          ),
+          onTap: () => _showMaxCacheSelector(context, l, notifier),
+        ),
+        ListTile(
+          title: Text(l.storageCacheStaleTitle),
+          subtitle: Text(l.storageCacheStaleSubtitle(settings.staleDays)),
+          trailing: Icon(
+            RemixIcons.arrow_right_s_line,
+            color: Theme.of(context).colorScheme.outline,
+          ),
+          onTap: () => _showStaleSelector(context, l, notifier),
+        ),
+        SwitchListTile(
+          title: Text(l.storagePreloadTitle),
+          subtitle: Text(l.storagePreloadSubtitle),
+          value: settings.precacheNextChapter,
+          onChanged: (_) => notifier.togglePrecacheNextChapter(),
+        ),
+        const SizedBox(height: 8),
+        FutureBuilder<String>(
+          future: _usageFuture,
+          builder: (context, snapshot) => ListTile(
+            leading: Icon(
+              RemixIcons.delete_bin_line,
+              color: Theme.of(context).colorScheme.error,
             ),
-            onTap: () => _showMaxCacheSelector(context, l, notifier),
-          ),
-          ListTile(
-            title: Text(l.storageCacheStaleTitle),
-            subtitle: Text(l.storageCacheStaleSubtitle(settings.staleDays)),
-            trailing: Icon(
-              RemixIcons.arrow_right_s_line,
-              color: Theme.of(context).colorScheme.outline,
+            title: Text(l.storageClearTitle),
+            subtitle: Text(
+              l.storageClearSubtitle(snapshot.data ?? l.storageUnknown),
             ),
-            onTap: () => _showStaleSelector(context, l, notifier),
+            onTap: () => _confirmClearCache(context, l),
           ),
-          SwitchListTile(
-            title: Text(l.storagePreloadTitle),
-            subtitle: Text(l.storagePreloadSubtitle),
-            value: settings.precacheNextChapter,
-            onChanged: (_) => notifier.togglePrecacheNextChapter(),
-          ),
-          const SizedBox(height: 8),
-          FutureBuilder<String>(
-            future: _usageFuture,
-            builder: (context, snapshot) => ListTile(
-              leading: Icon(
-                RemixIcons.delete_bin_line,
-                color: Theme.of(context).colorScheme.error,
-              ),
-              title: Text(l.storageClearTitle),
-              subtitle: Text(
-                l.storageClearSubtitle(snapshot.data ?? l.storageUnknown),
-              ),
-              onTap: () => _confirmClearCache(context, l),
-            ),
-          ),
-          const SizedBox(height: 24),
-        ],
-      )),
-      ),
+        ),
+        const SizedBox(height: 24),
+      ],
+    )),
     );
   }
 

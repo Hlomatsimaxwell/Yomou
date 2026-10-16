@@ -191,15 +191,13 @@ class _CoversFromSourcesScreenState
 
     return Scaffold(
       backgroundColor: Theme.of(context).scaffoldBackgroundColor,
-      body: SafeArea(
-        child: Column(
-          children: [
-            _buildTopBar(context, l, fg),
-            Expanded(child: _buildHero(context, scheme)),
-            _buildCarousel(context, l, dark, scheme),
-            _buildUseButton(context, l, scheme),
-          ],
-        ),
+      body: Column(
+        children: [
+          _buildTopBar(context, l, fg),
+          Expanded(child: _buildHero(context, scheme)),
+          _buildCarousel(context, l, dark, scheme),
+          _buildUseButton(context, l, scheme),
+        ],
       ),
     );
   }

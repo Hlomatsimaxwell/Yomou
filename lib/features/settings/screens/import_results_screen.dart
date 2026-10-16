@@ -1,7 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:remixicon/remixicon.dart';
 import 'package:yomou/core/backup/tachiyomi_backup.dart';
-import 'package:yomou/core/theme/layout.dart';
 import 'package:yomou/core/widgets/responsive.dart';
 import 'package:yomou/data/providers/sources_provider.dart';
 import 'package:yomou/l10n/generated/app_localizations.dart';
@@ -21,47 +20,43 @@ class ImportResultsScreen extends StatelessWidget {
 
     return Scaffold(
       appBar: SettingsAppBar(title: l.importResultsTitle),
-      body: SafeArea(
-        top: false,
-        minimum: const EdgeInsets.only(bottom: kBottomChromeClearance),
-        child: CappedContentWidth(child: ListView(
-        padding: const EdgeInsets.symmetric(vertical: 4, horizontal: 16),
-        children: [
-          const SizedBox(height: 4),
-          _SummaryHeader(result: result),
-          const SizedBox(height: 8),
-          if (result.mangas.isNotEmpty) ...[
-            _SectionHeader(
-              icon: RemixIcons.check_double_line,
-              title: l.importResultsImportedSection,
-              count: result.mangas.length,
-              color: color.primary,
-            ),
-            for (final m in result.mangas) _ImportedTile(manga: m),
-            const SizedBox(height: 20),
-          ],
-          if (result.recoveredMangas.isNotEmpty) ...[
-            _SectionHeader(
-              icon: RemixIcons.check_line,
-              title: l.importResultsRecoveredSection,
-              count: result.recoveredMangas.length,
-              color: color.tertiary,
-            ),
-            for (final m in result.recoveredMangas) _RecoveredTile(manga: m),
-          ],
-          if (result.skippedMangas.isNotEmpty) ...[
-            _SectionHeader(
-              icon: RemixIcons.error_warning_line,
-              title: l.importResultsSkippedSection,
-              count: result.skippedMangas.length,
-              color: color.error,
-            ),
-            for (final s in result.skippedMangas) _SkippedTile(skipped: s),
-          ],
-          const SizedBox(height: 16),
+      body: CappedContentWidth(child: ListView(
+      padding: const EdgeInsets.symmetric(vertical: 4, horizontal: 16),
+      children: [
+        const SizedBox(height: 4),
+        _SummaryHeader(result: result),
+        const SizedBox(height: 8),
+        if (result.mangas.isNotEmpty) ...[
+          _SectionHeader(
+            icon: RemixIcons.check_double_line,
+            title: l.importResultsImportedSection,
+            count: result.mangas.length,
+            color: color.primary,
+          ),
+          for (final m in result.mangas) _ImportedTile(manga: m),
+          const SizedBox(height: 20),
         ],
-      )),
-      ),
+        if (result.recoveredMangas.isNotEmpty) ...[
+          _SectionHeader(
+            icon: RemixIcons.check_line,
+            title: l.importResultsRecoveredSection,
+            count: result.recoveredMangas.length,
+            color: color.tertiary,
+          ),
+          for (final m in result.recoveredMangas) _RecoveredTile(manga: m),
+        ],
+        if (result.skippedMangas.isNotEmpty) ...[
+          _SectionHeader(
+            icon: RemixIcons.error_warning_line,
+            title: l.importResultsSkippedSection,
+            count: result.skippedMangas.length,
+            color: color.error,
+          ),
+          for (final s in result.skippedMangas) _SkippedTile(skipped: s),
+        ],
+        const SizedBox(height: 16),
+      ],
+    )),
     );
   }
 }

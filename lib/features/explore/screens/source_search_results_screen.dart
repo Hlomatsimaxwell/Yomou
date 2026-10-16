@@ -352,18 +352,16 @@ class _SourceSearchResultsScreenState
           ),
         ],
       ),
-      body: SafeArea(
-        child: HideOnScroll(
-          header: Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              _buildSearchBar(dark),
-              if (_showHistory && _searchHistory.isNotEmpty)
-                _buildRecentSearches(dark),
-            ],
-          ),
-          body: _buildResults(),
+      body: HideOnScroll(
+        header: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            _buildSearchBar(dark),
+            if (_showHistory && _searchHistory.isNotEmpty)
+              _buildRecentSearches(dark),
+          ],
         ),
+        body: _buildResults(),
       ),
     );
   }

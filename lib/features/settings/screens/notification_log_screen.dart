@@ -3,7 +3,6 @@ import 'dart:convert';
 import 'package:flutter/material.dart';
 import 'package:remixicon/remixicon.dart';
 import 'package:yomou/core/database/database_helper.dart';
-import 'package:yomou/core/theme/layout.dart';
 import 'package:yomou/l10n/generated/app_localizations.dart';
 import 'package:yomou/widgets/m3_components.dart';
 import 'package:yomou/widgets/safe_image.dart';
@@ -44,33 +43,29 @@ class _NotificationLogScreenState extends State<NotificationLogScreen> {
     final l = AppLocalizations.of(context);
     return Scaffold(
       appBar: SettingsAppBar(title: l.notificationLog),
-      body: SafeArea(
-        top: false,
-        minimum: const EdgeInsets.only(bottom: kBottomChromeClearance),
-        child: _entries == null
-          ? const Center(child: CircularProgressIndicator())
-          : _entries!.isEmpty
-          ? Center(
-              child: Text(
-                l.notificationLogEmpty,
-                style: TextStyle(
-                  color: Theme.of(context).colorScheme.onSurfaceVariant,
-                ),
+      body: _entries == null
+        ? const Center(child: CircularProgressIndicator())
+        : _entries!.isEmpty
+        ? Center(
+            child: Text(
+              l.notificationLogEmpty,
+              style: TextStyle(
+                color: Theme.of(context).colorScheme.onSurfaceVariant,
               ),
-            )
-          : ListView.builder(
-              padding: const EdgeInsets.symmetric(vertical: 8),
-              itemCount: _entries!.length,
-              itemBuilder: (context, index) {
-                final entry = _entries![index];
-                final at = DateTime.tryParse(entry['at']?.toString() ?? '');
-                return _LogTile(
-                  entry: entry,
-                  timeLabel: at == null ? '' : _formatTime(at),
-                );
-              },
             ),
-      ),
+          )
+        : ListView.builder(
+            padding: const EdgeInsets.symmetric(vertical: 8),
+            itemCount: _entries!.length,
+            itemBuilder: (context, index) {
+              final entry = _entries![index];
+              final at = DateTime.tryParse(entry['at']?.toString() ?? '');
+              return _LogTile(
+                entry: entry,
+                timeLabel: at == null ? '' : _formatTime(at),
+              );
+            },
+          ),
     );
   }
 }

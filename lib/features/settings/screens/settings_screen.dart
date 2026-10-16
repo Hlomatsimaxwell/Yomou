@@ -164,13 +164,9 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
 
     return Scaffold(
       appBar: SettingsAppBar(title: l.settings),
-      body: SafeArea(
-        top: false,
-        minimum: const EdgeInsets.only(bottom: kBottomChromeClearance),
-        child: twoPane
-            ? _buildTwoPane(categories)
-            : CappedContentWidth(child: _buildCategoryList(categories)),
-      ),
+      body: twoPane
+          ? _buildTwoPane(categories)
+          : CappedContentWidth(child: _buildCategoryList(categories)),
     );
   }
 

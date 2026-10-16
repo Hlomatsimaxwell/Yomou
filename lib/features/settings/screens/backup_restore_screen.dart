@@ -10,7 +10,6 @@ import 'package:yomou/core/backup/kotatsu_backup.dart';
 import 'package:yomou/core/backup/tachiyomi_backup.dart';
 import 'package:yomou/core/database/database_helper.dart';
 import 'package:yomou/core/notifications/notification_service.dart';
-import 'package:yomou/core/theme/layout.dart';
 import 'package:yomou/core/widgets/responsive.dart';
 import 'package:yomou/core/widgets/ios/ios_toast.dart';
 import 'package:yomou/features/history/providers/history_provider.dart';
@@ -387,62 +386,58 @@ class _BackupRestoreScreenState extends ConsumerState<BackupRestoreScreen> {
 
     return Scaffold(
       appBar: SettingsAppBar(title: l.backupRestore),
-      body: SafeArea(
-        top: false,
-        minimum: const EdgeInsets.only(bottom: kBottomChromeClearance),
-        child: CappedContentWidth(child: ListView(
-        padding: const EdgeInsets.symmetric(vertical: 8),
-        children: [
-          _AppSectionHeader(title: l.kotatsuSectionTitle),
-          _BuildButton(
-            icon: RemixIcons.stack_line,
-            title: l.exportKotatsu,
-            subtitle: l.exportKotatsuSubtitle,
-            onTap: _exportKotatsu,
-          ),
-          _BuildButton(
-            icon: RemixIcons.archive_drawer_line,
-            title: l.importKotatsu,
-            subtitle: l.importKotatsuSubtitle,
-            onTap: _importKotatsu,
-          ),
-          const SizedBox(height: 8),
-          _AppSectionHeader(title: l.tachiyomiSectionTitle),
-          _BuildButton(
-            icon: RemixIcons.upload_2_line,
-            title: l.exportTachiyomi,
-            subtitle: l.exportTachiyomiSubtitle,
-            onTap: _exportTachiyomi,
-          ),
-          _BuildButton(
-            icon: RemixIcons.download_2_line,
-            title: l.importTachiyomi,
-            subtitle: l.importTachiyomiSubtitle,
-            onTap: _importTachiyomi,
-          ),
-          _BuildButton(
-            icon: RemixIcons.scissors_cut_line,
-            title: l.backupFixLibrary,
-            subtitle: l.backupFixLibrarySubtitle,
-            onTap: _fixLibrary,
-          ),
-          const SizedBox(height: 8),
-          _BuildButton(
-            icon: RemixIcons.time_line,
-            title: l.periodicBackups,
-            onTap: () {
-              Navigator.push(
-                context,
-                MaterialPageRoute(
-                  builder: (context) => const PeriodicBackupsScreen(),
-                ),
-              );
-            },
-          ),
-          const SizedBox(height: 24),
-        ],
-      )),
-      ),
+      body: CappedContentWidth(child: ListView(
+      padding: const EdgeInsets.symmetric(vertical: 8),
+      children: [
+        _AppSectionHeader(title: l.kotatsuSectionTitle),
+        _BuildButton(
+          icon: RemixIcons.stack_line,
+          title: l.exportKotatsu,
+          subtitle: l.exportKotatsuSubtitle,
+          onTap: _exportKotatsu,
+        ),
+        _BuildButton(
+          icon: RemixIcons.archive_drawer_line,
+          title: l.importKotatsu,
+          subtitle: l.importKotatsuSubtitle,
+          onTap: _importKotatsu,
+        ),
+        const SizedBox(height: 8),
+        _AppSectionHeader(title: l.tachiyomiSectionTitle),
+        _BuildButton(
+          icon: RemixIcons.upload_2_line,
+          title: l.exportTachiyomi,
+          subtitle: l.exportTachiyomiSubtitle,
+          onTap: _exportTachiyomi,
+        ),
+        _BuildButton(
+          icon: RemixIcons.download_2_line,
+          title: l.importTachiyomi,
+          subtitle: l.importTachiyomiSubtitle,
+          onTap: _importTachiyomi,
+        ),
+        _BuildButton(
+          icon: RemixIcons.scissors_cut_line,
+          title: l.backupFixLibrary,
+          subtitle: l.backupFixLibrarySubtitle,
+          onTap: _fixLibrary,
+        ),
+        const SizedBox(height: 8),
+        _BuildButton(
+          icon: RemixIcons.time_line,
+          title: l.periodicBackups,
+          onTap: () {
+            Navigator.push(
+              context,
+              MaterialPageRoute(
+                builder: (context) => const PeriodicBackupsScreen(),
+              ),
+            );
+          },
+        ),
+        const SizedBox(height: 24),
+      ],
+    )),
     );
   }
 }

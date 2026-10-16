@@ -1,7 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:remixicon/remixicon.dart';
-import 'package:yomou/core/theme/layout.dart';
 import 'package:yomou/core/widgets/responsive.dart';
 import 'package:yomou/features/settings/providers/reader_settings_provider.dart';
 import 'package:yomou/features/settings/screens/reader_actions_screen.dart';
@@ -37,298 +36,294 @@ class ReaderSettingsScreen extends ConsumerWidget {
       // were the only thing on this screen that no other settings screen had,
       // and they read as panels inside a panel once the detail pane itself is
       // already a distinct surface.
-      body: SafeArea(
-        top: false,
-        minimum: const EdgeInsets.only(bottom: kBottomChromeClearance),
-        child: CappedContentWidth(child: ListView(
-        padding: const EdgeInsets.symmetric(vertical: 8),
-        children: [
-          M3SectionHeader(title: l.rsetSectionReading),
-          _PickerRow(
-            icon: RemixIcons.book_2_line,
+      body: CappedContentWidth(child: ListView(
+      padding: const EdgeInsets.symmetric(vertical: 8),
+      children: [
+        M3SectionHeader(title: l.rsetSectionReading),
+        _PickerRow(
+          icon: RemixIcons.book_2_line,
+          title: l.rsetDefaultMode,
+          subtitle: l.rsetDefaultModeSub,
+          value: _modeLabel(l, s.readingMode),
+          onTap: () => _pick(
+            context: context,
             title: l.rsetDefaultMode,
-            subtitle: l.rsetDefaultModeSub,
-            value: _modeLabel(l, s.readingMode),
-            onTap: () => _pick(
-              context: context,
-              title: l.rsetDefaultMode,
-              options: [
-                (kModeStandard, l.rsetModeStandard),
-                (kModeRtl, l.rsetModeRtl),
-                (kModeVertical, l.rsetModeVertical),
-                (kModeWebtoon, l.rsetModeWebtoon),
-              ],
-              selected: s.readingMode,
-              onSelect: n.setReadingMode,
-            ),
-          ),
-          _ToggleRow(
-            icon: RemixIcons.layout_row_line,
-            title: l.rsetTwoPages,
-            subtitle: paged ? l.rsetTwoPagesSub : l.rsetTwoPagesUnavailable,
-            value: s.twoPages,
-            enabled: paged,
-            onChanged: n.setTwoPages,
-          ),
-          _PickerRow(
-            icon: RemixIcons.aspect_ratio_line,
-            title: l.rsetScaleMode,
-            subtitle: l.rsetScaleModeSub,
-            value: _scaleLabel(l, s.scaleMode),
-            onTap: () => _pick(
-              context: context,
-              title: l.rsetScaleMode,
-              options: [
-                (kScaleFitCenter, l.rsetScaleFitCenter),
-                (kScaleFitHeight, l.rsetScaleFitHeight),
-                (kScaleFitWidth, l.rsetScaleFitWidth),
-                (kScaleKeepAtStart, l.rsetScaleKeepAtStart),
-              ],
-              selected: s.scaleMode,
-              onSelect: n.setScaleMode,
-            ),
-          ),
-
-          // Its own section rather than trailing the scale picker: both rows
-          // here are read inside the reader's vertical builder, so they belong
-          // with the reading mode that selects it, not with how a page is fitted
-          // to the screen.
-          M3SectionHeader(title: l.rsetSectionStrip),
-          _SliderRow(
-            icon: RemixIcons.zoom_out_line,
-            title: l.rsetWebtoonZoomOut,
-            subtitle: strip
-                ? l.rsetWebtoonZoomOutSub
-                : l.rsetStripUnavailable,
-            value: '${s.webtoonZoomOut}%',
-            value_: s.webtoonZoomOut.toDouble(),
-            max: 50,
-            divisions: 5,
-            enabled: strip,
-            onChanged: (v) => n.setWebtoonZoomOut(v.round()),
-          ),
-          _ToggleRow(
-            icon: RemixIcons.stack_line,
-            title: l.rsetWebtoonGaps,
-            subtitle: strip ? l.rsetWebtoonGapsSub : l.rsetStripUnavailable,
-            value: s.webtoonGaps,
-            enabled: strip,
-            onChanged: n.setWebtoonGaps,
-          ),
-
-          M3SectionHeader(title: l.rsetSectionControls),
-          _NavRow(
-            icon: RemixIcons.cursor_hand,
-            title: l.settingsReaderActions,
-            subtitle: l.ractMenuSubtitle,
-            onTap: () => Navigator.of(context).push(
-              MaterialPageRoute(builder: (_) => const ReaderActionsScreen()),
-            ),
-          ),
-          // Volume keys are the one setting the platform can refuse. Android
-          // intercepts the press outright; iOS has no equivalent, so the port
-          // has to observe and undo, which can fail. When it does the row is
-          // disabled and says why rather than offering a switch that does
-          // nothing.
-          Builder(
-            builder: (context) {
-              final available =
-                  ref.watch(readerVolumeKeysAvailableProvider).value ?? true;
-              return _ToggleRow(
-                icon: RemixIcons.volume_up_line,
-                title: l.rsetVolumeButtons,
-                subtitle: available
-                    ? l.rsetVolumeButtonsSub
-                    : l.rsetVolumeButtonsUnavailable,
-                value: s.volumeButtons,
-                enabled: available,
-                onChanged: n.setVolumeButtons,
-              );
-            },
-          ),
-          _ToggleRow(
-            icon: RemixIcons.swap_line,
-            title: l.rsetInvertNavigation,
-            subtitle: l.rsetInvertNavigationSub,
-            value: s.invertNavigation,
-            onChanged: n.setInvertNavigation,
-          ),
-          _ToggleRow(
-            icon: RemixIcons.cpu_line,
-            title: l.rsetReduceMemory,
-            subtitle: l.rsetReduceMemorySub,
-            value: s.reduceMemory,
-            onChanged: n.setReduceMemory,
-          ),
-
-          M3SectionHeader(title: l.rsetSectionEInk),
-          // Shown on every device: Android offers no way to ask whether a
-          // panel is e-ink, and the flash is off until the user asks for it.
-          _ToggleRow(
-            icon: RemixIcons.flashlight_line,
-            title: l.rsetFlashOnChange,
-            subtitle: l.rsetFlashOnChangeSub,
-            value: s.flashOnPageChange,
-            onChanged: n.setFlashOnPageChange,
-          ),
-          _SliderRow(
-            icon: RemixIcons.timer_line,
-            title: l.rsetFlashDuration,
-            subtitle: l.rsetFlashDurationSub,
-            value: '${s.flashDurationMs} ms',
-            value_: s.flashDurationMs.toDouble(),
-            min: 100,
-            max: 1000,
-            divisions: 18,
-            enabled: s.flashOnPageChange,
-            onChanged: (v) => n.setFlashDuration(v.round()),
-          ),
-          _SliderRow(
-            icon: RemixIcons.repeat_2_line,
-            title: l.rsetFlashEvery,
-            subtitle: l.rsetFlashEverySub,
-            value: l.rsetFlashEveryUnit(s.flashEvery),
-            value_: s.flashEvery.toDouble(),
-            min: 1,
-            max: 10,
-            divisions: 9,
-            enabled: s.flashOnPageChange,
-            onChanged: (v) => n.setFlashEvery(v.round()),
-          ),
-          // Two values, so both are on screen at once rather than behind a
-          // sheet that has to be opened, read, and dismissed to change a
-          // single bit.
-          _SegmentedRow(
-            icon: RemixIcons.drop_line,
-            title: l.rsetFlashWith,
-            subtitle: l.rsetFlashWithSub,
-            value: s.flashWith,
-            enabled: s.flashOnPageChange,
             options: [
-              (kFlashWhite, l.rsetFlashWhite),
-              (kFlashBlack, l.rsetFlashBlack),
+              (kModeStandard, l.rsetModeStandard),
+              (kModeRtl, l.rsetModeRtl),
+              (kModeVertical, l.rsetModeVertical),
+              (kModeWebtoon, l.rsetModeWebtoon),
             ],
-            onSelect: n.setFlashWith,
+            selected: s.readingMode,
+            onSelect: n.setReadingMode,
           ),
+        ),
+        _ToggleRow(
+          icon: RemixIcons.layout_row_line,
+          title: l.rsetTwoPages,
+          subtitle: paged ? l.rsetTwoPagesSub : l.rsetTwoPagesUnavailable,
+          value: s.twoPages,
+          enabled: paged,
+          onChanged: n.setTwoPages,
+        ),
+        _PickerRow(
+          icon: RemixIcons.aspect_ratio_line,
+          title: l.rsetScaleMode,
+          subtitle: l.rsetScaleModeSub,
+          value: _scaleLabel(l, s.scaleMode),
+          onTap: () => _pick(
+            context: context,
+            title: l.rsetScaleMode,
+            options: [
+              (kScaleFitCenter, l.rsetScaleFitCenter),
+              (kScaleFitHeight, l.rsetScaleFitHeight),
+              (kScaleFitWidth, l.rsetScaleFitWidth),
+              (kScaleKeepAtStart, l.rsetScaleKeepAtStart),
+            ],
+            selected: s.scaleMode,
+            onSelect: n.setScaleMode,
+          ),
+        ),
 
-          M3SectionHeader(title: l.rsetSectionDisplay),
-          _ToggleRow(
-            icon: RemixIcons.fullscreen_line,
-            title: l.rsetFullscreen,
-            subtitle: l.rsetFullscreenSub,
-            value: s.fullscreen,
-            onChanged: n.setFullscreen,
+        // Its own section rather than trailing the scale picker: both rows
+        // here are read inside the reader's vertical builder, so they belong
+        // with the reading mode that selects it, not with how a page is fitted
+        // to the screen.
+        M3SectionHeader(title: l.rsetSectionStrip),
+        _SliderRow(
+          icon: RemixIcons.zoom_out_line,
+          title: l.rsetWebtoonZoomOut,
+          subtitle: strip
+              ? l.rsetWebtoonZoomOutSub
+              : l.rsetStripUnavailable,
+          value: '${s.webtoonZoomOut}%',
+          value_: s.webtoonZoomOut.toDouble(),
+          max: 50,
+          divisions: 5,
+          enabled: strip,
+          onChanged: (v) => n.setWebtoonZoomOut(v.round()),
+        ),
+        _ToggleRow(
+          icon: RemixIcons.stack_line,
+          title: l.rsetWebtoonGaps,
+          subtitle: strip ? l.rsetWebtoonGapsSub : l.rsetStripUnavailable,
+          value: s.webtoonGaps,
+          enabled: strip,
+          onChanged: n.setWebtoonGaps,
+        ),
+
+        M3SectionHeader(title: l.rsetSectionControls),
+        _NavRow(
+          icon: RemixIcons.cursor_hand,
+          title: l.settingsReaderActions,
+          subtitle: l.ractMenuSubtitle,
+          onTap: () => Navigator.of(context).push(
+            MaterialPageRoute(builder: (_) => const ReaderActionsScreen()),
           ),
-          _PickerRow(
-            icon: RemixIcons.smartphone_line,
+        ),
+        // Volume keys are the one setting the platform can refuse. Android
+        // intercepts the press outright; iOS has no equivalent, so the port
+        // has to observe and undo, which can fail. When it does the row is
+        // disabled and says why rather than offering a switch that does
+        // nothing.
+        Builder(
+          builder: (context) {
+            final available =
+                ref.watch(readerVolumeKeysAvailableProvider).value ?? true;
+            return _ToggleRow(
+              icon: RemixIcons.volume_up_line,
+              title: l.rsetVolumeButtons,
+              subtitle: available
+                  ? l.rsetVolumeButtonsSub
+                  : l.rsetVolumeButtonsUnavailable,
+              value: s.volumeButtons,
+              enabled: available,
+              onChanged: n.setVolumeButtons,
+            );
+          },
+        ),
+        _ToggleRow(
+          icon: RemixIcons.swap_line,
+          title: l.rsetInvertNavigation,
+          subtitle: l.rsetInvertNavigationSub,
+          value: s.invertNavigation,
+          onChanged: n.setInvertNavigation,
+        ),
+        _ToggleRow(
+          icon: RemixIcons.cpu_line,
+          title: l.rsetReduceMemory,
+          subtitle: l.rsetReduceMemorySub,
+          value: s.reduceMemory,
+          onChanged: n.setReduceMemory,
+        ),
+
+        M3SectionHeader(title: l.rsetSectionEInk),
+        // Shown on every device: Android offers no way to ask whether a
+        // panel is e-ink, and the flash is off until the user asks for it.
+        _ToggleRow(
+          icon: RemixIcons.flashlight_line,
+          title: l.rsetFlashOnChange,
+          subtitle: l.rsetFlashOnChangeSub,
+          value: s.flashOnPageChange,
+          onChanged: n.setFlashOnPageChange,
+        ),
+        _SliderRow(
+          icon: RemixIcons.timer_line,
+          title: l.rsetFlashDuration,
+          subtitle: l.rsetFlashDurationSub,
+          value: '${s.flashDurationMs} ms',
+          value_: s.flashDurationMs.toDouble(),
+          min: 100,
+          max: 1000,
+          divisions: 18,
+          enabled: s.flashOnPageChange,
+          onChanged: (v) => n.setFlashDuration(v.round()),
+        ),
+        _SliderRow(
+          icon: RemixIcons.repeat_2_line,
+          title: l.rsetFlashEvery,
+          subtitle: l.rsetFlashEverySub,
+          value: l.rsetFlashEveryUnit(s.flashEvery),
+          value_: s.flashEvery.toDouble(),
+          min: 1,
+          max: 10,
+          divisions: 9,
+          enabled: s.flashOnPageChange,
+          onChanged: (v) => n.setFlashEvery(v.round()),
+        ),
+        // Two values, so both are on screen at once rather than behind a
+        // sheet that has to be opened, read, and dismissed to change a
+        // single bit.
+        _SegmentedRow(
+          icon: RemixIcons.drop_line,
+          title: l.rsetFlashWith,
+          subtitle: l.rsetFlashWithSub,
+          value: s.flashWith,
+          enabled: s.flashOnPageChange,
+          options: [
+            (kFlashWhite, l.rsetFlashWhite),
+            (kFlashBlack, l.rsetFlashBlack),
+          ],
+          onSelect: n.setFlashWith,
+        ),
+
+        M3SectionHeader(title: l.rsetSectionDisplay),
+        _ToggleRow(
+          icon: RemixIcons.fullscreen_line,
+          title: l.rsetFullscreen,
+          subtitle: l.rsetFullscreenSub,
+          value: s.fullscreen,
+          onChanged: n.setFullscreen,
+        ),
+        _PickerRow(
+          icon: RemixIcons.smartphone_line,
+          title: l.rsetOrientation,
+          subtitle: l.rsetOrientationSub,
+          value: _orientationLabel(l, s.orientation),
+          onTap: () => _pick(
+            context: context,
             title: l.rsetOrientation,
-            subtitle: l.rsetOrientationSub,
-            value: _orientationLabel(l, s.orientation),
-            onTap: () => _pick(
-              context: context,
-              title: l.rsetOrientation,
-              options: [
-                (kOrientDefault, l.rsetOrientDefault),
-                (kOrientAutomatic, l.rsetOrientAutomatic),
-                (kOrientPortrait, l.rsetOrientPortrait),
-                (kOrientLandscape, l.rsetOrientLandscape),
-              ],
-              selected: s.orientation,
-              onSelect: n.setOrientation,
-            ),
+            options: [
+              (kOrientDefault, l.rsetOrientDefault),
+              (kOrientAutomatic, l.rsetOrientAutomatic),
+              (kOrientPortrait, l.rsetOrientPortrait),
+              (kOrientLandscape, l.rsetOrientLandscape),
+            ],
+            selected: s.orientation,
+            onSelect: n.setOrientation,
           ),
-          _ToggleRow(
-            icon: RemixIcons.sun_line,
-            title: l.rsetKeepScreenOn,
-            subtitle: l.rsetKeepScreenOnSub,
-            value: s.keepScreenOn,
-            onChanged: n.setKeepScreenOn,
-          ),
-          _ToggleRow(
-            icon: RemixIcons.information_line,
-            title: l.rsetShowInfoBar,
-            subtitle: l.rsetShowInfoBarSub,
-            value: s.showInfoBar,
-            onChanged: n.setShowInfoBar,
-          ),
-          // Only meaningful while the bar is on, so it dims rather than hides.
-          _ToggleRow(
-            icon: RemixIcons.image_line,
-            title: l.rsetTransparentInfoBar,
-            subtitle: l.rsetTransparentInfoBarSub,
-            value: s.transparentInfoBar,
-            enabled: s.showInfoBar,
-            onChanged: n.setTransparentInfoBar,
-          ),
-          _ToggleRow(
-            icon: RemixIcons.message_2_line,
-            title: l.rsetShowChapterPopup,
-            subtitle: l.rsetShowChapterPopupSub,
-            value: s.showChapterPopup,
-            onChanged: n.setShowChapterPopup,
-          ),
+        ),
+        _ToggleRow(
+          icon: RemixIcons.sun_line,
+          title: l.rsetKeepScreenOn,
+          subtitle: l.rsetKeepScreenOnSub,
+          value: s.keepScreenOn,
+          onChanged: n.setKeepScreenOn,
+        ),
+        _ToggleRow(
+          icon: RemixIcons.information_line,
+          title: l.rsetShowInfoBar,
+          subtitle: l.rsetShowInfoBarSub,
+          value: s.showInfoBar,
+          onChanged: n.setShowInfoBar,
+        ),
+        // Only meaningful while the bar is on, so it dims rather than hides.
+        _ToggleRow(
+          icon: RemixIcons.image_line,
+          title: l.rsetTransparentInfoBar,
+          subtitle: l.rsetTransparentInfoBarSub,
+          value: s.transparentInfoBar,
+          enabled: s.showInfoBar,
+          onChanged: n.setTransparentInfoBar,
+        ),
+        _ToggleRow(
+          icon: RemixIcons.message_2_line,
+          title: l.rsetShowChapterPopup,
+          subtitle: l.rsetShowChapterPopupSub,
+          value: s.showChapterPopup,
+          onChanged: n.setShowChapterPopup,
+        ),
 
-          M3SectionHeader(title: l.rsetSectionPages),
-          _PickerRow(
-            icon: RemixIcons.paint_line,
+        M3SectionHeader(title: l.rsetSectionPages),
+        _PickerRow(
+          icon: RemixIcons.paint_line,
+          title: l.rsetBackground,
+          subtitle: l.rsetBackgroundSub,
+          value: _backgroundLabel(l, s.background),
+          onTap: () => _pick(
+            context: context,
             title: l.rsetBackground,
-            subtitle: l.rsetBackgroundSub,
-            value: _backgroundLabel(l, s.background),
-            onTap: () => _pick(
-              context: context,
-              title: l.rsetBackground,
-              options: [
-                (kBgDefault, l.rsetBgDefault),
-                (kBgLight, l.rsetBgLight),
-                (kBgDark, l.rsetBgDark),
-                (kBgWhite, l.rsetBgWhite),
-                (kBgBlack, l.rsetBgBlack),
-              ],
-              selected: s.background,
-              onSelect: n.setBackground,
-            ),
+            options: [
+              (kBgDefault, l.rsetBgDefault),
+              (kBgLight, l.rsetBgLight),
+              (kBgDark, l.rsetBgDark),
+              (kBgWhite, l.rsetBgWhite),
+              (kBgBlack, l.rsetBgBlack),
+            ],
+            selected: s.background,
+            onSelect: n.setBackground,
           ),
-          _ToggleRow(
-            icon: RemixIcons.hashtag,
-            title: l.rsetNumberedPages,
-            subtitle: l.rsetNumberedPagesSub,
-            value: s.numberedPages,
-            onChanged: n.setNumberedPages,
-          ),
-          _PickerRow(
-            icon: RemixIcons.download_2_line,
+        ),
+        _ToggleRow(
+          icon: RemixIcons.hashtag,
+          title: l.rsetNumberedPages,
+          subtitle: l.rsetNumberedPagesSub,
+          value: s.numberedPages,
+          onChanged: n.setNumberedPages,
+        ),
+        _PickerRow(
+          icon: RemixIcons.download_2_line,
+          title: l.rsetPreload,
+          subtitle: l.rsetPreloadSub,
+          value: _preloadLabel(l, s.preload),
+          onTap: () => _pick(
+            context: context,
             title: l.rsetPreload,
-            subtitle: l.rsetPreloadSub,
-            value: _preloadLabel(l, s.preload),
-            onTap: () => _pick(
-              context: context,
-              title: l.rsetPreload,
-              options: [
-                (kPreloadAlways, l.rsetPreloadAlways),
-                (kPreloadWifiOnly, l.rsetPreloadWifiOnly),
-                (kPreloadNever, l.rsetPreloadNever),
-              ],
-              selected: s.preload,
-              onSelect: n.setPreload,
-            ),
+            options: [
+              (kPreloadAlways, l.rsetPreloadAlways),
+              (kPreloadWifiOnly, l.rsetPreloadWifiOnly),
+              (kPreloadNever, l.rsetPreloadNever),
+            ],
+            selected: s.preload,
+            onSelect: n.setPreload,
           ),
+        ),
 
-          _NavRow(
-            icon: RemixIcons.refresh_line,
-            title: l.rsetReset,
-            subtitle: l.rsetResetSub,
-            destructive: true,
-            onTap: () => _confirmReset(context, ref),
-          ),
+        _NavRow(
+          icon: RemixIcons.refresh_line,
+          title: l.rsetReset,
+          subtitle: l.rsetResetSub,
+          destructive: true,
+          onTap: () => _confirmReset(context, ref),
+        ),
 
-          // A statement about the whole screen rather than a caption for the
-          // rows above it, so it sits below them all and carries no section.
-          SettingsFootnote(l.rsetDefaultsNote),
+        // A statement about the whole screen rather than a caption for the
+        // rows above it, so it sits below them all and carries no section.
+        SettingsFootnote(l.rsetDefaultsNote),
 
-          const SizedBox(height: 24),
-        ],
-      )),
-      ),
+        const SizedBox(height: 24),
+      ],
+    )),
     );
   }
 

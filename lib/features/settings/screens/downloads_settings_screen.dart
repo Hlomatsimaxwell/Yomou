@@ -2,7 +2,6 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:remixicon/remixicon.dart';
 import 'package:yomou/core/backup/saf_directory_picker.dart';
-import 'package:yomou/core/theme/layout.dart';
 import 'package:yomou/core/widgets/responsive.dart';
 import 'package:yomou/features/settings/providers/download_settings_provider.dart';
 import 'package:yomou/features/settings/screens/manga_directories_screen.dart';
@@ -22,68 +21,64 @@ class DownloadsSettingsScreen extends ConsumerWidget {
 
     return Scaffold(
       appBar: SettingsAppBar(title: l.downloads),
-      body: SafeArea(
-        top: false,
-        minimum: const EdgeInsets.only(bottom: kBottomChromeClearance),
-        child: CappedContentWidth(child: ListView(
-        padding: const EdgeInsets.symmetric(vertical: 8),
-        children: [
-          _row(
-            context: context,
-            icon: RemixIcons.folder_open_line,
-            title: l.dlsDirsTitle,
-            subtitle: Text(l.dlsDirsCount(3 + s.customDirs.length)),
-            onTap: () {
-              Navigator.push(
-                context,
-                MaterialPageRoute(
-                  builder: (context) => const MangaDirectoriesScreen(),
-                ),
-              );
-            },
+      body: CappedContentWidth(child: ListView(
+      padding: const EdgeInsets.symmetric(vertical: 8),
+      children: [
+        _row(
+          context: context,
+          icon: RemixIcons.folder_open_line,
+          title: l.dlsDirsTitle,
+          subtitle: Text(l.dlsDirsCount(3 + s.customDirs.length)),
+          onTap: () {
+            Navigator.push(
+              context,
+              MaterialPageRoute(
+                builder: (context) => const MangaDirectoriesScreen(),
+              ),
+            );
+          },
+        ),
+        _row(
+          context: context,
+          icon: RemixIcons.folder_line,
+          title: l.dlsFolderTitle,
+          subtitle: _resolvedPath(s.downloadsFolder, l.dlsNotSet),
+          onTap: () => _showFolderPicker(context, l, s, notifier),
+        ),
+        _row(
+          context: context,
+          icon: RemixIcons.file_line,
+          title: l.dlsFormatTitle,
+          subtitle: Text(_formatLabel(l, s.preferredFormat)),
+          onTap: () => _showFormatPicker(context, l, s, notifier),
+        ),
+        _row(
+          context: context,
+          icon: RemixIcons.signal_wifi_line,
+          title: l.dlsNetworkTitle,
+          subtitle: Text(_networkLabel(l, s.cellularNetwork)),
+          onTap: () => _showNetworkPicker(context, l, s, notifier),
+        ),
+        _infoBlock(context, l),
+        M3SectionHeader(title: l.dlsSectionSaving),
+        _row(
+          context: context,
+          icon: RemixIcons.save_line,
+          title: l.dlsSaveDirTitle,
+          subtitle: _resolvedPath(s.defaultPageSaveDir, l.dlsNotSet),
+          onTap: () => _pickPageSaveDir(context, notifier),
+        ),
+        SwitchListTile(
+          title: Text(l.dlsAskDirTitle),
+          subtitle: Text(l.dlsAskDirSubtitle),
+          value: s.askDestinationEveryTime,
+          onChanged: (_) => notifier.setAskDestinationEveryTime(
+            !s.askDestinationEveryTime,
           ),
-          _row(
-            context: context,
-            icon: RemixIcons.folder_line,
-            title: l.dlsFolderTitle,
-            subtitle: _resolvedPath(s.downloadsFolder, l.dlsNotSet),
-            onTap: () => _showFolderPicker(context, l, s, notifier),
-          ),
-          _row(
-            context: context,
-            icon: RemixIcons.file_line,
-            title: l.dlsFormatTitle,
-            subtitle: Text(_formatLabel(l, s.preferredFormat)),
-            onTap: () => _showFormatPicker(context, l, s, notifier),
-          ),
-          _row(
-            context: context,
-            icon: RemixIcons.signal_wifi_line,
-            title: l.dlsNetworkTitle,
-            subtitle: Text(_networkLabel(l, s.cellularNetwork)),
-            onTap: () => _showNetworkPicker(context, l, s, notifier),
-          ),
-          _infoBlock(context, l),
-          M3SectionHeader(title: l.dlsSectionSaving),
-          _row(
-            context: context,
-            icon: RemixIcons.save_line,
-            title: l.dlsSaveDirTitle,
-            subtitle: _resolvedPath(s.defaultPageSaveDir, l.dlsNotSet),
-            onTap: () => _pickPageSaveDir(context, notifier),
-          ),
-          SwitchListTile(
-            title: Text(l.dlsAskDirTitle),
-            subtitle: Text(l.dlsAskDirSubtitle),
-            value: s.askDestinationEveryTime,
-            onChanged: (_) => notifier.setAskDestinationEveryTime(
-              !s.askDestinationEveryTime,
-            ),
-          ),
-          const SizedBox(height: 24),
-        ],
-      )),
-      ),
+        ),
+        const SizedBox(height: 24),
+      ],
+    )),
     );
   }
 

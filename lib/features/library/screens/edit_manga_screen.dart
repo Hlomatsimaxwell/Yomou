@@ -265,102 +265,100 @@ class _EditMangaScreenState extends ConsumerState<EditMangaScreen> {
       },
       child: Scaffold(
         backgroundColor: Theme.of(context).scaffoldBackgroundColor,
-        body: SafeArea(
-          child: Column(
-            children: [
-              IosNavBar(
-                showBack: false,
-                leading: Center(
-                  child: AppPress(
-                    onTap: () => Navigator.maybePop(context),
-                    child: Padding(
-                      padding: const EdgeInsets.all(8),
-                      child: Icon(RemixIcons.close_line, size: 22, color: fg),
+        body: Column(
+          children: [
+            IosNavBar(
+              showBack: false,
+              leading: Center(
+                child: AppPress(
+                  onTap: () => Navigator.maybePop(context),
+                  child: Padding(
+                    padding: const EdgeInsets.all(8),
+                    child: Icon(RemixIcons.close_line, size: 22, color: fg),
+                  ),
+                ),
+              ),
+              titleWidget: Text(
+                l.mangaEdit,
+                style: TextStyle(
+                  color: fg,
+                  fontSize: 17,
+                  fontWeight: FontWeight.w600,
+                ),
+              ),
+              actions: [
+                if (_saving)
+                  const Padding(
+                    padding: EdgeInsets.symmetric(
+                      horizontal: 14,
+                      vertical: 10,
                     ),
-                  ),
-                ),
-                titleWidget: Text(
-                  l.mangaEdit,
-                  style: TextStyle(
-                    color: fg,
-                    fontSize: 17,
-                    fontWeight: FontWeight.w600,
-                  ),
-                ),
-                actions: [
-                  if (_saving)
-                    const Padding(
-                      padding: EdgeInsets.symmetric(
+                    child: SizedBox(
+                      width: 18,
+                      height: 18,
+                      child: CircularProgressIndicator(strokeWidth: 2),
+                    ),
+                  )
+                else
+                  AppPress(
+                    onTap: _hasChanges ? _save : null,
+                    child: Padding(
+                      padding: const EdgeInsets.symmetric(
                         horizontal: 14,
                         vertical: 10,
                       ),
-                      child: SizedBox(
-                        width: 18,
-                        height: 18,
-                        child: CircularProgressIndicator(strokeWidth: 2),
-                      ),
-                    )
-                  else
-                    AppPress(
-                      onTap: _hasChanges ? _save : null,
-                      child: Padding(
-                        padding: const EdgeInsets.symmetric(
-                          horizontal: 14,
-                          vertical: 10,
-                        ),
-                        child: Text(
-                          l.save,
-                          style: TextStyle(
-                            color: _hasChanges ? scheme.primary : muted,
-                            fontSize: 17,
-                            fontWeight: FontWeight.w600,
-                          ),
+                      child: Text(
+                        l.save,
+                        style: TextStyle(
+                          color: _hasChanges ? scheme.primary : muted,
+                          fontSize: 17,
+                          fontWeight: FontWeight.w600,
                         ),
                       ),
                     ),
-                ],
-              ),
-              Expanded(
-                child: SingleChildScrollView(
-                  padding: const EdgeInsets.fromLTRB(20, 20, 20, 32),
-                  child: Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
-                      _buildSectionTitle(context, l.editMangaCover),
-                      const SizedBox(height: 12),
-                      _buildCoverSection(context),
-                      const SizedBox(height: 28),
-                      _buildSectionTitle(context, l.editMangaTitle),
-                      const SizedBox(height: 12),
-                      _buildTitleField(context),
-                      const SizedBox(height: 20),
-                      Row(
-                        crossAxisAlignment: CrossAxisAlignment.start,
-                        children: [
-                          Icon(
-                            RemixIcons.information_line,
-                            size: 16,
-                            color: muted,
-                          ),
-                          const SizedBox(width: 8),
-                          Expanded(
-                            child: Text(
-                              l.editChangesNote,
-                              style: TextStyle(
-                                color: muted,
-                                fontSize: 13,
-                                height: 1.4,
-                              ),
+                  ),
+              ],
+            ),
+            Expanded(
+              child: SingleChildScrollView(
+                padding: const EdgeInsets.fromLTRB(20, 20, 20, 32),
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    _buildSectionTitle(context, l.editMangaCover),
+                    const SizedBox(height: 12),
+                    _buildCoverSection(context),
+                    const SizedBox(height: 28),
+                    _buildSectionTitle(context, l.editMangaTitle),
+                    const SizedBox(height: 12),
+                    _buildTitleField(context),
+                    const SizedBox(height: 20),
+                    Row(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        Icon(
+                          RemixIcons.information_line,
+                          size: 16,
+                          color: muted,
+                        ),
+                        const SizedBox(width: 8),
+                        Expanded(
+                          child: Text(
+                            l.editChangesNote,
+                            style: TextStyle(
+                              color: muted,
+                              fontSize: 13,
+                              height: 1.4,
                             ),
                           ),
-                        ],
-                      ),
-                    ],
-                  ),
+                        ),
+                      ],
+                    ),
+                  ],
                 ),
               ),
-            ],
-          ),
+            ),
+          ],
         ),
       ),
     );

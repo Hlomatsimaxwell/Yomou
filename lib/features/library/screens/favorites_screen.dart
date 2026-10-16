@@ -51,72 +51,70 @@ class _FavoritesScreenState extends ConsumerState<FavoritesScreen> {
 
     return Scaffold(
       backgroundColor: Theme.of(context).scaffoldBackgroundColor,
-      body: SafeArea(
-        child: TabHeader(
-          mode: usesWideLayout(context)
-              ? TabHeaderMode.fixed
-              : TabHeaderMode.collapsing,
-          title: AppLocalizations.of(context).favorites,
-          searchBar: _buildSearchBar(),
-          body: CustomScrollView(
-            physics: const AlwaysScrollableScrollPhysics(),
-            slivers: [
-              SliverToBoxAdapter(
-                child: SizedBox(
-                  height: 16,
-                  child: favoritesAsync.when(
-                    loading: () => const SizedBox.shrink(),
-                    error: (e, _) => const SizedBox.shrink(),
-                    data: (_) => const SizedBox.shrink(),
+      body: TabHeader(
+        mode: usesWideLayout(context)
+            ? TabHeaderMode.fixed
+            : TabHeaderMode.collapsing,
+        title: AppLocalizations.of(context).favorites,
+        searchBar: _buildSearchBar(),
+        body: CustomScrollView(
+          physics: const AlwaysScrollableScrollPhysics(),
+          slivers: [
+            SliverToBoxAdapter(
+              child: SizedBox(
+                height: 16,
+                child: favoritesAsync.when(
+                  loading: () => const SizedBox.shrink(),
+                  error: (e, _) => const SizedBox.shrink(),
+                  data: (_) => const SizedBox.shrink(),
+                ),
+              ),
+            ),
+            favoritesAsync.when(
+              loading: () => SliverToBoxAdapter(
+                child: Padding(
+                  padding: const EdgeInsets.symmetric(vertical: 80),
+                  child: Center(
+                    child: CircularProgressIndicator(
+                      color: Theme.of(context).colorScheme.primary,
+                    ),
                   ),
                 ),
               ),
-              favoritesAsync.when(
-                loading: () => SliverToBoxAdapter(
-                  child: Padding(
-                    padding: const EdgeInsets.symmetric(vertical: 80),
-                    child: Center(
-                      child: CircularProgressIndicator(
-                        color: Theme.of(context).colorScheme.primary,
+              error: (e, _) => SliverToBoxAdapter(
+                child: Padding(
+                  padding: const EdgeInsets.symmetric(vertical: 60),
+                  child: Center(
+                    child: Text(
+                      AppLocalizations.of(context).favoritesCouldNotLoad,
+                      style: TextStyle(
+                        color: Theme.of(context).brightness == Brightness.dark
+                            ? Colors.white54
+                            : const Color(0xFF49454F),
+                        fontSize: 16,
                       ),
                     ),
                   ),
                 ),
-                error: (e, _) => SliverToBoxAdapter(
-                  child: Padding(
-                    padding: const EdgeInsets.symmetric(vertical: 60),
-                    child: Center(
-                      child: Text(
-                        AppLocalizations.of(context).favoritesCouldNotLoad,
-                        style: TextStyle(
-                          color: Theme.of(context).brightness == Brightness.dark
-                              ? Colors.white54
-                              : const Color(0xFF49454F),
-                          fontSize: 16,
+              ),
+              data: (items) {
+                List<Manga> displayed = items;
+                if (_searchQuery.isNotEmpty) {
+                  displayed = items
+                      .where(
+                        (m) => m.title.toLowerCase().contains(
+                          _searchQuery.toLowerCase(),
                         ),
-                      ),
-                    ),
-                  ),
-                ),
-                data: (items) {
-                  List<Manga> displayed = items;
-                  if (_searchQuery.isNotEmpty) {
-                    displayed = items
-                        .where(
-                          (m) => m.title.toLowerCase().contains(
-                            _searchQuery.toLowerCase(),
-                          ),
-                        )
-                        .toList();
-                  }
-                  return _buildMangaGrid(displayed);
-                },
-              ),
-              SliverPadding(
-                padding: EdgeInsets.only(bottom: bottomBarClearance(context)),
-              ),
-            ],
-          ),
+                      )
+                      .toList();
+                }
+                return _buildMangaGrid(displayed);
+              },
+            ),
+            SliverPadding(
+              padding: EdgeInsets.only(bottom: bottomBarClearance(context)),
+            ),
+          ],
         ),
       ),
     );

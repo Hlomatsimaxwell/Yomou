@@ -2,7 +2,6 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:remixicon/remixicon.dart';
 import 'package:yomou/core/backup/saf_directory_picker.dart';
-import 'package:yomou/core/theme/layout.dart';
 import 'package:yomou/core/utils/relative_time.dart';
 import 'package:yomou/core/widgets/responsive.dart';
 import 'package:yomou/features/settings/providers/cache_settings_provider.dart';
@@ -46,116 +45,112 @@ class _PeriodicBackupsScreenState extends ConsumerState<PeriodicBackupsScreen> {
 
     return Scaffold(
       appBar: SettingsAppBar(title: l.periodicBackups),
-      body: SafeArea(
-        top: false,
-        minimum: const EdgeInsets.only(bottom: kBottomChromeClearance),
-        child: CappedContentWidth(child: ListView(
-        padding: const EdgeInsets.symmetric(vertical: 8, horizontal: 20),
-        children: [
-          _ToggleCard(
-            title: l.enablePeriodicBackups,
-            value: settings.enablePeriodicBackups,
+      body: CappedContentWidth(child: ListView(
+      padding: const EdgeInsets.symmetric(vertical: 8, horizontal: 20),
+      children: [
+        _ToggleCard(
+          title: l.enablePeriodicBackups,
+          value: settings.enablePeriodicBackups,
+          onChanged: (bool value) {
+            notifier.setEnablePeriodicBackups(value);
+            setState(() {});
+          },
+        ),
+        const SizedBox(height: 8),
+        _OutputDirectorySection(
+          title: l.backupsOutputDirectory,
+          // Resolve the tree URI to a real path for display; fall back to
+          // "not set" rather than showing a raw `content://…` string.
+          path: settings.backupsOutputDirectory.isEmpty
+              ? l.backupsOutputDirectoryNone
+              : _ResolvedBackupPath(uri: settings.backupsOutputDirectory),
+          onTap: () async {
+            final uri = await pickBackupDirectory();
+            if (uri == null || !mounted) return;
+            notifier.setBackupsOutputDirectory(uri);
+            setState(() {});
+          },
+        ),
+        const SizedBox(height: 8),
+        _BuildRow(
+          icon: RemixIcons.time_line,
+          title: l.backupCreationFrequency,
+          subtitle: _frequencyLabel(settings.backupFrequency),
+          onTap: () {
+            showFrequencySelectionSheet(context, ref);
+          },
+        ),
+        _BuildRow(
+          icon: RemixIcons.delete_bin_line,
+          title: l.deleteOldBackups,
+          subtitle:
+              'Auto remove backups older than ${settings.maxNumberOfBackups}',
+          trailing: _CustomSwitch(
+            value: settings.deleteOldBackups,
             onChanged: (bool value) {
-              notifier.setEnablePeriodicBackups(value);
+              notifier.setDeleteOldBackups(value);
               setState(() {});
             },
           ),
-          const SizedBox(height: 8),
-          _OutputDirectorySection(
-            title: l.backupsOutputDirectory,
-            // Resolve the tree URI to a real path for display; fall back to
-            // "not set" rather than showing a raw `content://…` string.
-            path: settings.backupsOutputDirectory.isEmpty
-                ? l.backupsOutputDirectoryNone
-                : _ResolvedBackupPath(uri: settings.backupsOutputDirectory),
-            onTap: () async {
-              final uri = await pickBackupDirectory();
-              if (uri == null || !mounted) return;
-              notifier.setBackupsOutputDirectory(uri);
-              setState(() {});
-            },
-          ),
-          const SizedBox(height: 8),
-          _BuildRow(
-            icon: RemixIcons.time_line,
-            title: l.backupCreationFrequency,
-            subtitle: _frequencyLabel(settings.backupFrequency),
-            onTap: () {
-              showFrequencySelectionSheet(context, ref);
-            },
-          ),
-          _BuildRow(
-            icon: RemixIcons.delete_bin_line,
-            title: l.deleteOldBackups,
-            subtitle:
-                'Auto remove backups older than ${settings.maxNumberOfBackups}',
-            trailing: _CustomSwitch(
-              value: settings.deleteOldBackups,
-              onChanged: (bool value) {
-                notifier.setDeleteOldBackups(value);
-                setState(() {});
-              },
+        ),
+        _BuildRow(
+          icon: RemixIcons.archive_line,
+          title: l.maxNumberOfBackups,
+          subtitle: 'Maximum number of backups to keep',
+          trailing: Text(
+            '${settings.maxNumberOfBackups}',
+            style: TextStyle(
+              fontSize: 15,
+              fontWeight: FontWeight.w600,
+              color: Theme.of(context).colorScheme.primary,
             ),
           ),
-          _BuildRow(
-            icon: RemixIcons.archive_line,
-            title: l.maxNumberOfBackups,
-            subtitle: 'Maximum number of backups to keep',
-            trailing: Text(
-              '${settings.maxNumberOfBackups}',
-              style: TextStyle(
-                fontSize: 15,
-                fontWeight: FontWeight.w600,
-                color: Theme.of(context).colorScheme.primary,
+        ),
+        const SizedBox(height: 6),
+        Padding(
+          padding: const EdgeInsets.only(left: 46),
+          child: _PillSlider(
+            value: settings.maxNumberOfBackups,
+            min: 1,
+            max: 30,
+            onChanged: (int value) {
+              notifier.setMaxNumberOfBackups(value);
+              setState(() {});
+            },
+          ),
+        ),
+        const SizedBox(height: 16),
+        Padding(
+          padding: const EdgeInsets.only(bottom: 8),
+          child: Row(
+            children: [
+              Icon(
+                RemixIcons.information_line,
+                size: 18,
+                color: Theme.of(context).colorScheme.outline,
               ),
-            ),
-          ),
-          const SizedBox(height: 6),
-          Padding(
-            padding: const EdgeInsets.only(left: 46),
-            child: _PillSlider(
-              value: settings.maxNumberOfBackups,
-              min: 1,
-              max: 30,
-              onChanged: (int value) {
-                notifier.setMaxNumberOfBackups(value);
-                setState(() {});
-              },
-            ),
-          ),
-          const SizedBox(height: 16),
-          Padding(
-            padding: const EdgeInsets.only(bottom: 8),
-            child: Row(
-              children: [
-                Icon(
-                  RemixIcons.information_line,
-                  size: 18,
-                  color: Theme.of(context).colorScheme.outline,
-                ),
-                const SizedBox(width: 4),
-                Expanded(
-                  child: Text(
-                    settings.lastBackupAt <= 0
-                        ? l.lastSuccessfulBackupTime(l.backupNever)
-                        : l.lastSuccessfulBackupTime(relativeTimeLabel(
-                            l,
-                            DateTime.fromMillisecondsSinceEpoch(
-                              settings.lastBackupAt,
-                            ),
-                          )),
-                    style: TextStyle(
-                      fontSize: 12,
-                      color: Theme.of(context).colorScheme.onSurfaceVariant,
-                    ),
+              const SizedBox(width: 4),
+              Expanded(
+                child: Text(
+                  settings.lastBackupAt <= 0
+                      ? l.lastSuccessfulBackupTime(l.backupNever)
+                      : l.lastSuccessfulBackupTime(relativeTimeLabel(
+                          l,
+                          DateTime.fromMillisecondsSinceEpoch(
+                            settings.lastBackupAt,
+                          ),
+                        )),
+                  style: TextStyle(
+                    fontSize: 12,
+                    color: Theme.of(context).colorScheme.onSurfaceVariant,
                   ),
                 ),
-              ],
-            ),
+              ),
+            ],
           ),
-        ],
-      )),
-      ),
+        ),
+      ],
+    )),
     );
   }
 }

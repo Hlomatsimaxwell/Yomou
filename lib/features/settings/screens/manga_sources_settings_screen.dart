@@ -1,7 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:remixicon/remixicon.dart';
-import 'package:yomou/core/theme/layout.dart';
 import 'package:yomou/core/widgets/responsive.dart';
 import 'package:yomou/l10n/generated/app_localizations.dart';
 import 'package:yomou/data/providers/sources_provider.dart';
@@ -119,102 +118,98 @@ class _MangaSourcesSettingsScreenState
           ),
         ),
       ),
-      body: SafeArea(
-        top: false,
-        minimum: const EdgeInsets.only(bottom: kBottomChromeClearance),
-        child: CappedContentWidth(child: ListView(
-        padding: const EdgeInsets.symmetric(vertical: 8),
-        children: [
-          _row(
-            icon: RemixIcons.sort_asc,
-            title: l.sourcesSortingOrder,
-            subtitle: _sortLabel(sortOrder, l),
-            trailing: _chevron(),
-            onTap: _pickSort,
+      body: CappedContentWidth(child: ListView(
+      padding: const EdgeInsets.symmetric(vertical: 8),
+      children: [
+        _row(
+          icon: RemixIcons.sort_asc,
+          title: l.sourcesSortingOrder,
+          subtitle: _sortLabel(sortOrder, l),
+          trailing: _chevron(),
+          onTap: _pickSort,
+        ),
+        sectionDivider(),
+        _row(
+          icon: RemixIcons.file_list_3_line,
+          title: l.sourcesManage,
+          subtitle: l.settingsMangaSourcesSubtitle(enabledCount, totalCount),
+          trailing: _chevron(),
+          onTap: () {
+            Navigator.push(
+              context,
+              MaterialPageRoute(
+                builder: (context) => const ManageSourcesScreen(),
+              ),
+            );
+          },
+        ),
+        sectionDivider(),
+        _row(
+          icon: RemixIcons.grid_line,
+          title: l.sourcesShowInGrid,
+          trailing: Switch(
+            value: showInGrid,
+            onChanged: (v) =>
+                ref.read(cacheSettingsProvider.notifier).setShowSourcesInGrid(v),
           ),
-          sectionDivider(),
-          _row(
-            icon: RemixIcons.file_list_3_line,
-            title: l.sourcesManage,
-            subtitle: l.settingsMangaSourcesSubtitle(enabledCount, totalCount),
-            trailing: _chevron(),
-            onTap: () {
-              Navigator.push(
-                context,
-                MaterialPageRoute(
-                  builder: (context) => const ManageSourcesScreen(),
-                ),
-              );
-            },
+        ),
+        sectionDivider(),
+        _row(
+          icon: RemixIcons.checkbox_circle_line,
+          title: l.sourcesEnableAll,
+          trailing: Switch(
+            value: enableAll,
+            onChanged: _toggleEnableAll,
           ),
-          sectionDivider(),
-          _row(
-            icon: RemixIcons.grid_line,
-            title: l.sourcesShowInGrid,
-            trailing: Switch(
-              value: showInGrid,
-              onChanged: (v) =>
-                  ref.read(cacheSettingsProvider.notifier).setShowSourcesInGrid(v),
-            ),
+        ),
+        sectionDivider(),
+        _row(
+          icon: RemixIcons.shield_flash_line,
+          title: l.disableNsfw,
+          trailing: Switch(
+            value: enabled,
+            onChanged: (v) =>
+                ref.read(cacheSettingsProvider.notifier).setDisableNsfw(v),
           ),
-          sectionDivider(),
-          _row(
-            icon: RemixIcons.checkbox_circle_line,
-            title: l.sourcesEnableAll,
-            trailing: Switch(
-              value: enableAll,
-              onChanged: _toggleEnableAll,
-            ),
+        ),
+        sectionDivider(),
+        _row(
+          icon: RemixIcons.refresh_line,
+          title: l.sourcesChooseMirror,
+          trailing: Switch(
+            value: chooseMirror,
+            onChanged: (v) => ref
+                .read(cacheSettingsProvider.notifier)
+                .setChooseMirrorAutomatically(v),
           ),
-          sectionDivider(),
-          _row(
-            icon: RemixIcons.shield_flash_line,
-            title: l.disableNsfw,
-            trailing: Switch(
-              value: enabled,
-              onChanged: (v) =>
-                  ref.read(cacheSettingsProvider.notifier).setDisableNsfw(v),
-            ),
+        ),
+        sectionDivider(),
+        _row(
+          icon: RemixIcons.link,
+          title: l.sourcesHandleLinks,
+          trailing: Switch(
+            value: handleLinks,
+            onChanged: (v) =>
+                ref.read(cacheSettingsProvider.notifier).setHandleLinks(v),
           ),
-          sectionDivider(),
-          _row(
-            icon: RemixIcons.refresh_line,
-            title: l.sourcesChooseMirror,
-            trailing: Switch(
-              value: chooseMirror,
-              onChanged: (v) => ref
-                  .read(cacheSettingsProvider.notifier)
-                  .setChooseMirrorAutomatically(v),
-            ),
-          ),
-          sectionDivider(),
-          _row(
-            icon: RemixIcons.link,
-            title: l.sourcesHandleLinks,
-            trailing: Switch(
-              value: handleLinks,
-              onChanged: (v) =>
-                  ref.read(cacheSettingsProvider.notifier).setHandleLinks(v),
-            ),
-          ),
-          sectionDivider(),
-          _row(
-            icon: RemixIcons.eye_off_line,
-            title: l.sourcesIncognitoNsfw,
-            subtitle: _incognitoLabel(incognitoMode, l),
-            trailing: _chevron(),
-            onTap: _pickIncognito,
-          ),
-          sectionDivider(),
-          _row(
-            icon: RemixIcons.database_2_line,
-            title: l.sourcesCatalog,
-            subtitle: l.sourcesCatalogSubtitle,
-            enabled: false,
-          ),
-        ],
-      )),
-      ),
+        ),
+        sectionDivider(),
+        _row(
+          icon: RemixIcons.eye_off_line,
+          title: l.sourcesIncognitoNsfw,
+          subtitle: _incognitoLabel(incognitoMode, l),
+          trailing: _chevron(),
+          onTap: _pickIncognito,
+        ),
+        sectionDivider(),
+        _row(
+          icon: RemixIcons.database_2_line,
+          title: l.sourcesCatalog,
+          subtitle: l.sourcesCatalogSubtitle,
+          enabled: false,
+        ),
+      ],
+    )),
     );
   }
 

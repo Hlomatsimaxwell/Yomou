@@ -106,71 +106,69 @@ class _SuggestionsScreenState extends ConsumerState<SuggestionsScreen> {
 
     return Scaffold(
       backgroundColor: Theme.of(context).scaffoldBackgroundColor,
-      body: SafeArea(
-        child: RefreshIndicator(
-          onRefresh: _refresh,
-          color: Theme.of(context).colorScheme.primary,
-          backgroundColor: Theme.of(context).scaffoldBackgroundColor,
-          child: TabHeader(
-            mode: usesWideLayout(context)
-                ? TabHeaderMode.fixed
-                : TabHeaderMode.collapsing,
-            title: AppLocalizations.of(context).suggestions,
-            searchBar: _buildSearchBar(),
-            body: CustomScrollView(
-              physics: const AlwaysScrollableScrollPhysics(),
-              slivers: [
-                SliverToBoxAdapter(
-                  child: Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
-                      const SizedBox(height: 12),
-                      genreTagsAsync.when(
-                        data: (tags) => tags.isNotEmpty
-                            ? _buildGenreChips(tags)
-                            : const SizedBox.shrink(),
-                        loading: () => const SizedBox.shrink(),
-                        error: (_, _) => const SizedBox.shrink(),
-                      ),
-                      const SizedBox(height: 16),
-                    ],
-                  ),
-                ),
-                suggestionsAsync.when(
-                  data: (mangaList) => _buildMangaList(mangaList),
-                  loading: () => SliverToBoxAdapter(
-                    child: Padding(
-                      padding: const EdgeInsets.symmetric(vertical: 60),
-                      child: Center(
-                        child: CircularProgressIndicator(
-                          color: Theme.of(context).colorScheme.primary,
-                        ),
-                      ),
+      body: RefreshIndicator(
+        onRefresh: _refresh,
+        color: Theme.of(context).colorScheme.primary,
+        backgroundColor: Theme.of(context).scaffoldBackgroundColor,
+        child: TabHeader(
+          mode: usesWideLayout(context)
+              ? TabHeaderMode.fixed
+              : TabHeaderMode.collapsing,
+          title: AppLocalizations.of(context).suggestions,
+          searchBar: _buildSearchBar(),
+          body: CustomScrollView(
+            physics: const AlwaysScrollableScrollPhysics(),
+            slivers: [
+              SliverToBoxAdapter(
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    const SizedBox(height: 12),
+                    genreTagsAsync.when(
+                      data: (tags) => tags.isNotEmpty
+                          ? _buildGenreChips(tags)
+                          : const SizedBox.shrink(),
+                      loading: () => const SizedBox.shrink(),
+                      error: (_, _) => const SizedBox.shrink(),
                     ),
-                  ),
-                  error: (e, _) => SliverToBoxAdapter(
-                    child: Padding(
-                      padding: const EdgeInsets.symmetric(vertical: 60),
-                      child: Center(
-                        child: Text(
-                          AppLocalizations.of(context).failedToLoadSuggestions,
-                          style: TextStyle(
-                            color:
-                                Theme.of(context).brightness == Brightness.dark
-                                    ? Colors.white54
-                                    : const Color(0xFF49454F),
-                            fontSize: 16,
-                          ),
-                        ),
+                    const SizedBox(height: 16),
+                  ],
+                ),
+              ),
+              suggestionsAsync.when(
+                data: (mangaList) => _buildMangaList(mangaList),
+                loading: () => SliverToBoxAdapter(
+                  child: Padding(
+                    padding: const EdgeInsets.symmetric(vertical: 60),
+                    child: Center(
+                      child: CircularProgressIndicator(
+                        color: Theme.of(context).colorScheme.primary,
                       ),
                     ),
                   ),
                 ),
-                SliverPadding(
-                  padding: EdgeInsets.only(bottom: bottomBarClearance(context)),
+                error: (e, _) => SliverToBoxAdapter(
+                  child: Padding(
+                    padding: const EdgeInsets.symmetric(vertical: 60),
+                    child: Center(
+                      child: Text(
+                        AppLocalizations.of(context).failedToLoadSuggestions,
+                        style: TextStyle(
+                          color:
+                              Theme.of(context).brightness == Brightness.dark
+                                  ? Colors.white54
+                                  : const Color(0xFF49454F),
+                          fontSize: 16,
+                        ),
+                      ),
+                    ),
+                  ),
                 ),
-              ],
-            ),
+              ),
+              SliverPadding(
+                padding: EdgeInsets.only(bottom: bottomBarClearance(context)),
+              ),
+            ],
           ),
         ),
       ),

@@ -2,7 +2,6 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:remixicon/remixicon.dart';
 import 'package:yomou/core/theme/colors.dart';
-import 'package:yomou/core/theme/layout.dart';
 import 'package:yomou/core/widgets/ios/ios_toast.dart';
 import 'package:yomou/features/settings/providers/reader_actions_provider.dart';
 import 'package:yomou/l10n/generated/app_localizations.dart';
@@ -38,49 +37,45 @@ class ReaderActionsScreen extends ConsumerWidget {
       // the app bar is the only chrome above it and nothing is inset from the
       // edges, which keeps each cell's proportions tied to the zones it stands
       // for.
-      body: SafeArea(
-        top: false,
-        minimum: const EdgeInsets.only(bottom: kBottomChromeClearance),
-        child: Column(
-        crossAxisAlignment: CrossAxisAlignment.stretch,
-        children: [
-          Padding(
-            padding: const EdgeInsets.fromLTRB(16, 10, 16, 10),
-            child: Text(
-              l.ractMenuSubtitle,
-              style: TextStyle(
-                fontSize: 13,
-                height: 1.35,
-                color: Theme.of(context).colorScheme.onSurfaceVariant,
+      body: Column(
+      crossAxisAlignment: CrossAxisAlignment.stretch,
+      children: [
+        Padding(
+          padding: const EdgeInsets.fromLTRB(16, 10, 16, 10),
+          child: Text(
+            l.ractMenuSubtitle,
+            style: TextStyle(
+              fontSize: 13,
+              height: 1.35,
+              color: Theme.of(context).colorScheme.onSurfaceVariant,
+            ),
+          ),
+        ),
+        Expanded(
+          child: Padding(
+            // The grid is edge to edge, but not under the navigation bar:
+            // the bottom row's tap targets would otherwise sit behind it and
+            // the lower part of a cell would be untappable. The inset is the
+            // only thing subtracted from the full height.
+            padding: EdgeInsets.only(
+              bottom: MediaQuery.paddingOf(context).bottom,
+            ),
+            child: _ZoneGrid(
+              zones: zones,
+              onEdit: (row, column, gesture) => _pickAction(
+                context: context,
+                title: gesture == ZoneGesture.tap
+                    ? l.ractTapAction
+                    : l.ractLongTapAction,
+                selected: zones.action(row, column, gesture),
+                onSelect: (id) =>
+                    notifier.setAction(row, column, gesture, id),
               ),
             ),
           ),
-          Expanded(
-            child: Padding(
-              // The grid is edge to edge, but not under the navigation bar:
-              // the bottom row's tap targets would otherwise sit behind it and
-              // the lower part of a cell would be untappable. The inset is the
-              // only thing subtracted from the full height.
-              padding: EdgeInsets.only(
-                bottom: MediaQuery.paddingOf(context).bottom,
-              ),
-              child: _ZoneGrid(
-                zones: zones,
-                onEdit: (row, column, gesture) => _pickAction(
-                  context: context,
-                  title: gesture == ZoneGesture.tap
-                      ? l.ractTapAction
-                      : l.ractLongTapAction,
-                  selected: zones.action(row, column, gesture),
-                  onSelect: (id) =>
-                      notifier.setAction(row, column, gesture, id),
-                ),
-              ),
-            ),
-          ),
-        ],
-      ),
-      ),
+        ),
+      ],
+    ),
     );
   }
 

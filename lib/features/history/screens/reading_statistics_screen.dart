@@ -288,155 +288,153 @@ class _ReadingStatisticsScreenState
 
     return Scaffold(
       backgroundColor: Theme.of(context).scaffoldBackgroundColor,
-      body: SafeArea(
-        child: Column(
-          children: [
-            IosNavBar(
-              showBack: true,
-              title: l.readingStatistics,
-              actions: [
-                AppPress(
-                  onTap: _showOverflowMenu,
-                  child: const Padding(
-                    padding: EdgeInsets.all(8),
-                    child: Icon(RemixIcons.more_2_line, size: 22),
+      body: Column(
+        children: [
+          IosNavBar(
+            showBack: true,
+            title: l.readingStatistics,
+            actions: [
+              AppPress(
+                onTap: _showOverflowMenu,
+                child: const Padding(
+                  padding: EdgeInsets.all(8),
+                  child: Icon(RemixIcons.more_2_line, size: 22),
+                ),
+              ),
+            ],
+          ),
+          _buildFilters(),
+          Expanded(
+            child: statsAsync.when(
+              loading: () => const Center(child: CircularProgressIndicator()),
+              error: (_, _) => Center(
+                child: Text(
+                  l.favoritesCouldNotLoad,
+                  style: TextStyle(
+                    color: Theme.of(context).brightness == Brightness.dark
+                        ? Colors.white54
+                        : const Color(0xFF49454F),
                   ),
                 ),
-              ],
-            ),
-            _buildFilters(),
-            Expanded(
-              child: statsAsync.when(
-                loading: () => const Center(child: CircularProgressIndicator()),
-                error: (_, _) => Center(
-                  child: Text(
-                    l.favoritesCouldNotLoad,
-                    style: TextStyle(
-                      color: Theme.of(context).brightness == Brightness.dark
-                          ? Colors.white54
-                          : const Color(0xFF49454F),
+              ),
+              data: (slices) {
+                if (slices.isEmpty) {
+                  return EmptyState(
+                    icon: RemixIcons.pie_chart_2_line,
+                    title: l.statsEmptyTitle,
+                    subtitle: l.statsEmptySubtitle,
+                  );
+                }
+                final named = slices.take(_maxNamedSlices).toList();
+                final rest = slices.skip(_maxNamedSlices).toList();
+                final hasOther = rest.isNotEmpty;
+                final otherMinutes =
+                    rest.fold<int>(0, (sum, s) => sum + s.minutes);
+                final totalMinutes =
+                    named.fold<int>(0, (sum, s) => sum + s.minutes) +
+                    otherMinutes;
+
+                final donutSlices = [
+                  for (var i = 0; i < named.length; i++)
+                    DonutSlice(
+                      id: named[i].mangaId,
+                      value: named[i].minutes.toDouble(),
+                      color: _slicePalette[i % _slicePalette.length],
                     ),
+                  if (hasOther)
+                    DonutSlice(
+                      id: 'other',
+                      value: otherMinutes.toDouble(),
+                      color: _otherSliceColor,
+                    ),
+                ];
+
+                if (_selectedMangaId != null &&
+                    !donutSlices.any((s) => s.id == _selectedMangaId)) {
+                  WidgetsBinding.instance.addPostFrameCallback((_) {
+                    if (mounted) setState(() => _selectedMangaId = null);
+                  });
+                }
+
+                return ListView(
+                  padding: EdgeInsets.only(
+                    top: 12,
+                    bottom: bottomBarClearance(context) + 20,
                   ),
-                ),
-                data: (slices) {
-                  if (slices.isEmpty) {
-                    return EmptyState(
-                      icon: RemixIcons.pie_chart_2_line,
-                      title: l.statsEmptyTitle,
-                      subtitle: l.statsEmptySubtitle,
-                    );
-                  }
-                  final named = slices.take(_maxNamedSlices).toList();
-                  final rest = slices.skip(_maxNamedSlices).toList();
-                  final hasOther = rest.isNotEmpty;
-                  final otherMinutes =
-                      rest.fold<int>(0, (sum, s) => sum + s.minutes);
-                  final totalMinutes =
-                      named.fold<int>(0, (sum, s) => sum + s.minutes) +
-                      otherMinutes;
-
-                  final donutSlices = [
-                    for (var i = 0; i < named.length; i++)
-                      DonutSlice(
-                        id: named[i].mangaId,
-                        value: named[i].minutes.toDouble(),
-                        color: _slicePalette[i % _slicePalette.length],
-                      ),
-                    if (hasOther)
-                      DonutSlice(
-                        id: 'other',
-                        value: otherMinutes.toDouble(),
-                        color: _otherSliceColor,
-                      ),
-                  ];
-
-                  if (_selectedMangaId != null &&
-                      !donutSlices.any((s) => s.id == _selectedMangaId)) {
-                    WidgetsBinding.instance.addPostFrameCallback((_) {
-                      if (mounted) setState(() => _selectedMangaId = null);
-                    });
-                  }
-
-                  return ListView(
-                    padding: EdgeInsets.only(
-                      top: 12,
-                      bottom: bottomBarClearance(context) + 20,
-                    ),
-                    children: [
-                      Padding(
-                        padding: const EdgeInsets.symmetric(vertical: 16),
-                        child: Center(
-                          child: Stack(
-                            alignment: Alignment.center,
-                            children: [
-                              TweenAnimationBuilder<double>(
-                                tween: Tween(begin: 0, end: 1),
-                                duration: const Duration(milliseconds: 650),
-                                curve: Curves.easeOutCubic,
-                                builder: (context, value, _) => DonutChart(
-                                  slices: donutSlices,
-                                  selectedId: _selectedMangaId,
-                                  progress: value,
-                                  thickness: 34,
-                                  onSliceTap: (id) => setState(
-                                    () => _selectedMangaId = _selectedMangaId == id
-                                        ? null
-                                        : id,
-                                  ),
+                  children: [
+                    Padding(
+                      padding: const EdgeInsets.symmetric(vertical: 16),
+                      child: Center(
+                        child: Stack(
+                          alignment: Alignment.center,
+                          children: [
+                            TweenAnimationBuilder<double>(
+                              tween: Tween(begin: 0, end: 1),
+                              duration: const Duration(milliseconds: 650),
+                              curve: Curves.easeOutCubic,
+                              builder: (context, value, _) => DonutChart(
+                                slices: donutSlices,
+                                selectedId: _selectedMangaId,
+                                progress: value,
+                                thickness: 34,
+                                onSliceTap: (id) => setState(
+                                  () => _selectedMangaId = _selectedMangaId == id
+                                      ? null
+                                      : id,
                                 ),
                               ),
-                              Column(
-                                mainAxisSize: MainAxisSize.min,
-                                children: [
-                                  Text(
-                                    l.statsTotal.toUpperCase(),
-                                    style: TextStyle(
-                                      fontSize: 10,
-                                      letterSpacing: 1.1,
-                                      fontWeight: FontWeight.w500,
-                                      color: mutedText(context),
-                                    ),
+                            ),
+                            Column(
+                              mainAxisSize: MainAxisSize.min,
+                              children: [
+                                Text(
+                                  l.statsTotal.toUpperCase(),
+                                  style: TextStyle(
+                                    fontSize: 10,
+                                    letterSpacing: 1.1,
+                                    fontWeight: FontWeight.w500,
+                                    color: mutedText(context),
                                   ),
-                                  const SizedBox(height: 3),
-                                  Text(
-                                    '${totalMinutes ~/ 60}h ${totalMinutes % 60}m',
-                                    style: TextStyle(
-                                      fontSize: 26,
-                                      fontWeight: FontWeight.w700,
-                                      color: Theme.of(context).brightness ==
-                                              Brightness.dark
-                                          ? Colors.white
-                                          : const Color(0xFF1C1B1F),
-                                    ),
+                                ),
+                                const SizedBox(height: 3),
+                                Text(
+                                  '${totalMinutes ~/ 60}h ${totalMinutes % 60}m',
+                                  style: TextStyle(
+                                    fontSize: 26,
+                                    fontWeight: FontWeight.w700,
+                                    color: Theme.of(context).brightness ==
+                                            Brightness.dark
+                                        ? Colors.white
+                                        : const Color(0xFF1C1B1F),
                                   ),
-                                ],
-                              ),
-                            ],
-                          ),
+                                ),
+                              ],
+                            ),
+                          ],
                         ),
                       ),
+                    ),
 const SizedBox(height: 12),
-                      for (var i = 0; i < named.length; i++)
-                        _LegendTile(
-                          color: _slicePalette[i % _slicePalette.length],
-                          title: named[i].title,
-                          subtitle: _minutesLabel(l, named[i].minutes),
-                          highlighted: _selectedMangaId == named[i].mangaId,
-                        ),
-                      if (hasOther)
-                        _LegendTile(
-                          color: _otherSliceColor,
-                          title: l.statsOtherManga,
-                          subtitle: _minutesLabel(l, otherMinutes),
-                          highlighted: _selectedMangaId == 'other',
-                        ),
-                    ],
-                  );
-                },
-              ),
+                    for (var i = 0; i < named.length; i++)
+                      _LegendTile(
+                        color: _slicePalette[i % _slicePalette.length],
+                        title: named[i].title,
+                        subtitle: _minutesLabel(l, named[i].minutes),
+                        highlighted: _selectedMangaId == named[i].mangaId,
+                      ),
+                    if (hasOther)
+                      _LegendTile(
+                        color: _otherSliceColor,
+                        title: l.statsOtherManga,
+                        subtitle: _minutesLabel(l, otherMinutes),
+                        highlighted: _selectedMangaId == 'other',
+                      ),
+                  ],
+                );
+              },
             ),
-          ],
-        ),
+          ),
+        ],
       ),
     );
   }

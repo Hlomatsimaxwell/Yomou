@@ -1210,76 +1210,74 @@ class _HistoryScreenState extends ConsumerState<HistoryScreen> {
         // collapses while a header-height of content remains below, so a
         // history shorter than the header stays put instead of displacing its
         // content.
-        body: SafeArea(
-          child: RefreshIndicator(
-            onRefresh: _refreshHistory,
-            color: Theme.of(context).colorScheme.primary,
-            backgroundColor: Theme.of(context).scaffoldBackgroundColor,
-            child: TabHeader(
-              mode: usesWideLayout(context)
-                  ? TabHeaderMode.fixed
-                  : TabHeaderMode.collapsing,
-              title: AppLocalizations.of(context).history,
-              leading: _isSelecting ? _buildSelectionBar(context) : null,
-              searchBar: _buildSearchBar(),
-              body: CustomScrollView(
-                physics: const AlwaysScrollableScrollPhysics(),
-                slivers: [
-                  if (!_isSelecting && appearance.showQuickFilters) ...[
-                    const SliverToBoxAdapter(child: SizedBox(height: 12)),
-                    SliverToBoxAdapter(child: _buildFilterChips()),
-                  ],
-                  if (!_isSelecting && showIncognito)
-                    SliverToBoxAdapter(child: _buildIncognitoIndicator()),
-                  const SliverToBoxAdapter(child: SizedBox(height: 16)),
-                  if (filteredList.isEmpty)
-                    SliverToBoxAdapter(
-                      child: EmptyState(
-                        icon: _searchQuery.isNotEmpty
-                            ? RemixIcons.search_line
-                            : RemixIcons.history_line,
-                        title: _searchQuery.isNotEmpty
-                            ? AppLocalizations.of(context).noResultsFound
-                            : AppLocalizations.of(context).historyEmptyTitle,
-                        subtitle: _searchQuery.isNotEmpty
-                            ? null
-                            : AppLocalizations.of(context).historyEmptySubtitle,
-                      ),
-                    )
-                  else if (_isGrouped)
-                    ...groupedHistory.entries.expand(
-                      (entry) => [
-                        SliverToBoxAdapter(
-                          child: Padding(
-                            padding: const EdgeInsets.symmetric(
-                              horizontal: 16,
-                              vertical: 8,
-                            ),
-                            child: Text(
-                              entry.key,
-                              style: TextStyle(
-                                color:
-                                    Theme.of(context).brightness ==
-                                        Brightness.dark
-                                    ? Colors.white
-                                    : const Color(0xFF1C1B1F),
-                                fontSize: 14,
-                                fontWeight: FontWeight.bold,
-                              ),
+        body: RefreshIndicator(
+          onRefresh: _refreshHistory,
+          color: Theme.of(context).colorScheme.primary,
+          backgroundColor: Theme.of(context).scaffoldBackgroundColor,
+          child: TabHeader(
+            mode: usesWideLayout(context)
+                ? TabHeaderMode.fixed
+                : TabHeaderMode.collapsing,
+            title: AppLocalizations.of(context).history,
+            leading: _isSelecting ? _buildSelectionBar(context) : null,
+            searchBar: _buildSearchBar(),
+            body: CustomScrollView(
+              physics: const AlwaysScrollableScrollPhysics(),
+              slivers: [
+                if (!_isSelecting && appearance.showQuickFilters) ...[
+                  const SliverToBoxAdapter(child: SizedBox(height: 12)),
+                  SliverToBoxAdapter(child: _buildFilterChips()),
+                ],
+                if (!_isSelecting && showIncognito)
+                  SliverToBoxAdapter(child: _buildIncognitoIndicator()),
+                const SliverToBoxAdapter(child: SizedBox(height: 16)),
+                if (filteredList.isEmpty)
+                  SliverToBoxAdapter(
+                    child: EmptyState(
+                      icon: _searchQuery.isNotEmpty
+                          ? RemixIcons.search_line
+                          : RemixIcons.history_line,
+                      title: _searchQuery.isNotEmpty
+                          ? AppLocalizations.of(context).noResultsFound
+                          : AppLocalizations.of(context).historyEmptyTitle,
+                      subtitle: _searchQuery.isNotEmpty
+                          ? null
+                          : AppLocalizations.of(context).historyEmptySubtitle,
+                    ),
+                  )
+                else if (_isGrouped)
+                  ...groupedHistory.entries.expand(
+                    (entry) => [
+                      SliverToBoxAdapter(
+                        child: Padding(
+                          padding: const EdgeInsets.symmetric(
+                            horizontal: 16,
+                            vertical: 8,
+                          ),
+                          child: Text(
+                            entry.key,
+                            style: TextStyle(
+                              color:
+                                  Theme.of(context).brightness ==
+                                      Brightness.dark
+                                  ? Colors.white
+                                  : const Color(0xFF1C1B1F),
+                              fontSize: 14,
+                              fontWeight: FontWeight.bold,
                             ),
                           ),
                         ),
-                        _buildHistorySliver(context, entry.value),
-                        const SliverToBoxAdapter(child: SizedBox(height: 12)),
-                      ],
-                    )
-                  else
-                    _buildHistorySliver(context, filteredList),
-                  SliverToBoxAdapter(
-                    child: SizedBox(height: bottomBarClearance(context)),
-                  ),
-                ],
-              ),
+                      ),
+                      _buildHistorySliver(context, entry.value),
+                      const SliverToBoxAdapter(child: SizedBox(height: 12)),
+                    ],
+                  )
+                else
+                  _buildHistorySliver(context, filteredList),
+                SliverToBoxAdapter(
+                  child: SizedBox(height: bottomBarClearance(context)),
+                ),
+              ],
             ),
           ),
         ),
