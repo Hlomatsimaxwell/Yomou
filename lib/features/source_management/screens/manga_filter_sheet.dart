@@ -428,7 +428,7 @@ class _MangaFilterSheetState extends ConsumerState<MangaFilterSheet> {
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
                 _sectionLabel(context, l.filterSort),
-                _buildSortPills(dark, scheme),
+                _buildSortField(dark),
                 if (_presets.isNotEmpty) ...[
                   const SizedBox(height: 24),
                   _sectionLabel(context, l.filterSavedFilters),
@@ -436,7 +436,7 @@ class _MangaFilterSheetState extends ConsumerState<MangaFilterSheet> {
                 ],
                 const SizedBox(height: 24),
                 _sectionLabel(context, l.filterLanguage),
-                _buildLanguagePills(dark, scheme),
+                _buildLanguageField(dark),
                 const SizedBox(height: 24),
                 _sectionLabel(context, l.filterGenres),
                 _buildWrap(dark, scheme, _genres, (set) {
@@ -533,56 +533,93 @@ class _MangaFilterSheetState extends ConsumerState<MangaFilterSheet> {
     );
   }
 
-  Widget _buildSortPills(bool dark, ColorScheme scheme) {
-    return SizedBox(
-      height: 34,
-      child: ListView.separated(
-        scrollDirection: Axis.horizontal,
-        itemCount: kFilterSorts.length,
-        separatorBuilder: (_, _) => const SizedBox(width: 8),
-        itemBuilder: (context, index) {
-          final (code, label) = kFilterSorts[index];
-          final selected = _sort == code;
-          return _pill(
-            label,
-            selected: selected,
-            dark: dark,
-            scheme: scheme,
-            onTap: () => setState(() => _sort = code),
-          );
-        },
-      ),
+  /// Sort as a real input field with a dropdown menu: four values in a
+  /// horizontal pill row needed a scroll to reach, and no single pill could
+  /// say which one was active at a glance.
+  Widget _buildSortField(bool dark) {
+    return _dropdownField(
+      dark: dark,
+      value: _sort,
+      items: [
+        for (final (code, label) in kFilterSorts)
+          DropdownMenuItem<String>(
+            value: code,
+            child: Text(label),
+          ),
+      ],
+      onChanged: (value) {
+        if (value == null) return;
+        setState(() => _sort = value);
+      },
     );
   }
 
-  Widget _buildLanguagePills(bool dark, ColorScheme scheme) {
-    return SizedBox(
-      height: 34,
-      child: ListView.separated(
-        scrollDirection: Axis.horizontal,
-        itemCount: kFilterLanguages.length + 1,
-        separatorBuilder: (_, _) => const SizedBox(width: 8),
-        itemBuilder: (context, index) {
-          if (index == 0) {
-            final selected = _language == null;
-            return _pill(
-              AppLocalizations.of(context).filterAllLanguages,
-              selected: selected,
-              dark: dark,
-              scheme: scheme,
-              onTap: () => setState(() => _language = null),
-            );
-          }
-          final (code, label) = kFilterLanguages[index - 1];
-          final selected = _language == code;
-          return _pill(
-            label,
-            selected: selected,
-            dark: dark,
-            scheme: scheme,
-            onTap: () => setState(() => _language = code),
-          );
-        },
+  /// Language as the same dropdown field; the empty selection ("All") is
+  /// shown as the hint rather than a sentinel item, so the field reads
+  /// "All languages" until a real code is chosen.
+  Widget _buildLanguageField(bool dark) {
+    final l = AppLocalizations.of(context);
+    return _dropdownField(
+      dark: dark,
+      value: _language,
+      hint: l.filterAllLanguages,
+      items: [
+        for (final (code, label) in kFilterLanguages)
+          DropdownMenuItem<String>(
+            value: code,
+            child: Text(label),
+          ),
+      ],
+      onChanged: (value) => setState(() => _language = value),
+    );
+  }
+
+  /// The field shell shared by the sort and language dropdowns: a bordered
+  /// input box wearing the sheet's own dark/light fills, with the menu
+  /// painted in the same colour so it lands flush with the field.
+  Widget _dropdownField({
+    required bool dark,
+    required String? value,
+    required List<DropdownMenuItem<String>> items,
+    required ValueChanged<String?> onChanged,
+    String? hint,
+  }) {
+    final fill = dark ? const Color(0xFF2C2C2E) : Colors.white;
+    return Container(
+      padding: const EdgeInsets.symmetric(horizontal: 14),
+      decoration: BoxDecoration(
+        color: fill,
+        borderRadius: BorderRadius.circular(12),
+        border: Border.all(
+          color: dark ? Colors.white12 : Colors.black12,
+        ),
+      ),
+      child: DropdownButtonHideUnderline(
+        child: DropdownButton<String>(
+          value: value,
+          hint: hint == null
+              ? null
+              : Text(
+                  hint,
+                  style: TextStyle(
+                    color: dark ? Colors.white70 : const Color(0xFF49454F),
+                  ),
+                ),
+          items: items,
+          onChanged: onChanged,
+          isExpanded: true,
+          dropdownColor: fill,
+          icon: Icon(
+            RemixIcons.arrow_down_s_line,
+            size: 18,
+            color: dark ? Colors.white70 : const Color(0xFF49454F),
+          ),
+          style: TextStyle(
+            color: dark ? Colors.white : const Color(0xFF1C1B1F),
+            fontSize: 14,
+            fontWeight: FontWeight.w500,
+          ),
+        ),
       ),
     );
   }
@@ -765,30 +802,17 @@ class _MangaFilterSheetState extends ConsumerState<MangaFilterSheet> {
                 : (dark ? Colors.white38 : Colors.black38),
           ),
         ),
-        child: Row(
-          mainAxisSize: MainAxisSize.min,
-          children: [
-            Icon(
-              selected
-                  ? RemixIcons.checkbox_fill
-                  : RemixIcons.checkbox_blank_line,
-              size: 15,
-              color: selected
-                  ? scheme.onPrimary
-                  : (dark ? Colors.white54 : Colors.black45),
-            ),
-            const SizedBox(width: 6),
-            Text(
-              label,
-              style: TextStyle(
-                fontSize: 13,
-                fontWeight: FontWeight.w500,
-                color: selected
-                    ? scheme.onPrimary
-                    : (dark ? Colors.white : const Color(0xFF1C1B1F)),
-              ),
-            ),
-          ],
+        // A plain chip: the fill and border already carry the selected
+        // state, so the checkbox mark was redundant noise.
+        child: Text(
+          label,
+          style: TextStyle(
+            fontSize: 13,
+            fontWeight: FontWeight.w500,
+            color: selected
+                ? scheme.onPrimary
+                : (dark ? Colors.white : const Color(0xFF1C1B1F)),
+          ),
         ),
       ),
     );
