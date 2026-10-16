@@ -109,12 +109,13 @@ class _PeriodicBackupsScreenState extends ConsumerState<PeriodicBackupsScreen> {
         const SizedBox(height: 6),
         Padding(
           padding: const EdgeInsets.only(left: 46),
-          child: _PillSlider(
-            value: settings.maxNumberOfBackups,
+          child: Slider(
+            value: settings.maxNumberOfBackups.toDouble(),
             min: 1,
             max: 30,
-            onChanged: (int value) {
-              notifier.setMaxNumberOfBackups(value);
+            divisions: 29,
+            onChanged: (value) {
+              notifier.setMaxNumberOfBackups(value.round());
               setState(() {});
             },
           ),
@@ -368,96 +369,6 @@ class _CustomSwitch extends StatelessWidget {
           ),
         ),
       ),
-    );
-  }
-}
-
-class _PillSlider extends StatefulWidget {
-  final int value;
-  final int min;
-  final int max;
-  final ValueChanged<int> onChanged;
-
-  const _PillSlider({
-    required this.value,
-    required this.min,
-    required this.max,
-    required this.onChanged,
-  });
-
-  @override
-  _PillSliderState createState() => _PillSliderState();
-}
-
-class _PillSliderState extends State<_PillSlider> {
-  double _position(double dx, double width) {
-    final range = widget.max - widget.min;
-    final t = ((dx / width).clamp(0.0, 1.0));
-    return widget.min + (t * range);
-  }
-
-  @override
-  Widget build(BuildContext context) {
-    final color = Theme.of(context).colorScheme;
-    final fraction =
-        (widget.value - widget.min) / (widget.max - widget.min);
-
-    return LayoutBuilder(
-      builder: (context, constraints) {
-        final width = constraints.maxWidth;
-
-        return SizedBox(
-          height: 32,
-          child: GestureDetector(
-            behavior: HitTestBehavior.opaque,
-            onTapDown: (details) {
-              widget.onChanged(_position(details.localPosition.dx, width).round());
-            },
-            onHorizontalDragUpdate: (details) {
-              widget.onChanged(_position(details.localPosition.dx, width).round());
-            },
-            child: Stack(
-              alignment: Alignment.centerLeft,
-              children: [
-                Container(
-                  height: 6,
-                  width: double.infinity,
-                  decoration: BoxDecoration(
-                    color: color.surfaceContainerHighest,
-                    borderRadius: BorderRadius.circular(3),
-                  ),
-                ),
-                Container(
-                  height: 6,
-                  width: width * fraction,
-                  decoration: BoxDecoration(
-                    color: color.primary,
-                    borderRadius: BorderRadius.circular(3),
-                  ),
-                ),
-                Positioned(
-                  left: width * fraction - 14,
-                  child: Container(
-                    width: 28,
-                    height: 28,
-                    decoration: BoxDecoration(
-                      color: color.primary,
-                      shape: BoxShape.circle,
-                      boxShadow: const [
-                        BoxShadow(
-                          color: Color(0x33000000),
-                          blurRadius: 4,
-                          offset: Offset(0, 2),
-                        ),
-                      ],
-                    ),
-                  ),
-                ),
-              ],
-            ),
-          ),
-        );
-      },
     );
   }
 }

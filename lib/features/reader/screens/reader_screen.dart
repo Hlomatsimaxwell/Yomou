@@ -1245,23 +1245,7 @@ class _ReaderScreenState extends ConsumerState<ReaderScreen>
           ),
         ),
         Expanded(
-          child: SliderTheme(
-            data: SliderTheme.of(context).copyWith(
-              trackHeight: 3,
-              activeTrackColor: dark
-                  ? Colors.white
-                  : Theme.of(context).colorScheme.primary,
-              inactiveTrackColor: dark ? Colors.white12 : Colors.black12,
-              thumbColor: dark
-                  ? Colors.white
-                  : Theme.of(context).colorScheme.primary,
-              thumbShape: const RoundSliderThumbShape(enabledThumbRadius: 7),
-              overlayColor: dark
-                  ? Colors.white.withValues(alpha: 0.12)
-                  : Colors.black.withValues(alpha: 0.12),
-            ),
-            child: Slider(min: 0, max: 200, value: value, onChanged: onChanged),
-          ),
+          child: Slider(min: 0, max: 200, value: value, onChanged: onChanged),
         ),
       ],
     );

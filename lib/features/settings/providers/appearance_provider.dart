@@ -669,6 +669,51 @@ ColorScheme monochromeScheme(Brightness brightness) {
   );
 }
 
+/// The app-wide slider look: one thick, rounded pill that fills from left to
+/// right, tinted with the scheme's primary and backed by a pale wash of it.
+///
+/// Flutter 3.41 still defaults to the year-2023 slider (a 4px track under a
+/// 10px circle) unless `year2023: false` opts into the newer spec. Opting in
+/// would also swap the track for the expressive *gapped* one and set a handle
+/// bar down in the gap; we want neither, so we keep the older track shape and
+/// zero the thumb instead. The leading edge of the fill then reads as the
+/// value, and no circle floats above the track.
+SliderThemeData _sliderTheme(ColorScheme cs) {
+  return SliderThemeData(
+    trackHeight: 16,
+    activeTrackColor: cs.primary,
+    inactiveTrackColor: cs.primary.withValues(alpha: 0.16),
+    thumbColor: cs.primary,
+    // A radius of zero paints no circle at all. Both elevations are zeroed so
+    // that the now-invisible thumb skips its shadow pass every frame too.
+    thumbShape: const RoundSliderThumbShape(
+      enabledThumbRadius: 0,
+      elevation: 0,
+      pressedElevation: 0,
+    ),
+    // A range slider fills between two values rather than up to one, so its
+    // ends have no fill edge to aim at. It loses the circle for the same
+    // reason a slider does: the span itself is the control.
+    rangeThumbShape: const RoundRangeSliderThumbShape(
+      enabledThumbRadius: 0,
+      elevation: 0,
+      pressedElevation: 0,
+    ),
+    // The halo is only there while the thumb is held, focused or hovered.
+    overlayColor: WidgetStateColor.resolveWith((states) {
+      final active = states.contains(WidgetState.dragged) ||
+          states.contains(WidgetState.focused) ||
+          states.contains(WidgetState.hovered);
+      return active
+          ? cs.primary.withValues(alpha: 0.12)
+          : Colors.transparent;
+    }),
+    // Every slider in the app is labelled, so tick marks are noise.
+    activeTickMarkColor: Colors.transparent,
+    inactiveTickMarkColor: Colors.transparent,
+  );
+}
+
 /// Creates the final ThemeData for a given brightness. Dark mode always uses
 /// pure black (#000000) scaffold and surfaces.
 ThemeData _applyBrightness(
@@ -707,6 +752,7 @@ ThemeData _applyBrightness(
     canvasColor: surfaceColor,
     cardColor: surfaceColor,
     textTheme: textTheme,
+    sliderTheme: _sliderTheme(colorScheme),
   );
 }
 

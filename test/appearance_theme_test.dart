@@ -79,4 +79,50 @@ void main() {
       }
     }
   });
+
+  test('every slider inherits one thick, thumbless track', () async {
+    // The slider look lives in the theme now rather than in the two screens
+    // that used to restyle their own. That only holds if the theme actually
+    // carries it, so this pins the pieces the screens relied on: a thick
+    // track, the scheme primary filling it, and no floating circle on either
+    // a Slider or a RangeSlider.
+    SharedPreferences.setMockInitialValues({});
+    await SharedPreferences.getInstance();
+    final container = ProviderContainer();
+    addTearDown(container.dispose);
+
+    final bundle = container.read(themeNotifierProvider);
+
+    for (final theme in [bundle.lightTheme, bundle.darkTheme]) {
+      final slider = theme.sliderTheme;
+      final primary = theme.colorScheme.primary;
+
+      // Not the 4px stock track.
+      expect(slider.trackHeight, 16);
+      expect(slider.activeTrackColor, primary);
+      // The remainder is a pale wash of that primary, not a grey.
+      expect(slider.inactiveTrackColor, primary.withValues(alpha: 0.16));
+
+      // A radius of zero is what removes the circle from the Slider...
+      expect(
+        (slider.thumbShape! as RoundSliderThumbShape).enabledThumbRadius,
+        0,
+      );
+      // ...and from both ends of a RangeSlider.
+      expect(
+        (slider.rangeThumbShape! as RoundRangeSliderThumbShape)
+            .enabledThumbRadius,
+        0,
+      );
+
+      // The halo is absent at rest and only shows up on interaction.
+      final overlay = slider.overlayColor! as WidgetStateColor;
+      expect(overlay.resolve(const <WidgetState>{}), Colors.transparent);
+      expect(overlay.resolve({WidgetState.dragged}).a, 0.12);
+
+      // Tick marks are invisible; every slider is labelled already.
+      expect(slider.activeTickMarkColor, Colors.transparent);
+      expect(slider.inactiveTickMarkColor, Colors.transparent);
+    }
+  });
 }

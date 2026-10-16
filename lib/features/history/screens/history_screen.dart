@@ -679,54 +679,37 @@ class _HistoryScreenState extends ConsumerState<HistoryScreen> {
                   sectionGap,
                   _gridSizeLabel(context, cs),
                   const SizedBox(height: 10),
-                  SliderTheme(
-                    // The minimalist treatment the reader's filter sliders already
-                    // use: a 3px track and a 7px thumb, rather than the default 4px
-                    // and 10px that read as a stock system control. Tick marks go too --
-                    // the value is labelled, so eleven of them across the track are
-                    // noise rather than information.
-                    data: SliderTheme.of(context).copyWith(
-                      trackHeight: 3,
-                      activeTrackColor: cs.primary,
-                      inactiveTrackColor: cs.outlineVariant,
-                      thumbColor: cs.primary,
-                      thumbShape: const RoundSliderThumbShape(enabledThumbRadius: 7),
-                      overlayShape: const RoundSliderOverlayShape(overlayRadius: 16),
-                      activeTickMarkColor: Colors.transparent,
-                      inactiveTickMarkColor: Colors.transparent,
-                    ),
-                    child: Slider(
-                      // Left to right is small to large, which is what a size
-                      // control reads as: dragging right grows every cover and
-                      // the grid drops a column to make room. The old slider
-                      // pointed the same way -- it counted columns backwards from
-                      // the far end, so a higher thumb meant fewer, larger covers
-                      // either way. The unit is new, not the direction.
-                      //
-                      // Always live. It used to be disabled on a wide window,
-                      // where the count was derived from the width and the stored
-                      // number was only ever a floor -- a control that could be
-                      // dragged without changing a single pixel. The size is now
-                      // the reader's everywhere, so moving it does change the
-                      // grid on a tablet too.
-                      value: _gridSize,
-                      min: kMangaGridSizeMin.toDouble(),
-                      max: kMangaGridSizeMax.toDouble(),
-                      divisions: kMangaGridSizeDivisions,
-                      label: '${_gridSize.round()}%',
-                      onChanged: (value) {
-                        setSheetState(() {
-                          _gridSize = value;
-                        });
-                        setState(() {});
-                        // One preference for every manga grid, so this choice
-                        // follows the reader to explore, search and the
-                        // source browser as well.
-                        ref
-                            .read(appearanceSettingsProvider.notifier)
-                            .setGridSize(value);
-                      },
-                    ),
+                  Slider(
+                    // Left to right is small to large, which is what a size
+                    // control reads as: dragging right grows every cover and
+                    // the grid drops a column to make room. The old slider
+                    // pointed the same way -- it counted columns backwards from
+                    // the far end, so a higher thumb meant fewer, larger covers
+                    // either way. The unit is new, not the direction.
+                    //
+                    // Always live. It used to be disabled on a wide window,
+                    // where the count was derived from the width and the stored
+                    // number was only ever a floor -- a control that could be
+                    // dragged without changing a single pixel. The size is now
+                    // the reader's everywhere, so moving it does change the
+                    // grid on a tablet too.
+                    value: _gridSize,
+                    min: kMangaGridSizeMin.toDouble(),
+                    max: kMangaGridSizeMax.toDouble(),
+                    divisions: kMangaGridSizeDivisions,
+                    label: '${_gridSize.round()}%',
+                    onChanged: (value) {
+                      setSheetState(() {
+                        _gridSize = value;
+                      });
+                      setState(() {});
+                      // One preference for every manga grid, so this choice
+                      // follows the reader to explore, search and the
+                      // source browser as well.
+                      ref
+                          .read(appearanceSettingsProvider.notifier)
+                          .setGridSize(value);
+                    },
                   ),
                   sectionGap,
                   Text(
