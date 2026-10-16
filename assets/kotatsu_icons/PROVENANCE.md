@@ -9,10 +9,13 @@ project's.
 drawable (`app/src/main/res/drawable/ic_*.xml`): the viewport becomes the
 `viewBox`, `android:pathData` becomes the `<path d>` verbatim, `fillType`
 becomes `fill-rule` and `clip-path` elements become `<clipPath>`. No geometry
-was redrawn. `ic_blur`, `ic_motion_pause` and `ic_vibrate` are the one
-exception: Kotatsu-Redo has no frosted-glass, reduce-motion or haptics row, so
-those three come straight from the Material Design Icons community set, which
-is the same set most of Kotatsu-Redo's own icons are drawn from.
+was redrawn. The exceptions are the rows Kotatsu-Redo has no counterpart for:
+`ic_blur`, `ic_motion_pause` and `ic_vibrate` (Frosted glass, Reduce motion,
+Haptics), `ic_badges` (its `ic_new` is an 8dp status dot, which reads as a
+stray bullet at row size) and `ic_restore` (our row restores settings to their
+defaults, where Kotatsu-Redo's delete-sweep wipes stored data). Those five come
+straight from the Material Design Icons community set, which is the same set
+most of Kotatsu-Redo's own icons are drawn from.
 
 Provenance was established by canonicalising each path (absolute commands,
 smooth commands expanded, coordinates rounded) and comparing it against the
@@ -56,4 +59,5 @@ none match Remix.
 | `ic_badges.svg` | Material Design Icons | `mdiCircleMultipleOutline` |
 | `ic_blur.svg` | Material Design Icons | `mdiBlur` |
 | `ic_motion_pause.svg` | Material Design Icons | `mdiMotionPauseOutline` |
+| `ic_restore.svg` | Material Design Icons | `mdiRestore` |
 | `ic_vibrate.svg` | Material Design Icons | `mdiVibrate` |

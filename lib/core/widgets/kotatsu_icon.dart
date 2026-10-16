@@ -9,8 +9,22 @@ const String kKotatsuIconDir = 'assets/kotatsu_icons';
 /// Kept as data so tests can assert that each one is actually bundled, and so
 /// a caller that wants to warm the cache can walk the whole set.
 const List<String> kKotatsuIconNames = <String>[
-  // Appearance screen rows, mirroring Kotatsu-Redo's pref_appearance.xml.
+  // The root settings categories, mirroring Kotatsu-Redo's pref_root.xml. Two
+  // of our root rows are not in that list: Content preferences reuses
+  // `ic_language`, since what it sets is the languages and formats you read,
+  // and Reset takes its own glyph from MDI (see `ic_restore` below).
   'ic_appearance',
+  'ic_manga_source',
+  'ic_book_page',
+  'ic_usage',
+  'ic_download',
+  'ic_feed',
+  'ic_services',
+  'ic_backup_restore',
+  'ic_info_outline',
+  // Our own root row: Kotatsu-Redo has no Reset category.
+  'ic_restore',
+  // Rows on our Appearance screen, mirroring its pref_appearance.xml.
   'ic_theme_mode',
   'ic_dark_mode',
   'ic_language',
@@ -18,9 +32,7 @@ const List<String> kKotatsuIconNames = <String>[
   'ic_grid',
   'ic_filter_menu',
   'ic_timelapse',
-  'ic_new',
   'ic_expand_more',
-  'ic_images',
   'ic_list_detailed',
   'ic_suggestion',
   'ic_drawer_menu',
@@ -33,6 +45,10 @@ const List<String> kKotatsuIconNames = <String>[
   'ic_sfw',
   'ic_lock',
   'ic_data_privacy',
+  // Ported but not drawn on a settings row of ours yet: the "new" marker and
+  // the image glyph Kotatsu-Redo uses elsewhere.
+  'ic_new',
+  'ic_images',
   // Rows Kotatsu-Redo has no counterpart for.
   'ic_blur',
   'ic_motion_pause',
@@ -40,15 +56,6 @@ const List<String> kKotatsuIconNames = <String>[
   // Stands in for Kotatsu-Redo's `ic_new`, an 8dp status dot that reads as a
   // stray bullet at row size.
   'ic_badges',
-  // Root settings categories, mirroring Kotatsu-Redo's pref_root.xml.
-  'ic_manga_source',
-  'ic_book_page',
-  'ic_usage',
-  'ic_download',
-  'ic_feed',
-  'ic_services',
-  'ic_backup_restore',
-  'ic_info_outline',
 ];
 
 /// A settings glyph from the set ported out of Kotatsu-Redo.

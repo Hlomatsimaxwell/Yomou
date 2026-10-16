@@ -1,11 +1,11 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:package_info_plus/package_info_plus.dart';
-import 'package:remixicon/remixicon.dart';
 import 'package:yomou/core/theme/amoled.dart';
 import 'package:yomou/core/theme/layout.dart';
 import 'package:yomou/core/changelog/changelog.dart';
 import 'package:yomou/core/notifications/notification_service.dart';
+import 'package:yomou/core/widgets/kotatsu_icon.dart';
 import 'package:yomou/core/widgets/responsive.dart';
 import 'package:yomou/l10n/generated/app_localizations.dart';
 import 'package:yomou/features/whats_new/whats_new_sheet.dart';
@@ -36,7 +36,8 @@ class _Category {
     this.screen,
   });
 
-  final IconData icon;
+  /// A glyph from the set ported out of Kotatsu-Redo, by asset name.
+  final String icon;
   final String title;
   final String subtitle;
 
@@ -46,6 +47,10 @@ class _Category {
 
   bool get hasScreen => screen != null;
 }
+
+/// The one root row that opens a dialog instead of a screen, and so the one the
+/// pane has to keep tappable with nothing behind it.
+const _aboutIcon = 'ic_info_outline';
 
 class SettingsScreen extends ConsumerStatefulWidget {
   const SettingsScreen({super.key, this.initialCategory});
@@ -91,37 +96,37 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
 
     final categories = <_Category>[
       _Category(
-        icon: RemixIcons.palette_line,
+        icon: 'ic_appearance',
         title: l.settingsAppearance,
         subtitle: l.settingsAppearanceSubtitle,
         screen: const AppearanceSettingsScreen(),
       ),
       _Category(
-        icon: RemixIcons.window_2_line,
+        icon: 'ic_manga_source',
         title: l.settingsMangaSources,
         subtitle: l.settingsMangaSourcesSubtitle(enabledCount, totalCount),
         screen: const MangaSourcesSettingsScreen(),
       ),
       _Category(
-        icon: RemixIcons.earth_line,
+        icon: 'ic_language',
         title: l.settingsContentPreferences,
         subtitle: l.settingsContentPreferencesSubtitle,
         screen: const ContentPreferencesScreen(),
       ),
       _Category(
-        icon: RemixIcons.book_open_line,
+        icon: 'ic_book_page',
         title: l.settingsReader,
         subtitle: l.settingsReaderSubtitle,
         screen: const ReaderSettingsScreen(),
       ),
       _Category(
-        icon: RemixIcons.refresh_line,
+        icon: 'ic_usage',
         title: l.settingsStorage,
         subtitle: l.settingsStorageSubtitle,
         screen: const StorageSettingsScreen(),
       ),
       _Category(
-        icon: RemixIcons.download_line,
+        icon: 'ic_download',
         title: l.settingsDownloads,
         subtitle: l.settingsDownloadsSubtitle,
         screen: const DownloadsSettingsScreen(),
@@ -131,7 +136,7 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
       // behind it, so it is absent rather than dead.
       if (NotificationService.supported)
         _Category(
-          icon: RemixIcons.rss_line,
+          icon: 'ic_feed',
           title: l.settingsNewChapters,
           subtitle: l.settingsNewChaptersSubtitle,
           screen: const NotificationSettingsScreen(),
@@ -140,18 +145,18 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
       // can be a selection in a pane, a row that silently does nothing is worse
       // than one that says why.
       _Category(
-        icon: RemixIcons.puzzle_2_line,
+        icon: 'ic_services',
         title: l.settingsServices,
         subtitle: l.settingsServicesUnavailable,
       ),
       _Category(
-        icon: RemixIcons.history_line,
+        icon: 'ic_backup_restore',
         title: l.settingsBackup,
         subtitle: l.settingsBackupSubtitle,
         screen: const BackupRestoreScreen(),
       ),
       _Category(
-        icon: RemixIcons.restart_line,
+        icon: 'ic_restore',
         title: l.settingsReset,
         subtitle: l.settingsResetSubtitle,
         screen: const ResetSettingsScreen(),
@@ -247,7 +252,7 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
                 return;
               }
               if (!c.hasScreen) {
-                if (c.icon == RemixIcons.information_line) {
+                if (c.icon == _aboutIcon) {
                   _showAboutDialog(context);
                 }
                 return;
@@ -368,7 +373,7 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
             : 'Version ${info.version} (${info.buildNumber})';
         return _buildSettingTile(
           category: _Category(
-            icon: RemixIcons.information_line,
+            icon: _aboutIcon,
             title: AppLocalizations.of(context).settingsAbout,
             subtitle: subtitle,
           ),
@@ -387,7 +392,7 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
     final accent = Theme.of(context).colorScheme.primary;
     // Services has no screen behind it, so it reads as unavailable rather than
     // as a row that happens to do nothing.
-    final enabled = category.hasScreen || category.icon == RemixIcons.information_line;
+    final enabled = category.hasScreen || category.icon == _aboutIcon;
     final foreground = !enabled
         ? (dark ? Colors.white38 : Colors.black38)
         : (selected ? accent : null);
@@ -414,7 +419,7 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
               children: [
                 Padding(
                   padding: const EdgeInsets.only(right: 12),
-                  child: Icon(category.icon, size: 24, color: foreground),
+                  child: KotatsuIcon(category.icon, size: 24, color: foreground),
                 ),
                 Expanded(
                   child: Column(
