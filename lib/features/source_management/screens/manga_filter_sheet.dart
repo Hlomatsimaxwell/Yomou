@@ -472,10 +472,9 @@ class _MangaFilterSheetState extends ConsumerState<MangaFilterSheet> {
                   min: _minYear.toDouble(),
                   max: _maxYear.toDouble(),
                   divisions: _maxYear - _minYear,
-                  activeColor: scheme.primary,
-                  inactiveColor: dark
-                      ? const Color(0xFF2C2C2E)
-                      : Colors.black12,
+                  // Track colours come from the app-wide slider theme, so the
+                  // year range reads as the same pill as every other slider
+                  // instead of drawing a grey bar of its own.
                   labels: RangeLabels('$_yearFrom', '$_yearTo'),
                   onChanged: (values) {
                     setState(() {
