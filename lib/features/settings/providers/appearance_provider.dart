@@ -531,6 +531,37 @@ Color? themeSecondaryFor(String schemeName) {
   }
 }
 
+/// The [ColorScheme] a named preset produces at [brightness].
+///
+/// This is the one construction the real themes are built from, so a settings
+/// swatch painted from it previews the scheme the user would actually get --
+/// primary, secondary, outline and on-surface roles included -- instead of an
+/// approximation that can drift away from it.
+ColorScheme colorSchemeFor(String schemeName, Brightness brightness) {
+  if (schemeName.toLowerCase() == 'monochrome') {
+    return monochromeScheme(brightness);
+  }
+  final scheme = ColorScheme.fromSeed(
+    seedColor: themeSeedFor(schemeName),
+    brightness: brightness,
+  );
+  final secondary = themeSecondaryFor(schemeName);
+  return secondary == null ? scheme : scheme.copyWith(secondary: secondary);
+}
+
+/// The background a preset draws its cards and canvas on: white in light mode,
+/// pure black for Monochrome's AMOLED dark mode and near-black for every other
+/// scheme. Shared with [_applyBrightness] so a preview card cannot drift from
+/// the surface it imitates.
+Color presetSurfaceFor(String schemeName, Brightness brightness) {
+  if (brightness == Brightness.light) {
+    return Colors.white;
+  }
+  return schemeName.toLowerCase() == 'monochrome'
+      ? Colors.black
+      : const Color(0xFF121212);
+}
+
 /// Complete set of light + dark [ThemeData] plus the mode, so the root
 /// MaterialApp can be driven from a single provider.
 class ThemeDataBundle {
@@ -642,36 +673,21 @@ ColorScheme monochromeScheme(Brightness brightness) {
 /// pure black (#000000) scaffold and surfaces.
 ThemeData _applyBrightness(
   ThemeData base,
-  Color seed,
-  Color? secondary,
   Brightness brightness, {
-  ColorScheme? customScheme,
+  required String schemeName,
 }) {
-  final scheme = customScheme ??
-      ColorScheme.fromSeed(
-        seedColor: seed,
-        brightness: brightness,
-      );
-  final colorScheme = customScheme != null
-      ? scheme
-      : (secondary != null
-          ? scheme.copyWith(secondary: secondary)
-          : scheme);
+  final colorScheme = colorSchemeFor(schemeName, brightness);
 
   final dark = brightness == Brightness.dark;
 
-  // Monochrome surfaces are pure black (AMOLED) in dark mode; other schemes
-  // lift off the black scaffold with a near-black card color.
-  final isMonochrome = customScheme != null;
   final scaffoldBg = dark
       ? Colors.black
       : const Color(0xFFF8F9FA);
 
   // Dark surfaces are all near-black for OLED displays; light cards are pure
-  // white so they lift off the soft off-white scaffold.
-  final surfaceColor = dark
-      ? (isMonochrome ? Colors.black : const Color(0xFF121212))
-      : Colors.white;
+  // white so they lift off the soft off-white scaffold. Monochrome opts out
+  // of the near-black and stays pure black (AMOLED) in dark mode.
+  final surfaceColor = presetSurfaceFor(schemeName, brightness);
 
   // High-contrast text roles: the dark branch must build its own text theme
   // from a dark scheme (ThemeData() defaults to light, so reusing the light
@@ -697,23 +713,15 @@ ThemeData _applyBrightness(
 /// Derived theme bundle — watch this at the root to drive MaterialApp.
 final themeNotifierProvider = Provider<ThemeDataBundle>((ref) {
   final settings = ref.watch(appearanceSettingsProvider);
-  final seed = themeSeedFor(settings.colorScheme);
-  final secondary = themeSecondaryFor(settings.colorScheme);
-  final base = _baseTheme(false);
-  final isMonochrome = settings.colorScheme.toLowerCase() == 'monochrome';
   final light = _applyBrightness(
-    base,
-    seed,
-    secondary,
+    _baseTheme(false),
     Brightness.light,
-    customScheme: isMonochrome ? monochromeScheme(Brightness.light) : null,
+    schemeName: settings.colorScheme,
   );
   final dark = _applyBrightness(
     _baseTheme(true),
-    seed,
-    secondary,
     Brightness.dark,
-    customScheme: isMonochrome ? monochromeScheme(Brightness.dark) : null,
+    schemeName: settings.colorScheme,
   );
   return ThemeDataBundle(
     lightTheme: light,

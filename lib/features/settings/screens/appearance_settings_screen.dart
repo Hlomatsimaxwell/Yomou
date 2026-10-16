@@ -25,7 +25,8 @@ class AppearanceSettingsScreen extends ConsumerWidget {
         // Color Scheme Carousel
         M3SectionHeader(title: l.appearanceColorScheme),
         SizedBox(
-          height: 90,
+          // Room for the 116px mini-UI card plus its label.
+          height: 148,
           child: ListView(
             scrollDirection: Axis.horizontal,
             physics: const BouncingScrollPhysics(),
@@ -33,31 +34,26 @@ class AppearanceSettingsScreen extends ConsumerWidget {
             children: [
               _SchemePreset(
                 name: 'Totoro',
-                palette: schemePalettes[AppColorScheme.totoro]!,
                 isActive: settings.colorScheme == 'Totoro',
                 onTap: () => notifier.setColorScheme('Totoro'),
               ),
               _SchemePreset(
                 name: 'Dynamic',
-                palette: schemePalettes[AppColorScheme.dynamic]!,
                 isActive: settings.colorScheme == 'Dynamic',
                 onTap: () => notifier.setColorScheme('Dynamic'),
               ),
               _SchemePreset(
                 name: 'Expressive',
-                palette: schemePalettes[AppColorScheme.expressive]!,
                 isActive: settings.colorScheme == 'Expressive',
                 onTap: () => notifier.setColorScheme('Expressive'),
               ),
               _SchemePreset(
                 name: 'Miku',
-                palette: schemePalettes[AppColorScheme.miku]!,
                 isActive: settings.colorScheme == 'Miku',
                 onTap: () => notifier.setColorScheme('Miku'),
               ),
               _SchemePreset(
                 name: 'Monochrome',
-                palette: schemePalettes[AppColorScheme.monochrome]!,
                 isActive: settings.colorScheme == 'Monochrome',
                 onTap: () => notifier.setColorScheme('Monochrome'),
               ),
@@ -575,68 +571,101 @@ class AppearanceSettingsScreen extends ConsumerWidget {
   }
 }
 
-// Helper widget for color scheme presets
+// Helper widget for color scheme presets.
+//
+// A miniature of the app drawn in the preset's own colors rather than an
+// abstract swatch: a title, two content lines in the scheme's secondary, and
+// the primary block parked in the corner. The mockup is the only way to judge
+// how a scheme's roles interact before committing to it.
 class _SchemePreset extends StatelessWidget {
   const _SchemePreset({
     required this.name,
-    required this.palette,
     required this.isActive,
     required this.onTap,
   });
 
   final String name;
-  final SchemePalette palette;
   final bool isActive;
   final VoidCallback onTap;
 
   @override
   Widget build(BuildContext context) {
-    final cs = Theme.of(context).colorScheme;
-    final dark = Theme.of(context).brightness == Brightness.dark;
-    final isMonochrome = name == 'Monochrome';
+    final brightness = Theme.of(context).brightness;
+    final cs = colorSchemeFor(name, brightness);
     return GestureDetector(
       onTap: onTap,
-      child: Container(
-        width: 82,
-        height: 90,
-        margin: const EdgeInsets.symmetric(horizontal: 8),
-        decoration: BoxDecoration(
-          color: isActive ? cs.secondaryContainer : cs.surfaceContainerLow,
-          borderRadius: BorderRadius.circular(16),
-          border: Border.all(
-            color: isActive ? cs.primary : cs.outlineVariant,
-            width: isActive ? 2 : 1,
-          ),
-        ),
+      child: Padding(
+        padding: const EdgeInsets.symmetric(horizontal: 8),
         child: Column(
           mainAxisAlignment: MainAxisAlignment.center,
           children: [
-            if (isActive)
-              Container(
-                width: 28,
-                height: 28,
-                decoration: BoxDecoration(
-                  shape: BoxShape.circle,
-                  color: cs.primary,
+            Container(
+              width: 84,
+              height: 116,
+              padding: const EdgeInsets.all(6),
+              decoration: BoxDecoration(
+                color: presetSurfaceFor(name, brightness),
+                borderRadius: BorderRadius.circular(16),
+                // Neutral on every card: the outline just defines the swatch
+                // against the settings background, and selection is announced
+                // by the badge rather than by a colored ring.
+                border: Border.all(
+                  color: isActive ? cs.outline : cs.outlineVariant,
                 ),
-                child: Icon(
-                  RemixIcons.check_line,
-                  size: 18,
-                  color: cs.onPrimary,
-                ),
-              )
-            else
-              _TwoToneBadge(
-                // Monochrome's two-tone pair flips with brightness:
-                // white/gray on dark, black/gray on light.
-                primary: isMonochrome
-                    ? (dark ? Colors.white : Colors.black)
-                    : palette.accent,
-                secondary: isMonochrome
-                    ? (dark ? const Color(0xFF888888) : const Color(0xFF666666))
-                    : (palette.secondary ?? palette.accentLight),
               ),
-            const SizedBox(height: 6),
+              child: Stack(
+                children: [
+                  Positioned(
+                    left: 0,
+                    top: 8,
+                    child: Text(
+                      'Abc',
+                      style: TextStyle(
+                        color: cs.onSurface,
+                        fontSize: 12,
+                        fontWeight: FontWeight.w600,
+                      ),
+                    ),
+                  ),
+                  // The two content lines: a short one above a longer one,
+                  // both left aligned like a paragraph.
+                  Positioned(
+                    left: 0,
+                    top: 52,
+                    child: _PresetBar(width: 29, color: cs.secondary),
+                  ),
+                  Positioned(
+                    left: 0,
+                    top: 64,
+                    child: _PresetBar(width: 50, color: cs.secondary),
+                  ),
+                  // The scheme's primary, bottom-right of the mockup.
+                  Positioned(
+                    right: 0,
+                    bottom: 0,
+                    child: Container(
+                      width: 16,
+                      height: 16,
+                      decoration: BoxDecoration(
+                        color: cs.primary,
+                        borderRadius: BorderRadius.circular(6),
+                      ),
+                    ),
+                  ),
+                  if (isActive)
+                    Positioned(
+                      right: 0,
+                      top: 0,
+                      child: Icon(
+                        Icons.check_circle,
+                        size: 20,
+                        color: cs.primary,
+                      ),
+                    ),
+                ],
+              ),
+            ),
+            const SizedBox(height: 4),
             Padding(
               padding: const EdgeInsets.symmetric(horizontal: 4),
               child: FittedBox(
@@ -660,26 +689,21 @@ class _SchemePreset extends StatelessWidget {
   }
 }
 
-/// A 28px circular badge split vertically into the preset's primary and
-/// secondary/container colors.
-class _TwoToneBadge extends StatelessWidget {
-  const _TwoToneBadge({required this.primary, required this.secondary});
+/// A 6px-tall rounded rule standing in for a line of text in the mini UI.
+class _PresetBar extends StatelessWidget {
+  const _PresetBar({required this.width, required this.color});
 
-  final Color primary;
-  final Color secondary;
+  final double width;
+  final Color color;
 
   @override
   Widget build(BuildContext context) {
     return Container(
-      width: 28,
-      height: 28,
-      decoration: const BoxDecoration(shape: BoxShape.circle),
-      clipBehavior: Clip.antiAlias,
-      child: Row(
-        children: [
-          Expanded(child: Container(color: primary)),
-          Expanded(child: Container(color: secondary)),
-        ],
+      width: width,
+      height: 6,
+      decoration: BoxDecoration(
+        color: color,
+        borderRadius: BorderRadius.circular(4),
       ),
     );
   }
