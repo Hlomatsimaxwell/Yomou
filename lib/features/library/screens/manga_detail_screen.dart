@@ -1660,11 +1660,15 @@ class _MangaDetailScreenState extends ConsumerState<MangaDetailScreen> {
                 return '';
               }(),
               style: TextStyle(
-                // Lighter than the label above it, and lighter than the grey
-                // the details card uses for its own labels: this is the least
-                // important text on the row, so it should look it.
-                color: dark ? Colors.white38 : const Color(0xFF9E9EA3),
-                fontSize: 11,
+                // The row's supporting line, and these three greys have now
+                // walked up the scale twice on review. It has to be a ghost
+                // next to the chapter label: at #9E9EA3 it was only a step
+                // less prominent than the heading, so the eye landed on the
+                // date as often as on the number. Lighter than the details
+                // card's own labels for the same reason -- this is the least
+                // important text on the screen.
+                color: dark ? Colors.white38 : const Color(0xFFB0B0B5),
+                fontSize: 10.5,
               ),
             ),
             trailing: Row(
@@ -3531,11 +3535,13 @@ class _MangaDetailScreenState extends ConsumerState<MangaDetailScreen> {
 
   /// The muted colour of a metadata label ("Source", "Author", ...).
   ///
-  /// Kept clearly lighter than the value beside it: the two used to sit at
-  /// nearly the same contrast, which flattened the hierarchy into a wall of
-  /// grey.
+  /// Kept clearly lighter than the value beside it, and it went lighter again
+  /// on review: at #8A8A8E the label held almost as much weight as the value,
+  /// so a column of them read as a block of text rather than a list of facts
+  /// and made the left pane feel heavy. The label is a caption; the value is
+  /// the content.
   Color _detailLabelColor(bool dark) =>
-      dark ? Colors.white54 : const Color(0xFF8A8A8E);
+      dark ? Colors.white38 : const Color(0xFFA8A8AE);
 
   /// The charcoal colour of a metadata value.
   Color _detailValueColor(bool dark) =>
@@ -4032,17 +4038,28 @@ class _SheetHeaderDelegate extends SliverPersistentHeaderDelegate {
         key: const ValueKey('defaultTrayHeader'),
         crossAxisAlignment: CrossAxisAlignment.center,
         children: [
+          // The control is sized to its content and pinned left rather than
+          // stretched across whatever is left of the row. Stretched it ran
+          // right up against Continue, which made the whole header read as one
+          // crowded bar; capping it is what creates the gap that lets the two
+          // sides breathe.
           Expanded(
-            child: _buildModeSegments(context, dark: dark, scheme: scheme),
+            child: Align(
+              alignment: Alignment.centerLeft,
+              child: ConstrainedBox(
+                constraints: const BoxConstraints(maxWidth: 340),
+                child: _buildModeSegments(context, dark: dark, scheme: scheme),
+              ),
+            ),
           ),
-          const SizedBox(width: 12),
+          const SizedBox(width: 24),
           // A docked pane keeps the Continue pill: it is the primary action on
           // this screen, and the fullscreen tray only drops it because the
           // reader is already the thing filling the screen. Here the reader is
           // still a tap away, so Continue and the order toggle both stay.
           if (showContinueButton) ...[
             _buildPrimaryButton(context: context, dark: dark, scheme: scheme),
-            const SizedBox(width: 6),
+            const SizedBox(width: 8),
           ],
           _buildTabIcon(
             RemixIcons.arrow_up_down_line,
@@ -4239,7 +4256,7 @@ class _SheetHeaderDelegate extends SliverPersistentHeaderDelegate {
     );
   }
 
-  /// One segment of [this._buildModeSegments]: a tonal chip when it is the
+  /// One segment of [this._buildModeSegments]: a raised chip when it is the
   /// place you are in, a plain label when it is not.
   Widget _buildSegment({
     required IconData icon,
@@ -4249,8 +4266,9 @@ class _SheetHeaderDelegate extends SliverPersistentHeaderDelegate {
     required VoidCallback onTap,
     Widget? badge,
   }) {
+    final dark = scheme.brightness == Brightness.dark;
     final fg = active
-        ? scheme.onSecondaryContainer
+        ? (dark ? Colors.white : scheme.onSurface)
         : scheme.onSurfaceVariant;
     return Expanded(
       child: GestureDetector(
@@ -4260,13 +4278,30 @@ class _SheetHeaderDelegate extends SliverPersistentHeaderDelegate {
           curve: Curves.easeOut,
           padding: const EdgeInsets.symmetric(vertical: 7),
           decoration: BoxDecoration(
-            // The selected chip takes the tonal container that the reference's
-            // checkable outlined buttons take when checked. The first attempt
-            // used `surface` here, which is near-white in these schemes -- on a
-            // white header bar the selection was invisible, leaving the label
-            // weight as the only clue.
-            color: active ? scheme.secondaryContainer : Colors.transparent,
+            // The chip has to differ from the track in *lightness*, not in hue.
+            // Two earlier passes reached for a tonal role here and both times
+            // the selection came back invisible: `surface` is near-white on a
+            // white bar, and `secondaryContainer` is the *same tone* as
+            // `surfaceContainerHighest`, so on the track it was a chip painted
+            // in the colour of the thing it sat on. A chip inside a container
+            // reads as raised only if it is lighter than that container, which
+            // is what this is: plain white on the grey track in light, a lift
+            // off the track in dark.
+            color: active
+                ? (dark ? Colors.white.withValues(alpha: 0.16) : Colors.white)
+                : Colors.transparent,
             borderRadius: BorderRadius.circular(7),
+            // A one-pixel shadow is what makes it a pressed physical toggle
+            // rather than a flat white patch on a grey bar.
+            boxShadow: active && !dark
+                ? [
+                    BoxShadow(
+                      color: Colors.black.withValues(alpha: 0.10),
+                      blurRadius: 3,
+                      offset: const Offset(0, 1),
+                    ),
+                  ]
+                : null,
           ),
           child: Stack(
             clipBehavior: Clip.none,
