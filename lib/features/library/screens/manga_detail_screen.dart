@@ -1513,7 +1513,8 @@ class _MangaDetailScreenState extends ConsumerState<MangaDetailScreen> {
 
   Widget _buildChapterListSliver() {
     final dark = Theme.of(context).brightness == Brightness.dark;
-    final onSurface = Theme.of(context).colorScheme.onSurface;
+    final scheme = Theme.of(context).colorScheme;
+    final onSurface = scheme.onSurface;
     final downloadedChapterIds =
         ref
             .watch(downloadedChaptersForMangaProvider(widget.mangaId))
@@ -1626,17 +1627,20 @@ class _MangaDetailScreenState extends ConsumerState<MangaDetailScreen> {
                     ),
                     maxLines: 1,
                     overflow: TextOverflow.ellipsis,
-                    // Smaller and lighter than it was: a row should read as a
-                    // chapter and a date, not as a headline with a footnote
-                    // under it. The current chapter still steps up -- it is the
-                    // one thing on the row that is about the reader.
+                    // The heading of the row, and it has to look like one. A
+                    // read chapter used plain `Colors.grey`, which sits close
+                    // enough to the metadata grey that the two lines merged
+                    // into one uniform block -- and because most of a long list
+                    // is read, most of the list looked like that. Read chapters
+                    // now dim by one step rather than all the way to grey, and
+                    // the label is semibold in every state: it is two or three
+                    // characters now, so weight is what makes it a heading
+                    // rather than the word that used to.
                     style: TextStyle(
                       color: isRead
-                          ? Colors.grey
+                          ? (dark ? Colors.white70 : scheme.onSurfaceVariant)
                           : (dark ? Colors.white : onSurface),
-                      fontWeight: isCurrent
-                          ? FontWeight.w600
-                          : FontWeight.normal,
+                      fontWeight: FontWeight.w600,
                       fontSize: 15,
                     ),
                   ),
@@ -1656,11 +1660,10 @@ class _MangaDetailScreenState extends ConsumerState<MangaDetailScreen> {
                 return '';
               }(),
               style: TextStyle(
-                color: dark ? Colors.white38 : const Color(0xFF8A8A8E),
-                // Held at the size the list already used: this line is meant to
-                // read as subordinate to the chapter above it, and the muted
-                // grey it now shares with the details card is what carries that
-                // -- the darker tint is for legibility, not for weight.
+                // Lighter than the label above it, and lighter than the grey
+                // the details card uses for its own labels: this is the least
+                // important text on the row, so it should look it.
+                color: dark ? Colors.white38 : const Color(0xFF9E9EA3),
                 fontSize: 11,
               ),
             ),
@@ -3178,19 +3181,20 @@ class _MangaDetailScreenState extends ConsumerState<MangaDetailScreen> {
   Widget _buildFavoriteButton() {
     final l = AppLocalizations.of(context);
     final scheme = Theme.of(context).colorScheme;
-    // Outlined rather than filled. The cover is the loudest thing on this
-    // screen, and a solid accent block sitting beside it competes with the
-    // thing the page is actually about -- so the button drops to a hairline and
-    // the heart carries the colour, and only once the work is in the library.
+    // A very light fill rather than an outline. The outline gave the pill a hard
+    // edge of its own, which read as heavier than the cover sitting next to it;
+    // a tint this faint keeps the shape and the tap target without drawing a box
+    // on the page. The heart still carries the colour, and only once the work is
+    // in the library.
     final fg = scheme.onSurface;
     final heartColor = _isFavorite ? scheme.primary : fg;
-    final border = scheme.outlineVariant;
+    final fill = scheme.onSurface.withValues(alpha: 0.05);
 
     return Container(
       constraints: const BoxConstraints(minHeight: 40),
       decoration: BoxDecoration(
+        color: fill,
         borderRadius: BorderRadius.circular(20),
-        border: Border.all(color: border),
       ),
       child: Row(
         mainAxisSize: MainAxisSize.min,
@@ -3225,7 +3229,11 @@ class _MangaDetailScreenState extends ConsumerState<MangaDetailScreen> {
               ),
             ),
           ),
-          Container(width: 1, height: 20, color: border),
+          Container(
+            width: 1,
+            height: 20,
+            color: scheme.outlineVariant.withValues(alpha: 0.6),
+          ),
           InkWell(
             onTap: () => _showOverflowMenu(context),
             borderRadius: const BorderRadius.horizontal(
@@ -3256,7 +3264,11 @@ class _MangaDetailScreenState extends ConsumerState<MangaDetailScreen> {
 
     return Container(
       margin: const EdgeInsets.symmetric(horizontal: 16),
-      padding: const EdgeInsets.all(16),
+      // More room at the sides than above and below: the card is the widest
+      // block in the pane and its label and value columns were running right up
+      // to the edges, which is what made it read as cramped rather than
+      // spacious.
+      padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 16),
       decoration: BoxDecoration(
         // Semi-translucent, so the art plate behind the pane reads faintly
         // through the card instead of stopping dead at its edge. An earlier
@@ -4190,10 +4202,13 @@ class _SheetHeaderDelegate extends SliverPersistentHeaderDelegate {
   }) {
     final l = AppLocalizations.of(context);
     return Container(
-      padding: const EdgeInsets.all(2),
+      padding: const EdgeInsets.all(3),
       decoration: BoxDecoration(
-        color: scheme.surfaceContainerHighest.withValues(alpha: 0.7),
-        borderRadius: BorderRadius.circular(9),
+        // A definite track colour, not a wash over the header. At 70% alpha on
+        // a white bar it was faint enough to read as three loose labels rather
+        // than one control, which is exactly how it was described back.
+        color: scheme.surfaceContainerHighest,
+        borderRadius: BorderRadius.circular(10),
       ),
       child: Row(
         children: [
@@ -4224,8 +4239,8 @@ class _SheetHeaderDelegate extends SliverPersistentHeaderDelegate {
     );
   }
 
-  /// One segment of [this._buildModeSegments]: accent block when it is the
-  /// place you are in, plain label when it is not.
+  /// One segment of [this._buildModeSegments]: a tonal chip when it is the
+  /// place you are in, a plain label when it is not.
   Widget _buildSegment({
     required IconData icon,
     required String label,
@@ -4234,7 +4249,9 @@ class _SheetHeaderDelegate extends SliverPersistentHeaderDelegate {
     required VoidCallback onTap,
     Widget? badge,
   }) {
-    final fg = active ? scheme.onSurface : scheme.onSurfaceVariant;
+    final fg = active
+        ? scheme.onSecondaryContainer
+        : scheme.onSurfaceVariant;
     return Expanded(
       child: GestureDetector(
         onTap: onTap,
@@ -4243,13 +4260,12 @@ class _SheetHeaderDelegate extends SliverPersistentHeaderDelegate {
           curve: Curves.easeOut,
           padding: const EdgeInsets.symmetric(vertical: 7),
           decoration: BoxDecoration(
-            // A raised chip, not an accent fill. The Continue pill sits in this
-            // same bar and is already accent-filled, and the reference's own
-            // list-mode control is an outlined button group whose checked state
-            // is tonal rather than accent. So this follows the reference and
-            // the app's other segmented row rather than inventing a third
-            // treatment that competes with the button beside it.
-            color: active ? scheme.surface : Colors.transparent,
+            // The selected chip takes the tonal container that the reference's
+            // checkable outlined buttons take when checked. The first attempt
+            // used `surface` here, which is near-white in these schemes -- on a
+            // white header bar the selection was invisible, leaving the label
+            // weight as the only clue.
+            color: active ? scheme.secondaryContainer : Colors.transparent,
             borderRadius: BorderRadius.circular(7),
           ),
           child: Stack(
@@ -4276,7 +4292,7 @@ class _SheetHeaderDelegate extends SliverPersistentHeaderDelegate {
               ),
               // The unread count rides the segment rather than the icon, so it
               // sits at the chip's corner and stays legible whether the chip is
-              // raised or not.
+              // filled or not.
               if (badge != null) Positioned(top: -9, right: 6, child: badge),
             ],
           ),
