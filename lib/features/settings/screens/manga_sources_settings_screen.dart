@@ -121,14 +121,13 @@ class _MangaSourcesSettingsScreenState
           icon: MdiIcons.newspaperVariantOutline,
           title: l.sourcesManage,
           subtitle: l.settingsMangaSourcesSubtitle(enabledCount, totalCount),
-          onTap: () {
-            Navigator.push(
-              context,
-              MaterialPageRoute(
-                builder: (context) => const ManageSourcesScreen(),
-              ),
-            );
-          },
+          // A sub-screen of this pane rather than a page over the top of it:
+          // with room for two panes the reader keeps the list they came from,
+          // and the app's own navigation beside it, while this one is open.
+          onTap: () => SettingsPaneScope.openScreen(
+            context,
+            const ManageSourcesScreen(),
+          ),
         ),
         // Everything about which sources are on and what they show, then the
         // two that only change how a source is reached. The rule carries the

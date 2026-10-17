@@ -220,13 +220,59 @@ Future<T?> showM3OptionSheet<T>(
 /// cannot end up with a back arrow that pops the whole settings route out from
 /// under a pane tap.
 class SettingsPaneScope extends StatelessWidget {
-  const SettingsPaneScope({super.key, required this.child});
+  const SettingsPaneScope({
+    super.key,
+    required this.child,
+    this.onOpenScreen,
+    this.onCloseScreen,
+  });
 
   final Widget child;
+
+  /// Shows a screen in this pane in place of the category it has selected.
+  ///
+  /// Null in a bare scope -- a pane in a test, or one with no hub behind it --
+  /// where [openScreen] falls back to a route of its own.
+  final ValueChanged<Widget>? onOpenScreen;
+
+  /// Puts the pane back on the category it was showing. Null with
+  /// [onOpenScreen], and for the same reason.
+  final VoidCallback? onCloseScreen;
 
   /// Whether [context] sits inside a two-pane settings detail pane.
   static bool of(BuildContext context) =>
       context.dependOnInheritedWidgetOfExactType<_SettingsPane>() != null;
+
+  /// Opens [screen] where the reader can reach it from [context]: in the
+  /// settings pane beside the category list when there is one, as a route of
+  /// its own when there is not.
+  ///
+  /// A settings sub-screen is a detail of the category it hangs off, so on a
+  /// wide window it belongs in the pane the category is already open in: the
+  /// list stays on the left, showing where the reader is, and is how they leave
+  /// again. Pushing it instead would cover that list -- and the app's own
+  /// navigation beside it -- to show one screen that belongs in a pane.
+  static void openScreen(BuildContext context, Widget screen) {
+    final scope = context.dependOnInheritedWidgetOfExactType<_SettingsPane>();
+    final open = scope?.onOpenScreen;
+    if (open != null) {
+      open(screen);
+      return;
+    }
+    Navigator.push(context, MaterialPageRoute(builder: (context) => screen));
+  }
+
+  /// Leaves the screen [context] is showing, whichever way it was opened: the
+  /// pane's own screen closes back to the category, a pushed one pops.
+  static void closeScreen(BuildContext context) {
+    final scope = context.dependOnInheritedWidgetOfExactType<_SettingsPane>();
+    final close = scope?.onCloseScreen;
+    if (close != null) {
+      close();
+      return;
+    }
+    Navigator.pop(context);
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -237,17 +283,33 @@ class SettingsPaneScope extends StatelessWidget {
     // where a pushed copy of the same screen puts them.
     return ContentWidthCap(
       cap: double.infinity,
-      child: _SettingsPane(child: child),
+      child: _SettingsPane(
+        onOpenScreen: onOpenScreen,
+        onCloseScreen: onCloseScreen,
+        child: child,
+      ),
     );
   }
 }
 
 /// The marker behind [SettingsPaneScope.of].
+///
+/// Carries the pane's own navigation with it, so a screen can open a sub-screen
+/// into the pane it is in without knowing which widget hosts it.
 class _SettingsPane extends InheritedWidget {
-  const _SettingsPane({required super.child});
+  const _SettingsPane({
+    required this.onOpenScreen,
+    required this.onCloseScreen,
+    required super.child,
+  });
+
+  final ValueChanged<Widget>? onOpenScreen;
+  final VoidCallback? onCloseScreen;
 
   @override
-  bool updateShouldNotify(_SettingsPane oldWidget) => false;
+  bool updateShouldNotify(_SettingsPane oldWidget) =>
+      onOpenScreen != oldWidget.onOpenScreen ||
+      onCloseScreen != oldWidget.onCloseScreen;
 }
 
 /// The row rhythm a settings list uses: one height for every row in it.

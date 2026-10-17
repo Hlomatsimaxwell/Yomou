@@ -9,6 +9,7 @@ import 'package:yomou/core/widgets/ios/ios_toast.dart';
 import 'package:yomou/features/source_management/screens/manga_grid_screen.dart';
 import 'package:yomou/features/source_management/screens/source_settings_screen.dart';
 import 'package:yomou/l10n/generated/app_localizations.dart';
+import 'package:yomou/widgets/m3_components.dart';
 import 'package:yomou/widgets/source_icon.dart';
 
 class ManageSourcesScreen extends ConsumerStatefulWidget {
@@ -59,7 +60,11 @@ class _ManageSourcesScreenState extends ConsumerState<ManageSourcesScreen> {
             MdiIcons.arrowLeft,
             color: dark ? Colors.white : const Color(0xFF1C1B1F),
           ),
-          onPressed: () => Navigator.pop(context),
+          // This screen is opened two ways: over the hub on a phone, and into
+          // its detail pane on a wide window. The arrow means "leave this
+          // screen" in both, so it asks whichever opened it rather than popping
+          // the hub out from under a pane tap.
+          onPressed: () => SettingsPaneScope.closeScreen(context),
         ),
         title: _isSearching
             ? TextField(

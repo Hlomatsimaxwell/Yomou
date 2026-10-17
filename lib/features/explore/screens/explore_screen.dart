@@ -23,7 +23,6 @@ import 'package:yomou/features/content_preferences/screens/source_presets_list_s
 import 'package:yomou/features/content_preferences/providers/source_presets_provider.dart';
 import 'package:yomou/features/settings/screens/settings_screen.dart';
 import 'package:yomou/features/source_management/screens/manga_grid_screen.dart';
-import 'package:yomou/features/source_management/screens/manga_sources_screen.dart';
 import 'package:yomou/data/providers/sources_provider.dart';
 import 'package:yomou/features/settings/providers/cache_settings_provider.dart';
 import 'package:yomou/features/suggestions/providers/suggestions_provider.dart';
@@ -104,12 +103,7 @@ class _ExploreScreenState extends ConsumerState<ExploreScreen> {
                   actionLabel: AppLocalizations.of(context).exploreManage,
                   actionColor: Theme.of(context).colorScheme.primary,
                   onMorePressed: () {
-                    Navigator.push(
-                      context,
-                      MaterialPageRoute(
-                        builder: (context) => const ManageSourcesScreen(),
-                      ),
-                    );
+                    openManageSources(context);
                   },
                 ),
               ),
@@ -162,12 +156,7 @@ class _ExploreScreenState extends ConsumerState<ExploreScreen> {
           // gone by the time it returns. Pushing on a dead context throws.
           if (!mounted) return;
           if (action == 'manage') {
-            Navigator.push(
-              context,
-              MaterialPageRoute(
-                builder: (context) => const ManageSourcesScreen(),
-              ),
-            );
+            openManageSources(context);
           } else if (action == 'settings') {
             Navigator.push(
               context,

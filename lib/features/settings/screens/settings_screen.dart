@@ -18,6 +18,7 @@ import 'package:yomou/features/settings/screens/storage_settings_screen.dart';
 import 'package:yomou/features/settings/screens/downloads_settings_screen.dart';
 import 'package:yomou/features/settings/screens/reader_settings_screen.dart';
 import 'package:yomou/features/settings/widgets/settings_surfaces.dart';
+import 'package:yomou/features/source_management/screens/manga_sources_screen.dart';
 import 'package:yomou/data/providers/sources_provider.dart';
 import 'package:yomou/widgets/m3_components.dart';
 
@@ -52,7 +53,7 @@ class _Category {
 const _aboutIcon = 'ic_info_outline';
 
 class SettingsScreen extends ConsumerStatefulWidget {
-  const SettingsScreen({super.key, this.initialCategory});
+  const SettingsScreen({super.key, this.initialCategory, this.initialDetail});
 
   /// Which category the detail pane opens on, by its settings title.
   ///
@@ -68,6 +69,15 @@ class SettingsScreen extends ConsumerStatefulWidget {
   /// falls back to the first category, which is what a plain open already did.
   final String? initialCategory;
 
+  /// A screen to open in the detail pane instead of [initialCategory]'s own,
+  /// for a sub-screen reached from somewhere that has no pane to open it in.
+  ///
+  /// Only the wide layout has a pane, so a caller that wants this checks the
+  /// window before it gets here -- see [openManageSources]. The reader leaves
+  /// it the way they leave any pane screen: by picking a category, which clears
+  /// this, or by the screen's own back arrow.
+  final Widget? initialDetail;
+
   @override
   ConsumerState<SettingsScreen> createState() => _SettingsScreenState();
 }
@@ -77,6 +87,15 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
   /// the initial selection lands without an extra frame of empty pane.
   int? _selectedIndex;
 
+  /// The screen the detail pane is showing in place of the selected category,
+  /// or null when it is showing the category itself.
+  ///
+  /// A settings sub-screen is a detail of the category it hangs off rather than
+  /// a page of its own, so on a wide window it opens here, over the category,
+  /// with the category list still beside it. Nothing about it is history: the
+  /// list is how the reader leaves, and picking a category there closes it.
+  Widget? _detail;
+
   /// Whether the hub is filtering itself down to the rows that match
   /// [_searchQuery]. The field takes up no room until it is asked for, so the
   /// hub looks the same as it always did until the search is opened.
@@ -85,9 +104,23 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
   final TextEditingController _searchQuery = TextEditingController();
 
   @override
+  void initState() {
+    super.initState();
+    _detail = widget.initialDetail;
+  }
+
+  @override
   void dispose() {
     _searchQuery.dispose();
     super.dispose();
+  }
+
+  /// Shows [screen] in the detail pane in place of the selected category.
+  void _openInPane(Widget screen) => setState(() => _detail = screen);
+
+  /// Puts the detail pane back on the selected category.
+  void _closeInPane() {
+    if (_detail != null) setState(() => _detail = null);
   }
 
   void _startSearch() => setState(() => _searching = true);
@@ -206,65 +239,88 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
     final index = _selectedIndex ?? _initialCategoryIndex(selectable) ?? 0;
     final current = selectable[index.clamp(0, selectable.length - 1)];
 
-    return Row(
-      children: [
-        SizedBox(
-          width: kSettingsCategoryPaneWidth,
-          // Its own fill, so the two columns are two planes instead of one
-          // surface split by a line.
-          child: ColoredBox(
-            color: SettingsSurfaces.sidebar(context),
-            child: Column(
-              children: [
-                // The hub bar sits over the list it acts on and stops at the
-                // column's edge, which is where the divider is: the search icon
-                // lands on the line rather than out at the far right of the
-                // window, and the pane across the line starts with its own
-                // category screen's bar.
-                SettingsAppBar(title: l.settings, actions: barActions),
-                Expanded(
-                  child: _buildCategoryList(
-                    categories,
-                    selected: current,
-                    onSelect: (c) {
-                      final i = selectable.indexOf(c);
-                      if (i >= 0) setState(() => _selectedIndex = i);
-                    },
+    // A sub-screen in the pane is one the reader can back out of, so the pane
+    // owns that step: without this the system's back gesture would take the
+    // whole of settings with it and land on whatever was open before it.
+    return PopScope(
+      canPop: _detail == null,
+      onPopInvokedWithResult: (didPop, result) {
+        if (!didPop) _closeInPane();
+      },
+      child: Row(
+        children: [
+          SizedBox(
+            width: kSettingsCategoryPaneWidth,
+            // Its own fill, so the two columns are two planes instead of one
+            // surface split by a line.
+            child: ColoredBox(
+              color: SettingsSurfaces.sidebar(context),
+              child: Column(
+                children: [
+                  // The hub bar sits over the list it acts on and stops at the
+                  // column's edge, which is where the divider is: the search icon
+                  // lands on the line rather than out at the far right of the
+                  // window, and the pane across the line starts with its own
+                  // category screen's bar.
+                  SettingsAppBar(title: l.settings, actions: barActions),
+                  Expanded(
+                    child: _buildCategoryList(
+                      categories,
+                      selected: current,
+                      onSelect: (c) {
+                        final i = selectable.indexOf(c);
+                        if (i >= 0) {
+                          // A category is a screen of its own, so picking one
+                          // ends any sub-screen the pane was showing.
+                          setState(() {
+                            _selectedIndex = i;
+                            _detail = null;
+                          });
+                        }
+                      },
+                    ),
                   ),
+                ],
+              ),
+            ),
+          ),
+          VerticalDivider(
+            width: 1,
+            color: SettingsSurfaces.columnDivider(context),
+          ),
+          Expanded(
+            // The scope is what tells each category screen it is in a pane, so
+            // its app bar drops the back arrow that would otherwise pop the whole
+            // settings route -- and what lets one of them open a sub-screen here
+            // rather than over the top of it. Its two pane callbacks are method
+            // tear-offs, so rebuilding the hub does not invalidate the scope.
+            child: SettingsPaneScope(
+              onOpenScreen: _openInPane,
+              onCloseScreen: _closeInPane,
+              // Tinted here rather than by each category screen: the pane is one
+              // surface that the six screens all sit on, so if each painted its
+              // own background the seams between them would be the only place the
+              // tone could go wrong. A Theme rather than a ColoredBox because
+              // every one of those screens is a Scaffold, and a Scaffold paints
+              // the theme's background over anything behind it.
+              child: Theme(
+                data: Theme.of(context).copyWith(
+                  scaffoldBackgroundColor: SettingsSurfaces.pane(context),
                 ),
-              ],
-            ),
-          ),
-        ),
-        VerticalDivider(
-          width: 1,
-          color: SettingsSurfaces.columnDivider(context),
-        ),
-        Expanded(
-          // The scope is what tells each category screen it is in a pane, so
-          // its app bar drops the back arrow that would otherwise pop the whole
-          // settings route.
-          child: SettingsPaneScope(
-            // Tinted here rather than by each category screen: the pane is one
-            // surface that the six screens all sit on, so if each painted its
-            // own background the seams between them would be the only place the
-            // tone could go wrong. A Theme rather than a ColoredBox because
-            // every one of those screens is a Scaffold, and a Scaffold paints
-            // the theme's background over anything behind it.
-            child: Theme(
-              data: Theme.of(context).copyWith(
-                scaffoldBackgroundColor: SettingsSurfaces.pane(context),
-              ),
-              child: KeyedSubtree(
-                // Keyed on the category so switching panes rebuilds the screen
-                // instead of reusing the previous one's element tree.
-                key: ValueKey(current.title),
-                child: current.screen!,
+                child: KeyedSubtree(
+                  // Keyed on what the pane is showing so switching between a
+                  // category and a sub-screen rebuilds instead of reusing the
+                  // previous one's element tree.
+                  key: ValueKey(
+                    _detail == null ? 'category:${current.title}' : 'detail',
+                  ),
+                  child: _detail ?? current.screen!,
+                ),
               ),
             ),
           ),
-        ),
-      ],
+        ],
+      ),
     );
   }
 
@@ -548,4 +604,34 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
       ),
     );
   }
+}
+
+/// Opens the sources list the way this window expects it.
+///
+/// On a wide window that means the settings hub with [ManageSourcesScreen] in
+/// its detail pane and the category it hangs off selected beside it, which is
+/// how this layout shows a settings sub-screen: the category list stays put as
+/// the way back out, and the pane shows the screen the row named. A phone has
+/// no pane, so it is a page of its own, as it always was.
+///
+/// The decision is out here rather than in [SettingsScreen] because it is a
+/// question about the window, and [SettingsScreen] is one half of the answer.
+void openManageSources(BuildContext context) {
+  if (!usesWideLayout(context)) {
+    Navigator.push(
+      context,
+      MaterialPageRoute(builder: (context) => const ManageSourcesScreen()),
+    );
+    return;
+  }
+  final category = AppLocalizations.of(context).settingsMangaSources;
+  Navigator.push(
+    context,
+    MaterialPageRoute(
+      builder: (context) => SettingsScreen(
+        initialCategory: category,
+        initialDetail: const ManageSourcesScreen(),
+      ),
+    ),
+  );
 }
