@@ -123,12 +123,12 @@ class NotificationService {
     _initialized = true;
 
     const android = AndroidInitializationSettings('ic_stat_notify');
-    final ios = IOSInitializationSettings(
+    final darwin = DarwinInitializationSettings(
       requestAlertPermission: false,
       requestBadgePermission: false,
       requestSoundPermission: false,
-      // iOS shows actions only via long-press/expansion; register the "READ"
-      // and "MORE" actions for the suggested category here.
+      // iOS/macOS show actions only via long-press/expansion; register the
+      // "READ" and "MORE" actions for the suggested category here.
       notificationCategories: [
         DarwinNotificationCategory(
           _suggestedCategoryId,
@@ -139,7 +139,11 @@ class NotificationService {
         ),
       ],
     );
-    final settings = InitializationSettings(android: android, iOS: ios);
+    final settings = InitializationSettings(
+      android: android,
+      iOS: darwin,
+      macOS: darwin,
+    );
 
     await _plugin.initialize(
       settings: settings,
@@ -191,6 +195,18 @@ class NotificationService {
         final impl = _plugin
             .resolvePlatformSpecificImplementation<
               IOSFlutterLocalNotificationsPlugin
+            >();
+        return await impl?.requestPermissions(
+              alert: true,
+              badge: true,
+              sound: true,
+            ) ??
+            false;
+      }
+      if (Platform.isMacOS) {
+        final impl = _plugin
+            .resolvePlatformSpecificImplementation<
+              MacOSFlutterLocalNotificationsPlugin
             >();
         return await impl?.requestPermissions(
               alert: true,
