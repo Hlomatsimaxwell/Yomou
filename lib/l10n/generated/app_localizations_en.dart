@@ -230,7 +230,7 @@ class AppLocalizationsEn extends AppLocalizations {
 
   @override
   String get settingsStorageSubtitle =>
-      'Storage usage, Proxy, Content preloading';
+      'Storage usage, Data removal, Content preloading';
 
   @override
   String get settingsDownloads => 'Downloads';
@@ -2139,6 +2139,27 @@ class AppLocalizationsEn extends AppLocalizations {
 
   @override
   String get coversNoResults => 'No alternative covers found';
+
+  @override
+  String get storageUsageTitle => 'Storage usage';
+
+  @override
+  String get storageSavedManga => 'Saved manga';
+
+  @override
+  String get storagePagesCache => 'Pages cache';
+
+  @override
+  String get storageOtherCache => 'Other cache';
+
+  @override
+  String get storageAvailable => 'Available';
+
+  @override
+  String get storageDataRemoval => 'Data removal';
+
+  @override
+  String get storageContentPreloading => 'Content preloading';
 
   @override
   String get storageCacheSection => 'Image cache';

@@ -521,7 +521,7 @@ abstract class AppLocalizations {
   /// No description provided for @settingsStorageSubtitle.
   ///
   /// In en, this message translates to:
-  /// **'Storage usage, Proxy, Content preloading'**
+  /// **'Storage usage, Data removal, Content preloading'**
   String get settingsStorageSubtitle;
 
   /// No description provided for @settingsDownloads.
@@ -3942,6 +3942,48 @@ abstract class AppLocalizations {
   /// In en, this message translates to:
   /// **'No alternative covers found'**
   String get coversNoResults;
+
+  /// No description provided for @storageUsageTitle.
+  ///
+  /// In en, this message translates to:
+  /// **'Storage usage'**
+  String get storageUsageTitle;
+
+  /// No description provided for @storageSavedManga.
+  ///
+  /// In en, this message translates to:
+  /// **'Saved manga'**
+  String get storageSavedManga;
+
+  /// No description provided for @storagePagesCache.
+  ///
+  /// In en, this message translates to:
+  /// **'Pages cache'**
+  String get storagePagesCache;
+
+  /// No description provided for @storageOtherCache.
+  ///
+  /// In en, this message translates to:
+  /// **'Other cache'**
+  String get storageOtherCache;
+
+  /// No description provided for @storageAvailable.
+  ///
+  /// In en, this message translates to:
+  /// **'Available'**
+  String get storageAvailable;
+
+  /// No description provided for @storageDataRemoval.
+  ///
+  /// In en, this message translates to:
+  /// **'Data removal'**
+  String get storageDataRemoval;
+
+  /// No description provided for @storageContentPreloading.
+  ///
+  /// In en, this message translates to:
+  /// **'Content preloading'**
+  String get storageContentPreloading;
 
   /// No description provided for @storageCacheSection.
   ///

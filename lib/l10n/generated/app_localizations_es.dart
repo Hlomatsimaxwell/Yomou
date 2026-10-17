@@ -233,7 +233,7 @@ class AppLocalizationsEs extends AppLocalizations {
 
   @override
   String get settingsStorageSubtitle =>
-      'Uso de almacenamiento, proxy, precarga de contenido';
+      'Uso de almacenamiento, eliminación de datos, precarga de contenido';
 
   @override
   String get settingsDownloads => 'Descargas';
@@ -2159,6 +2159,27 @@ class AppLocalizationsEs extends AppLocalizations {
 
   @override
   String get coversNoResults => 'No se encontraron portadas alternativas';
+
+  @override
+  String get storageUsageTitle => 'Uso de almacenamiento';
+
+  @override
+  String get storageSavedManga => 'Manga guardado';
+
+  @override
+  String get storagePagesCache => 'Caché de páginas';
+
+  @override
+  String get storageOtherCache => 'Otra caché';
+
+  @override
+  String get storageAvailable => 'Disponible';
+
+  @override
+  String get storageDataRemoval => 'Eliminación de datos';
+
+  @override
+  String get storageContentPreloading => 'Precarga de contenido';
 
   @override
   String get storageCacheSection => 'Caché de imágenes';

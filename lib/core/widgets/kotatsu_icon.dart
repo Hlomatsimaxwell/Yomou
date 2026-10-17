@@ -50,8 +50,13 @@ const List<String> kKotatsuIconNames = <String>[
   // `ic_sfw` above, or the identical MDI glyph where the inspo's file has no
   // match in any icon font the app carries.
   'ic_replace',
-  // Ported but not drawn on a settings row of ours yet: the "new" marker and
-  // the image glyph Kotatsu-Redo uses elsewhere.
+  // One row on our Storage and network pane, mirroring its
+  // pref_network_storage.xml. That pane's other rows reuse `ic_usage`,
+  // `ic_download` and `ic_book_page` above, or the identical MDI glyph where
+  // the inspo's file has no match in any icon font the app carries.
+  'ic_clear_all',
+  // Ported but not drawn on a settings row of ours yet: the "new" marker
+  // Kotatsu-Redo uses elsewhere.
   'ic_new',
   'ic_images',
   // Rows Kotatsu-Redo has no counterpart for.

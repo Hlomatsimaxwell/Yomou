@@ -30,6 +30,7 @@ none match Remix.
 | `ic_appearance.svg` | Kotatsu-Redo `res/drawable/ic_appearance.xml` | MDI `mdiPaletteOutline` |
 | `ic_backup_restore.svg` | Kotatsu-Redo `res/drawable/ic_backup_restore.xml` | MDI `mdiBackupRestore` |
 | `ic_book_page.svg` | Kotatsu-Redo `res/drawable/ic_book_page.xml` | MDI `mdiBookOpenPageVariantOutline` |
+| `ic_clear_all.svg` | Kotatsu-Redo `res/drawable/ic_clear_all.xml` | Material `filled/clear_all` |
 | `ic_dark_mode.svg` | Kotatsu-Redo `res/drawable/ic_dark_mode.xml` | ? `hand-drawn crescent` |
 | `ic_data_privacy.svg` | Kotatsu-Redo `res/drawable/ic_data_privacy.xml` | MDI `mdiShieldAccountVariantOutline` |
 | `ic_download.svg` | Kotatsu-Redo `res/drawable/ic_download.xml` | MDI `mdiDownloadOutline` |
