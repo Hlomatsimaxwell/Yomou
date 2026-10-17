@@ -263,10 +263,10 @@ class SettingsRows extends StatelessWidget {
   /// A row carrying a subtitle: 24 + 20 of text plus [rowInset] above and
   /// below. A one-line row is held to the same height so the column keeps one
   /// rhythm.
-  static const double rowHeight = 52;
+  static const double rowHeight = 60;
 
   /// The breathing room a row keeps inside [rowHeight].
-  static const double rowInset = 4;
+  static const double rowInset = 8;
 
   /// How far a row's trailing control is held off the pane's own edge, once
   /// the list's own 8 is added. Material's tile ends 24 in; at a pane's width
