@@ -229,7 +229,7 @@ void main() {
         expect(text.top - box.top, 24, reason: 'above $title');
       } else {
         expect(hasRule, isTrue, reason: 'groups: rule above $title');
-        expect(text.top - box.top, 25, reason: 'above $title, rule + 24');
+        expect(text.top - box.top, 33, reason: 'above $title, rule + 8 pad + 24');
       }
       expect(box.bottom - text.bottom, 16, reason: 'under $title');
     }

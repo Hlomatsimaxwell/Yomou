@@ -51,21 +51,24 @@ class M3SectionHeader extends StatelessWidget {
       crossAxisAlignment: CrossAxisAlignment.stretch,
       children: [
         if (dividerAbove)
-          // A Stack rather than a plain box, because [bleed] has to paint
-          // outside this heading's own box and only a positioned child may.
-          SizedBox(
-            height: 1,
-            child: Stack(
-              clipBehavior: Clip.none,
-              children: [
-                Positioned(
-                  left: -bleed,
-                  right: -bleed,
-                  top: 0,
-                  bottom: 0,
-                  child: ColoredBox(color: hairlineColor(context)),
-                ),
-              ],
+          // Add a touch of air above the rule so the previous row doesn't sit
+          // right on top of the separator.
+          Padding(
+            padding: const EdgeInsets.only(top: 8),
+            child: SizedBox(
+              height: 1,
+              child: Stack(
+                clipBehavior: Clip.none,
+                children: [
+                  Positioned(
+                    left: -bleed,
+                    right: -bleed,
+                    top: 0,
+                    bottom: 0,
+                    child: ColoredBox(color: hairlineColor(context)),
+                  ),
+                ],
+              ),
             ),
           ),
         Padding(
