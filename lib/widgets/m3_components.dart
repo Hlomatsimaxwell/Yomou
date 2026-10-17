@@ -221,12 +221,26 @@ class SettingsRows extends StatelessWidget {
   /// The breathing room a row keeps inside [rowHeight].
   static const double rowInset = 4;
 
+  /// How far a row's trailing control is held off the pane's own edge, once
+  /// the list's own 8 is added. Material's tile ends 24 in; at a pane's width
+  /// that reads as a gap, so the switches are brought in to the edge.
+  static const double trailingInset = 8;
+
   @override
   Widget build(BuildContext context) {
     return ListTileTheme(
       data: Theme.of(context).listTileTheme.copyWith(
             minTileHeight: rowHeight,
             minVerticalPadding: rowInset,
+            // Material gives a tile 16 at the start and 24 at the end. A pane
+            // is the measure the rows are drawn against, so the extra 8 at the
+            // end reads as a gap between a switch and the edge it sits on
+            // rather than as symmetry. The start stays at 16, where it is what
+            // lines a row's icon up with the pane's title and section labels.
+            contentPadding: const EdgeInsetsDirectional.only(
+              start: 16,
+              end: trailingInset,
+            ),
           ),
       child: child,
     );

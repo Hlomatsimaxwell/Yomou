@@ -174,10 +174,11 @@ void main() {
     expect(list.right, 1400);
 
     // The trailing control ends on the pane's own edge rather than 200px in
-    // from it: the 8 this list insets itself by, then the 24 Material insets a
-    // list tile's trailing content by (against 16 at the start).
+    // from it: the 8 this list insets itself by, then [SettingsRows]' own 8 at
+    // the end (against 16 at the start) so a switch lands near the edge it
+    // sits against instead of 24 in from it.
     final toggles = tester.getRect(find.byType(Switch).first);
-    expect(toggles.right, 1400 - 8 - 24);
+    expect(toggles.right, 1400 - 8 - SettingsRows.trailingInset);
     expect(tester.getRect(find.text('100%')).right, toggles.right);
 
     expect(tester.takeException(), isNull);
