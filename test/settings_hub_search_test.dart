@@ -3,6 +3,7 @@ import 'package:flutter_material_design_icons/flutter_material_design_icons.dart
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:shared_preferences/shared_preferences.dart';
+import 'package:yomou/core/theme/layout.dart';
 import 'package:yomou/features/settings/screens/settings_screen.dart';
 import 'package:yomou/l10n/generated/app_localizations.dart';
 
@@ -95,6 +96,29 @@ void main() {
     // is a way to reach a row, not a selection of its own.
     expect(find.text('Reader settings'), findsOneWidget);
     expect(find.text('Color Scheme'), findsOneWidget);
+
+    expect(tester.takeException(), isNull);
+  });
+
+  testWidgets('the two-pane hub caps its bar to the menu column and the line '
+      'runs to the top', (tester) async {
+    await pump(tester, const Size(1200, 1400));
+
+    // The hub's own bar sits inside the menu column: its title and its search
+    // action end on the line between the panes rather than out at the window's
+    // right edge, so the search belongs to the list it acts on and the detail
+    // pane keeps the whole of its own bar.
+    final title = tester.getRect(find.text('Settings'));
+    final search = tester.getRect(find.byIcon(MdiIcons.magnify));
+    expect(title.right, lessThanOrEqualTo(kSettingsCategoryPaneWidth));
+    expect(search.right, lessThanOrEqualTo(kSettingsCategoryPaneWidth));
+
+    // The line separating the two sides runs the full height of the screen:
+    // it starts at the very top, level with the bar, instead of only under it.
+    final divider = tester.getRect(find.byType(VerticalDivider).first);
+    expect(divider.top, 0);
+    expect(divider.height, 1400);
+    expect(divider.left, kSettingsCategoryPaneWidth);
 
     expect(tester.takeException(), isNull);
   });

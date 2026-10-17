@@ -175,24 +175,30 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
     // that leaves the detail pane narrower than the phone it replaced.
     final twoPane = usesWideLayout(context);
 
+    final searchAction = IconButton(
+      icon: Icon(_searching ? MdiIcons.close : MdiIcons.magnify),
+      tooltip: _searching ? l.filterCancel : l.settingsSearchHint,
+      onPressed: _searching ? _endSearch : _startSearch,
+    );
+
+    // On a wide window the hub's own bar belongs to the menu column, not to the
+    // window: it is built inside that column (below) so its title and search
+    // end where the two panes divide, and the line between them can run the
+    // full height of the screen. Each category screen keeps its own bar on the
+    // other side. A phone has no menu column to cap against, so its single bar
+    // stays full width over the list.
+    if (twoPane) {
+      return Scaffold(body: _buildTwoPane(categories, [searchAction]));
+    }
+
     return Scaffold(
-      appBar: SettingsAppBar(
-        title: l.settings,
-        actions: [
-          IconButton(
-            icon: Icon(_searching ? MdiIcons.close : MdiIcons.magnify),
-            tooltip: _searching ? l.filterCancel : l.settingsSearchHint,
-            onPressed: _searching ? _endSearch : _startSearch,
-          ),
-        ],
-      ),
-      body: twoPane
-          ? _buildTwoPane(categories)
-          : CappedContentWidth(child: _buildCategoryList(categories)),
+      appBar: SettingsAppBar(title: l.settings, actions: [searchAction]),
+      body: CappedContentWidth(child: _buildCategoryList(categories)),
     );
   }
 
-  Widget _buildTwoPane(List<_Category> categories) {
+  Widget _buildTwoPane(List<_Category> categories, List<Widget> barActions) {
+    final l = AppLocalizations.of(context);
     // Defaults to the first category so the detail pane is never empty: an
     // empty pane on a large screen reads as a failed load rather than as an
     // invitation to pick something.
@@ -208,13 +214,25 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
           // surface split by a line.
           child: ColoredBox(
             color: SettingsSurfaces.sidebar(context),
-            child: _buildCategoryList(
-              categories,
-              selected: current,
-              onSelect: (c) {
-                final i = selectable.indexOf(c);
-                if (i >= 0) setState(() => _selectedIndex = i);
-              },
+            child: Column(
+              children: [
+                // The hub bar sits over the list it acts on and stops at the
+                // column's edge, which is where the divider is: the search icon
+                // lands on the line rather than out at the far right of the
+                // window, and the pane across the line starts with its own
+                // category screen's bar.
+                SettingsAppBar(title: l.settings, actions: barActions),
+                Expanded(
+                  child: _buildCategoryList(
+                    categories,
+                    selected: current,
+                    onSelect: (c) {
+                      final i = selectable.indexOf(c);
+                      if (i >= 0) setState(() => _selectedIndex = i);
+                    },
+                  ),
+                ),
+              ],
             ),
           ),
         ),
