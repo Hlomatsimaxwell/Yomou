@@ -255,9 +255,9 @@ class _SettingsPane extends InheritedWidget {
 /// Material's own is 72 for a row with a subtitle under it and 56 for one
 /// without, which reads as two different lists when both sit in one column.
 /// A settings row here is a name over one line of its value -- 24 + 20 of
-/// text -- so 52 is that text with [rowInset] above and below: the tightest
-/// that still holds both lines, and the same height whether the row carries a
-/// subtitle or not.
+/// text -- so 54 is that text with [rowInset] above and below: the height the
+/// inspo's own value rows come to, and the same height whether the row carries
+/// a subtitle or not.
 class SettingsRows extends StatelessWidget {
   const SettingsRows({super.key, required this.child});
 
@@ -266,10 +266,10 @@ class SettingsRows extends StatelessWidget {
   /// A row carrying a subtitle: 24 + 20 of text plus [rowInset] above and
   /// below. A one-line row is held to the same height so the column keeps one
   /// rhythm.
-  static const double rowHeight = 60;
+  static const double rowHeight = 54;
 
   /// The breathing room a row keeps inside [rowHeight].
-  static const double rowInset = 8;
+  static const double rowInset = 5;
 
   /// How far a row's trailing control is held off the pane's own edge, once
   /// the list's own 8 is added. Material's tile ends 24 in; at a pane's width
