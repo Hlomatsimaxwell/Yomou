@@ -184,10 +184,22 @@ class AppLocalizationsEn extends AppLocalizations {
   String get sourcesEnableAll => 'Enable all manga sources';
 
   @override
+  String get sourcesEnableAllSubtitle =>
+      'All available manga sources will be enabled permanently';
+
+  @override
   String get sourcesChooseMirror => 'Choose mirror automatically';
 
   @override
+  String get sourcesChooseMirrorSubtitle =>
+      'Automatically switch domains for manga sources on errors if mirrors are available';
+
+  @override
   String get sourcesHandleLinks => 'Handle links';
+
+  @override
+  String get sourcesHandleLinksSubtitle =>
+      'Handle manga links from external applications (e.g. web browser). You may also need to enable it manually in the application\'s system settings';
 
   @override
   String get sourcesIncognitoNsfw => 'Incognito mode for NSFW manga';
@@ -1507,6 +1519,10 @@ class AppLocalizationsEn extends AppLocalizations {
 
   @override
   String get disableNsfw => 'Disable NSFW';
+
+  @override
+  String get disableNsfwSubtitle =>
+      'Disable NSFW sources and hide adult manga from list if possible';
 
   @override
   String get notificationSettingsDescription =>

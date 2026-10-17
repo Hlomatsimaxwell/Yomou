@@ -76,7 +76,6 @@ class _MangaSourcesSettingsScreenState
 
   @override
   Widget build(BuildContext context) {
-    final dark = Theme.of(context).brightness == Brightness.dark;
     final l = AppLocalizations.of(context);
     final enabled = ref.watch(disableNsfwProvider);
     final sortOrder = ref.watch(sourceSortOrderProvider);
@@ -90,60 +89,25 @@ class _MangaSourcesSettingsScreenState
     final enabledCount = rows.where(isSourceEnabled).length;
     final totalCount = rows.length;
 
-    Widget sectionDivider() => const SizedBox(height: 6);
-
     return Scaffold(
       backgroundColor: Theme.of(context).scaffoldBackgroundColor,
-      appBar: AppBar(
-        backgroundColor: Theme.of(context).scaffoldBackgroundColor,
-        elevation: 0,
-        // Same rule as SettingsAppBar: no back arrow when this screen is the
-        // detail pane of a two-pane settings layout, because there is nothing
-        // behind it to go back to.
-        leading: SettingsPaneScope.of(context)
-            ? const SizedBox.shrink()
-            : IconButton(
-                icon: Icon(
-                  MdiIcons.arrowLeft,
-                  color: dark ? Colors.white : const Color(0xFF1C1B1F),
-                ),
-                onPressed: () => Navigator.pop(context),
-              ),
-        title: Text(
-          l.settingsMangaSources,
-          style: TextStyle(
-            color: dark ? Colors.white : const Color(0xFF1C1B1F),
-            fontSize: 20,
-            fontWeight: FontWeight.bold,
-          ),
-        ),
-      ),
-      body: CappedContentWidth(child: ListView(
-      padding: const EdgeInsets.symmetric(vertical: 8),
+      appBar: SettingsAppBar(title: l.settingsMangaSources, contentMargin: 24),
+      // The pane's own rhythm: [SettingsRows] holds every row to the same
+      // height and the same trailing edge as the other settings panes, and the
+      // 8 of list padding is what puts this pane's rows on the same 24px guide
+      // as its title (16 that a row insets itself by, plus this 8).
+      body: CappedContentWidth(child: SettingsRows(child: ListView(
+      // 12 above the first row, then 8 at the sides and the bottom: the pane's
+      // title sits in the app bar above this, and 12 is the gap it keeps to the
+      // first thing under it.
+      padding: const EdgeInsets.only(top: 12, bottom: 8, left: 8, right: 8),
       children: [
         _row(
           icon: MdiIcons.sortAscending,
           title: l.sourcesSortingOrder,
           subtitle: _sortLabel(sortOrder, l),
-          trailing: _chevron(),
           onTap: _pickSort,
         ),
-        sectionDivider(),
-        _row(
-          icon: MdiIcons.newspaperVariantOutline,
-          title: l.sourcesManage,
-          subtitle: l.settingsMangaSourcesSubtitle(enabledCount, totalCount),
-          trailing: _chevron(),
-          onTap: () {
-            Navigator.push(
-              context,
-              MaterialPageRoute(
-                builder: (context) => const ManageSourcesScreen(),
-              ),
-            );
-          },
-        ),
-        sectionDivider(),
         _row(
           icon: MdiIcons.viewGridOutline,
           title: l.sourcesShowInGrid,
@@ -153,29 +117,58 @@ class _MangaSourcesSettingsScreenState
                 ref.read(cacheSettingsProvider.notifier).setShowSourcesInGrid(v),
           ),
         ),
-        sectionDivider(),
+        _row(
+          icon: MdiIcons.newspaperVariantOutline,
+          title: l.sourcesManage,
+          subtitle: l.settingsMangaSourcesSubtitle(enabledCount, totalCount),
+          onTap: () {
+            Navigator.push(
+              context,
+              MaterialPageRoute(
+                builder: (context) => const ManageSourcesScreen(),
+              ),
+            );
+          },
+        ),
+        // Everything about which sources are on and what they show, then the
+        // two that only change how a source is reached.
+        const Divider(height: 24, thickness: 1),
         _row(
           icon: MdiIcons.checkboxBlankCircleOutline,
           title: l.sourcesEnableAll,
+          subtitle: l.sourcesEnableAllSubtitle,
           trailing: Switch(
             value: enableAll,
             onChanged: _toggleEnableAll,
           ),
         ),
-        sectionDivider(),
+        _row(
+          icon: MdiIcons.databaseOutline,
+          title: l.sourcesCatalog,
+          subtitle: l.sourcesCatalogSubtitle,
+          enabled: false,
+        ),
         _row(
           icon: MdiIcons.shieldOutline,
           title: l.disableNsfw,
+          subtitle: l.disableNsfwSubtitle,
           trailing: Switch(
             value: enabled,
             onChanged: (v) =>
                 ref.read(cacheSettingsProvider.notifier).setDisableNsfw(v),
           ),
         ),
-        sectionDivider(),
+        _row(
+          icon: MdiIcons.eyeOffOutline,
+          title: l.sourcesIncognitoNsfw,
+          subtitle: _incognitoLabel(incognitoMode, l),
+          onTap: _pickIncognito,
+        ),
+        const Divider(height: 24, thickness: 1),
         _row(
           icon: MdiIcons.refresh,
           title: l.sourcesChooseMirror,
+          subtitle: l.sourcesChooseMirrorSubtitle,
           trailing: Switch(
             value: chooseMirror,
             onChanged: (v) => ref
@@ -183,42 +176,18 @@ class _MangaSourcesSettingsScreenState
                 .setChooseMirrorAutomatically(v),
           ),
         ),
-        sectionDivider(),
         _row(
           icon: MdiIcons.linkVariant,
           title: l.sourcesHandleLinks,
+          subtitle: l.sourcesHandleLinksSubtitle,
           trailing: Switch(
             value: handleLinks,
             onChanged: (v) =>
                 ref.read(cacheSettingsProvider.notifier).setHandleLinks(v),
           ),
         ),
-        sectionDivider(),
-        _row(
-          icon: MdiIcons.eyeOffOutline,
-          title: l.sourcesIncognitoNsfw,
-          subtitle: _incognitoLabel(incognitoMode, l),
-          trailing: _chevron(),
-          onTap: _pickIncognito,
-        ),
-        sectionDivider(),
-        _row(
-          icon: MdiIcons.databaseOutline,
-          title: l.sourcesCatalog,
-          subtitle: l.sourcesCatalogSubtitle,
-          enabled: false,
-        ),
       ],
-    )),
-    );
-  }
-
-  Widget _chevron() {
-    final dark = Theme.of(context).brightness == Brightness.dark;
-    return Icon(
-      MdiIcons.chevronRight,
-      size: 20,
-      color: dark ? Colors.white30 : Colors.black26,
+    ))),
     );
   }
 
@@ -230,38 +199,16 @@ class _MangaSourcesSettingsScreenState
     VoidCallback? onTap,
     bool enabled = true,
   }) {
-    final dark = Theme.of(context).brightness == Brightness.dark;
-    final charcoal = dark ? Colors.white : const Color(0xFF1C1B1F);
-    final muted = dark ? Colors.white54 : const Color(0xFF9E9E9E);
-
     return Opacity(
       opacity: enabled ? 1 : 0.45,
       child: ListTile(
-        contentPadding: const EdgeInsets.symmetric(
-          horizontal: 20,
-          vertical: 4,
-        ),
-        leading: Icon(icon, size: 24, color: enabled ? charcoal : muted),
-        title: Text(
-          title,
-          style: TextStyle(
-            color: charcoal,
-            fontSize: 15,
-            fontWeight: FontWeight.w600,
-          ),
-        ),
-        subtitle: subtitle == null
-            ? null
-            : Padding(
-                padding: const EdgeInsets.only(top: 2),
-                child: Text(
-                  subtitle,
-                  style: TextStyle(
-                    color: muted,
-                    fontSize: 13,
-                  ),
-                ),
-              ),
+        // Colours, sizes and the leading inset all come from the theme now:
+        // this pane's rows have to read as the same list as the appearance
+        // pane's, which leaves them to the theme rather than restating the
+        // scheme's own values.
+        leading: Icon(icon),
+        title: Text(title),
+        subtitle: subtitle == null ? null : Text(subtitle),
         trailing: trailing,
         onTap: enabled ? onTap : null,
       ),

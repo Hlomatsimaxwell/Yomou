@@ -434,17 +434,35 @@ abstract class AppLocalizations {
   /// **'Enable all manga sources'**
   String get sourcesEnableAll;
 
+  /// No description provided for @sourcesEnableAllSubtitle.
+  ///
+  /// In en, this message translates to:
+  /// **'All available manga sources will be enabled permanently'**
+  String get sourcesEnableAllSubtitle;
+
   /// No description provided for @sourcesChooseMirror.
   ///
   /// In en, this message translates to:
   /// **'Choose mirror automatically'**
   String get sourcesChooseMirror;
 
+  /// No description provided for @sourcesChooseMirrorSubtitle.
+  ///
+  /// In en, this message translates to:
+  /// **'Automatically switch domains for manga sources on errors if mirrors are available'**
+  String get sourcesChooseMirrorSubtitle;
+
   /// No description provided for @sourcesHandleLinks.
   ///
   /// In en, this message translates to:
   /// **'Handle links'**
   String get sourcesHandleLinks;
+
+  /// No description provided for @sourcesHandleLinksSubtitle.
+  ///
+  /// In en, this message translates to:
+  /// **'Handle manga links from external applications (e.g. web browser). You may also need to enable it manually in the application\'s system settings'**
+  String get sourcesHandleLinksSubtitle;
 
   /// No description provided for @sourcesIncognitoNsfw.
   ///
@@ -2803,6 +2821,12 @@ abstract class AppLocalizations {
   /// In en, this message translates to:
   /// **'Disable NSFW'**
   String get disableNsfw;
+
+  /// No description provided for @disableNsfwSubtitle.
+  ///
+  /// In en, this message translates to:
+  /// **'Disable NSFW sources and hide adult manga from list if possible'**
+  String get disableNsfwSubtitle;
 
   /// No description provided for @notificationSettingsDescription.
   ///
