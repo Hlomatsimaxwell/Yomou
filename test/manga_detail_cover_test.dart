@@ -1,4 +1,5 @@
 import 'package:flutter_test/flutter_test.dart';
+import 'package:yomou/core/widgets/responsive.dart';
 import 'package:yomou/features/library/screens/manga_detail_screen.dart';
 
 /// The detail header's cover was a fixed 125x175 at every width, then reduced
@@ -17,8 +18,12 @@ void main() {
   /// the width the window gave the app, because the other 6/11 belongs to the
   /// chapter list beside it -- and only then does the section's own
   /// `EdgeInsets.symmetric(horizontal: 16)` come off each side.
+  ///
+  /// The switch is [usesWideLayout]'s, so it is [kWideLayoutWidth] and not a
+  /// second number of this test's. These sweeps are of a window wider than it
+  /// is tall, which is the window in which the split happens at all.
   double columnWidth(double screenWidth) =>
-      (screenWidth >= 840 ? screenWidth * 5 / 11 : screenWidth) - 32;
+      (screenWidth >= kWideLayoutWidth ? screenWidth * 5 / 11 : screenWidth) - 32;
 
   /// The gap between the cover and the title block, which the cover may not eat.
   const double gap = 16;
@@ -75,13 +80,13 @@ void main() {
   });
 
   test('the cover never gets narrower as the window widens', () {
-    // Swept per layout, not across the 840px switch: the switch is where the
-    // section stops being the whole screen and becomes one pane of a 5:6 split,
-    // so the column it was given drops from 808 to 367 and the cover with it.
-    // That is the layout changing, not the cover retreating -- and everything
-    // else in the header narrows at the same moment, which is the point of the
-    // switch.
-    for (final (from, to) in [(320.0, 832.0), (840.0, 3440.0)]) {
+    // Swept per layout, not across the switch: the switch is where the section
+    // stops being the whole screen and becomes one pane of a 5:6 split, so the
+    // column it was given drops from 560 at 592px to 241 at 600px and the cover
+    // with it. That is the layout changing, not the cover retreating -- and
+    // everything else in the header narrows at the same moment, which is the
+    // point of the switch.
+    for (final (from, to) in [(320.0, 592.0), (600.0, 3440.0)]) {
       var previous = 0.0;
       for (var screen = from; screen <= to; screen += 8) {
         final cover = mangaDetailCoverWidth(columnWidth(screen));
@@ -97,9 +102,16 @@ void main() {
     }
   });
 
-  test('the cover stays legible either side of the two-pane switch', () {
-    // 832 is the widest single-column screen and 840 the narrowest two-pane
-    // one, so between them the cover is at its smallest in the wide layout.
+  test('the cover holds the phone floor at the two-pane switch', () {
+    // 592px is the widest single-column window and 600 the narrowest two-pane
+    // one, so the pane the cover lands in is at its narrowest right after the
+    // switch. That is where the cover would go below the phone's 110 if
+    // anything could push it there; the floor is what holds it up.
+    expect(columnWidth(600), lessThan(columnWidth(592)));
+    expect(mangaDetailCoverWidth(columnWidth(600)), 110.0);
+    // It stays on the floor while the pane grows around it, and only starts to
+    // grow once there is room to spare for it beside the title.
+    expect(mangaDetailCoverWidth(columnWidth(824)), 110.0);
     expect(mangaDetailCoverWidth(columnWidth(840)), greaterThan(110.0));
   });
 }

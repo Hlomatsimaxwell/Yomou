@@ -6,6 +6,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import 'package:yomou/core/widgets/manga_grid_metrics.dart';
+import 'package:yomou/core/widgets/responsive.dart';
 import 'package:yomou/data/models/manga.dart';
 import 'package:yomou/features/library/providers/downloads_provider.dart';
 import 'package:yomou/features/library/providers/favorites_provider.dart';
@@ -17,7 +18,7 @@ import 'package:yomou/l10n/generated/app_localizations.dart';
 ///
 /// The reader picks a percentage of the design cell: [kMangaGridBaseCellWidth]
 /// on a phone or a portrait tablet, [kMangaGridBaseCellWidthLandscape] on a
-/// landscape one at least [kMangaGridLargeWidth] wide -- and the count is
+/// landscape one at least [kWideLayoutWidth] wide -- and the count is
 /// whatever fits at that size, rounded, never below [kMangaGridMinColumns] and
 /// never capped. It reads as "cover size" because that is what it controls: the
 /// columns are a consequence, which is how "fewer, bigger covers" became
@@ -104,7 +105,7 @@ void main() {
     expect(kMangaGridMinColumns, 2);
     expect(kMangaGridBaseCellWidth, 120);
     expect(kMangaGridBaseCellWidthLandscape, 140);
-    expect(kMangaGridLargeWidth, 600);
+    expect(kWideLayoutWidth, 600);
   });
 
   testWidgets('the base cell changes where the reference changes it', (
@@ -465,8 +466,12 @@ int _columnsAt(
 
 /// [kMangaGridBaseCellWidth] or [kMangaGridBaseCellWidthLandscape] at a window
 /// of this size, which is what [mangaGridBaseCellWidth] reads off MediaQuery.
+///
+/// Restates the reference's `w600dp-land` rule rather than calling
+/// [usesWideLayout], so the expectations below are an independent statement of
+/// the rule instead of the rule checking itself.
 double _baseCellWidth(double width, double height) =>
-    width > height && width >= kMangaGridLargeWidth
+    width > height && width >= kWideLayoutWidth
         ? kMangaGridBaseCellWidthLandscape
         : kMangaGridBaseCellWidth;
 

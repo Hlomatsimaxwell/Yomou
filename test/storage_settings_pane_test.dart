@@ -282,7 +282,7 @@ void main() {
     tester,
   ) async {
     SharedPreferences.setMockInitialValues({});
-    tester.view.physicalSize = const Size(1200, 1400);
+    tester.view.physicalSize = const Size(1200, 1100);
     tester.view.devicePixelRatio = 1.0;
     addTearDown(tester.view.reset);
     await tester.pumpWidget(

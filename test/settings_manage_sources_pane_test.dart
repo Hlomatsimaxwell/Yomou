@@ -15,6 +15,12 @@ import 'package:yomou/l10n/generated/app_localizations.dart';
 /// instead of over the top of it, and that a window without one still gets a
 /// page of its own.
 void main() {
+  /// Pumps [home] at [size].
+  ///
+  /// The size that has a pane is `Size(1200, 1100)`: the reference's
+  /// `w600dp-land` rule wants the window landscape as well as at least 600dp
+  /// across, which is why the height sits below the width rather than over it.
+  /// The shorter dimension only has to hold one screenful -- the pane scrolls.
   Future<void> pumpAt(WidgetTester tester, Size size, Widget home) async {
     SharedPreferences.setMockInitialValues({});
     tester.view.physicalSize = size;
@@ -35,7 +41,7 @@ void main() {
   testWidgets(
       'a window with a pane opens the sources list in it, over the category',
       (tester) async {
-    await pumpAt(tester, const Size(1200, 1400), const SettingsScreen());
+    await pumpAt(tester, const Size(1200, 1100), const SettingsScreen());
 
     await tester.tap(find.text('Manga sources'));
     await tester.pumpAndSettle();
@@ -56,7 +62,7 @@ void main() {
 
   testWidgets('the sources list leaves back to the category it opened over',
       (tester) async {
-    await pumpAt(tester, const Size(1200, 1400), const SettingsScreen());
+    await pumpAt(tester, const Size(1200, 1100), const SettingsScreen());
 
     await tester.tap(find.text('Manga sources'));
     await tester.pumpAndSettle();
@@ -83,7 +89,7 @@ void main() {
 
   testWidgets('the system back leaves the sources list before leaving settings',
       (tester) async {
-    await pumpAt(tester, const Size(1200, 1400), const SettingsScreen());
+    await pumpAt(tester, const Size(1200, 1100), const SettingsScreen());
 
     await tester.tap(find.text('Manga sources'));
     await tester.pumpAndSettle();
@@ -120,12 +126,31 @@ void main() {
     expect(tester.takeException(), isNull);
   });
 
+  testWidgets('a wide but upright window has no pane either', (tester) async {
+    // Wide is not enough, because the reference's qualifier carries `-land`.
+    // A 1080p display split side by side hands each half a pane that clears
+    // every width-only cut there is and is still taller than it is wide, and
+    // the reference drops to its phone layout there. This is the size the
+    // two-pane fixtures used before the two conditions were told apart.
+    await pumpAt(tester, const Size(1200, 1400), const SettingsScreen());
+
+    await tester.tap(find.text('Manga sources'));
+    await tester.pumpAndSettle();
+    await tester.tap(find.text('Manage sources'));
+    await tester.pumpAndSettle();
+
+    expect(find.byType(ManageSourcesScreen), findsOneWidget);
+    expect(find.text('Appearance'), findsNothing);
+
+    expect(tester.takeException(), isNull);
+  });
+
   testWidgets('opening the sources list from elsewhere puts it in a pane too',
       (tester) async {
     late BuildContext opened;
     await pumpAt(
       tester,
-      const Size(1200, 1400),
+      const Size(1200, 1100),
       Builder(
         builder: (context) {
           opened = context;

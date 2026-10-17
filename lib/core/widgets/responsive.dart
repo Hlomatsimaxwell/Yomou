@@ -4,8 +4,7 @@ import 'package:flutter/widgets.dart';
 ///
 /// These are the standard Material window-size-class cuts, kept as plain
 /// constants rather than pulled from a package: the app needs three decisions
-/// made from width (navigation shape, content width cap, grid density) and
-/// nothing more.
+/// (navigation shape, content width cap, grid density) and nothing more.
 const double kCompactWidth = 600;
 const double kExpandedWidth = 840;
 
@@ -13,16 +12,37 @@ const double kExpandedWidth = 840;
 ///
 /// Everything width-adaptive reads this one value: the side rail, the two-pane
 /// settings layout, and derived grid density. They were separate checks at
-/// separate thresholds and drifted apart, which is how a phone held in
-/// landscape ended up with a navigation rail -- 760dp is a wide phone, not a
-/// tablet. One value, one decision, no way for the three to disagree.
-const double kWideLayoutWidth = 840;
+/// separate thresholds and drifted apart, which is how the rail and the covers
+/// ended up disagreeing about which windows were tablets. One value, one
+/// decision, no way for the three to disagree.
+///
+/// The rule is the reference's `w600dp-land` resource qualifier -- width *and*
+/// orientation together -- because that single qualifier is what Kotatsu hangs
+/// all three off: its rail is `layout-w600dp-land/activity_main.xml`, its
+/// two-pane settings is `layout-w600dp-land/activity_settings.xml`, and its own
+/// `is_tablet` flag is `values-w600dp-land/bools.xml`. Matching the qualifier
+/// rather than approximating it is what keeps the two apps agreeing on which
+/// window is a tablet at all.
+///
+/// The landscape half is not a detail. A 1080p display split side by side hands
+/// each half a 948x1035dp pane: that clears any width-only cut there is, and a
+/// rail and two panes is exactly what a window shaped like a portrait phone
+/// should not get. It is also the rule the cover grids read for their cell
+/// size, so a window can no longer be a tablet for the rail and a phone for the
+/// covers.
+const double kWideLayoutWidth = 600;
 
-/// Whether this window is wide enough for the tablet layout: a side rail
-/// instead of a bottom bar, settings in two panes, and grid density derived
-/// from width rather than taken from the user's setting.
-bool usesWideLayout(BuildContext context) =>
-    MediaQuery.sizeOf(context).width >= kWideLayoutWidth;
+/// Whether this window is a tablet: at least [kWideLayoutWidth] wide and wider
+/// than it is tall, which is the reference's `w600dp-land` rule.
+///
+/// Per the window rather than the device, so a window that is resized -- split
+/// screen, a desktop drag -- is judged on the size it has now instead of the
+/// size the screen had at launch. That is what makes the phone layout arrive
+/// when a display is split in two.
+bool usesWideLayout(BuildContext context) {
+  final size = MediaQuery.sizeOf(context);
+  return size.width >= kWideLayoutWidth && size.width > size.height;
+}
 
 /// Where the current window falls on the Material width scale.
 enum ScreenWidthClass {

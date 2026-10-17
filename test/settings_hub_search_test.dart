@@ -12,6 +12,11 @@ import 'package:yomou/l10n/generated/app_localizations.dart';
 /// both layouts still lay out once the list is a column with a field on top of
 /// it rather than a bare `ListView`.
 void main() {
+  /// Pumps the hub at [size].
+  ///
+  /// The two-pane tests below pass `Size(1200, 1100)`: a pane needs a window
+  /// that is wide *and* landscape, which is the reference's `w600dp-land` rule,
+  /// so the height sits below the width there rather than over it.
   Future<void> pump(WidgetTester tester, Size size) async {
     SharedPreferences.setMockInitialValues({});
     tester.view.physicalSize = size;
@@ -84,7 +89,7 @@ void main() {
 
   testWidgets('the two-pane hub lays out with the search field in the list pane',
       (tester) async {
-    await pump(tester, const Size(1200, 1400));
+    await pump(tester, const Size(1200, 1100));
 
     // The detail pane opens on the first category, so the Appearance screen is
     // beside the category list.
@@ -102,7 +107,7 @@ void main() {
 
   testWidgets('the two-pane hub caps its bar to the menu column and the line '
       'runs to the top', (tester) async {
-    await pump(tester, const Size(1200, 1400));
+    await pump(tester, const Size(1200, 1100));
 
     // The hub's own bar sits inside the menu column: its title and its search
     // action end on the line between the panes rather than out at the window's
@@ -117,7 +122,10 @@ void main() {
     // it starts at the very top, level with the bar, instead of only under it.
     final divider = tester.getRect(find.byType(VerticalDivider).first);
     expect(divider.top, 0);
-    expect(divider.height, 1400);
+    expect(
+      divider.height,
+      tester.getSize(find.byType(SettingsScreen)).height,
+    );
     expect(divider.left, kSettingsCategoryPaneWidth);
 
     expect(tester.takeException(), isNull);

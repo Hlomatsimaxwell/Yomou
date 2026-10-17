@@ -1,4 +1,5 @@
 import 'package:flutter/widgets.dart';
+import 'package:yomou/core/widgets/responsive.dart';
 
 /// Shared geometry for the manga-cover grids used across the app
 /// (2:3 cover + title). Keeps every grid's row density identical and
@@ -40,21 +41,13 @@ const double kMangaCoverAspectRatio = 0.62;
 /// control, which is what makes "fewer, bigger covers" reachable at all.
 const double kMangaGridBaseCellWidth = 120;
 
-/// Cover width aimed for at 100% on a landscape window at least
-/// [kMangaGridLargeWidth] wide.
+/// Cover width aimed for at 100% on a landscape window of tablet width.
 ///
 /// The reference raises its base cell on a landscape tablet, and this matches
 /// it, so the same percentage reads as the same size whichever way round the
-/// screen is held: 140dp of cover is 140dp of cover.
+/// screen is held: 140dp of cover is 140dp of cover. "Tablet" here is
+/// [usesWideLayout]'s decision, not a second one of the grid's.
 const double kMangaGridBaseCellWidthLandscape = 140;
-
-/// Window width at which a landscape window switches to the larger base cell.
-///
-/// The reference states this as its `w600dp-land` resource qualifier, and this
-/// is that rule: 600dp of width *and* landscape. Orientation is part of it on
-/// purpose -- a phone turned sideways is over 800dp wide, and without it that
-/// phone would lay its covers out at a tablet's size.
-const double kMangaGridLargeWidth = 600;
 
 /// The range the grid-size sliders move over, in percent of the base cell.
 ///
@@ -86,14 +79,12 @@ const int kMangaGridMinColumns = 2;
 ///
 /// Reads the window rather than the grid's own width, because which base cell
 /// applies is a property of the screen the reader is holding and not of how
-/// much of it this particular grid was given.
-double mangaGridBaseCellWidth(BuildContext context) {
-  final size = MediaQuery.sizeOf(context);
-  final landscape = size.width > size.height;
-  return landscape && size.width >= kMangaGridLargeWidth
-      ? kMangaGridBaseCellWidthLandscape
-      : kMangaGridBaseCellWidth;
-}
+/// much of it this particular grid was given. Which windows count as tablets is
+/// [usesWideLayout]'s single decision, so the rail cannot call a window a
+/// tablet that the grid calls a phone.
+double mangaGridBaseCellWidth(BuildContext context) => usesWideLayout(context)
+    ? kMangaGridBaseCellWidthLandscape
+    : kMangaGridBaseCellWidth;
 
 /// How many columns a manga grid should have.
 ///
