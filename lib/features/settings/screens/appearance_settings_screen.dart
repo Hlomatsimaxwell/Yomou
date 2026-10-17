@@ -40,10 +40,11 @@ class AppearanceSettingsScreen extends ConsumerWidget {
           child: ListView(
             scrollDirection: Axis.horizontal,
             physics: const BouncingScrollPhysics(),
-            // 8 rather than 16: the list this sits in already contributes 8,
-            // and each card adds its own 8, which puts the first card's edge on
-            // the same 24 as the rows under it.
-            padding: const EdgeInsets.symmetric(horizontal: 8),
+            // 12 rather than 8: the list this sits in already contributes 8,
+            // and each card adds 4 of its own, which puts the first card's edge
+            // on the same 24 as the rows under it. Each card also gives 4 to
+            // the gap it shares with its neighbour, so two cards sit 8 apart.
+            padding: const EdgeInsets.symmetric(horizontal: 12),
             children: [
               _SchemePreset(
                 name: 'Totoro',
@@ -143,11 +144,6 @@ class AppearanceSettingsScreen extends ConsumerWidget {
         // it already stores for each, since nothing here can change it now.
 
         // Manga List Section
-        //
-        // A wider break than the other headings get: this is where the theme
-        // half of the screen ends and the list half begins, and at the shared
-        // spacing the two read as one long column of settings.
-        const SizedBox(height: 16),
         M3SectionHeader(title: l.appearanceSectionMangaList),
         ListTile(
           leading: const KotatsuIcon('ic_list'),
@@ -686,8 +682,11 @@ class _SchemePreset extends StatelessWidget {
     final cs = colorSchemeFor(name, brightness);
     return GestureDetector(
       onTap: onTap,
+      // 4 rather than 8: this is one side of the gap two cards share, and the
+      // pair of them is the 8 the row of swatches wants -- wide enough to read
+      // as separate cards, tight enough to read as one set.
       child: Padding(
-        padding: const EdgeInsets.symmetric(horizontal: 8),
+        padding: const EdgeInsets.symmetric(horizontal: 4),
         child: Column(
           mainAxisAlignment: MainAxisAlignment.center,
           children: [

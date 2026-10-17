@@ -8,6 +8,13 @@ import 'package:yomou/core/widgets/responsive.dart';
 /// boundary reads as part of the app's accent rather than as a slightly
 /// bolder body label. Used app-wide, so this is one decision, not a per-screen
 /// preference.
+///
+/// The vertical rhythm is the same everywhere too: 28 above the label, 12
+/// between it and the first item under it. The heading owns both gaps instead
+/// of leaving them to whatever precedes it, so two groups read the same
+/// distance apart whether the row above them is one line, two lines or a
+/// carousel -- and a screen never has to add a spacer of its own to get a
+/// break it thinks is bigger.
 class M3SectionHeader extends StatelessWidget {
   const M3SectionHeader({super.key, required this.title});
 
@@ -17,7 +24,7 @@ class M3SectionHeader extends StatelessWidget {
   Widget build(BuildContext context) {
     final cs = Theme.of(context).colorScheme;
     return Padding(
-      padding: const EdgeInsets.fromLTRB(16, 24, 16, 8),
+      padding: const EdgeInsets.fromLTRB(16, 28, 16, 12),
       child: Text(
         title,
         style: TextStyle(
