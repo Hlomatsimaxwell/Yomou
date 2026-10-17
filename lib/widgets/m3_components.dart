@@ -22,7 +22,7 @@ class M3SectionHeader extends StatelessWidget {
         title,
         style: TextStyle(
           color: cs.primary,
-          fontSize: 13,
+          fontSize: 14,
           fontWeight: FontWeight.w600,
           letterSpacing: 0.4,
         ),
@@ -175,24 +175,41 @@ class SettingsPaneScope extends InheritedWidget {
 }
 
 class SettingsAppBar extends StatelessWidget implements PreferredSizeWidget {
-  const SettingsAppBar({super.key, required this.title, this.actions});
+  const SettingsAppBar({
+    super.key,
+    required this.title,
+    this.actions,
+    this.contentMargin = _contentMargin,
+  });
 
   final String title;
 
   /// Optional trailing widgets, e.g. an overflow menu button.
   final List<Widget>? actions;
 
+  /// How far the title is inset when this bar belongs to a pane. A screen whose
+  /// content sits on a wider guide than the default passes its own, so the
+  /// title keeps starting on the same line as the column beneath it.
+  final double contentMargin;
+
   /// The one app-bar title style, shared by the phone bar and the pane bar so
-  /// the two cannot drift apart.
+  /// the two cannot drift apart. Sized and weighted like a section label rather
+  /// than a headline: a settings screen's name is a heading over its groups,
+  /// and at a headline size it outgrew the groups it was heading.
   static const TextStyle titleStyle = TextStyle(
-    fontSize: 22,
-    fontWeight: FontWeight.w400,
+    fontSize: 14,
+    fontWeight: FontWeight.w600,
   );
 
   /// The column's own content margin: a `ListTile`'s start padding, and what a
   /// section header is inset by. A pane title lines up with it rather than with
   /// the pane's edge.
   static const double _contentMargin = 16;
+
+  /// [titleStyle] carrying the scheme's accent, so a settings screen's name
+  /// reads as the same kind of label as the section headings under it.
+  static TextStyle _titleStyle(BuildContext context) =>
+      titleStyle.copyWith(color: Theme.of(context).colorScheme.primary);
 
   @override
   Size get preferredSize => const Size.fromHeight(kToolbarHeight);
@@ -208,7 +225,7 @@ class SettingsAppBar extends StatelessWidget implements PreferredSizeWidget {
           icon: const Icon(MdiIcons.arrowLeft),
           onPressed: () => Navigator.pop(context),
         ),
-        title: Text(title, style: titleStyle),
+        title: Text(title, style: _titleStyle(context)),
         actions: actions,
       );
     }
@@ -236,8 +253,8 @@ class SettingsAppBar extends StatelessWidget implements PreferredSizeWidget {
           automaticallyImplyLeading: false,
           leading: const SizedBox.shrink(),
           leadingWidth: 0,
-          titleSpacing: gutter + _contentMargin,
-          title: Text(title, style: titleStyle),
+          titleSpacing: gutter + contentMargin,
+          title: Text(title, style: _titleStyle(context)),
           actions: actions,
         );
       },

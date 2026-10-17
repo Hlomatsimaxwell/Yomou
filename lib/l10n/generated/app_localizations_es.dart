@@ -553,6 +553,12 @@ class AppLocalizationsEs extends AppLocalizations {
   String get settingsAboutPlatform => 'Plataforma';
 
   @override
+  String get settingsSearchHint => 'Buscar ajustes';
+
+  @override
+  String get settingsSearchNoResults => 'Ningún ajuste coincide';
+
+  @override
   String get appearanceTitle => 'Apariencia';
 
   @override
@@ -667,13 +673,27 @@ class AppLocalizationsEs extends AppLocalizations {
   }
 
   @override
+  String get appearanceGridSizeTitle => 'Tamaño de cuadrícula';
+
+  @override
   String get appearanceQuickFilters => 'Mostrar filtros rápidos';
 
   @override
-  String get appearanceReadingProgress => 'Mostrar progreso de lectura';
+  String get appearanceQuickFiltersSubtitle =>
+      'Permite filtrar las listas de manga por ciertos parámetros';
+
+  @override
+  String get appearanceReadingProgress =>
+      'Mostrar indicadores de progreso de lectura';
+
+  @override
+  String get appearanceReadingProgressSubtitle => 'Porcentaje leído';
 
   @override
   String get appearanceBadges => 'Insignias en las listas';
+
+  @override
+  String get appearanceBadgesSubtitle => 'Manga guardado, favoritos';
 
   @override
   String get appearanceDetails => 'Detalles';
@@ -683,6 +703,10 @@ class AppLocalizationsEs extends AppLocalizations {
 
   @override
   String get appearancePagesThumbnails => 'Mostrar miniaturas de páginas';
+
+  @override
+  String get appearancePagesThumbnailsSubtitle =>
+      'Activa la pestaña \'Páginas\' en la pantalla de detalles';
 
   @override
   String get appearanceDefaultTabTitle => 'Pestaña predeterminada';

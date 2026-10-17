@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:flutter_material_design_icons/flutter_material_design_icons.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:package_info_plus/package_info_plus.dart';
 import 'package:yomou/core/theme/amoled.dart';
@@ -16,8 +17,6 @@ import 'package:yomou/features/settings/screens/notification_settings_screen.dar
 import 'package:yomou/features/settings/screens/storage_settings_screen.dart';
 import 'package:yomou/features/settings/screens/downloads_settings_screen.dart';
 import 'package:yomou/features/settings/screens/reader_settings_screen.dart';
-import 'package:yomou/features/settings/screens/content_preferences_screen.dart';
-import 'package:yomou/features/settings/screens/reset_settings_screen.dart';
 import 'package:yomou/features/settings/widgets/settings_surfaces.dart';
 import 'package:yomou/data/providers/sources_provider.dart';
 import 'package:yomou/widgets/m3_components.dart';
@@ -78,6 +77,26 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
   /// the initial selection lands without an extra frame of empty pane.
   int? _selectedIndex;
 
+  /// Whether the hub is filtering itself down to the rows that match
+  /// [_searchQuery]. The field takes up no room until it is asked for, so the
+  /// hub looks the same as it always did until the search is opened.
+  bool _searching = false;
+
+  final TextEditingController _searchQuery = TextEditingController();
+
+  @override
+  void dispose() {
+    _searchQuery.dispose();
+    super.dispose();
+  }
+
+  void _startSearch() => setState(() => _searching = true);
+
+  void _endSearch() {
+    _searchQuery.clear();
+    setState(() => _searching = false);
+  }
+
   /// Resolves [SettingsScreen.initialCategory] to an index into the categories
   /// that have screens, or null when the title matches none of them.
   int? _initialCategoryIndex(List<_Category> selectable) {
@@ -106,12 +125,6 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
         title: l.settingsMangaSources,
         subtitle: l.settingsMangaSourcesSubtitle(enabledCount, totalCount),
         screen: const MangaSourcesSettingsScreen(),
-      ),
-      _Category(
-        icon: 'ic_language',
-        title: l.settingsContentPreferences,
-        subtitle: l.settingsContentPreferencesSubtitle,
-        screen: const ContentPreferencesScreen(),
       ),
       _Category(
         icon: 'ic_book_page',
@@ -155,12 +168,6 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
         subtitle: l.settingsBackupSubtitle,
         screen: const BackupRestoreScreen(),
       ),
-      _Category(
-        icon: 'ic_restore',
-        title: l.settingsReset,
-        subtitle: l.settingsResetSubtitle,
-        screen: const ResetSettingsScreen(),
-      ),
     ];
 
     // Two panes only where there is genuinely room. Below this the app's own
@@ -169,7 +176,16 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
     final twoPane = usesWideLayout(context);
 
     return Scaffold(
-      appBar: SettingsAppBar(title: l.settings),
+      appBar: SettingsAppBar(
+        title: l.settings,
+        actions: [
+          IconButton(
+            icon: Icon(_searching ? MdiIcons.close : MdiIcons.magnify),
+            tooltip: _searching ? l.filterCancel : l.settingsSearchHint,
+            onPressed: _searching ? _endSearch : _startSearch,
+          ),
+        ],
+      ),
       body: twoPane
           ? _buildTwoPane(categories)
           : CappedContentWidth(child: _buildCategoryList(categories)),
@@ -239,35 +255,88 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
     _Category? selected,
     ValueChanged<_Category>? onSelect,
   }) {
-    return ListView(
-      padding: const EdgeInsets.symmetric(vertical: 8),
+    final l = AppLocalizations.of(context);
+    final needle = _searchQuery.text.trim().toLowerCase();
+    final about = l.settingsAbout;
+    // An empty needle is not a filter: opening the field and typing nothing
+    // leaves the hub exactly as it was, rather than emptying it.
+    final filtering = _searching && needle.isNotEmpty;
+    final shown = !filtering
+        ? categories
+        : categories
+            .where(
+              (c) =>
+                  c.title.toLowerCase().contains(needle) ||
+                  c.subtitle.toLowerCase().contains(needle),
+            )
+            .toList();
+    final showAbout =
+        !filtering || about.toLowerCase().contains(needle);
+
+    return Column(
       children: [
-        for (final c in categories)
-          _buildSettingTile(
-            category: c,
-            selected: onSelect != null && identical(c, selected),
-            onTap: () {
-              if (c.hasScreen && onSelect != null) {
-                onSelect(c);
-                return;
-              }
-              if (!c.hasScreen) {
-                if (c.icon == _aboutIcon) {
-                  _showAboutDialog(context);
-                }
-                return;
-              }
-              // A phone has no category pane, so tapping a row pushes that
-              // category's own screen. [initialCategory] is deliberately not
-              // honoured here: it is about which row the *hub* opens on, and on
-              // a phone the hub is never on screen by the time a row is tapped.
-              Navigator.push(
-                context,
-                MaterialPageRoute(builder: (context) => c.screen!),
-              );
-            },
+        if (_searching)
+          Padding(
+            padding: const EdgeInsets.fromLTRB(16, 12, 16, 4),
+            child: TextField(
+              controller: _searchQuery,
+              autofocus: true,
+              textInputAction: TextInputAction.search,
+              onChanged: (_) => setState(() {}),
+              decoration: InputDecoration(
+                hintText: l.settingsSearchHint,
+                prefixIcon: const Icon(MdiIcons.magnify),
+                suffixIcon: IconButton(
+                  icon: const Icon(MdiIcons.close),
+                  onPressed: _endSearch,
+                ),
+                border: const OutlineInputBorder(),
+                isDense: true,
+              ),
+            ),
           ),
-        _buildAboutTile(context: context),
+        Expanded(
+          child: ListView(
+            padding: const EdgeInsets.symmetric(vertical: 8),
+            children: [
+              if (filtering && shown.isEmpty && !showAbout)
+                Padding(
+                  padding: const EdgeInsets.fromLTRB(20, 24, 20, 0),
+                  child: Text(
+                    l.settingsSearchNoResults,
+                    style: TextStyle(color: Theme.of(context).hintColor),
+                  ),
+                ),
+              for (final c in shown)
+                _buildSettingTile(
+                  category: c,
+                  selected: onSelect != null && identical(c, selected),
+                  onTap: () {
+                    if (c.hasScreen && onSelect != null) {
+                      onSelect(c);
+                      return;
+                    }
+                    if (!c.hasScreen) {
+                      if (c.icon == _aboutIcon) {
+                        _showAboutDialog(context);
+                      }
+                      return;
+                    }
+                    // A phone has no category pane, so tapping a row pushes
+                    // that category's own screen. [initialCategory] is
+                    // deliberately not honoured here: it is about which row the
+                    // *hub* opens on, and on a phone the hub is never on screen
+                    // by the time a row is tapped.
+                    Navigator.push(
+                      context,
+                      MaterialPageRoute(builder: (context) => c.screen!),
+                    );
+                  },
+                ),
+              if (showAbout) _buildAboutTile(context: context),
+            ],
+          ),
+        ),
       ],
     );
   }

@@ -1052,6 +1052,18 @@ abstract class AppLocalizations {
   /// **'Platform'**
   String get settingsAboutPlatform;
 
+  /// No description provided for @settingsSearchHint.
+  ///
+  /// In en, this message translates to:
+  /// **'Search settings'**
+  String get settingsSearchHint;
+
+  /// No description provided for @settingsSearchNoResults.
+  ///
+  /// In en, this message translates to:
+  /// **'No settings match'**
+  String get settingsSearchNoResults;
+
   /// No description provided for @appearanceTitle.
   ///
   /// In en, this message translates to:
@@ -1268,23 +1280,47 @@ abstract class AppLocalizations {
   /// **'Grid size: {percent}%'**
   String appearanceGridSize(int percent);
 
+  /// No description provided for @appearanceGridSizeTitle.
+  ///
+  /// In en, this message translates to:
+  /// **'Grid size'**
+  String get appearanceGridSizeTitle;
+
   /// No description provided for @appearanceQuickFilters.
   ///
   /// In en, this message translates to:
   /// **'Show quick filters'**
   String get appearanceQuickFilters;
 
+  /// No description provided for @appearanceQuickFiltersSubtitle.
+  ///
+  /// In en, this message translates to:
+  /// **'Provides the ability to filter manga lists by certain parameters'**
+  String get appearanceQuickFiltersSubtitle;
+
   /// No description provided for @appearanceReadingProgress.
   ///
   /// In en, this message translates to:
-  /// **'Show reading progress'**
+  /// **'Show reading progress indicators'**
   String get appearanceReadingProgress;
+
+  /// No description provided for @appearanceReadingProgressSubtitle.
+  ///
+  /// In en, this message translates to:
+  /// **'Percent read'**
+  String get appearanceReadingProgressSubtitle;
 
   /// No description provided for @appearanceBadges.
   ///
   /// In en, this message translates to:
   /// **'Badges in lists'**
   String get appearanceBadges;
+
+  /// No description provided for @appearanceBadgesSubtitle.
+  ///
+  /// In en, this message translates to:
+  /// **'Saved manga, Favorites'**
+  String get appearanceBadgesSubtitle;
 
   /// No description provided for @appearanceDetails.
   ///
@@ -1303,6 +1339,12 @@ abstract class AppLocalizations {
   /// In en, this message translates to:
   /// **'Show pages thumbnails'**
   String get appearancePagesThumbnails;
+
+  /// No description provided for @appearancePagesThumbnailsSubtitle.
+  ///
+  /// In en, this message translates to:
+  /// **'Enable the \'Pages\' tab on the details screen'**
+  String get appearancePagesThumbnailsSubtitle;
 
   /// No description provided for @appearanceDefaultTabTitle.
   ///

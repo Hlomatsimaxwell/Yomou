@@ -20,9 +20,17 @@ class AppearanceSettingsScreen extends ConsumerWidget {
     final l = AppLocalizations.of(context);
 
     return Scaffold(
-      appBar: SettingsAppBar(title: l.appearanceTitle),
+      // The pane's own guide is wider than the 16 a settings column defaults
+      // to, because the scheme cards below sit on 24 -- their carousel and
+      // their own padding make up the difference. Asking for the same margin
+      // here keeps the title on that line instead of 8px inside it.
+      appBar: SettingsAppBar(title: l.appearanceTitle, contentMargin: 24),
       body: CappedContentWidth(child: ListView(
-      padding: const EdgeInsets.symmetric(vertical: 8),
+      // Everything in this pane starts on one guide: 24px from the column's
+      // edge, which is this 8 plus the 16 that a ListTile or a section header
+      // insets itself by. The carousel below asks for the same 8 for the same
+      // reason, so its cards line up with the rows instead of stepping in.
+      padding: const EdgeInsets.symmetric(vertical: 8, horizontal: 8),
       children: [
         // Color Scheme Carousel
         M3SectionHeader(title: l.appearanceColorScheme),
@@ -32,7 +40,10 @@ class AppearanceSettingsScreen extends ConsumerWidget {
           child: ListView(
             scrollDirection: Axis.horizontal,
             physics: const BouncingScrollPhysics(),
-            padding: const EdgeInsets.symmetric(horizontal: 16),
+            // 8 rather than 16: the list this sits in already contributes 8,
+            // and each card adds its own 8, which puts the first card's edge on
+            // the same 24 as the rows under it.
+            padding: const EdgeInsets.symmetric(horizontal: 8),
             children: [
               _SchemePreset(
                 name: 'Totoro',
@@ -101,8 +112,9 @@ class AppearanceSettingsScreen extends ConsumerWidget {
           ),
         ),
 
-        // Theme Options
-        M3SectionHeader(title: l.appearanceSectionThemeOptions),
+        // The theme rows sit directly under the picker: the carousel above is
+        // already their heading, and a second label over three rows nobody
+        // mistakes for anything else was only a line of noise between them.
         ListTile(
           leading: const KotatsuIcon('ic_theme_mode'),
           title: Text(l.appearanceThemeTitle),
@@ -125,27 +137,10 @@ class AppearanceSettingsScreen extends ConsumerWidget {
           subtitle: Text(_languageLabel(l, settings.language)),
           onTap: () => _showLanguageSelector(context, ref, settings, notifier),
         ),
-        SwitchListTile(
-          secondary: const KotatsuIcon('ic_blur'),
-          title: Text(l.appearanceFrostedGlass),
-          subtitle: Text(l.appearanceFrostedGlassSubtitle),
-          value: settings.useFrostedGlass,
-          onChanged: (_) => notifier.toggleBool('useFrostedGlass'),
-        ),
-        SwitchListTile(
-          secondary: const KotatsuIcon('ic_motion_pause'),
-          title: Text(l.appearanceReduceMotion),
-          subtitle: Text(l.appearanceReduceMotionSubtitle),
-          value: settings.reduceMotion,
-          onChanged: (_) => notifier.toggleBool('reduceMotion'),
-        ),
-        SwitchListTile(
-          secondary: const KotatsuIcon('ic_vibrate'),
-          title: Text(l.appearanceHaptics),
-          subtitle: Text(l.appearanceHapticsSubtitle),
-          value: settings.hapticsEnabled,
-          onChanged: (_) => notifier.toggleBool('hapticsEnabled'),
-        ),
+        // Frosted glass, reduce motion and haptics are no longer rows. The
+        // preferences behind them still exist and the reader, the badges and
+        // the carousel still read them -- a device simply keeps whatever value
+        // it already stores for each, since nothing here can change it now.
 
         // Manga List Section
         //
@@ -162,7 +157,22 @@ class AppearanceSettingsScreen extends ConsumerWidget {
         ),
         ListTile(
           leading: const KotatsuIcon('ic_grid'),
-          title: Text(l.appearanceGridSize(settings.gridSize.round())),
+          // Name and value share the label's line, at opposite ends, instead of
+          // being spliced into one string: the percent is a reading of the
+          // slider under it, not part of the setting's name.
+          title: Row(
+            mainAxisAlignment: MainAxisAlignment.spaceBetween,
+            children: [
+              Text(
+                l.appearanceGridSizeTitle,
+                style: const TextStyle(fontSize: 14),
+              ),
+              Text(
+                '${settings.gridSize.round()}%',
+                style: const TextStyle(fontSize: 12),
+              ),
+            ],
+          ),
           subtitle: Slider(
             value: settings.gridSize,
             min: 50,
@@ -173,18 +183,21 @@ class AppearanceSettingsScreen extends ConsumerWidget {
         SwitchListTile(
           secondary: const KotatsuIcon('ic_filter_menu'),
           title: Text(l.appearanceQuickFilters),
+          subtitle: Text(l.appearanceQuickFiltersSubtitle),
           value: settings.showQuickFilters,
           onChanged: (_) => notifier.toggleBool('showQuickFilters'),
         ),
         SwitchListTile(
           secondary: const KotatsuIcon('ic_timelapse'),
           title: Text(l.appearanceReadingProgress),
+          subtitle: Text(l.appearanceReadingProgressSubtitle),
           value: settings.showReadingProgress,
           onChanged: (_) => notifier.toggleBool('showReadingProgress'),
         ),
         SwitchListTile(
           secondary: const KotatsuIcon('ic_badges'),
           title: Text(l.appearanceBadges),
+          subtitle: Text(l.appearanceBadgesSubtitle),
           value: settings.showListBadges,
           onChanged: (_) => notifier.toggleBool('showListBadges'),
         ),
@@ -196,6 +209,13 @@ class AppearanceSettingsScreen extends ConsumerWidget {
           title: Text(l.appearanceCollapseDescription),
           value: settings.collapseDescription,
           onChanged: (_) => notifier.toggleBool('collapseDescription'),
+        ),
+        SwitchListTile(
+          secondary: const KotatsuIcon('ic_images'),
+          title: Text(l.appearancePagesThumbnails),
+          subtitle: Text(l.appearancePagesThumbnailsSubtitle),
+          value: settings.showPagesThumbnails,
+          onChanged: (_) => notifier.toggleBool('showPagesThumbnails'),
         ),
         ListTile(
           leading: const KotatsuIcon('ic_list_detailed'),

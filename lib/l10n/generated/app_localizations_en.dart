@@ -549,6 +549,12 @@ class AppLocalizationsEn extends AppLocalizations {
   String get settingsAboutPlatform => 'Platform';
 
   @override
+  String get settingsSearchHint => 'Search settings';
+
+  @override
+  String get settingsSearchNoResults => 'No settings match';
+
+  @override
   String get appearanceTitle => 'Appearance';
 
   @override
@@ -663,13 +669,26 @@ class AppLocalizationsEn extends AppLocalizations {
   }
 
   @override
+  String get appearanceGridSizeTitle => 'Grid size';
+
+  @override
   String get appearanceQuickFilters => 'Show quick filters';
 
   @override
-  String get appearanceReadingProgress => 'Show reading progress';
+  String get appearanceQuickFiltersSubtitle =>
+      'Provides the ability to filter manga lists by certain parameters';
+
+  @override
+  String get appearanceReadingProgress => 'Show reading progress indicators';
+
+  @override
+  String get appearanceReadingProgressSubtitle => 'Percent read';
 
   @override
   String get appearanceBadges => 'Badges in lists';
+
+  @override
+  String get appearanceBadgesSubtitle => 'Saved manga, Favorites';
 
   @override
   String get appearanceDetails => 'Details';
@@ -679,6 +698,10 @@ class AppLocalizationsEn extends AppLocalizations {
 
   @override
   String get appearancePagesThumbnails => 'Show pages thumbnails';
+
+  @override
+  String get appearancePagesThumbnailsSubtitle =>
+      'Enable the \'Pages\' tab on the details screen';
 
   @override
   String get appearanceDefaultTabTitle => 'Default tab';
