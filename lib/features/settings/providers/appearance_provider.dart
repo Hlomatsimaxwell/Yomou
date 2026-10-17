@@ -1,5 +1,6 @@
 import 'dart:convert';
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import 'package:yomou/core/security/screenshot_policy.dart';
@@ -694,6 +695,18 @@ ThemeData _baseTheme(bool dark) {
       shadowColor: Colors.transparent,
       foregroundColor: fg,
       iconTheme: IconThemeData(color: fg),
+      // The bar itself is transparent so the scaffold shows through it, but
+      // Flutter picks the status bar's icon colour by estimating the bar's
+      // *own* background -- and a transparent colour estimates as dark, so a
+      // light screen was handed white status-bar icons over a white scaffold
+      // and the status bar vanished. The scaffold behind the bar is what the
+      // icons actually sit on, so name the style by the theme's brightness
+      // instead of letting the framework guess from a transparent fill.
+      systemOverlayStyle: SystemUiOverlayStyle(
+        statusBarColor: Colors.transparent,
+        statusBarIconBrightness: dark ? Brightness.light : Brightness.dark,
+        statusBarBrightness: dark ? Brightness.dark : Brightness.light,
+      ),
       titleTextStyle: TextStyle(
         color: fg,
         fontSize: 17,
