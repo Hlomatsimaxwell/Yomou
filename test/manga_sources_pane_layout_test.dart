@@ -3,6 +3,7 @@ import 'package:flutter_material_design_icons/flutter_material_design_icons.dart
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:shared_preferences/shared_preferences.dart';
+import 'package:yomou/core/widgets/kotatsu_icon.dart';
 import 'package:yomou/features/settings/screens/manga_sources_settings_screen.dart';
 import 'package:yomou/l10n/generated/app_localizations.dart';
 import 'package:yomou/widgets/m3_components.dart';
@@ -170,6 +171,41 @@ void main() {
       find.widgetWithText(ListTile, 'Sorting order'),
     );
     expect(first.top - bar.bottom, 12);
+
+    expect(tester.takeException(), isNull);
+  });
+
+  testWidgets('each row leads with the inspo glyph for it', (tester) async {
+    await pump(tester);
+
+    Widget leading(String title) =>
+        tester.widget<ListTile>(find.widgetWithText(ListTile, title)).leading!;
+
+    // A row whose glyph the inspo's own set carries draws the ported artwork,
+    // so it is byte-identical to Kotatsu-Redo's drawable.
+    for (final (title, name) in const [
+      ('Show in grid view', 'ic_grid'),
+      ('Manage sources', 'ic_manga_source'),
+      ('Sources catalog', 'ic_list'),
+      ('Disable NSFW', 'ic_sfw'),
+      ('Choose mirror automatically', 'ic_replace'),
+    ]) {
+      expect(leading(title), isA<KotatsuIcon>(), reason: title);
+      expect((leading(title) as KotatsuIcon).name, name, reason: title);
+    }
+
+    // The rest carry the same geometry as the inspo's drawable, so they come
+    // from MDI rather than a second copy of the file.
+    expect((leading('Sorting order') as Icon).icon, MdiIcons.sortAscending);
+    expect(
+      (leading('Enable all manga sources') as Icon).icon,
+      MdiIcons.check,
+    );
+    expect(
+      (leading('Incognito mode for NSFW manga') as Icon).icon,
+      MdiIcons.incognito,
+    );
+    expect((leading('Handle links') as Icon).icon, MdiIcons.openInNew);
 
     expect(tester.takeException(), isNull);
   });

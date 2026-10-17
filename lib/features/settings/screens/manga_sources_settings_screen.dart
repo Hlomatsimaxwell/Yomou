@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_material_design_icons/flutter_material_design_icons.dart';
+import 'package:yomou/core/widgets/kotatsu_icon.dart';
 import 'package:yomou/core/widgets/responsive.dart';
 import 'package:yomou/l10n/generated/app_localizations.dart';
 import 'package:yomou/data/providers/sources_provider.dart';
@@ -103,13 +104,13 @@ class _MangaSourcesSettingsScreenState
       padding: const EdgeInsets.only(top: 12, bottom: 8, left: 8, right: 8),
       children: [
         _row(
-          icon: MdiIcons.sortAscending,
+          leading: const Icon(MdiIcons.sortAscending),
           title: l.sourcesSortingOrder,
           subtitle: _sortLabel(sortOrder, l),
           onTap: _pickSort,
         ),
         _row(
-          icon: MdiIcons.viewGridOutline,
+          leading: const KotatsuIcon('ic_grid'),
           title: l.sourcesShowInGrid,
           trailing: Switch(
             value: showInGrid,
@@ -118,7 +119,7 @@ class _MangaSourcesSettingsScreenState
           ),
         ),
         _row(
-          icon: MdiIcons.newspaperVariantOutline,
+          leading: const KotatsuIcon('ic_manga_source'),
           title: l.sourcesManage,
           subtitle: l.settingsMangaSourcesSubtitle(enabledCount, totalCount),
           // A sub-screen of this pane rather than a page over the top of it:
@@ -135,7 +136,7 @@ class _MangaSourcesSettingsScreenState
         // read as a line the row above it is sitting on.
         const Divider(height: 40, thickness: 1),
         _row(
-          icon: MdiIcons.checkboxBlankCircleOutline,
+          leading: const Icon(MdiIcons.check),
           title: l.sourcesEnableAll,
           subtitle: l.sourcesEnableAllSubtitle,
           trailing: Switch(
@@ -144,13 +145,13 @@ class _MangaSourcesSettingsScreenState
           ),
         ),
         _row(
-          icon: MdiIcons.databaseOutline,
+          leading: const KotatsuIcon('ic_list'),
           title: l.sourcesCatalog,
           subtitle: l.sourcesCatalogSubtitle,
           enabled: false,
         ),
         _row(
-          icon: MdiIcons.shieldOutline,
+          leading: const KotatsuIcon('ic_sfw'),
           title: l.disableNsfw,
           subtitle: l.disableNsfwSubtitle,
           trailing: Switch(
@@ -160,14 +161,14 @@ class _MangaSourcesSettingsScreenState
           ),
         ),
         _row(
-          icon: MdiIcons.eyeOffOutline,
+          leading: const Icon(MdiIcons.incognito),
           title: l.sourcesIncognitoNsfw,
           subtitle: _incognitoLabel(incognitoMode, l),
           onTap: _pickIncognito,
         ),
         const Divider(height: 40, thickness: 1),
         _row(
-          icon: MdiIcons.refresh,
+          leading: const KotatsuIcon('ic_replace'),
           title: l.sourcesChooseMirror,
           subtitle: l.sourcesChooseMirrorSubtitle,
           trailing: Switch(
@@ -178,7 +179,7 @@ class _MangaSourcesSettingsScreenState
           ),
         ),
         _row(
-          icon: MdiIcons.linkVariant,
+          leading: const Icon(MdiIcons.openInNew),
           title: l.sourcesHandleLinks,
           subtitle: l.sourcesHandleLinksSubtitle,
           trailing: Switch(
@@ -193,7 +194,7 @@ class _MangaSourcesSettingsScreenState
   }
 
   Widget _row({
-    required IconData icon,
+    required Widget leading,
     required String title,
     String? subtitle,
     Widget? trailing,
@@ -207,7 +208,11 @@ class _MangaSourcesSettingsScreenState
         // this pane's rows have to read as the same list as the appearance
         // pane's, which leaves them to the theme rather than restating the
         // scheme's own values.
-        leading: Icon(icon),
+        // The glyph itself is the inspo's own: a row takes the ported artwork
+        // (`KotatsuIcon`) when the set carries it and falls back to the
+        // identical MDI glyph when it does not, so the whole pane reads the
+        // same as the appearance pane beside it.
+        leading: leading,
         title: Text(title),
         subtitle: subtitle == null ? null : Text(subtitle),
         trailing: trailing,

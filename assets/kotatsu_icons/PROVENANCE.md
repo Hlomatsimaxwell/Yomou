@@ -48,6 +48,7 @@ none match Remix.
 | `ic_nav_bar.svg` | Kotatsu-Redo `res/drawable/ic_nav_bar.xml` | ? `app artwork` |
 | `ic_new.svg` | Kotatsu-Redo `res/drawable/ic_new.xml` | Material `filled/circle` |
 | `ic_pin.svg` | Kotatsu-Redo `res/drawable/ic_pin.xml` | MDI `mdiPinOutline` |
+| `ic_replace.svg` | Kotatsu-Redo `res/drawable/ic_replace.xml` | ? `two documents with a right arrow` |
 | `ic_services.svg` | Kotatsu-Redo `res/drawable/ic_services.xml` | MDI `mdiPuzzleOutline` |
 | `ic_sfw.svg` | Kotatsu-Redo `res/drawable/ic_sfw.xml` | ? `app artwork` |
 | `ic_shortcut.svg` | Kotatsu-Redo `res/drawable/ic_shortcut.xml` | MDI `mdiDirections` |

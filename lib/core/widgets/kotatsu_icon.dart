@@ -45,6 +45,11 @@ const List<String> kKotatsuIconNames = <String>[
   'ic_sfw',
   'ic_lock',
   'ic_data_privacy',
+  // One row on our Manga sources pane, mirroring its pref_sources.xml. That
+  // pane's other rows reuse `ic_grid`, `ic_manga_source`, `ic_list` and
+  // `ic_sfw` above, or the identical MDI glyph where the inspo's file has no
+  // match in any icon font the app carries.
+  'ic_replace',
   // Ported but not drawn on a settings row of ours yet: the "new" marker and
   // the image glyph Kotatsu-Redo uses elsewhere.
   'ic_new',
