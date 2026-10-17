@@ -32,7 +32,15 @@ void main() {
       child: MaterialApp(
         localizationsDelegates: AppLocalizations.localizationsDelegates,
         supportedLocales: AppLocalizations.supportedLocales,
-        theme: ThemeData(fontFamily: TestFonts.family),
+        // The app's own theme turns off the 2023 slider, and the pane's grid
+        // row measures a slider: without that here the row would be measured
+        // against a slider with a thumb-sized box rather than the 48 Material
+        // paints in the app.
+        theme: ThemeData(
+          fontFamily: TestFonts.family,
+          // ignore: deprecated_member_use
+          sliderTheme: const SliderThemeData(year2023: false),
+        ),
         home: const SettingsPaneScope(child: AppearanceSettingsScreen()),
       ),
     );
@@ -113,7 +121,7 @@ void main() {
     expect(style.color, cs.primary);
   });
 
-  testWidgets('a row keeps a 16px gap to its label at Material\'s own height',
+  testWidgets('a row keeps a 16px gap to its label at the pane\'s own height',
       (tester) async {
     await pump(tester);
 
@@ -129,15 +137,50 @@ void main() {
     );
     expect(grid.right + 16, tester.getRect(find.text('Grid size')).left);
 
-    // And the rows keep Material's own vertical padding of 8 rather than being
-    // squeezed: 72 for a row with a subtitle under it, 56 for one without.
-    expect(tester.getRect(find.widgetWithText(ListTile, 'Theme')).height, 72);
+    // One height for every row rather than Material's 72 for a row with a
+    // subtitle under it and 56 for one without: the tightest that still holds
+    // a name and a line of its value, so the pane reads as one list instead of
+    // two rhythms.
+    expect(
+      tester.getRect(find.widgetWithText(ListTile, 'Theme')).height,
+      SettingsRows.rowHeight,
+    );
     expect(
       tester
           .getRect(find.widgetWithText(SwitchListTile, 'Collapse long description'))
           .height,
-      56,
+      SettingsRows.rowHeight,
     );
+
+    // The slider row is the one row taller than the rhythm: 48 of slider
+    // under the value line is already more than 52.
+    expect(
+      tester.getRect(find.widgetWithText(ListTile, 'Grid size')).height,
+      greaterThan(SettingsRows.rowHeight),
+    );
+
+    expect(tester.takeException(), isNull);
+  });
+
+  testWidgets('the pane fills the pane it is given instead of a centred cap',
+      (tester) async {
+    // Wider than the width class's 960 cap: capping inside the pane would
+    // centre that cap and leave every trailing switch, and the slider's
+    // track, floating in dead space beside the edge they belong on.
+    await pump(tester, size: const Size(1400, 4000));
+
+    final list = tester.getRect(find.byType(ListView).first);
+    expect(list.left, 0);
+    expect(list.right, 1400);
+
+    // The trailing control ends on the pane's own edge rather than 200px in
+    // from it: the 8 this list insets itself by, then the 24 Material insets a
+    // list tile's trailing content by (against 16 at the start).
+    final toggles = tester.getRect(find.byType(Switch).first);
+    expect(toggles.right, 1400 - 8 - 24);
+    expect(tester.getRect(find.text('100%')).right, toggles.right);
+
+    expect(tester.takeException(), isNull);
   });
 
   testWidgets('the swatch row opens on the guide with 8 between its cards',
@@ -216,6 +259,24 @@ void main() {
     final toggles = tester.getRect(find.byType(Switch).first);
     expect(tester.getRect(find.text('100%')).right, toggles.right);
     expect(slider.right, toggles.right);
+
+    // And the track itself is painted across the slider's full width: Material
+    // insets it by half a thumb at each end, which left the track ending 24px
+    // inside the row while the value above it ended on the row's edge.
+    final sliderBox = tester.renderObject<RenderBox>(find.byType(Slider));
+    final sliderTheme = SliderTheme.of(tester.element(find.byType(Slider)));
+    expect(sliderTheme.padding, EdgeInsets.zero);
+    final track = const GappedSliderTrackShape().getPreferredRect(
+      parentBox: sliderBox,
+      sliderTheme: sliderTheme.copyWith(
+        trackHeight: sliderTheme.trackHeight ?? 4,
+        thumbShape: const HandleThumbShape(),
+        overlayShape: const RoundSliderOverlayShape(),
+      ),
+      isEnabled: true,
+    );
+    expect(track.left, 0);
+    expect(track.right, sliderBox.size.width);
 
     expect(tester.takeException(), isNull);
   });

@@ -54,6 +54,10 @@ ScreenWidthClass widthClassOf(BuildContext context) {
 /// Constrains [child] to the class's content width and centres it, so a form
 /// or a settings list on a 12" tablet stays a readable column instead of
 /// stretching lines to the full width of the panel.
+///
+/// A container that has already bounded the column says so with
+/// [ContentWidthCap] instead of every screen it hosts passing its own
+/// [maxWidth], because those screens cannot know which pane they landed in.
 class CappedContentWidth extends StatelessWidget {
   const CappedContentWidth({super.key, required this.child, this.maxWidth});
 
@@ -65,7 +69,9 @@ class CappedContentWidth extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final cap = maxWidth ?? widthClassOf(context).contentMaxWidth;
+    final cap = maxWidth ??
+        ContentWidthCap.maybeOf(context) ??
+        widthClassOf(context).contentMaxWidth;
     return Center(
       child: ConstrainedBox(
         constraints: BoxConstraints(maxWidth: cap),
@@ -73,4 +79,25 @@ class CappedContentWidth extends StatelessWidget {
       ),
     );
   }
+}
+
+/// The width content under it may reach, in place of the width class's cap.
+///
+/// [double.infinity] opts out of the cap, which is what a two-pane settings
+/// pane wants: the pane is already the measure, and capping a second time
+/// inside it centres that cap in the pane and leaves every trailing switch --
+/// and the track of a slider that ends on the same edge -- floating in the
+/// dead space beside the edge they belong on.
+class ContentWidthCap extends InheritedWidget {
+  const ContentWidthCap({super.key, required this.cap, required super.child});
+
+  /// The width descendants may reach; [double.infinity] means no cap.
+  final double cap;
+
+  /// The cap in force for [context], or null when the width class decides.
+  static double? maybeOf(BuildContext context) =>
+      context.dependOnInheritedWidgetOfExactType<ContentWidthCap>()?.cap;
+
+  @override
+  bool updateShouldNotify(ContentWidthCap oldWidget) => cap != oldWidget.cap;
 }

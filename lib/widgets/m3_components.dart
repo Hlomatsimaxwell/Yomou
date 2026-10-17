@@ -169,16 +169,68 @@ Future<T?> showM3OptionSheet<T>(
 /// each screen means all of them pick it up without seven edits, and a screen
 /// cannot end up with a back arrow that pops the whole settings route out from
 /// under a pane tap.
-class SettingsPaneScope extends InheritedWidget {
-  const SettingsPaneScope({super.key, required super.child});
+class SettingsPaneScope extends StatelessWidget {
+  const SettingsPaneScope({super.key, required this.child});
+
+  final Widget child;
 
   /// Whether [context] sits inside a two-pane settings detail pane.
-  static bool of(BuildContext context) => context
-      .dependOnInheritedWidgetOfExactType<SettingsPaneScope>()
-      != null;
+  static bool of(BuildContext context) =>
+      context.dependOnInheritedWidgetOfExactType<_SettingsPane>() != null;
 
   @override
-  bool updateShouldNotify(SettingsPaneScope oldWidget) => false;
+  Widget build(BuildContext context) {
+    // The pane is the measure. Every screen under it would otherwise cap
+    // itself at the width class's 960, which on a pane wider than that centres
+    // the cap and leaves the rows' switches and the slider's track short of
+    // the edge they are supposed to sit on -- the pane's own edge, which is
+    // where a pushed copy of the same screen puts them.
+    return ContentWidthCap(
+      cap: double.infinity,
+      child: _SettingsPane(child: child),
+    );
+  }
+}
+
+/// The marker behind [SettingsPaneScope.of].
+class _SettingsPane extends InheritedWidget {
+  const _SettingsPane({required super.child});
+
+  @override
+  bool updateShouldNotify(_SettingsPane oldWidget) => false;
+}
+
+/// The row rhythm a settings list uses: one height for every row in it.
+///
+/// Material's own is 72 for a row with a subtitle under it and 56 for one
+/// without, which reads as two different lists when both sit in one column.
+/// A settings row here is a name over one line of its value -- 24 + 20 of
+/// text -- so 52 is that text with [rowInset] above and below: the tightest
+/// that still holds both lines, and the same height whether the row carries a
+/// subtitle or not.
+class SettingsRows extends StatelessWidget {
+  const SettingsRows({super.key, required this.child});
+
+  final Widget child;
+
+  /// A row carrying a subtitle: 24 + 20 of text plus [rowInset] above and
+  /// below. A one-line row is held to the same height so the column keeps one
+  /// rhythm.
+  static const double rowHeight = 52;
+
+  /// The breathing room a row keeps inside [rowHeight].
+  static const double rowInset = 4;
+
+  @override
+  Widget build(BuildContext context) {
+    return ListTileTheme(
+      data: Theme.of(context).listTileTheme.copyWith(
+            minTileHeight: rowHeight,
+            minVerticalPadding: rowInset,
+          ),
+      child: child,
+    );
+  }
 }
 
 class SettingsAppBar extends StatelessWidget implements PreferredSizeWidget {
@@ -237,11 +289,12 @@ class SettingsAppBar extends StatelessWidget implements PreferredSizeWidget {
       );
     }
 
-    // The pane's body is a centred, width-capped column, so a title pinned to
-    // the pane's own left edge sits out in the empty gutter whenever the pane
-    // is wider than the cap -- which is exactly the case on a tablet, where the
-    // title ended up ~70px left of everything under it. Laying the bar out
-    // against the pane's width lets the title start on the same line as the
+    // The pane's body may or may not be a centred, width-capped column: a pane
+    // is the measure and its screens stretch to it, but a screen that still
+    // asks for a readable column caps itself and is then centred inside the
+    // pane. Either way a title pinned to the pane's own left edge sits out in
+    // the empty gutter beside the column, so the title reads the same cap the
+    // body did -- the [ContentWidthCap] the body resolves -- and starts on the
     // column's content margin instead.
     //
     // The empty leading is not incidental. `leading: null` alone is not enough:
@@ -252,7 +305,8 @@ class SettingsAppBar extends StatelessWidget implements PreferredSizeWidget {
     // `leadingWidth + titleSpacing`.
     return LayoutBuilder(
       builder: (context, constraints) {
-        final cap = widthClassOf(context).contentMaxWidth;
+        final cap = ContentWidthCap.maybeOf(context) ??
+            widthClassOf(context).contentMaxWidth;
         final gutter = constraints.maxWidth > cap
             ? (constraints.maxWidth - cap) / 2
             : 0.0;

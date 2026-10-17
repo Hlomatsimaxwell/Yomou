@@ -25,7 +25,7 @@ class AppearanceSettingsScreen extends ConsumerWidget {
       // their own padding make up the difference. Asking for the same margin
       // here keeps the title on that line instead of 8px inside it.
       appBar: SettingsAppBar(title: l.appearanceTitle, contentMargin: 24),
-      body: CappedContentWidth(child: ListView(
+      body: CappedContentWidth(child: SettingsRows(child: ListView(
       // Everything in this pane starts on one guide: 24px from the column's
       // edge, which is this 8 plus the 16 that a ListTile or a section header
       // insets itself by. The carousel below asks for the same 8 for the same
@@ -169,11 +169,27 @@ class AppearanceSettingsScreen extends ConsumerWidget {
               ),
             ],
           ),
-          subtitle: Slider(
-            value: settings.gridSize,
-            min: 50,
-            max: 150,
-            onChanged: (v) => notifier.setGridSize(v),
+          subtitle: SizedBox(
+            // Material's slider box is 48 high, and it takes that height from
+            // its padding: zeroing the padding below would otherwise bring the
+            // box down to the thumb's height, so the 48 is stated here instead
+            // of being left to follow from a padding this row has changed.
+            height: 48,
+            child: SliderTheme(
+              // Material insets the track by half a thumb at each end so a
+              // thumb at either extreme still sits inside it. In this row that
+              // stops the track short of the trailing edge -- the edge the
+              // value above it ends on and the switches below it sit their
+              // thumbs on -- so the track reads as detached from the line it
+              // measures. Zero padding paints it across the row's full width.
+              data: SliderTheme.of(context).copyWith(padding: EdgeInsets.zero),
+              child: Slider(
+                value: settings.gridSize,
+                min: 50,
+                max: 150,
+                onChanged: (v) => notifier.setGridSize(v),
+              ),
+            ),
           ),
         ),
         SwitchListTile(
@@ -297,7 +313,7 @@ class AppearanceSettingsScreen extends ConsumerWidget {
 
         const SizedBox(height: 24),
       ],
-    )),
+    ))),
     );
   }
 
