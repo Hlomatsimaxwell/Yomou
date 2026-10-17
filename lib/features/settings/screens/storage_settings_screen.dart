@@ -80,20 +80,22 @@ class _StorageSettingsScreenState extends ConsumerState<StorageSettingsScreen> {
         children: [
           M3SectionHeader(title: l.storageUsageTitle, dividerAbove: false),
           StorageUsageBar(segments: [
+            // The three filled wedges, in the reference's own colours rather
+            // than the scheme's: see StorageUsageBar's own note.
             StorageUsageSegment(
               label: l.storageSavedManga,
               bytes: usage.savedManga,
-              color: cs.primary,
+              color: StorageUsageBar.savedMangaColor,
             ),
             StorageUsageSegment(
               label: l.storagePagesCache,
               bytes: usage.pagesCache,
-              color: cs.secondary,
+              color: StorageUsageBar.pagesCacheColor,
             ),
             StorageUsageSegment(
               label: l.storageOtherCache,
               bytes: usage.otherCache,
-              color: cs.tertiary,
+              color: StorageUsageBar.otherCacheColor,
             ),
             // The container colour the track itself is painted in, so this
             // reads as the bar's unfilled remainder rather than as a fourth

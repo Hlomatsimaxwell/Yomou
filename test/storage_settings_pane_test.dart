@@ -121,17 +121,19 @@ void main() {
       expect(find.text(legend), findsOneWidget, reason: legend);
     }
 
-    // The scheme's own three accents, then the container colour the track is
-    // painted in -- which is what makes "Available" read as the part of the
-    // bar nothing is filling.
+    // The reference's own three wedge colours, then the container colour the
+    // track is painted in -- which is what makes "Available" read as the part
+    // of the bar nothing is filling. The shape of those three is pinned in
+    // storage_usage_bar_test.dart; here it is enough that none of them is one
+    // of the scheme's accents.
     final segments = tester
         .widget<StorageUsageBar>(find.byType(StorageUsageBar))
         .segments;
     final cs = Theme.of(tester.element(find.byType(StorageUsageBar))).colorScheme;
     expect(segments.map((s) => s.color), [
-      cs.primary,
-      cs.secondary,
-      cs.tertiary,
+      StorageUsageBar.savedMangaColor,
+      StorageUsageBar.pagesCacheColor,
+      StorageUsageBar.otherCacheColor,
       cs.secondaryContainer,
     ]);
 
@@ -156,18 +158,15 @@ void main() {
     expect(find.text('0 B - Other cache'), findsOneWidget);
 
     // Two wedges across the track rather than two of nothing between the
-    // ones that matter. A wedge is an [Expanded] wrapping a [ColoredBox]; the
-    // legend's own [Expanded]s wrap text, so they do not count.
-    final wedges = tester
-        .widgetList<Expanded>(
-          find.descendant(
-            of: find.byType(StorageUsageBar),
-            matching: find.byWidgetPredicate(
-              (w) => w is Expanded && w.child is ColoredBox,
-            ),
-          ),
-        )
-        .toList();
+    // ones that matter. A wedge is the one thing in the bar painted by a
+    // [ColoredBox]; the track is a [DecoratedBox] under it and the legend's
+    // dots are [DecoratedBox]es of their own, so neither counts.
+    final wedges = tester.widgetList<ColoredBox>(
+      find.descendant(
+        of: find.byType(StorageUsageBar),
+        matching: find.byType(ColoredBox),
+      ),
+    );
     expect(wedges, hasLength(2));
 
     expect(tester.takeException(), isNull);
