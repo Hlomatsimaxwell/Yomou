@@ -35,7 +35,7 @@ class _StorageSettingsScreenState extends ConsumerState<StorageSettingsScreen> {
       body: CappedContentWidth(child: ListView(
       padding: const EdgeInsets.symmetric(vertical: 8),
       children: [
-        M3SectionHeader(title: l.storageCacheSection),
+        M3SectionHeader(title: l.storageCacheSection, dividerAbove: false),
         ListTile(
           title: Text(l.storageCacheMaxTitle),
           subtitle: Text(l.storageCacheMaxSubtitle(settings.maxCacheObjects)),

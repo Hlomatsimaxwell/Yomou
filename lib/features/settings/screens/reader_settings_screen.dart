@@ -39,7 +39,8 @@ class ReaderSettingsScreen extends ConsumerWidget {
       body: CappedContentWidth(child: ListView(
       padding: const EdgeInsets.symmetric(vertical: 8),
       children: [
-        M3SectionHeader(title: l.rsetSectionReading),
+        // The first heading on the screen: it opens the list, so no rule.
+        M3SectionHeader(title: l.rsetSectionReading, dividerAbove: false),
         _PickerRow(
           icon: MdiIcons.bookOutline,
           title: l.rsetDefaultMode,

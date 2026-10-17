@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_material_design_icons/flutter_material_design_icons.dart';
+import 'package:yomou/core/theme/hairline.dart';
 import 'package:yomou/core/widgets/responsive.dart';
 
 /// Material 3 section header (titleSmall-ish / primary, title case).
@@ -9,31 +10,77 @@ import 'package:yomou/core/widgets/responsive.dart';
 /// bolder body label. Used app-wide, so this is one decision, not a per-screen
 /// preference.
 ///
-/// The vertical rhythm is the same everywhere too: 28 above the label, 12
+/// The vertical rhythm is the same everywhere too: 24 above the label, 16
 /// between it and the first item under it. The heading owns both gaps instead
 /// of leaving them to whatever precedes it, so two groups read the same
 /// distance apart whether the row above them is one line, two lines or a
 /// carousel -- and a screen never has to add a spacer of its own to get a
 /// break it thinks is bigger.
+///
+/// The break is also drawn: a hairline across the top of the heading, which is
+/// what says the rows under it are a new set rather than a continuation of the
+/// ones above. It sits inside the 24, so the rule and the label are one block
+/// and nothing has to be inserted between two groups.
 class M3SectionHeader extends StatelessWidget {
-  const M3SectionHeader({super.key, required this.title});
+  const M3SectionHeader({
+    super.key,
+    required this.title,
+    this.dividerAbove = true,
+    this.bleed = 0,
+  });
 
   final String title;
+
+  /// Whether to draw the rule over the label. Off for a heading that opens its
+  /// list: there is nothing above it for a rule to separate it from, and one
+  /// under the bar reads as a border around the screen rather than as a break
+  /// in it.
+  final bool dividerAbove;
+
+  /// How far the rule reaches past this heading's own box on each side so that
+  /// it can land on the edges of the surface it divides. A list that insets
+  /// itself horizontally passes that inset here; a heading already sitting
+  /// flush in its list leaves this at 0. Overshooting is harmless -- the list
+  /// clips the rule back at the surface's edge.
+  final double bleed;
 
   @override
   Widget build(BuildContext context) {
     final cs = Theme.of(context).colorScheme;
-    return Padding(
-      padding: const EdgeInsets.fromLTRB(16, 28, 16, 12),
-      child: Text(
-        title,
-        style: TextStyle(
-          color: cs.primary,
-          fontSize: 14,
-          fontWeight: FontWeight.w600,
-          letterSpacing: 0.4,
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.stretch,
+      children: [
+        if (dividerAbove)
+          // A Stack rather than a plain box, because [bleed] has to paint
+          // outside this heading's own box and only a positioned child may.
+          SizedBox(
+            height: 1,
+            child: Stack(
+              clipBehavior: Clip.none,
+              children: [
+                Positioned(
+                  left: -bleed,
+                  right: -bleed,
+                  top: 0,
+                  bottom: 0,
+                  child: ColoredBox(color: hairlineColor(context)),
+                ),
+              ],
+            ),
+          ),
+        Padding(
+          padding: const EdgeInsets.fromLTRB(16, 24, 16, 16),
+          child: Text(
+            title,
+            style: TextStyle(
+              color: cs.primary,
+              fontSize: 14,
+              fontWeight: FontWeight.w600,
+              letterSpacing: 0.4,
+            ),
+          ),
         ),
-      ),
+      ],
     );
   }
 }
@@ -266,11 +313,12 @@ class SettingsAppBar extends StatelessWidget implements PreferredSizeWidget {
   final double contentMargin;
 
   /// The one app-bar title style, shared by the phone bar and the pane bar so
-  /// the two cannot drift apart. Sized and weighted like a section label rather
-  /// than a headline: a settings screen's name is a heading over its groups,
-  /// and at a headline size it outgrew the groups it was heading.
+  /// the two cannot drift apart. A settings screen's name is a heading over its
+  /// groups, so it is sized as one: a step above the rows under it rather than
+  /// level with the group labels, which left the name of the screen looking
+  /// like one more section in it.
   static const TextStyle titleStyle = TextStyle(
-    fontSize: 14,
+    fontSize: 20,
     fontWeight: FontWeight.w600,
   );
 
@@ -279,10 +327,12 @@ class SettingsAppBar extends StatelessWidget implements PreferredSizeWidget {
   /// the pane's edge.
   static const double _contentMargin = 16;
 
-  /// [titleStyle] carrying the scheme's accent, so a settings screen's name
-  /// reads as the same kind of label as the section headings under it.
+  /// [titleStyle] in the surface's own foreground rather than the accent. The
+  /// accent is what marks the group labels as labels; a title wearing it too
+  /// read as the first of them, and it is the one line on the screen that is a
+  /// name rather than a control.
   static TextStyle _titleStyle(BuildContext context) =>
-      titleStyle.copyWith(color: Theme.of(context).colorScheme.primary);
+      titleStyle.copyWith(color: Theme.of(context).colorScheme.onSurface);
 
   @override
   Size get preferredSize => const Size.fromHeight(kToolbarHeight);

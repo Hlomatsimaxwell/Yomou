@@ -33,7 +33,16 @@ class AppearanceSettingsScreen extends ConsumerWidget {
       padding: const EdgeInsets.symmetric(vertical: 8, horizontal: 8),
       children: [
         // Color Scheme Carousel
-        M3SectionHeader(title: l.appearanceColorScheme),
+        //
+        // The first heading in the pane, so it opens it rather than dividing
+        // it: no rule above it. Every heading below it carries one, and all of
+        // them bleed 8 -- the list's own side padding -- so their rules reach
+        // the pane's edges instead of stopping at the rows' inset.
+        M3SectionHeader(
+          title: l.appearanceColorScheme,
+          dividerAbove: false,
+          bleed: 8,
+        ),
         SizedBox(
           // Room for the 116px mini-UI card plus its label.
           height: 148,
@@ -144,7 +153,7 @@ class AppearanceSettingsScreen extends ConsumerWidget {
         // it already stores for each, since nothing here can change it now.
 
         // Manga List Section
-        M3SectionHeader(title: l.appearanceSectionMangaList),
+        M3SectionHeader(title: l.appearanceSectionMangaList, bleed: 8),
         ListTile(
           leading: const KotatsuIcon('ic_list'),
           title: Text(l.appearanceListModeTitle),
@@ -171,18 +180,20 @@ class AppearanceSettingsScreen extends ConsumerWidget {
           ),
           subtitle: SizedBox(
             // Material's slider box is 48 high, and it takes that height from
-            // its padding: zeroing the padding below would otherwise bring the
-            // box down to the thumb's height, so the 48 is stated here instead
-            // of being left to follow from a padding this row has changed.
+            // its padding: the padding below is only the track's own end gap,
+            // so the 48 is stated here instead of being left to follow from it.
             height: 48,
             child: SliderTheme(
               // Material insets the track by half a thumb at each end so a
-              // thumb at either extreme still sits inside it. In this row that
-              // stops the track short of the trailing edge -- the edge the
-              // value above it ends on and the switches below it sit their
-              // thumbs on -- so the track reads as detached from the line it
-              // measures. Zero padding paints it across the row's full width.
-              data: SliderTheme.of(context).copyWith(padding: EdgeInsets.zero),
+              // thumb at either extreme still sits inside it. Kotatsu's own
+              // grid-size slider keeps a 16 step at the end instead, and the
+              // end it keeps it at is the trailing one: the track stops short
+              // of the edge the value above it ends on and the switches below
+              // sit their thumbs against, so the row's own measure reads as
+              // ending where the control does rather than running off it.
+              data: SliderTheme.of(context).copyWith(
+                padding: const EdgeInsets.only(right: 16),
+              ),
               child: Slider(
                 value: settings.gridSize,
                 min: 50,
@@ -215,7 +226,7 @@ class AppearanceSettingsScreen extends ConsumerWidget {
         ),
 
         // Details Section
-        M3SectionHeader(title: l.appearanceDetails),
+        M3SectionHeader(title: l.appearanceDetails, bleed: 8),
         SwitchListTile(
           secondary: const KotatsuIcon('ic_expand_more'),
           title: Text(l.appearanceCollapseDescription),
@@ -237,7 +248,7 @@ class AppearanceSettingsScreen extends ConsumerWidget {
         ),
 
         // Main Screen Section
-        M3SectionHeader(title: l.appearanceSectionMainScreen),
+        M3SectionHeader(title: l.appearanceSectionMainScreen, bleed: 8),
         ListTile(
           leading: const KotatsuIcon('ic_suggestion'),
           title: Text(l.appearanceSearchSuggestionsTitle),
@@ -296,7 +307,7 @@ class AppearanceSettingsScreen extends ConsumerWidget {
         ),
 
         // Privacy Section
-        M3SectionHeader(title: l.appearancePrivacy),
+        M3SectionHeader(title: l.appearancePrivacy, bleed: 8),
         SwitchListTile(
           secondary: const KotatsuIcon('ic_lock'),
           title: Text(l.appearanceProtectApp),

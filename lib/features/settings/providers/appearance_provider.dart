@@ -857,6 +857,18 @@ ThemeData _applyBrightness(
     displayColor: dark ? Colors.white : const Color(0xFF1C1B1F),
   );
 
+  // The line under a row is secondary text, and reads as it at the weight the
+  // platform gave it rather than at the heavier `onSurfaceVariant` Material 3
+  // reaches for. Kotatsu's preference lists paint their summaries with
+  // `?android:textColorSecondary` -- the foreground at a little over half -- so
+  // a row's value there sits back from its name instead of reading as a second
+  // name. Named once here, so every list's subtitle is the same grey.
+  final listTileTheme = base.listTileTheme.copyWith(
+    subtitleTextStyle: textTheme.bodyMedium?.copyWith(
+      color: colorScheme.onSurface.withValues(alpha: 0.6),
+    ),
+  );
+
   // The one near-black surface the base theme paints on a widget's behalf
   // rather than being spelled out at a call site: the snackbar's slab.
   final snackBarTheme = black
@@ -871,6 +883,7 @@ ThemeData _applyBrightness(
     cardColor: surfaceColor,
     textTheme: textTheme,
     sliderTheme: _sliderTheme(),
+    listTileTheme: listTileTheme,
     snackBarTheme: snackBarTheme,
     // Carried on the theme so the widgets that paint their own near-black
     // chrome can ask whether to go black without a provider lookup.

@@ -107,18 +107,19 @@ void main() {
     expect(tester.takeException(), isNull);
   });
 
-  testWidgets('the pane title is a section-sized accent label', (tester) async {
+  testWidgets('the pane title is the screen heading, black and one size up',
+      (tester) async {
     await pump(tester);
 
     final text = tester.widget<Text>(find.text('Appearance'));
     final style = text.style!;
-    expect(style.fontSize, 14);
+    expect(style.fontSize, 20);
     expect(style.fontWeight, FontWeight.w600);
 
     final cs = Theme.of(
       tester.element(find.byType(AppearanceSettingsScreen)),
     ).colorScheme;
-    expect(style.color, cs.primary);
+    expect(style.color, cs.onSurface);
   });
 
   testWidgets('a row keeps a 16px gap to its label at the pane\'s own height',
@@ -201,11 +202,11 @@ void main() {
         (w) => w is ListView && w.scrollDirection == Axis.horizontal,
       ),
     );
-    expect(headerText.bottom + 12, carousel.top);
+    expect(headerText.bottom + 16, carousel.top);
     expect(carousel.top, headerBox.bottom);
   });
 
-  testWidgets('every section label keeps one 28/12 rhythm and adds no spacer',
+  testWidgets('every section label keeps one 24/16 rhythm and draws a rule only above a grouped one',
       (tester) async {
     await pump(tester);
 
@@ -217,8 +218,20 @@ void main() {
       'Privacy',
     ]) {
       final (box, text) = header(tester, title);
-      expect(text.top - box.top, 28, reason: 'above $title');
-      expect(box.bottom - text.bottom, 12, reason: 'under $title');
+      final headerFinder = find.widgetWithText(M3SectionHeader, title);
+      final hasRule = tester
+          .widgetList(
+            find.descendant(of: headerFinder, matching: find.byType(ColoredBox)),
+          )
+          .isNotEmpty;
+      if (title == 'Color Scheme') {
+        expect(hasRule, isFalse, reason: 'opens the pane: no rule above $title');
+        expect(text.top - box.top, 24, reason: 'above $title');
+      } else {
+        expect(hasRule, isTrue, reason: 'groups: rule above $title');
+        expect(text.top - box.top, 25, reason: 'above $title, rule + 24');
+      }
+      expect(box.bottom - text.bottom, 16, reason: 'under $title');
     }
 
     // "Manga List" divides the pane in half and used to buy itself a wider
@@ -261,12 +274,10 @@ void main() {
     expect(tester.getRect(find.text('100%')).right, toggles.right);
     expect(slider.right, toggles.right);
 
-    // And the track itself is painted across the slider's full width: Material
-    // insets it by half a thumb at each end, which left the track ending 24px
-    // inside the row while the value above it ended on the row's edge.
+    // And the track itself ends 16 short of the row's edge.
     final sliderBox = tester.renderObject<RenderBox>(find.byType(Slider));
     final sliderTheme = SliderTheme.of(tester.element(find.byType(Slider)));
-    expect(sliderTheme.padding, EdgeInsets.zero);
+    expect(sliderTheme.padding, const EdgeInsets.only(right: 16));
     final track = const GappedSliderTrackShape().getPreferredRect(
       parentBox: sliderBox,
       sliderTheme: sliderTheme.copyWith(

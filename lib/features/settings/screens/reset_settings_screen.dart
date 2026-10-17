@@ -59,7 +59,10 @@ class _ResetSettingsScreenState extends State<ResetSettingsScreen> {
       child: ListView(
         padding: const EdgeInsets.only(bottom: 24),
         children: [
-          M3SectionHeader(title: l.settingsResetSettingsSection),
+          M3SectionHeader(
+            title: l.settingsResetSettingsSection,
+            dividerAbove: false,
+          ),
           _Hint(text: l.settingsResetSettingsSubtitle),
           for (final (group, icon, label) in groups)
             CheckboxListTile(
@@ -88,7 +91,10 @@ class _ResetSettingsScreenState extends State<ResetSettingsScreen> {
             ),
           ),
           const SizedBox(height: 28),
-          M3SectionHeader(title: l.settingsEraseSection),
+          M3SectionHeader(
+            title: l.settingsEraseSection,
+            dividerAbove: false,
+          ),
           _Hint(text: l.settingsEraseSubtitle),
           ListTile(
             leading: Icon(

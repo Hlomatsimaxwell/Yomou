@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:yomou/core/theme/amoled.dart';
+import 'package:yomou/core/theme/hairline.dart';
 
 /// Surfaces for a settings screen, kept in one place so the sidebar and the
 /// detail pane cannot drift apart.
@@ -28,8 +29,5 @@ class SettingsSurfaces {
   }
 
   /// Divider between the sidebar and the detail pane.
-  static Color columnDivider(BuildContext context) {
-    final dark = Theme.of(context).brightness == Brightness.dark;
-    return dark ? Colors.white12 : Colors.black12;
-  }
+  static Color columnDivider(BuildContext context) => hairlineColor(context);
 }

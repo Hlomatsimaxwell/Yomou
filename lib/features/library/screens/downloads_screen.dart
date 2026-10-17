@@ -417,7 +417,10 @@ class _DownloadsScreenState extends ConsumerState<DownloadsScreen> {
         .where((j) => j.status == DownloadJobStatus.running)
         .toList();
     if (running.isNotEmpty) {
-      items.add(M3SectionHeader(title: _capitalize(l.dlgInProgress)));
+      items.add(M3SectionHeader(
+          title: _capitalize(l.dlgInProgress),
+          dividerAbove: items.isNotEmpty,
+        ));
       for (final job in running) {
         items.add(_jobCard(job, l));
       }
@@ -431,7 +434,10 @@ class _DownloadsScreenState extends ConsumerState<DownloadsScreen> {
         )
         .toList();
     if (waiting.isNotEmpty) {
-      items.add(M3SectionHeader(title: _capitalize(l.dlgQueued)));
+      items.add(M3SectionHeader(
+          title: _capitalize(l.dlgQueued),
+          dividerAbove: items.isNotEmpty,
+        ));
       for (final job in waiting) {
         items.add(_jobCard(job, l));
       }
@@ -445,7 +451,10 @@ class _DownloadsScreenState extends ConsumerState<DownloadsScreen> {
         )
         .toList();
     if (stopped.isNotEmpty) {
-      items.add(M3SectionHeader(title: _capitalize(l.dlgFailed)));
+      items.add(M3SectionHeader(
+          title: _capitalize(l.dlgFailed),
+          dividerAbove: items.isNotEmpty,
+        ));
       for (final job in stopped) {
         items.add(_jobCard(job, l));
       }
@@ -455,7 +464,10 @@ class _DownloadsScreenState extends ConsumerState<DownloadsScreen> {
     for (final group in _groups) {
       final bucket = _bucketFor(group.latestAt, l);
       if (bucket.key != prevBucket) {
-        items.add(M3SectionHeader(title: bucket.label));
+        items.add(M3SectionHeader(
+          title: bucket.label,
+          dividerAbove: items.isNotEmpty,
+        ));
         prevBucket = bucket.key;
       }
       items.add(
