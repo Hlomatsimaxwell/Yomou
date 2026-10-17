@@ -74,23 +74,35 @@ void main() {
     final dividers = tester.widgetList<Divider>(find.byType(Divider)).toList();
     expect(dividers, hasLength(2));
     for (final divider in dividers) {
-      expect(divider.height, 24);
+      // 24 for the rule's own box plus the 8 of air a section header keeps
+      // above and below its rule, so the line clears the rows on both sides.
+      expect(divider.height, 40);
       expect(divider.thickness, 1);
     }
 
     // Each sits between the row that ends its group and the one that opens the
-    // next: after Manage sources, and after Incognito mode.
-    final tops = {
+    // next: after Manage sources, and after Incognito mode. The rule owns the
+    // whole break, so the next group starts a full 40 under the last row.
+    final rows = {
       for (final title in rowTitles(tester))
-        title: tester.getRect(find.widgetWithText(ListTile, title)).top,
+        title: tester.getRect(find.widgetWithText(ListTile, title)),
     };
-    final ys = [for (final d in find.byType(Divider).evaluate()) tester.getRect(find.byWidget(d.widget)).top];
-    ys.sort();
+    final rules = [
+      for (var i = 0; i < find.byType(Divider).evaluate().length; i++)
+        tester.getRect(find.byType(Divider).at(i)),
+    ]..sort((a, b) => a.top.compareTo(b.top));
 
-    expect(ys[0], greaterThan(tops['Manage sources']!));
-    expect(ys[0], lessThan(tops['Enable all manga sources']!));
-    expect(ys[1], greaterThan(tops['Incognito mode for NSFW manga']!));
-    expect(ys[1], lessThan(tops['Choose mirror automatically']!));
+    expect(rules[0].top, rows['Manage sources']!.bottom);
+    expect(
+      rows['Enable all manga sources']!.top - rows['Manage sources']!.bottom,
+      40,
+    );
+    expect(rules[1].top, rows['Incognito mode for NSFW manga']!.bottom);
+    expect(
+      rows['Choose mirror automatically']!.top -
+          rows['Incognito mode for NSFW manga']!.bottom,
+      40,
+    );
 
     expect(tester.takeException(), isNull);
   });

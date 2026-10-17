@@ -131,8 +131,10 @@ class _MangaSourcesSettingsScreenState
           },
         ),
         // Everything about which sources are on and what they show, then the
-        // two that only change how a source is reached.
-        const Divider(height: 24, thickness: 1),
+        // two that only change how a source is reached. The rule carries the
+        // same 8 of air a section header gives its own, so a group break doesn't
+        // read as a line the row above it is sitting on.
+        const Divider(height: 40, thickness: 1),
         _row(
           icon: MdiIcons.checkboxBlankCircleOutline,
           title: l.sourcesEnableAll,
@@ -164,7 +166,7 @@ class _MangaSourcesSettingsScreenState
           subtitle: _incognitoLabel(incognitoMode, l),
           onTap: _pickIncognito,
         ),
-        const Divider(height: 24, thickness: 1),
+        const Divider(height: 40, thickness: 1),
         _row(
           icon: MdiIcons.refresh,
           title: l.sourcesChooseMirror,
