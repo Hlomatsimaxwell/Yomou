@@ -58,11 +58,24 @@ class TabHeader extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    // The app is edge-to-edge, so the status bar sits over the window and each
+    // screen is on its own to clear it: the settings' app bar does it by being
+    // primary, and the side rail does it with its own SafeArea. This header was
+    // the one that did not, which put the tab's name and its search field at
+    // y=0 -- under the clock and the battery rather than below them.
+    final topInset = MediaQuery.paddingOf(context).top;
+
     if (mode == TabHeaderMode.collapsing) {
+      // The strip takes the inset with it as it hides. The collapse is what
+      // frees the height, so leaving the inset behind would pin a band of
+      // background above a list that is meant to reach the window's top edge.
       return HideOnScroll(
-        header: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [const SizedBox(height: 8), leading ?? searchBar],
+        header: Padding(
+          padding: EdgeInsets.only(top: topInset),
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [const SizedBox(height: 8), leading ?? searchBar],
+          ),
         ),
         body: body,
       );
@@ -73,7 +86,9 @@ class TabHeader extends StatelessWidget {
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
         Padding(
-          padding: const EdgeInsets.fromLTRB(20, 14, 20, 14),
+          // 14 stays the header's own gap under the bar; the inset goes above
+          // it rather than joining it, so the number still means what it said.
+          padding: EdgeInsets.fromLTRB(20, 14 + topInset, 20, 14),
           child: Row(
             children: [
               Expanded(
