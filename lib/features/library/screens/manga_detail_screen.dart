@@ -22,6 +22,7 @@ import 'package:yomou/core/widgets/responsive.dart' show usesWideLayout;
 import 'package:yomou/features/library/providers/favorites_provider.dart';
 import 'package:yomou/features/library/providers/downloads_provider.dart';
 import 'package:yomou/features/history/providers/history_provider.dart';
+import 'package:yomou/features/history/widgets/manga_stats_sheet.dart';
 import 'package:yomou/features/library/widgets/downloaded_badge.dart';
 import 'package:yomou/features/library/widgets/mode_segment_control.dart';
 import 'package:yomou/features/library/widgets/chapter_job_indicator.dart';
@@ -279,6 +280,10 @@ class _MangaDetailScreenState extends ConsumerState<MangaDetailScreen> {
 
   // Tray shows chapters oldest-first; toggling this shows newest-first.
   bool _reverseOrder = false;
+  // The tray menu's "On device" filter: narrows the chapter list to what is
+  // actually downloaded. A view filter only -- read state, counts and the
+  // resume point all keep addressing the full list underneath.
+  bool _downloadedOnly = false;
 
   // Pages grid: page URLs for the preview chapter.
   List<String> _previewPages = [];
@@ -1167,7 +1172,11 @@ class _MangaDetailScreenState extends ConsumerState<MangaDetailScreen> {
     if (usesWideLayout(context)) {
       return Scaffold(
         backgroundColor: Theme.of(context).scaffoldBackgroundColor,
-        body: SafeArea(child: _buildWideLayout(context)),
+        // Top inset off so the art plate bleeds under the status bar the way
+        // the phone layout's does; each column takes the inset itself where
+        // it needs it -- the nav row up top, the docked pane's pinned header
+        // at the pane's crown.
+        body: SafeArea(top: false, child: _buildWideLayout(context)),
       );
     }
     return Scaffold(
@@ -1181,7 +1190,12 @@ class _MangaDetailScreenState extends ConsumerState<MangaDetailScreen> {
                 // Tapping the content background dismisses the open sheet.
                 if (_sheetController.size > 0.12) _dismissSheet();
               },
+              // The backdrop bleeds up under the status bar the way the
+              // reference's does: the bar itself is transparent already, so
+              // the only thing that cut the art off was this inset. The nav
+              // row takes the inset itself at its call site instead.
               child: SafeArea(
+                top: false,
                 child: SingleChildScrollView(
                   padding: EdgeInsets.only(
                     bottom: 90 + _bottomClearance(context),
@@ -1204,7 +1218,15 @@ class _MangaDetailScreenState extends ConsumerState<MangaDetailScreen> {
                       Column(
                         crossAxisAlignment: CrossAxisAlignment.start,
                         children: [
-                          _buildTopAppBar(),
+                          // The SafeArea no longer lifts the page, so the nav
+                          // row takes the status-bar inset itself: the icons
+                          // stay clear of the bar while the art runs under it.
+                          Padding(
+                            padding: EdgeInsets.only(
+                              top: MediaQuery.paddingOf(context).top,
+                            ),
+                            child: _buildTopAppBar(),
+                          ),
                           // The header carries its own top margin now; the nav
                           // row sits directly on it.
                           _buildHeaderSection(),
@@ -1330,7 +1352,10 @@ class _MangaDetailScreenState extends ConsumerState<MangaDetailScreen> {
       isExpanded: docked || _isExpanded,
       activeTab: _activeTab,
       accent: ref.watch(accentProvider),
-      topPadding: docked ? 0 : MediaQuery.of(context).padding.top,
+      // The docked pane lifts its own header now: the wide layout no longer
+      // sits in a SafeArea, so the inset is taken here rather than by the
+      // page around it.
+      topPadding: MediaQuery.of(context).padding.top,
       bottomPadding: docked ? 0 : _trayBottomLip,
       unreadCount: _unreadCount,
       showContinueButton: _activeTab == 0 && _chapters.isNotEmpty,
@@ -1370,7 +1395,10 @@ class _MangaDetailScreenState extends ConsumerState<MangaDetailScreen> {
       onBarDragStart: docked ? null : _onTrayBarDragStart,
       onBarDragUpdate: docked ? null : _onTrayBarDragUpdate,
       onBarDragEnd: docked ? null : _onTrayBarDragEnd,
-      onOverflow: () => _showOverflowMenu(context),
+      // The tray's menu is the list's, not the manga's -- and only the
+      // chapters tab has one so far, so the other tabs pass null and the
+      // header hides the button rather than opening an empty sheet.
+      onOverflow: _activeTab == 0 ? () => _showTrayMenu(context) : null,
       onTabSelected: (index) {
         setState(() => _activeTab = index);
         if (docked) return;
@@ -1426,7 +1454,16 @@ class _MangaDetailScreenState extends ConsumerState<MangaDetailScreen> {
                 Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
-                    _buildTopAppBar(),
+                    // The SafeArea no longer lifts the page, so the nav row
+                    // takes the status-bar inset itself: the icons stay
+                    // clear of the bar while the art runs under it -- the
+                    // same step the phone layout's nav row takes.
+                    Padding(
+                      padding: EdgeInsets.only(
+                        top: MediaQuery.paddingOf(context).top,
+                      ),
+                      child: _buildTopAppBar(),
+                    ),
                     _buildHeaderSection(),
                     const SizedBox(height: 16),
                     _buildSourceCard(),
@@ -1524,6 +1561,16 @@ class _MangaDetailScreenState extends ConsumerState<MangaDetailScreen> {
             .watch(downloadedChaptersForMangaProvider(widget.mangaId))
             .valueOrNull ??
         const <String>{};
+    // The on-device filter narrows the list to downloaded chapters. Rows
+    // resolve through this pass rather than by arithmetic, so read state,
+    // the current chapter and selection all still address the real chapter
+    // underneath no matter what the view is showing.
+    final visible = [
+      for (var i = 0; i < _chapters.length; i++)
+        if (!_downloadedOnly || downloadedChapterIds.contains(_chapters[i].id))
+          i,
+    ];
+    final ordered = _reverseOrder ? visible.reversed.toList() : visible;
 
     if (_isLoadingChapters) {
       return SliverToBoxAdapter(
@@ -1576,9 +1623,7 @@ class _MangaDetailScreenState extends ConsumerState<MangaDetailScreen> {
       padding: EdgeInsets.fromLTRB(16, 0, 16, 16 + _bottomClearance(context)),
       sliver: SliverList(
         delegate: SliverChildBuilderDelegate((context, index) {
-          final originalIndex = _reverseOrder
-              ? _chapters.length - 1 - index
-              : index;
+          final originalIndex = ordered[index];
           final ch = _chapters[originalIndex];
           final isRead =
               _lastReadChapter >= 0 && (originalIndex + 1) <= _lastReadChapter;
@@ -1592,12 +1637,15 @@ class _MangaDetailScreenState extends ConsumerState<MangaDetailScreen> {
 
           return ListTile(
             key: ValueKey(ch.id),
-            // A chapter row is a title with one line of metadata under it, and
-            // this list is the screen's main body of information -- so give the
-            // pair room rather than compressing it. `dense` would shrink the
-            // text along with the box, which is the opposite of what this
-            // wants.
-            contentPadding: const EdgeInsets.symmetric(vertical: 8),
+            // A chapter row is a title with one line of metadata under it.
+            // Dense because the default tile keeps a min height that pads the
+            // pair out well past what two short lines need -- the reference's
+            // chapter rows are a tight 48dp, and the tray reads as one block
+            // rather than a stack of cards at that density. The type is set
+            // explicitly below, so dense tightens the box without shrinking
+            // the text.
+            dense: true,
+            contentPadding: const EdgeInsets.symmetric(vertical: 2),
             shape: isSelected
                 ? RoundedRectangleBorder(
                     borderRadius: BorderRadius.circular(12),
@@ -1634,9 +1682,18 @@ class _MangaDetailScreenState extends ConsumerState<MangaDetailScreen> {
                       color: isCurrent
                           ? Colors.green
                           : (isRead
-                                ? titleBase.withValues(alpha: 0.75)
+                                ? titleBase.withValues(alpha: 0.45)
                                 : titleBase),
-                      fontWeight: FontWeight.w700,
+                      // A read row has to recede, not just dim. The reference
+                      // sets its title and description at the same hint
+                      // colour in a normal face so the eye slips past the
+                      // whole row to the first unread chapter -- three-
+                      // quarters white at full bold was too close to live to
+                      // notice. Both lines land on the metadata's quiet here,
+                      // which is the same flattening.
+                      fontWeight: isRead && !isCurrent
+                          ? FontWeight.normal
+                          : FontWeight.w700,
                       fontSize: 15,
                     ),
                   ),
@@ -1714,7 +1771,7 @@ class _MangaDetailScreenState extends ConsumerState<MangaDetailScreen> {
             },
             onLongPress: () => _enterSelection(ch.id),
           );
-        }, childCount: _chapters.length),
+        }, childCount: ordered.length),
       ),
     );
   }
@@ -2245,22 +2302,122 @@ class _MangaDetailScreenState extends ConsumerState<MangaDetailScreen> {
           ),
           IconButton(
             icon: Icon(MdiIcons.dotsVertical, color: iconColor),
-            onPressed: () => _showOverflowMenu(context),
+            onPressed: () => _showMangaMenu(context),
           ),
         ],
       ),
     );
   }
 
-  Future<void> _showOverflowMenu(BuildContext context) async {
+  /// The page's menu: what can be done to the manga itself, in the order the
+  /// reference carries it. The list's own toggles (reverse order, on-device
+  /// filter) are not here -- they live in the tray's menu, where the list
+  /// they act on lives.
+  Future<void> _showMangaMenu(BuildContext context) async {
     final l = AppLocalizations.of(context);
+    final action = await _showMenuSheet(context, [
+      _buildOverflowRow(context, MdiIcons.pencilOutline, l.mangaEdit, 'edit'),
+      _buildOverflowRow(context, MdiIcons.chartBox, l.historyStatistics, 'stats'),
+      _buildOverflowRow(
+        context,
+        MdiIcons.earth,
+        l.findSimilar,
+        'similar',
+      ),
+      _buildOverflowRow(
+        context,
+        MdiIcons.sourceBranch,
+        l.alternatives,
+        'alternatives',
+      ),
+      _buildOverflowRow(
+        context,
+        MdiIcons.web,
+        l.openInBrowser,
+        'web',
+      ),
+      _buildOverflowRow(
+        context,
+        MdiIcons.openInNew,
+        l.createShortcut,
+        'shortcut',
+      ),
+    ]);
+    if (action == null || !context.mounted) return;
+    switch (action) {
+      case 'edit':
+        await _openEditMetadata(context);
+      case 'stats':
+        showMangaStatsSheet(
+          context,
+          mangaId: widget.mangaId,
+          title: _title,
+        );
+      case 'similar':
+        _openSimilarSearch();
+      case 'alternatives':
+        _openAlternativesSearch();
+      case 'web':
+        await _openInBrowser();
+      case 'shortcut':
+        _createShortcut();
+    }
+  }
+
+  /// The tray's own menu: what the list can do to itself. Chapters-only for
+  /// now -- the order toggle and the on-device filter, each wearing a check
+  /// while it is on, the way the reference's checkable menu items do. The
+  /// filter only offers itself when there is something to filter to, the
+  /// same gate the reference puts on its "On device" item. The other tabs
+  /// have no rows yet, so the header hides the button rather than open an
+  /// empty sheet.
+  Future<void> _showTrayMenu(BuildContext context) async {
+    final l = AppLocalizations.of(context);
+    final downloaded =
+        ref
+            .read(downloadedChaptersForMangaProvider(widget.mangaId))
+            .valueOrNull ??
+        const <String>{};
+    final action = await _showMenuSheet(context, [
+      _buildOverflowRow(
+        context,
+        MdiIcons.swapVertical,
+        l.detailReverseOrder,
+        'reverse',
+        checked: _reverseOrder,
+      ),
+      if (downloaded.isNotEmpty)
+        _buildOverflowRow(
+          context,
+          MdiIcons.sd,
+          l.detailOnDevice,
+          'onDevice',
+          checked: _downloadedOnly,
+        ),
+    ]);
+    if (action == null || !context.mounted) return;
+    switch (action) {
+      case 'reverse':
+        setState(() => _reverseOrder = !_reverseOrder);
+      case 'onDevice':
+        setState(() => _downloadedOnly = !_downloadedOnly);
+    }
+  }
+
+  /// The sheet both of this screen's overflow menus are drawn on: a drag
+  /// handle, the manga's title, and the caller's rows stacked under it.
+  /// Returns the tapped row's value, or null when dismissed.
+  Future<String?> _showMenuSheet(
+    BuildContext context,
+    List<Widget> rows,
+  ) async {
     final dark = Theme.of(context).brightness == Brightness.dark;
     final scheme = Theme.of(context).colorScheme;
     final textColor = dark
         ? Colors.white
         : Theme.of(context).colorScheme.onSurface;
 
-    final action = await showModalBottomSheet<String>(
+    return showModalBottomSheet<String>(
       context: context,
       isScrollControlled: true,
       useSafeArea: true,
@@ -2297,65 +2454,12 @@ class _MangaDetailScreenState extends ConsumerState<MangaDetailScreen> {
                 ),
               ),
             ),
-            _buildOverflowRow(ctx, MdiIcons.pencilOutline, l.mangaEdit, 'edit'),
-            _buildOverflowRow(
-              ctx,
-              MdiIcons.earth,
-              l.findSimilar,
-              'similar',
-            ),
-            _buildOverflowRow(
-              ctx,
-              MdiIcons.sourceBranch,
-              l.alternatives,
-              'alternatives',
-            ),
-            _buildOverflowRow(
-              ctx,
-              MdiIcons.web,
-              l.openInBrowser,
-              'web',
-            ),
-            _buildOverflowRow(
-              ctx,
-              MdiIcons.openInNew,
-              l.createShortcut,
-              'shortcut',
-            ),
-            _buildOverflowRow(
-              ctx,
-              MdiIcons.swapHorizontal,
-              l.replaceSource,
-              'replace',
-            ),
-            _buildOverflowRow(
-              ctx,
-              MdiIcons.swapVertical,
-              l.detailReverseOrder,
-              'reverse',
-            ),
+            ...rows,
             const SizedBox(height: 8),
           ],
         ),
       ),
     );
-    if (action == null || !context.mounted) return;
-    switch (action) {
-      case 'edit':
-        await _openEditMetadata(context);
-      case 'similar':
-        _openSimilarSearch();
-      case 'alternatives':
-        _openAlternativesSearch();
-      case 'web':
-        await _openInBrowser();
-      case 'shortcut':
-        _createShortcut();
-      case 'replace':
-        _openAlternativesSearch();
-      case 'reverse':
-        setState(() => _reverseOrder = !_reverseOrder);
-    }
   }
 
   /// The share entry (the icon next to "open in web browser"): a Kotatsu-style
@@ -2452,8 +2556,9 @@ class _MangaDetailScreenState extends ConsumerState<MangaDetailScreen> {
     BuildContext ctx,
     IconData icon,
     String label,
-    String value,
-  ) {
+    String value, {
+    bool checked = false,
+  }) {
     final textColor = Theme.of(ctx).brightness == Brightness.dark
         ? Colors.white
         : Theme.of(ctx).colorScheme.onSurface;
@@ -2463,6 +2568,15 @@ class _MangaDetailScreenState extends ConsumerState<MangaDetailScreen> {
         label,
         style: TextStyle(color: textColor, fontWeight: FontWeight.bold),
       ),
+      // A toggle row wears its state: the reference's checkable menu items
+      // carry a tick, so "on" reads without opening anything.
+      trailing: checked
+          ? Icon(
+              MdiIcons.check,
+              size: 20,
+              color: Theme.of(ctx).colorScheme.primary,
+            )
+          : null,
       contentPadding: const EdgeInsets.symmetric(vertical: 12, horizontal: 16),
       onTap: () => Navigator.pop(ctx, value),
     );
@@ -3051,8 +3165,18 @@ class _MangaDetailScreenState extends ConsumerState<MangaDetailScreen> {
       // the header sits clear of the nav row instead of tucked under it.
       padding: const EdgeInsets.fromLTRB(16, 16, 16, 0),
       child: LayoutBuilder(
-        builder: (context, constraints) =>
-            _buildHeaderRow(mangaDetailCoverWidth(constraints.maxWidth)),
+        builder: (context, constraints) => _buildHeaderRow(
+          mangaDetailCoverWidth(
+            constraints.maxWidth,
+            // On a wide window this header is one pane of a split, where an
+            // uncapped cover would crowd the metadata beside it -- the
+            // reference holds its own wide header column to 420dp for the
+            // same reason. The phone layout takes no cap: the reference's
+            // cover is 30% of the window at every size, so an in-between
+            // window keeps it growing instead of parking at a ceiling.
+            capped: usesWideLayout(context),
+          ),
+        ),
       ),
     );
   }
@@ -3221,7 +3345,7 @@ class _MangaDetailScreenState extends ConsumerState<MangaDetailScreen> {
             color: scheme.outlineVariant.withValues(alpha: 0.6),
           ),
           InkWell(
-            onTap: () => _showOverflowMenu(context),
+            onTap: () => _showMangaMenu(context),
             borderRadius: const BorderRadius.horizontal(
               right: Radius.circular(20),
             ),
@@ -3315,10 +3439,11 @@ class _MangaDetailScreenState extends ConsumerState<MangaDetailScreen> {
                 if (!(_details?.author.isEmpty ?? true))
                   _buildCardRow(l.detailAuthor, _details!.author),
                 _buildTranslationRow(),
-                _buildCardRow(
-                  l.detailYear,
-                  _details?.year.isEmpty ?? true ? '—' : _details!.year,
-                ),
+                // The same rule as the author row, for the same reason: a
+                // field the source did not give earns no row rather than a
+                // dash standing in for a fact.
+                if (_details?.year.isNotEmpty == true)
+                  _buildCardRow(l.detailYear, _details!.year),
                 if ((_details?.status.isEmpty ?? true) == false)
                   _buildCardRow(l.detailState, _details!.status),
                 _buildCardRow(l.detailChapters, chaptersText),
@@ -3406,15 +3531,25 @@ class _MangaDetailScreenState extends ConsumerState<MangaDetailScreen> {
   // distinct manga, so reading progress is tracked separately per language.
   Widget _buildTranslationRow() {
     final l = AppLocalizations.of(context);
+    final reported = _details?.language.isNotEmpty ?? false;
     final current = _currentLanguageCode();
     final all = _translationsFor(current);
     final tappable = all.length > 1;
+    // No row when the source reports no language and there is nothing to pick
+    // between: a guessed label is noise on a card meant to hold facts. More
+    // than one translation still earns the row -- it is how the picker is
+    // reached -- even when the current language itself is unreported.
+    if (!reported && !tappable) return const SizedBox.shrink();
+    // The language's own flag, the way the reference marks the row: the value
+    // is a language, and its country colours say it faster than the word
+    // does. A code with no flag falls back to the generic icon.
+    final flag = MangaLanguage.flagEmoji(current);
     return _buildCardRow(
       l.detailTranslation,
       MangaLanguage.label(current),
-      // A flag, because the value is a language: it is the one row where the
-      // icon says more than the label does.
-      icon: MdiIcons.flagOutline,
+      leading:
+          flag == null ? null : Text(flag, style: const TextStyle(fontSize: 15)),
+      icon: flag == null ? MdiIcons.flagOutline : null,
       onTap: tappable ? () => _showTranslationPicker(all, current) : null,
     );
   }
@@ -3458,6 +3593,18 @@ class _MangaDetailScreenState extends ConsumerState<MangaDetailScreen> {
                     for (final t in all)
                       ListTile(
                         dense: true,
+                        // The same flag the detail row shows, in a fixed-width
+                        // slot so the titles line up even when a code has no
+                        // flag to draw.
+                        leading: SizedBox(
+                          width: 26,
+                          child: Center(
+                            child: Text(
+                              MangaLanguage.flagEmoji(t.language) ?? '',
+                              style: const TextStyle(fontSize: 18),
+                            ),
+                          ),
+                        ),
                         title: Text(MangaLanguage.label(t.language)),
                         trailing: t.language == current
                             ? Icon(
@@ -3941,7 +4088,9 @@ class _SheetHeaderDelegate extends SliverPersistentHeaderDelegate {
   final bool hasDownloaded;
   final VoidCallback onRemoveDownloads;
   final VoidCallback onDownload;
-  final VoidCallback onOverflow;
+  // Null hides the button: the tabs without a list menu pass it, so the
+  // header does not offer a sheet with nothing in it.
+  final VoidCallback? onOverflow;
 
   _SheetHeaderDelegate({
     this.docked = false,
@@ -4066,13 +4215,14 @@ class _SheetHeaderDelegate extends SliverPersistentHeaderDelegate {
             _buildPrimaryButton(context: context, dark: dark, scheme: scheme),
             const SizedBox(width: 8),
           ],
-          _buildTabIcon(
-            Icons.more_vert,
-            false,
-            dark: dark,
-            scheme: scheme,
-            onTap: onOverflow,
-          ),
+          if (onOverflow != null)
+            _buildTabIcon(
+              Icons.more_vert,
+              false,
+              dark: dark,
+              scheme: scheme,
+              onTap: onOverflow,
+            ),
         ],
       );
     }
@@ -4106,10 +4256,21 @@ class _SheetHeaderDelegate extends SliverPersistentHeaderDelegate {
           onTap: () => onTabSelected(2),
         ),
         const Spacer(),
-        // Fullscreen: the Continue pill gives way to the search and overflow
-        // icons in the tray's trailing corner. The docked pane never reaches
-        // here -- it returns above with a header of its own.
-        if (isExpanded) ...[
+        // Fullscreen: the Continue pill gives way to the overflow icon in the
+        // tray's trailing corner. The docked pane never reaches here -- it
+        // returns above with a header of its own.
+        //
+        // The overflow icon is the fullscreen corner's alone. Below full
+        // screen the page's own top bar is still on screen carrying the same
+        // menu, so a second copy in the tray bar is a control that answers to
+        // nothing new. The reference does the same: its sheet shows its menu
+        // only in STATE_EXPANDED and lets the Read button hold the corner in
+        // every other state.
+        //
+        // There is no chevron to close on: the bar's own tap and drag are
+        // what moves the tray, so a button that repeats one of those gestures
+        // only decorates the corner it sits in.
+        if (isExpanded && onOverflow != null) ...[
           _buildTabIcon(
             Icons.more_vert,
             false,
@@ -4117,32 +4278,11 @@ class _SheetHeaderDelegate extends SliverPersistentHeaderDelegate {
             scheme: scheme,
             onTap: onOverflow,
           ),
-          const SizedBox(width: 6),
-          _buildExpandButton(context: context, dark: dark, scheme: scheme),
         ] else ...[
           // Continue/Read action, only for the chapter list tab.
           if (showContinueButton) ...[
             _buildPrimaryButton(context: context, dark: dark, scheme: scheme),
-            const SizedBox(width: 2),
-            _buildTabIcon(
-              Icons.more_vert,
-              false,
-              dark: dark,
-              scheme: scheme,
-              onTap: onOverflow,
-            ),
-            const SizedBox(width: 6),
-          ] else ...[
-            _buildTabIcon(
-              Icons.more_vert,
-              false,
-              dark: dark,
-              scheme: scheme,
-              onTap: onOverflow,
-            ),
-            const SizedBox(width: 6),
           ],
-          _buildExpandButton(context: context, dark: dark, scheme: scheme),
         ],
       ],
     );
@@ -4291,33 +4431,6 @@ class _SheetHeaderDelegate extends SliverPersistentHeaderDelegate {
   }
 
   // Subtle chevron that expands the tray.
-  Widget _buildExpandButton({
-    required BuildContext context,
-    required bool dark,
-    required ColorScheme scheme,
-  }) {
-    return GestureDetector(
-      onTap: onBarTap,
-      child: Container(
-        padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 6),
-        decoration: BoxDecoration(
-          color: dark
-              ? amoled(context, 0xFF2C2C2E)
-              : Colors.white,
-          borderRadius: BorderRadius.circular(10),
-          border: dark ? null : Border.all(color: Colors.black12),
-        ),
-        child: Icon(
-          isExpanded
-              ? MdiIcons.chevronDown
-              : MdiIcons.chevronUp,
-          color: dark ? Colors.white : scheme.onSurface,
-          size: 16,
-        ),
-      ),
-    );
-  }
-
   // Primary Read/Continue action pill that lives on the tray. Split-pill:
   // the left part holds the label ("Continue · 3"), the right part is a small
   // dropdown section separated by a thin vertical line.
@@ -4482,11 +4595,14 @@ const double _detailCoverShareOfColumn = 0.32;
 /// Smallest the cover gets, which is what a phone column resolves to.
 const double _detailCoverMinWidth = 110;
 
-/// Where the cover stops growing.
+/// Where the cover stops growing on a wide window.
 ///
 /// Past a 200px plate it stops being a thumbnail beside the title and becomes
 /// the subject of the screen, and the title and metadata are pushed into a
-/// column too narrow to hold a synopsis.
+/// column too narrow to hold a synopsis. The phone layout takes no cap at all
+/// -- the reference's cover is 30% of the window at every size it is shown at,
+/// so in an in-between window (a split screen, a foldable half) it keeps
+/// growing while a capped one would sit still.
 const double _detailCoverMaxWidth = 200;
 
 /// The shape the fixed cover had, so growing it does not also reshape it.
@@ -4497,11 +4613,16 @@ const double _detailCoverAspect = 175 / 125;
 /// Public so the numbers can be pinned by a test. The screen reads the database
 /// and the network as it opens, so a widget test cannot pump it, and the entire
 /// change is this arithmetic.
-double mangaDetailCoverWidth(double columnWidth) =>
-    (columnWidth * _detailCoverShareOfColumn).clamp(
-      _detailCoverMinWidth,
-      _detailCoverMaxWidth,
-    );
+///
+/// [capped] holds the old 200px ceiling; the wide layout's pane passes it,
+/// the phone layout does not, so an in-between window -- a split screen, a
+/// foldable half -- gets a cover that keeps pace with the window the way the
+/// reference's does rather than sitting still at the cap.
+double mangaDetailCoverWidth(double columnWidth, {bool capped = true}) {
+  final share = columnWidth * _detailCoverShareOfColumn;
+  if (!capped) return share < _detailCoverMinWidth ? _detailCoverMinWidth : share;
+  return share.clamp(_detailCoverMinWidth, _detailCoverMaxWidth);
+}
 
 /// Height that goes with [mangaDetailCoverWidth], holding the 125:175 the
 /// fixed cover had.

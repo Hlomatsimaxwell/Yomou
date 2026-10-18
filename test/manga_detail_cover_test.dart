@@ -5,11 +5,13 @@ import 'package:yomou/features/library/screens/manga_detail_screen.dart';
 /// The detail header's cover was a fixed 125x175 at every width, then reduced
 /// to a smaller footprint so the title and metadata beside it keep their room.
 /// The phone lands on a 110px floor, a wide pane grows to a larger cover, and
-/// a 200px ceiling holds so a large monitor does not turn the header into a
-/// poster.
+/// a 200px ceiling holds the wide pane so a large monitor does not turn the
+/// header into a poster. The phone layout takes no ceiling at all, so an
+/// in-between window (a split screen, a foldable half) keeps the cover
+/// growing the way the reference's share-of-window cover does.
 ///
-/// These pin the ends of that change: the floor, the growth, the ceiling, and
-/// that the cover never reshapes as it grows.
+/// These pin the ends of that change: the floor, the growth, the ceilings
+/// (per layout), and that the cover never reshapes as it grows.
 void main() {
   /// The width the header section is actually given, which is what the cover is
   /// measured against.
@@ -32,16 +34,29 @@ void main() {
     // 360 is the narrowest phone this app is used on, and 328 is what its
     // header section is given. The floor is 110 wide.
     expect(columnWidth(360), 328.0);
-    expect(mangaDetailCoverWidth(328.0), 110.0);
+    expect(mangaDetailCoverWidth(328.0, capped: false), 110.0);
   });
 
   test('a phone in any other width is not made smaller or larger by mistake', () {
     // A 320px phone has a narrower column than the 328 the share was solved
     // against, so it has to be held at the floor rather than shrink.
-    expect(mangaDetailCoverWidth(288.0), 110.0);
+    expect(mangaDetailCoverWidth(288.0, capped: false), 110.0);
     // A large-font phone in landscape, and a small tablet in portrait: both are
     // wide layouts, so both get a real cover rather than the phone's.
     expect(mangaDetailCoverWidth(740.0), greaterThan(110.0));
+  });
+
+  test('an in-between window grows the cover past the old ceiling', () {
+    // A side-by-side split on a large display is taller than it is wide, so it
+    // stays in the phone layout even at widths no phone has -- and there the
+    // cover takes no ceiling, the way the reference's cover (a share of the
+    // window, no cap, in every layout variant) keeps pace with the window.
+    // 800 is such a window; the phone layout only takes the 32px padding off.
+    final cover = mangaDetailCoverWidth(800 - 32, capped: false);
+    expect(cover, greaterThan(200.0));
+    // The reference shows 30% of the same window, so our 32% share is at least
+    // its size rather than quietly smaller.
+    expect(cover, greaterThanOrEqualTo(0.30 * 800));
   });
 
   test('a desktop pane gets a cover worth looking at', () {
@@ -86,17 +101,22 @@ void main() {
     // with it. That is the layout changing, not the cover retreating -- and
     // everything else in the header narrows at the same moment, which is the
     // point of the switch.
-    for (final (from, to) in [(320.0, 592.0), (600.0, 3440.0)]) {
+    for (final (from, to, capped) in [
+      (320.0, 592.0, false),
+      (600.0, 3440.0, true),
+    ]) {
       var previous = 0.0;
       for (var screen = from; screen <= to; screen += 8) {
-        final cover = mangaDetailCoverWidth(columnWidth(screen));
+        final cover = mangaDetailCoverWidth(columnWidth(screen), capped: capped);
         expect(
           cover,
           greaterThanOrEqualTo(previous),
           reason: 'the cover shrank at a ${screen}px window',
         );
         expect(cover, greaterThanOrEqualTo(110.0));
-        expect(cover, lessThanOrEqualTo(200.0));
+        // The ceiling binds the wide pane; the phone layout answers to no
+        // ceiling, though none of its windows are wide enough to reach one.
+        if (capped) expect(cover, lessThanOrEqualTo(200.0));
         previous = cover;
       }
     }
