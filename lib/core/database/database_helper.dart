@@ -423,6 +423,19 @@ class DatabaseHelper {
     return db.query('reading_progress');
   }
 
+  // Returns one manga's reading-progress rows: one per chapter, carrying the
+  // timestamp of its last read. The stats sheet buckets these by week.
+  Future<List<Map<String, dynamic>>> getReadingProgressForManga(
+    String mangaId,
+  ) async {
+    final db = await instance.database;
+    return db.query(
+      'reading_progress',
+      where: 'mangaId = ?',
+      whereArgs: [mangaId],
+    );
+  }
+
   // Adds [minutes] of measured reading time for a manga. Time is bucketed per
   // calendar day (local), so charts can slice by day/week/month.
   Future<void> addReadingTime(String mangaId, int minutes) async {

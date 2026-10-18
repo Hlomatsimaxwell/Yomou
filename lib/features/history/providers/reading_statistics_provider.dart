@@ -113,3 +113,66 @@ String? rangeStartKey(StatsTimeRange range) {
   };
   return start?.toIso8601String().substring(0, 10);
 }
+
+/// How many weeks of activity the manga stats sheet charts.
+const int kMangaStatsWeeks = 12;
+
+/// One manga's slice for the stats sheet: chapters last read per week over
+/// the trailing [kMangaStatsWeeks] weeks (oldest first, the current partial
+/// week last), the all-time number of distinct chapters read, and the
+/// earliest read of them.
+///
+/// Reading progress is keyed per (manga, chapter) with a unique conflict, so
+/// a re-read rewrites its row's timestamp instead of adding one: the bars
+/// show when chapters were *last* read, and the total counts chapters. Pages
+/// are not recorded anywhere in the store, so the sheet counts chapters
+/// rather than inventing pages.
+class MangaStatsData {
+  const MangaStatsData({
+    required this.weekCounts,
+    required this.totalChapters,
+    required this.firstReadAt,
+  });
+
+  final List<int> weekCounts;
+  final int totalChapters;
+  final DateTime? firstReadAt;
+}
+
+final mangaStatsProvider =
+    FutureProvider.family<MangaStatsData, String>((ref, mangaId) async {
+      ref.watch(historyRevisionProvider);
+      final rows = await DatabaseHelper.instance.getReadingProgressForManga(
+        mangaId,
+      );
+      final now = DateTime.now();
+      final today = DateTime(now.year, now.month, now.day);
+      // Weeks run Monday to Sunday; the current partial week is the last bar,
+      // so the chart reads left to right into today.
+      final currentWeekStart = today.subtract(
+        Duration(days: today.weekday - 1),
+      );
+      final weekCounts = List<int>.filled(kMangaStatsWeeks, 0);
+      var total = 0;
+      DateTime? first;
+      for (final row in rows) {
+        final at = DateTime.tryParse((row['lastReadAt'] ?? '').toString());
+        if (at == null) continue;
+        total++;
+        if (first == null || at.isBefore(first)) first = at;
+        final readDate = DateTime(at.year, at.month, at.day);
+        final weekStart = readDate.subtract(
+          Duration(days: readDate.weekday - 1),
+        );
+        // Negative weeks are reads stamped into the future (a clock that ran
+        // backwards): keep them in the total, off the chart.
+        final weeksAgo = currentWeekStart.difference(weekStart).inDays ~/ 7;
+        if (weeksAgo < 0 || weeksAgo >= kMangaStatsWeeks) continue;
+        weekCounts[kMangaStatsWeeks - 1 - weeksAgo]++;
+      }
+      return MangaStatsData(
+        weekCounts: weekCounts,
+        totalChapters: total,
+        firstReadAt: first,
+      );
+    });
