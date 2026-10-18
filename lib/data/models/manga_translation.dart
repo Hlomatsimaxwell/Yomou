@@ -91,6 +91,55 @@ abstract final class MangaLanguage {
     return _labels[key] ?? code;
   }
 
+  /// The emoji flag for a translation code, in the reference's spirit: a
+  /// language-only code points at the language's home country (en -> GB), a
+  /// country suffix beats it (pt-br -> BR), and the codes that are not
+  /// countries on their own are mapped by hand -- ko is not an ISO country,
+  /// and es-la would otherwise be Laos. Null when no flag can be drawn, so
+  /// a caller can fall back to the generic icon.
+  static String? flagEmoji(String code) {
+    final normalized = code.trim().toLowerCase();
+    if (normalized == 'es-la') return _flagFromCountry('ES');
+    final parts = normalized.split(RegExp(r'[-_ ]'));
+    final primary = parts.first;
+    final suffix = parts.length > 1 ? parts.last : '';
+    final home = switch (primary) {
+      'en' => 'GB',
+      'ja' => 'JP',
+      'vi' => 'VN',
+      'zh' => 'CN',
+      'ar' => 'SA',
+      'ko' => 'KR',
+      'he' => 'IL',
+      'fa' => 'IR',
+      'hi' => 'IN',
+      'uk' => 'UA',
+      'ms' => 'MY',
+      'bn' => 'BD',
+      'el' => 'GR',
+      'cs' => 'CZ',
+      'sr' => 'RS',
+      'sl' => 'SI',
+      'et' => 'EE',
+      'af' => 'ZA',
+      'sw' => 'KE',
+      _ => primary.toUpperCase(),
+    };
+    // A country suffix (pt-br) names the variety's own country and wins over
+    // the home country above.
+    final country = RegExp(r'^[a-z]{2}$').hasMatch(suffix)
+        ? suffix.toUpperCase()
+        : home;
+    if (!RegExp(r'^[A-Z]{2}$').hasMatch(country)) return null;
+    return _flagFromCountry(country);
+  }
+
+  /// Two regional-indicator symbols -- the emoji flag for an ISO3166 alpha-2
+  /// code, drawn by the system font.
+  static String _flagFromCountry(String country) => country.codeUnits
+      .map((unit) => String.fromCharCode(0x1F1E6 + (unit - 0x41)))
+      .join();
+
   /// Appends a `.<language>` suffix to a manga id to address one translation of
   /// a work (e.g. `38922` + `es` -> `38922.es`). Reads back with
   /// [baseIdOf] / [suffixOf]. Chosen over `@` because manga ids are used in
