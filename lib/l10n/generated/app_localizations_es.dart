@@ -580,6 +580,9 @@ class AppLocalizationsEs extends AppLocalizations {
   String get appearanceSectionThemeOptions => 'Opciones de tema';
 
   @override
+  String get appearanceSectionEffects => 'Efectos';
+
+  @override
   String get appearanceSectionMangaList => 'Lista de manga';
 
   @override

@@ -147,10 +147,33 @@ class AppearanceSettingsScreen extends ConsumerWidget {
           subtitle: Text(_languageLabel(l, settings.language)),
           onTap: () => _showLanguageSelector(context, ref, settings, notifier),
         ),
-        // Frosted glass, reduce motion and haptics are no longer rows. The
-        // preferences behind them still exist and the reader, the badges and
-        // the carousel still read them -- a device simply keeps whatever value
-        // it already stores for each, since nothing here can change it now.
+
+        // Effects Section
+        //
+        // The three sensory switches together: what the surface looks like
+        // in motion, whether it moves at all, and whether it taps back.
+        M3SectionHeader(title: l.appearanceSectionEffects, bleed: 8),
+        SwitchListTile(
+          secondary: const KotatsuIcon('ic_blur'),
+          title: Text(l.appearanceFrostedGlass),
+          subtitle: Text(l.appearanceFrostedGlassSubtitle),
+          value: settings.useFrostedGlass,
+          onChanged: (_) => notifier.toggleBool('useFrostedGlass'),
+        ),
+        SwitchListTile(
+          secondary: const KotatsuIcon('ic_motion_pause'),
+          title: Text(l.appearanceReduceMotion),
+          subtitle: Text(l.appearanceReduceMotionSubtitle),
+          value: settings.reduceMotion,
+          onChanged: (_) => notifier.toggleBool('reduceMotion'),
+        ),
+        SwitchListTile(
+          secondary: const KotatsuIcon('ic_vibrate'),
+          title: Text(l.appearanceHaptics),
+          subtitle: Text(l.appearanceHapticsSubtitle),
+          value: settings.hapticsEnabled,
+          onChanged: (_) => notifier.toggleBool('hapticsEnabled'),
+        ),
 
         // Manga List Section
         M3SectionHeader(title: l.appearanceSectionMangaList, bleed: 8),

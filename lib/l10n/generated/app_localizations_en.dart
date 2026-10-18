@@ -576,6 +576,9 @@ class AppLocalizationsEn extends AppLocalizations {
   String get appearanceSectionThemeOptions => 'Theme Options';
 
   @override
+  String get appearanceSectionEffects => 'Effects';
+
+  @override
   String get appearanceSectionMangaList => 'Manga List';
 
   @override

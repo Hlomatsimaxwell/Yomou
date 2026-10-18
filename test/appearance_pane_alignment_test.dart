@@ -212,6 +212,7 @@ void main() {
 
     for (final title in const [
       'Color Scheme',
+      'Effects',
       'Manga List',
       'Details',
       'Main Screen',
@@ -235,12 +236,15 @@ void main() {
     }
 
     // "Manga List" divides the pane in half and used to buy itself a wider
-    // break on top of the shared one. It no longer does: the row above it ends
-    // exactly where the heading's own box starts, so the heading is the whole
-    // of the space between the two halves.
+    // break on top of the shared one. It no longer does: the row above it --
+    // Haptics, last of the Effects group -- ends exactly where the heading's
+    // own box starts, so the heading is the whole of the space between the
+    // two halves.
     expect(
       tester.getRect(find.widgetWithText(M3SectionHeader, 'Manga List')).top,
-      tester.getRect(find.widgetWithText(ListTile, 'Language')).bottom,
+      tester
+          .getRect(find.widgetWithText(SwitchListTile, 'Haptics'))
+          .bottom,
     );
     expect(
       tester.getRect(find.widgetWithText(M3SectionHeader, 'Details')).top,

@@ -1100,6 +1100,12 @@ abstract class AppLocalizations {
   /// **'Theme Options'**
   String get appearanceSectionThemeOptions;
 
+  /// No description provided for @appearanceSectionEffects.
+  ///
+  /// In en, this message translates to:
+  /// **'Effects'**
+  String get appearanceSectionEffects;
+
   /// No description provided for @appearanceSectionMangaList.
   ///
   /// In en, this message translates to:
