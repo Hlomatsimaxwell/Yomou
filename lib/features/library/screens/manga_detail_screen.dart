@@ -1682,7 +1682,7 @@ class _MangaDetailScreenState extends ConsumerState<MangaDetailScreen> {
             // explicitly below, so dense tightens the box without shrinking
             // the text.
             dense: true,
-            contentPadding: const EdgeInsets.symmetric(vertical: 2),
+            contentPadding: const EdgeInsets.symmetric(vertical: 2, horizontal: 8),
             shape: isSelected
                 ? RoundedRectangleBorder(
                     borderRadius: BorderRadius.circular(12),
