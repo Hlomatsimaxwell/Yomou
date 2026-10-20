@@ -588,7 +588,7 @@ class AppLocalizationsEn extends AppLocalizations {
   String get appearanceNone => 'None';
 
   @override
-  String get appearanceThemeTitle => 'Theme';
+  String get appearanceThemeTitle => 'Color mode';
 
   @override
   String get appearanceThemeSystem => 'System';

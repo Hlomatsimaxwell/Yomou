@@ -37,12 +37,12 @@ void main() {
     'Miku',
     'Monochrome',
     'Asuka',
-    'Mion',
-    'Rikka',
-    'Sakura',
-    'Mamimi',
+    'Sepia',
+    'Cyan',
+    'Emerald',
+    'Amber',
     'Kanade',
-    'Itsuka',
+    'Rose',
   ];
 
   testWidgets('every preset renders as a mini app mockup', (tester) async {

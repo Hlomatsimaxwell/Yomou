@@ -131,7 +131,7 @@ void main() {
     final theme = tester.getRect(
       find.byWidgetPredicate((w) => w is KotatsuIcon && w.name == 'ic_theme_mode'),
     );
-    expect(theme.right + 16, tester.getRect(find.text('Theme')).left);
+    expect(theme.right + 16, tester.getRect(find.text('Color mode')).left);
 
     final grid = tester.getRect(
       find.byWidgetPredicate((w) => w is KotatsuIcon && w.name == 'ic_grid'),
@@ -143,7 +143,7 @@ void main() {
     // a name and a line of its value, so the pane reads as one list instead of
     // two rhythms.
     expect(
-      tester.getRect(find.widgetWithText(ListTile, 'Theme')).height,
+      tester.getRect(find.widgetWithText(ListTile, 'Color mode')).height,
       SettingsRows.rowHeight,
     );
     expect(

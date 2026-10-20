@@ -1127,7 +1127,7 @@ abstract class AppLocalizations {
   /// No description provided for @appearanceThemeTitle.
   ///
   /// In en, this message translates to:
-  /// **'Theme'**
+  /// **'Color mode'**
   String get appearanceThemeTitle;
 
   /// No description provided for @appearanceThemeSystem.

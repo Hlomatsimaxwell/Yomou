@@ -14,12 +14,12 @@ enum AppColorScheme {
   miku,
   monochrome,
   asuka,
-  mion,
-  rikka,
-  sakura,
-  mamimi,
+  sepia,
+  cyan,
+  emerald,
+  amber,
   kanade,
-  itsuka,
+  rose,
 }
 
 /// Palettes for each named scheme: (accent, accentLight, accentDark, surface).
@@ -77,39 +77,39 @@ const Map<AppColorScheme, SchemePalette> schemePalettes = {
     secondary: Color(0xFF666666),
   ),
   AppColorScheme.asuka: SchemePalette(
-    accent: Color(0xFFEF5F56),
+    accent: Color(0xFFE63946),
     accentLight: Color(0xFFFFC9C6),
-    accentDark: Color(0xFFE3352D),
+    accentDark: Color(0xFFC62828),
     surface: Color(0xFF3C1F1D),
     secondary: Color(0xFFFFC9C6),
   ),
-  AppColorScheme.mion: SchemePalette(
-    accent: Color(0xFF66C86B),
-    accentLight: Color(0xFFBDEDC0),
-    accentDark: Color(0xFF3E9F42),
-    surface: Color(0xFF1F3320),
-    secondary: Color(0xFFBDEDC0),
+  AppColorScheme.sepia: SchemePalette(
+    accent: Color(0xFF9C6B4F),
+    accentLight: Color(0xFFD3B8A5),
+    accentDark: Color(0xFF7A5240),
+    surface: Color(0xFF2E241E),
+    secondary: Color(0xFFD3B8A5),
   ),
-  AppColorScheme.rikka: SchemePalette(
-    accent: Color(0xFFA377FF),
-    accentLight: Color(0xFFD7C2FF),
-    accentDark: Color(0xFF8557E6),
-    surface: Color(0xFF271F3D),
-    secondary: Color(0xFFD7C2FF),
+  AppColorScheme.cyan: SchemePalette(
+    accent: Color(0xFF00BCD4),
+    accentLight: Color(0xFFB2EBF2),
+    accentDark: Color(0xFF0097A7),
+    surface: Color(0xFF16303A),
+    secondary: Color(0xFFB2EBF2),
   ),
-  AppColorScheme.sakura: SchemePalette(
-    accent: Color(0xFFF26CA7),
-    accentLight: Color(0xFFF9C9DE),
-    accentDark: Color(0xFFE93C87),
-    surface: Color(0xFF3A202C),
-    secondary: Color(0xFFF9C9DE),
+  AppColorScheme.emerald: SchemePalette(
+    accent: Color(0xFF2BB673),
+    accentLight: Color(0xFFA5E8C3),
+    accentDark: Color(0xFF1B8F57),
+    surface: Color(0xFF173227),
+    secondary: Color(0xFFA5E8C3),
   ),
-  AppColorScheme.mamimi: SchemePalette(
-    accent: Color(0xFF5FA3FF),
-    accentLight: Color(0xFFB9D6FF),
-    accentDark: Color(0xFF2F7DE6),
-    surface: Color(0xFF1F283D),
-    secondary: Color(0xFFB9D6FF),
+  AppColorScheme.amber: SchemePalette(
+    accent: Color(0xFFFFD600),
+    accentLight: Color(0xFFFFF3B0),
+    accentDark: Color(0xFFE6B800),
+    surface: Color(0xFF33301A),
+    secondary: Color(0xFFFFF3B0),
   ),
   AppColorScheme.kanade: SchemePalette(
     accent: Color(0xFFA9A9C7),
@@ -118,12 +118,12 @@ const Map<AppColorScheme, SchemePalette> schemePalettes = {
     surface: Color(0xFF242435),
     secondary: Color(0xFFDFDFEC),
   ),
-  AppColorScheme.itsuka: SchemePalette(
-    accent: Color(0xFFFF9C40),
-    accentLight: Color(0xFFFFD6B3),
-    accentDark: Color(0xFFE67C1A),
-    surface: Color(0xFF3C2C1A),
-    secondary: Color(0xFFFFD6B3),
+  AppColorScheme.rose: SchemePalette(
+    accent: Color(0xFFFF5C8A),
+    accentLight: Color(0xFFFFC2D6),
+    accentDark: Color(0xFFE63C72),
+    surface: Color(0xFF3A1E29),
+    secondary: Color(0xFFFFC2D6),
   ),
 };
 
@@ -317,6 +317,26 @@ class AppearanceSettings {
 // Persistence helpers
 // ---------------------------------------------------------------------------
 
+/// Old preset names the picker used before the schemes were recolored,
+/// mapped onto their replacements so a stored choice survives the rename.
+/// Unknown names fall back to the default rather than silently rendering
+/// with the wrong palette, and known names come back capitalised the way the
+/// picker stores them.
+String migrateSchemeName(String name) {
+  const legacy = {
+    'mion': 'Sepia',
+    'rikka': 'Cyan',
+    'sakura': 'Emerald',
+    'mamimi': 'Amber',
+    'itsuka': 'Rose',
+  };
+  final lower = name.toLowerCase();
+  if (AppColorScheme.values.any((s) => s.name == lower)) {
+    return '${lower[0].toUpperCase()}${lower.substring(1)}';
+  }
+  return legacy[lower] ?? 'Totoro';
+}
+
 class _AppearancePersistence {
   static const _prefix = 'appearance.';
   static const _colorScheme = '${_prefix}colorScheme';
@@ -352,7 +372,7 @@ class _AppearancePersistence {
     final themeMode = ThemeMode.values.asNameMap()[themeModeStr] ?? ThemeMode.system;
 
     return AppearanceSettings(
-      colorScheme: p.getString(_colorScheme) ?? 'Totoro',
+      colorScheme: migrateSchemeName(p.getString(_colorScheme) ?? 'Totoro'),
       themeMode: themeMode,
       listMode: p.getString(_listMode) ?? 'Grid',
       gridSize: p.getDouble(_gridSize) ?? 100,

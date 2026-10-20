@@ -4,21 +4,25 @@ import 'package:flutter_test/flutter_test.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import 'package:yomou/features/settings/providers/appearance_provider.dart';
 
-/// Seven presets ported from Kotatsu now sit alongside our original five. The
+/// Twelve presets: our original five plus seven more in the same picker. The
 /// failure these guard against is quiet: a name the picker can store that does
 /// not resolve falls through `paletteForScheme`'s Totoro fallback, so the
 /// swatch moves, the setting saves, and the app still looks exactly as it did.
+///
+/// Five of them were also recolored and renamed when the swatches turned out
+/// to cluster into look-alike pairs, so the migration from the old names is
+/// part of what this holds down too.
 void main() {
   TestWidgetsFlutterBinding.ensureInitialized();
 
   const ported = [
     'Asuka',
-    'Mion',
-    'Rikka',
-    'Sakura',
-    'Mamimi',
+    'Sepia',
+    'Cyan',
+    'Emerald',
+    'Amber',
     'Kanade',
-    'Itsuka',
+    'Rose',
   ];
 
   test('every preset has a palette', () {
@@ -69,23 +73,38 @@ void main() {
   });
 
   test('a ported preset seeds the Material scheme with its own accent', () {
-    final sakura = schemePalettes[AppColorScheme.sakura]!;
-    expect(themeSeedFor('Sakura'), sakura.accent);
-    expect(themeSecondaryFor('Sakura'), sakura.secondary);
+    final emerald = schemePalettes[AppColorScheme.emerald]!;
+    expect(themeSeedFor('Emerald'), emerald.accent);
+    expect(themeSecondaryFor('Emerald'), emerald.secondary);
 
     // The accent is the seed, not the resulting primary: fromSeed derives a
     // tonal role from it. A preset that echoed its accent straight back would
     // be painting a colour the rest of the scheme does not agree with.
-    final scheme = colorSchemeFor('Sakura', Brightness.dark);
+    final scheme = colorSchemeFor('Emerald', Brightness.dark);
     expect(scheme.brightness, Brightness.dark);
-    expect(scheme.primary, isNot(sakura.accent));
-    expect(scheme.secondary, sakura.secondary);
+    expect(scheme.primary, isNot(emerald.accent));
+    expect(scheme.secondary, emerald.secondary);
+  });
+
+  test('a name stored before the recolor still resolves', () {
+    // The five renamed presets were written to SharedPreferences by earlier
+    // builds. Left unmigrated they would match no enum entry and quietly fall
+    // back to Totoro, moving the swatch under the reader's feet.
+    expect(migrateSchemeName('Mion'), 'Sepia');
+    expect(migrateSchemeName('rikka'), 'Cyan');
+    expect(migrateSchemeName('SAKURA'), 'Emerald');
+    expect(migrateSchemeName('mamimi'), 'Amber');
+    expect(migrateSchemeName('Itsuka'), 'Rose');
+    // Names that never existed land on the default instead of an empty scheme.
+    expect(migrateSchemeName('Nonsense'), 'Totoro');
+    expect(migrateSchemeName('totoro'), 'Totoro');
   });
 
   test('picking a ported preset actually re-themes the app', () async {
     // End to end through the notifier and the theme bundle, since the palette
     // map being right is only half of it: the name has to survive the round
-    // trip through SharedPreferences and reach ColorScheme.fromSeed.
+    // trip through SharedPreferences (and the rename migration) and reach
+    // ColorScheme.fromSeed.
     SharedPreferences.setMockInitialValues({'appearance.colorScheme': 'Itsuka'});
     await SharedPreferences.getInstance();
     final container = ProviderContainer();
@@ -94,10 +113,10 @@ void main() {
     await Future<void>.delayed(const Duration(milliseconds: 20));
 
     final settings = container.read(appearanceSettingsProvider);
-    expect(settings.colorScheme, 'Itsuka');
+    expect(settings.colorScheme, 'Rose');
 
     final bundle = container.read(themeNotifierProvider);
-    final expected = colorSchemeFor('Itsuka', Brightness.dark);
+    final expected = colorSchemeFor('Rose', Brightness.dark);
     expect(bundle.darkTheme.colorScheme.primary, expected.primary);
     expect(
       bundle.darkTheme.colorScheme.primary,

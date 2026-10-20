@@ -80,33 +80,34 @@ class AppearanceSettingsScreen extends ConsumerWidget {
                 isActive: settings.colorScheme == 'Monochrome',
                 onTap: () => notifier.setColorScheme('Monochrome'),
               ),
-              // The rest of Kotatsu's preset themes, in the order it lists
-              // them, so switching between the two apps feels like the same
-              // picker.
+              // The rest of the picker. Five of these were recolored and
+              // renamed to keep every swatch in the row visually distinct --
+              // the old names clustered into pairs that read as the same
+              // scheme at a glance.
               _SchemePreset(
                 name: 'Asuka',
                 isActive: settings.colorScheme == 'Asuka',
                 onTap: () => notifier.setColorScheme('Asuka'),
               ),
               _SchemePreset(
-                name: 'Mion',
-                isActive: settings.colorScheme == 'Mion',
-                onTap: () => notifier.setColorScheme('Mion'),
+                name: 'Sepia',
+                isActive: settings.colorScheme == 'Sepia',
+                onTap: () => notifier.setColorScheme('Sepia'),
               ),
               _SchemePreset(
-                name: 'Rikka',
-                isActive: settings.colorScheme == 'Rikka',
-                onTap: () => notifier.setColorScheme('Rikka'),
+                name: 'Cyan',
+                isActive: settings.colorScheme == 'Cyan',
+                onTap: () => notifier.setColorScheme('Cyan'),
               ),
               _SchemePreset(
-                name: 'Sakura',
-                isActive: settings.colorScheme == 'Sakura',
-                onTap: () => notifier.setColorScheme('Sakura'),
+                name: 'Emerald',
+                isActive: settings.colorScheme == 'Emerald',
+                onTap: () => notifier.setColorScheme('Emerald'),
               ),
               _SchemePreset(
-                name: 'Mamimi',
-                isActive: settings.colorScheme == 'Mamimi',
-                onTap: () => notifier.setColorScheme('Mamimi'),
+                name: 'Amber',
+                isActive: settings.colorScheme == 'Amber',
+                onTap: () => notifier.setColorScheme('Amber'),
               ),
               _SchemePreset(
                 name: 'Kanade',
@@ -114,9 +115,9 @@ class AppearanceSettingsScreen extends ConsumerWidget {
                 onTap: () => notifier.setColorScheme('Kanade'),
               ),
               _SchemePreset(
-                name: 'Itsuka',
-                isActive: settings.colorScheme == 'Itsuka',
-                onTap: () => notifier.setColorScheme('Itsuka'),
+                name: 'Rose',
+                isActive: settings.colorScheme == 'Rose',
+                onTap: () => notifier.setColorScheme('Rose'),
               ),
             ],
           ),
@@ -127,7 +128,7 @@ class AppearanceSettingsScreen extends ConsumerWidget {
         // mistakes for anything else was only a line of noise between them.
         ListTile(
           leading: const KotatsuIcon('ic_theme_mode'),
-          title: const Text('Color mode'),
+          title: Text(l.appearanceThemeTitle),
           subtitle: Text(_themeModeLabel(l, settings.themeMode)),
           onTap: () => _showThemeModeSelector(context, ref, settings, notifier),
         ),

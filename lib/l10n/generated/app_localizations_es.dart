@@ -592,7 +592,7 @@ class AppLocalizationsEs extends AppLocalizations {
   String get appearanceNone => 'Ninguno';
 
   @override
-  String get appearanceThemeTitle => 'Tema';
+  String get appearanceThemeTitle => 'Modo de color';
 
   @override
   String get appearanceThemeSystem => 'Sistema';
