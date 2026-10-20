@@ -687,6 +687,11 @@ ThemeData _baseTheme(bool dark) {
     // here, every bare Icon(...) stays black in dark mode -- invisible on the
     // black scaffold (e.g. Explore's "manage presets" button).
     iconTheme: IconThemeData(color: fg),
+    // The same reasoning as the icon color above, for the disabled state:
+    // ThemeData's default disabledColor is black38 from the light base, so a
+    // row the active settings cannot honour (the reader's two-pages row on a
+    // strip mode) painted black text on the black scaffold and vanished.
+    disabledColor: dark ? Colors.white38 : Colors.black38,
     appBarTheme: AppBarTheme(
       backgroundColor: Colors.transparent,
       surfaceTintColor: Colors.transparent,

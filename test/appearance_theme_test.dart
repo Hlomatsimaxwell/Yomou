@@ -25,6 +25,23 @@ void main() {
     expect(bundle.lightTheme.iconTheme.color, const Color(0xFF1C1B1F));
   });
 
+  test('disabled rows stay visible in dark mode', () async {
+    // The same construction as the icon color above: the base is built light
+    // and re-brightened, so ThemeData's default disabledColor (black38) survived
+    // into dark mode. A row the active settings cannot honour -- the reader's
+    // two-pages row on a strip mode -- then painted black text on the black
+    // scaffold and disappeared entirely.
+    SharedPreferences.setMockInitialValues({});
+    await SharedPreferences.getInstance();
+    final container = ProviderContainer();
+    addTearDown(container.dispose);
+
+    final bundle = container.read(themeNotifierProvider);
+
+    expect(bundle.darkTheme.disabledColor, Colors.white38);
+    expect(bundle.lightTheme.disabledColor, Colors.black38);
+  });
+
   test('haptics are on by default and persist when switched off', () async {
     SharedPreferences.setMockInitialValues({});
     final prefs = await SharedPreferences.getInstance();
