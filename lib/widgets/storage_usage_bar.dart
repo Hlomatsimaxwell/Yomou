@@ -66,25 +66,30 @@ class StorageUsageBar extends StatelessWidget {
   /// is the same 16 a row insets itself by: they land on the rows' text guide.
   static const double inset = 16;
 
-  /// The width the wedge at [bytes] earns across a bar [width] wide, held up to
-  /// the reference's floor for [first].
+  /// The width the wedge at [bytes] earns across a bar [width] wide, held up
+  /// to a floor of half the bar's height.
   ///
   /// Byte counts are the weights, so a wedge is the share of the whole that the
   /// legend's own numbers report. The floor is what keeps a small bucket a
-  /// visible sliver instead of a tenth of a pixel: the bar's own height for the
-  /// first wedge and half that for the rest, which is what the reference
-  /// coerces each of its segment widths to. Without it a 40 MB cache against
-  /// 60 GB free draws nothing at all, and the bar reads as empty on a device
-  /// that is anything but.
+  /// visible sliver instead of a fraction of a pixel: without it a 40 MB cache
+  /// against 60 GB free draws nothing at all, and the bar reads as empty on a
+  /// device that is anything but.
+  ///
+  /// One floor for every wedge, where the reference gives its first one the
+  /// bar's full height and the rest [barHeight] / 2. That quirk is harmless in
+  /// the reference because its first wedge is saved manga, usually the largest
+  /// of the three. Here an empty saved-manga bucket is dropped, so the taller
+  /// floor passes to whatever fills first -- on a full device, the smaller of
+  /// two caches -- and the bar draws 70 MB wider than 225 MB. A bar chart that
+  /// reverses two of its own bars misreports worse than one that shows two
+  /// sub-pixel shares as the same sliver, so the small floor is the only one.
   static double _wedgeWidth({
     required double width,
     required int bytes,
-    required bool first,
     required int total,
   }) {
     final share = width * bytes / total;
-    final floor = first ? barHeight : barHeight / 2;
-    return share < floor ? floor : share;
+    return share < barHeight / 2 ? barHeight / 2 : share;
   }
 
   @override
@@ -147,7 +152,6 @@ class StorageUsageBar extends StatelessWidget {
                           width: _wedgeWidth(
                             width: constraints.maxWidth,
                             bytes: wedges[i].bytes,
-                            first: i == 0,
                             total: total,
                           ),
                           child: ColoredBox(color: wedges[i].color),

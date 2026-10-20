@@ -171,13 +171,12 @@ void main() {
     ]);
   });
 
-  testWidgets('a bucket too small to see is still drawn at the reference\'s floor',
+  testWidgets('a bucket too small to see is still drawn at the floor',
       (tester) async {
-    // 40 MB of each against 60 GB free: a tenth of a pixel, if drawn to scale.
-    // The reference coerces every segment width to at least half the bar's
-    // height, and the first one to the bar's full height, and so does this --
-    // which is the difference between a bar that reports a small cache and a
-    // bar that reads as empty.
+    // 40 MB of each against 60 GB free: a fraction of a pixel, if drawn to
+    // scale. Half the bar's height is what each wedge is held up to, which is
+    // the difference between a bar that reports a small cache and a bar that
+    // reads as empty.
     await pump(tester, [
       segment('Saved manga', 40 * mb, StorageUsageBar.savedMangaColor),
       segment('Pages cache', 40 * mb, StorageUsageBar.pagesCacheColor),
@@ -185,9 +184,48 @@ void main() {
     ]);
 
     expect(widths(tester).take(2), [
-      StorageUsageBar.barHeight,
+      StorageUsageBar.barHeight / 2,
       StorageUsageBar.barHeight / 2,
     ]);
+  });
+
+  testWidgets('a smaller bucket never draws wider than a bigger one',
+      (tester) async {
+    // The figures this pane reports on a full device: no saved manga at all,
+    // then 70.6 MB of pages cache and 225.2 MB of other cache against 320 GB
+    // free. Both shares are a fraction of a pixel, so both sit on the floor
+    // and draw as the same sliver -- the legend underneath carries which is
+    // which. Under the reference's own rule the floor was the bar's full
+    // height for the first wedge and half that for the rest, which here drew
+    // the 70 MB cache wider than the 225 MB one: the empty saved-manga bucket
+    // is dropped, so the taller floor passes to whatever comes first. A bar
+    // that contradicts the numbers below it is worse than one that shows two
+    // sub-pixel shares as equal.
+    await pump(tester, [
+      segment('Pages cache', 70 * mb + 600 * 1024, StorageUsageBar.pagesCacheColor),
+      segment('Other cache', 225 * mb, StorageUsageBar.otherCacheColor),
+      segment('Available', 320 * gb, const Color(0xFFE0E0E0)),
+    ]);
+
+    final drawn = widths(tester);
+    expect(drawn.first, StorageUsageBar.barHeight / 2);
+    expect(drawn[1], StorageUsageBar.barHeight / 2);
+    expect(drawn.first, lessThanOrEqualTo(drawn[1]));
+  });
+
+  testWidgets('wideness tracks bytes once the shares clear the floor',
+      (tester) async {
+    // The other half of the same promise: above the floor the widths are the
+    // legend's own proportions, so a bucket three times the size of another
+    // is drawn three times as wide.
+    await pump(tester, [
+      segment('Pages cache', 20 * gb, StorageUsageBar.pagesCacheColor),
+      segment('Other cache', 60 * gb, StorageUsageBar.otherCacheColor),
+      segment('Available', 40 * gb, const Color(0xFFE0E0E0)),
+    ]);
+
+    final drawn = widths(tester);
+    expect(drawn[1], closeTo(3 * drawn.first, 0.01));
   });
 
   testWidgets('every wedge is drawn as tall as the bar itself', (tester) async {
