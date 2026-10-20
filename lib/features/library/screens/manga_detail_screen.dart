@@ -1657,7 +1657,7 @@ class _MangaDetailScreenState extends ConsumerState<MangaDetailScreen> {
     }
 
     return SliverPadding(
-      padding: EdgeInsets.fromLTRB(16, 0, 16, 16 + _bottomClearance(context)),
+      padding: EdgeInsets.fromLTRB(8, 0, 8, 16 + _bottomClearance(context)),
       sliver: SliverList(
         delegate: SliverChildBuilderDelegate((context, index) {
           final originalIndex = searched[index];
@@ -2294,10 +2294,10 @@ class _MangaDetailScreenState extends ConsumerState<MangaDetailScreen> {
     final current = _currentDisplayIndex;
 
     return SliverPadding(
-      padding: EdgeInsets.fromLTRB(16, 8, 16, 16 + _bottomClearance(context)),
+      padding: EdgeInsets.fromLTRB(8, 8, 8, 16 + _bottomClearance(context)),
       sliver: SliverGrid(
         gridDelegate: SliverGridDelegateWithMaxCrossAxisExtent(
-          maxCrossAxisExtent: 72,
+          maxCrossAxisExtent: 80,
           mainAxisSpacing: 8,
           crossAxisSpacing: 8,
           childAspectRatio: 1.0,
@@ -2398,7 +2398,7 @@ class _MangaDetailScreenState extends ConsumerState<MangaDetailScreen> {
     }
 
     return SliverPadding(
-      padding: EdgeInsets.fromLTRB(16, 0, 16, 16 + _bottomClearance(context)),
+      padding: EdgeInsets.fromLTRB(8, 0, 8, 16 + _bottomClearance(context)),
       sliver: SliverList(
         delegate: SliverChildBuilderDelegate((context, index) {
           final bm = _bookmarks[index];
