@@ -127,7 +127,7 @@ class AppearanceSettingsScreen extends ConsumerWidget {
         // mistakes for anything else was only a line of noise between them.
         ListTile(
           leading: const KotatsuIcon('ic_theme_mode'),
-          title: Text(l.appearanceThemeTitle),
+          title: const Text('Color mode'),
           subtitle: Text(_themeModeLabel(l, settings.themeMode)),
           onTap: () => _showThemeModeSelector(context, ref, settings, notifier),
         ),
