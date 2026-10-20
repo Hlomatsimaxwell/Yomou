@@ -1243,6 +1243,15 @@ class AppLocalizationsEs extends AppLocalizations {
   String get detailState => 'Estado';
 
   @override
+  String get searchChapters => 'Buscar capítulos';
+
+  @override
+  String get chaptersGridView => 'Vista en cuadrícula de capítulos';
+
+  @override
+  String get gridSize => 'Tamaño de cuadrícula';
+
+  @override
   String get detailChapters => 'Capítulos';
 
   @override

@@ -2300,6 +2300,24 @@ abstract class AppLocalizations {
   /// **'State'**
   String get detailState;
 
+  /// No description provided for @searchChapters.
+  ///
+  /// In en, this message translates to:
+  /// **'Search chapters'**
+  String get searchChapters;
+
+  /// No description provided for @chaptersGridView.
+  ///
+  /// In en, this message translates to:
+  /// **'Chapters grid view'**
+  String get chaptersGridView;
+
+  /// No description provided for @gridSize.
+  ///
+  /// In en, this message translates to:
+  /// **'Grid size'**
+  String get gridSize;
+
   /// No description provided for @detailChapters.
   ///
   /// In en, this message translates to:

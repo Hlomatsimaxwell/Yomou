@@ -10,6 +10,7 @@ import 'package:yomou/widgets/sheet_snap.dart';
 import 'package:flutter_material_design_icons/flutter_material_design_icons.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:shared_preferences/shared_preferences.dart';
 import 'package:url_launcher/url_launcher.dart';
 import 'package:yomou/core/database/database_helper.dart';
 import 'package:yomou/core/haptics.dart';
@@ -284,6 +285,11 @@ class _MangaDetailScreenState extends ConsumerState<MangaDetailScreen> {
   // actually downloaded. A view filter only -- read state, counts and the
   // resume point all keep addressing the full list underneath.
   bool _downloadedOnly = false;
+  String _chapterSearch = '';
+  // Chapters view mode: false = list (default), true = grid.
+  bool _chaptersGridView = false;
+  // Pages grid size 50-150%
+  double _pagesGridSize = 100.0;
 
   // Pages grid: page URLs for the preview chapter.
   List<String> _previewPages = [];
@@ -322,6 +328,7 @@ class _MangaDetailScreenState extends ConsumerState<MangaDetailScreen> {
     _loadChapters();
     _loadProgress();
     _loadBookmarks();
+    _loadDetailPreferences();
 
     _sheetController.addListener(() {
       final currentSize = _sheetController.size;
@@ -341,18 +348,28 @@ class _MangaDetailScreenState extends ConsumerState<MangaDetailScreen> {
     });
   }
 
-  // Chapters are sorted oldest-first so the first chapter is at the top of
-  // the tray and the latest chapter is reached by scrolling down.
+  Future<void> _loadDetailPreferences() async {
+    final prefs = await SharedPreferences.getInstance();
+    if (!mounted) return;
+    setState(() {
+      _chaptersGridView = prefs.getBool('detail.chaptersGridView') ?? false;
+      _pagesGridSize = prefs.getDouble('detail.pagesGridSize') ?? 100.0;
+    });
+  }
+
   List<Chapter> _sortChaptersNewestFirst(List<Chapter> chapters) {
     final sorted = [...chapters];
-    sorted.sort((a, b) => (_chapterNum(a) - _chapterNum(b)).toInt());
+    sorted.sort((a, b) => (_chapterSortKey(a) - _chapterSortKey(b)).toInt());
     return sorted;
   }
 
-  double _chapterNum(Chapter ch) {
+  double _chapterSortKey(Chapter ch) {
     final num = RegExp(r'(\d+(\.\d+)?)').firstMatch(ch.chapterNumber)?.group(1);
     return num != null ? double.tryParse(num) ?? 0 : 0;
   }
+
+  // Chapters are sorted oldest-first so the first chapter is at the top of
+  // the tray and the latest chapter is reached by scrolling down.
 
   Future<void> _loadChapters({
     bool forceRefresh = false,
@@ -1296,7 +1313,9 @@ class _MangaDetailScreenState extends ConsumerState<MangaDetailScreen> {
                           ),
                         if (_showSheetContent) ...[
                           if (_activeTab == 0)
-                            _buildChapterListSliver()
+                            _chaptersGridView
+                                ? _buildChapterGridSliver()
+                                : _buildChapterListSliver()
                           else if (_activeTab == 1)
                             _buildPagesGridSliver()
                           else
@@ -1398,7 +1417,7 @@ class _MangaDetailScreenState extends ConsumerState<MangaDetailScreen> {
       // The tray's menu is the list's, not the manga's -- and only the
       // chapters tab has one so far, so the other tabs pass null and the
       // header hides the button rather than opening an empty sheet.
-      onOverflow: _activeTab == 0 ? () => _showTrayMenu(context) : null,
+      onOverflow: (_activeTab == 0 || _activeTab == 1) ? () => _showTrayMenu(context) : null,
       onTabSelected: (index) {
         setState(() => _activeTab = index);
         if (docked) return;
@@ -1507,7 +1526,9 @@ class _MangaDetailScreenState extends ConsumerState<MangaDetailScreen> {
                       ),
                     ),
                   if (_activeTab == 0)
-                    _buildChapterListSliver()
+                    _chaptersGridView
+                        ? _buildChapterGridSliver()
+                        : _buildChapterListSliver()
                   else if (_activeTab == 1)
                     _buildPagesGridSliver()
                   else
@@ -1561,6 +1582,7 @@ class _MangaDetailScreenState extends ConsumerState<MangaDetailScreen> {
             .watch(downloadedChaptersForMangaProvider(widget.mangaId))
             .valueOrNull ??
         const <String>{};
+    final l = AppLocalizations.of(context);
     // The on-device filter narrows the list to downloaded chapters. Rows
     // resolve through this pass rather than by arithmetic, so read state,
     // the current chapter and selection all still address the real chapter
@@ -1571,6 +1593,21 @@ class _MangaDetailScreenState extends ConsumerState<MangaDetailScreen> {
           i,
     ];
     final ordered = _reverseOrder ? visible.reversed.toList() : visible;
+    // Apply chapter search filter if any query is present.
+    final searched = _chapterSearch.isEmpty
+        ? ordered
+        : ordered.where((i) {
+            final ch = _chapters[i];
+            final title = mangaDetailChapterLabel(
+              l: l,
+              chapterNumber: ch.chapterNumber,
+              title: ch.title,
+            ).toLowerCase();
+            final query = _chapterSearch.toLowerCase();
+            return title.contains(query) ||
+                ch.chapterNumber.toLowerCase().contains(query) ||
+                ch.title.toLowerCase().contains(query);
+          }).toList();
 
     if (_isLoadingChapters) {
       return SliverToBoxAdapter(
@@ -1603,7 +1640,7 @@ class _MangaDetailScreenState extends ConsumerState<MangaDetailScreen> {
               const SizedBox(height: 8),
               Text(
                 mangaDetailChapterFailure(
-                  l: AppLocalizations.of(context),
+                  l: l,
                   sourceMissing: _source == null,
                   error: _chapterError,
                 ),
@@ -1623,7 +1660,7 @@ class _MangaDetailScreenState extends ConsumerState<MangaDetailScreen> {
       padding: EdgeInsets.fromLTRB(16, 0, 16, 16 + _bottomClearance(context)),
       sliver: SliverList(
         delegate: SliverChildBuilderDelegate((context, index) {
-          final originalIndex = ordered[index];
+          final originalIndex = searched[index];
           final ch = _chapters[originalIndex];
           final isRead =
               _lastReadChapter >= 0 && (originalIndex + 1) <= _lastReadChapter;
@@ -1672,7 +1709,7 @@ class _MangaDetailScreenState extends ConsumerState<MangaDetailScreen> {
                 Expanded(
                   child: Text(
                     mangaDetailChapterLabel(
-                      l: AppLocalizations.of(context),
+                      l: l,
                       chapterNumber: ch.chapterNumber,
                       title: ch.title,
                     ),
@@ -1766,12 +1803,16 @@ class _MangaDetailScreenState extends ConsumerState<MangaDetailScreen> {
               if (_selectionMode) {
                 _toggleSelection(ch.id);
               } else {
-                _openReader(chapterIndex: originalIndex);
+                _openReader(
+                  chapterIndex: !searched.contains(originalIndex)
+                      ? originalIndex
+                      : _chapters.indexOf(_chapters[originalIndex]),
+                );
               }
             },
             onLongPress: () => _enterSelection(ch.id),
           );
-        }, childCount: ordered.length),
+        }, childCount: searched.length),
       ),
     );
   }
@@ -2143,11 +2184,12 @@ class _MangaDetailScreenState extends ConsumerState<MangaDetailScreen> {
       );
     }
 
+    final maxExt = MediaQuery.of(context).size.shortestSide / 3 * (_pagesGridSize / 100.0).clamp(0.5, 1.5);
     return SliverPadding(
       padding: EdgeInsets.fromLTRB(16, 16, 16, 16 + _bottomClearance(context)),
       sliver: SliverGrid(
-        gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
-          crossAxisCount: 3,
+        gridDelegate: SliverGridDelegateWithMaxCrossAxisExtent(
+          maxCrossAxisExtent: maxExt,
           mainAxisSpacing: 10,
           crossAxisSpacing: 10,
           childAspectRatio: 0.7,
@@ -2183,6 +2225,146 @@ class _MangaDetailScreenState extends ConsumerState<MangaDetailScreen> {
       ),
     );
   }
+
+  /// Chapters grid view, matching the reference's tiled chapter numbers.
+  /// Uses the same filtering (on-device, reverse, search) as the list.
+  Widget _buildChapterGridSliver() {
+    final dark = Theme.of(context).brightness == Brightness.dark;
+    final scheme = Theme.of(context).colorScheme;
+    final l = AppLocalizations.of(context);
+    final downloadedChapterIds =
+        ref
+            .watch(downloadedChaptersForMangaProvider(widget.mangaId))
+            .valueOrNull ??
+        const <String>{};
+
+    final visible = [
+      for (var i = 0; i < _chapters.length; i++)
+        if (!_downloadedOnly || downloadedChapterIds.contains(_chapters[i].id))
+          i,
+    ];
+    final ordered = _reverseOrder ? visible.reversed.toList() : visible;
+    final searched = _chapterSearch.isEmpty
+        ? ordered
+        : ordered.where((i) {
+            final ch = _chapters[i];
+            final title = mangaDetailChapterLabel(
+              l: l,
+              chapterNumber: ch.chapterNumber,
+              title: ch.title,
+            ).toLowerCase();
+            final query = _chapterSearch.toLowerCase();
+            return title.contains(query) ||
+                ch.chapterNumber.toLowerCase().contains(query) ||
+                ch.title.toLowerCase().contains(query);
+          }).toList();
+
+    if (_isLoadingChapters) {
+      return SliverToBoxAdapter(
+        child: Padding(
+          padding: const EdgeInsets.symmetric(vertical: 80),
+          child: Center(
+            child: CircularProgressIndicator(
+              color: dark ? Colors.white54 : scheme.primary,
+            ),
+          ),
+        ),
+      );
+    }
+
+    if (searched.isEmpty) {
+      return SliverToBoxAdapter(
+        child: Padding(
+          padding: const EdgeInsets.symmetric(vertical: 80, horizontal: 24),
+          child: Center(
+            child: Text(
+              _chapterSearch.isNotEmpty
+                  ? l.noResultsFound
+                  : l.noChaptersAvailable,
+              style: TextStyle(
+                color: dark ? Colors.white70 : const Color(0xFF49454F),
+                fontSize: 16,
+              ),
+            ),
+          ),
+        ),
+      );
+    }
+
+    final current = _currentDisplayIndex;
+
+    return SliverPadding(
+      padding: EdgeInsets.fromLTRB(16, 8, 16, 16 + _bottomClearance(context)),
+      sliver: SliverGrid(
+        gridDelegate: SliverGridDelegateWithMaxCrossAxisExtent(
+          maxCrossAxisExtent: 72,
+          mainAxisSpacing: 8,
+          crossAxisSpacing: 8,
+          childAspectRatio: 1.0,
+        ),
+        delegate: SliverChildBuilderDelegate((context, index) {
+          final originalIndex = searched[index];
+          final ch = _chapters[originalIndex];
+          final isRead = originalIndex < _lastReadChapter;
+          final isCurrent = originalIndex == current;
+          final downloaded = downloadedChapterIds.contains(ch.id);
+          final label = ch.chapterNumber.isNotEmpty ? ch.chapterNumber : '${originalIndex + 1}';
+          final bg = isCurrent
+              ? Colors.green.withValues(alpha: dark ? 0.25 : 0.18)
+              : isRead
+                  ? (dark ? Colors.white.withValues(alpha: 0.06) : Colors.black.withValues(alpha: 0.04))
+                  : (dark ? Colors.white.withValues(alpha: 0.08) : Colors.black.withValues(alpha: 0.06));
+          final borderSide = isCurrent
+              ? const BorderSide(color: Colors.green, width: 1.5)
+              : BorderSide(color: dark ? Colors.white24 : Colors.black12);
+          final textColor = isCurrent
+              ? Colors.green
+              : isRead
+                  ? (dark ? Colors.white54 : Colors.black54)
+                  : (dark ? Colors.white : Colors.black87);
+
+          return Material(
+            color: bg,
+            shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10), side: borderSide),
+            clipBehavior: Clip.antiAlias,
+            child: InkWell(
+              onTap: () {
+                if (_selectionMode) {
+                  _toggleSelection(ch.id);
+                } else {
+                  _openReader(chapterIndex: originalIndex);
+                }
+              },
+              onLongPress: () => _enterSelection(ch.id),
+              child: Stack(
+                children: [
+                  Center(
+                    child: Text(
+                      label,
+                      maxLines: 1,
+                      overflow: TextOverflow.ellipsis,
+                      style: TextStyle(
+                        color: textColor,
+                        fontWeight: isCurrent ? FontWeight.w700 : FontWeight.w600,
+                        fontSize: 13,
+                      ),
+                    ),
+                  ),
+                  if (downloaded)
+                    Positioned(
+                      right: 4,
+                      bottom: 4,
+                      child: Icon(MdiIcons.sd, size: 12, color: textColor.withValues(alpha: 0.7)),
+                    ),
+                ],
+              ),
+            ),
+          );
+        }, childCount: searched.length),
+      ),
+    );
+  }
+
 
   Widget _buildBookmarksSliver() {
     final dark = Theme.of(context).brightness == Brightness.dark;
@@ -2378,13 +2560,89 @@ class _MangaDetailScreenState extends ConsumerState<MangaDetailScreen> {
             .read(downloadedChaptersForMangaProvider(widget.mangaId))
             .valueOrNull ??
         const <String>{};
+    if (_activeTab == 1) {
+      // Pages tab: grid size slider (50-150)
+      final prefs = await SharedPreferences.getInstance();
+      double gridSize = prefs.getDouble('detail.pagesGridSize') ?? 100.0;
+      final action = await showModalBottomSheet<String>(
+        context: context,
+        isScrollControlled: true,
+        useSafeArea: true,
+        backgroundColor: Theme.of(context).colorScheme.surfaceContainer,
+        shape: const RoundedRectangleBorder(
+          borderRadius: BorderRadius.vertical(top: Radius.circular(16)),
+        ),
+        builder: (ctx) => StatefulBuilder(
+          builder: (ctx, setSheet) => SafeArea(
+            child: Column(
+              mainAxisSize: MainAxisSize.min,
+              crossAxisAlignment: CrossAxisAlignment.stretch,
+              children: [
+                Center(
+                  child: Container(
+                    margin: const EdgeInsets.only(top: 10),
+                    width: 36,
+                    height: 4,
+                    decoration: BoxDecoration(
+                      color: Theme.of(context).colorScheme.onSurfaceVariant.withValues(alpha: 0.4),
+                      borderRadius: BorderRadius.circular(2),
+                    ),
+                  ),
+                ),
+                Padding(
+                  padding: const EdgeInsets.fromLTRB(16, 12, 16, 4),
+                  child: Text(
+                    _title,
+                    maxLines: 1,
+                    overflow: TextOverflow.ellipsis,
+                    style: TextStyle(
+                      color: Theme.of(context).brightness == Brightness.dark
+                          ? Colors.white
+                          : Theme.of(context).colorScheme.onSurface,
+                      fontSize: 16,
+                      fontWeight: FontWeight.w600,
+                    ),
+                  ),
+                ),
+                Padding(
+                  padding: const EdgeInsets.fromLTRB(16, 8, 16, 16),
+                  child: Row(
+                    children: [
+                      Text(l.gridSize, style: TextStyle(color: Theme.of(context).colorScheme.onSurface)),
+                      Expanded(
+                        child: Slider(
+                          value: gridSize,
+                          min: 50,
+                          max: 150,
+                          divisions: 20,
+                          label: '${gridSize.round()}%',
+                          onChanged: (v) {
+                            setSheet(() => gridSize = v);
+                            setState(() {});
+                          },
+                          onChangeEnd: (v) async {
+                            final p = await SharedPreferences.getInstance();
+                            await p.setDouble('detail.pagesGridSize', v);
+                          },
+                        ),
+                      ),
+                      Text('${gridSize.round()}%', style: TextStyle(color: Theme.of(context).colorScheme.onSurfaceVariant)),
+                    ],
+                  ),
+                ),
+              ],
+            ),
+          ),
+        ),
+      );
+      return;
+    }
     final action = await _showMenuSheet(context, [
       _buildOverflowRow(
         context,
-        MdiIcons.swapVertical,
-        l.detailReverseOrder,
-        'reverse',
-        checked: _reverseOrder,
+        MdiIcons.magnify,
+        l.searchChapters,
+        'search',
       ),
       if (downloaded.isNotEmpty)
         _buildOverflowRow(
@@ -2394,6 +2652,20 @@ class _MangaDetailScreenState extends ConsumerState<MangaDetailScreen> {
           'onDevice',
           checked: _downloadedOnly,
         ),
+      _buildOverflowRow(
+        context,
+        MdiIcons.swapVertical,
+        l.detailReverseOrder,
+        'reverse',
+        checked: _reverseOrder,
+      ),
+      _buildOverflowRow(
+        context,
+        MdiIcons.viewGrid,
+        l.chaptersGridView,
+        'gridView',
+        checked: _chaptersGridView,
+      ),
     ]);
     if (action == null || !context.mounted) return;
     switch (action) {
@@ -2401,6 +2673,48 @@ class _MangaDetailScreenState extends ConsumerState<MangaDetailScreen> {
         setState(() => _reverseOrder = !_reverseOrder);
       case 'onDevice':
         setState(() => _downloadedOnly = !_downloadedOnly);
+      case 'gridView':
+        setState(() {
+          _chaptersGridView = !_chaptersGridView;
+        });
+        final prefs = await SharedPreferences.getInstance();
+        await prefs.setBool('detail.chaptersGridView', _chaptersGridView);
+      case 'search':
+        final currentSearch = _chapterSearch;
+        final buildCtx = context;
+        setState(() {
+          if (currentSearch.isNotEmpty) {
+            _chapterSearch = '';
+          }
+        });
+        if (!buildCtx.mounted) break;
+        if (!buildCtx.mounted) break;
+        final query = await showDialog<String>(
+          context: buildCtx,
+          builder: (ctx) {
+            final c = TextEditingController(text: _chapterSearch == ' ' ? '' : _chapterSearch);
+            return AlertDialog(
+              title: Text(l.searchChapters),
+              content: TextField(
+                controller: c,
+                autofocus: true,
+                decoration: InputDecoration(hintText: l.searchChapters),
+              ),
+              actions: [
+                TextButton(
+                  onPressed: () => Navigator.pop(ctx, null),
+                  child: Text(MaterialLocalizations.of(ctx).cancelButtonLabel),
+                ),
+                TextButton(
+                  onPressed: () => Navigator.pop(ctx, c.text),
+                  child: Text(MaterialLocalizations.of(ctx).okButtonLabel),
+                ),
+              ],
+            );
+          },
+        );
+        if (!mounted) break;
+        setState(() => _chapterSearch = query ?? '');
     }
   }
 
@@ -2662,7 +2976,13 @@ class _MangaDetailScreenState extends ConsumerState<MangaDetailScreen> {
   }
 
   void _createShortcut() {
-    _showMessage(AppLocalizations.of(context).shortcutCreated);
+    // Create a home-screen shortcut. The feature is platform-dependent; on
+    // Android this is typically handled via the system launcher when the user
+    // selects "Create shortcut". For now, surface a short confirmation like
+    // the reference's action does when requested.
+    if (!mounted) return;
+    final l = AppLocalizations.of(context);
+    _showMessage(l.shortcutCreated);
   }
 
   Future<void> _openEditMetadata(BuildContext context) async {
@@ -4242,6 +4562,14 @@ class _SheetHeaderDelegate extends SliverPersistentHeaderDelegate {
         const SizedBox(width: 2),
         _buildTabIcon(
           Icons.grid_view,
+          activeTab == 1,
+          dark: dark,
+          scheme: scheme,
+          onTap: () => onTabSelected(1),
+        ),
+        const SizedBox(width: 2),
+        _buildTabIcon(
+          Icons.image,
           activeTab == 1,
           dark: dark,
           scheme: scheme,
