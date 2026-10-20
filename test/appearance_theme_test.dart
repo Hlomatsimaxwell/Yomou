@@ -241,7 +241,7 @@ void main() {
     // there: the flag stays false and the surfaces stay white.
     expect(light.extension<AmoledMode>()!.enabled, isFalse);
     expect(light.canvasColor, Colors.white);
-    expect(presetSurfaceFor('totoro', Brightness.light, amoled: true),
+    expect(presetSurfaceFor('azure', Brightness.light, amoled: true),
         Colors.white);
 
     // Contrast: black surfaces are only worth having if what sits on them is
@@ -268,7 +268,7 @@ void main() {
     expect(dark.canvasColor, const Color(0xFF121212));
     expect(dark.cardColor, const Color(0xFF121212));
     expect(dark.colorScheme.surfaceContainerHighest, isNot(Colors.black));
-    expect(presetSurfaceFor('totoro', Brightness.dark),
+    expect(presetSurfaceFor('azure', Brightness.dark),
         const Color(0xFF121212));
   });
 }

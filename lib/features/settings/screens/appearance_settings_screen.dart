@@ -56,38 +56,37 @@ class AppearanceSettingsScreen extends ConsumerWidget {
             padding: const EdgeInsets.symmetric(horizontal: 12),
             children: [
               _SchemePreset(
-                name: 'Totoro',
-                isActive: settings.colorScheme == 'Totoro',
-                onTap: () => notifier.setColorScheme('Totoro'),
+                name: 'Azure',
+                isActive: settings.colorScheme == 'Azure',
+                onTap: () => notifier.setColorScheme('Azure'),
               ),
               _SchemePreset(
-                name: 'Dynamic',
-                isActive: settings.colorScheme == 'Dynamic',
-                onTap: () => notifier.setColorScheme('Dynamic'),
+                name: 'Violet',
+                isActive: settings.colorScheme == 'Violet',
+                onTap: () => notifier.setColorScheme('Violet'),
               ),
               _SchemePreset(
-                name: 'Expressive',
-                isActive: settings.colorScheme == 'Expressive',
-                onTap: () => notifier.setColorScheme('Expressive'),
+                name: 'Tangerine',
+                isActive: settings.colorScheme == 'Tangerine',
+                onTap: () => notifier.setColorScheme('Tangerine'),
               ),
               _SchemePreset(
-                name: 'Miku',
-                isActive: settings.colorScheme == 'Miku',
-                onTap: () => notifier.setColorScheme('Miku'),
+                name: 'Teal',
+                isActive: settings.colorScheme == 'Teal',
+                onTap: () => notifier.setColorScheme('Teal'),
               ),
               _SchemePreset(
                 name: 'Monochrome',
                 isActive: settings.colorScheme == 'Monochrome',
                 onTap: () => notifier.setColorScheme('Monochrome'),
               ),
-              // The rest of the picker. Five of these were recolored and
-              // renamed to keep every swatch in the row visually distinct --
-              // the old names clustered into pairs that read as the same
-              // scheme at a glance.
+              // The rest of the row. Every preset is named for the colour it
+              // actually paints now: the earlier names were character names
+              // whose swatches paired up and read as the same scheme twice.
               _SchemePreset(
-                name: 'Asuka',
-                isActive: settings.colorScheme == 'Asuka',
-                onTap: () => notifier.setColorScheme('Asuka'),
+                name: 'Crimson',
+                isActive: settings.colorScheme == 'Crimson',
+                onTap: () => notifier.setColorScheme('Crimson'),
               ),
               _SchemePreset(
                 name: 'Sepia',
@@ -110,9 +109,9 @@ class AppearanceSettingsScreen extends ConsumerWidget {
                 onTap: () => notifier.setColorScheme('Amber'),
               ),
               _SchemePreset(
-                name: 'Kanade',
-                isActive: settings.colorScheme == 'Kanade',
-                onTap: () => notifier.setColorScheme('Kanade'),
+                name: 'Lavender',
+                isActive: settings.colorScheme == 'Lavender',
+                onTap: () => notifier.setColorScheme('Lavender'),
               ),
               _SchemePreset(
                 name: 'Rose',

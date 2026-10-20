@@ -31,17 +31,17 @@ void main() {
   }
 
   const presets = [
-    'Totoro',
-    'Dynamic',
-    'Expressive',
-    'Miku',
+    'Azure',
+    'Violet',
+    'Tangerine',
+    'Teal',
     'Monochrome',
-    'Asuka',
+    'Crimson',
     'Sepia',
     'Cyan',
     'Emerald',
     'Amber',
-    'Kanade',
+    'Lavender',
     'Rose',
   ];
 

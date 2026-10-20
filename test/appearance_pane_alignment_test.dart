@@ -101,7 +101,7 @@ void main() {
       line,
       reason: 'a row leading icon',
     );
-    expect(card(tester, 'Totoro').left, line,
+    expect(card(tester, 'Azure').left, line,
         reason: 'the first scheme card');
 
     expect(tester.takeException(), isNull);
@@ -189,8 +189,8 @@ void main() {
       (tester) async {
     await pump(tester);
 
-    final first = card(tester, 'Totoro');
-    final second = card(tester, 'Dynamic');
+    final first = card(tester, 'Azure');
+    final second = card(tester, 'Violet');
     expect(first.left, guide(tester), reason: 'the first card');
     expect(second.left - first.right, 8, reason: 'the gap between two cards');
 

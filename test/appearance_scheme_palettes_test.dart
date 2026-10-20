@@ -6,7 +6,7 @@ import 'package:yomou/features/settings/providers/appearance_provider.dart';
 
 /// Twelve presets: our original five plus seven more in the same picker. The
 /// failure these guard against is quiet: a name the picker can store that does
-/// not resolve falls through `paletteForScheme`'s Totoro fallback, so the
+/// not resolve falls through `paletteForScheme`'s Azure fallback, so the
 /// swatch moves, the setting saves, and the app still looks exactly as it did.
 ///
 /// Five of them were also recolored and renamed when the swatches turned out
@@ -16,12 +16,12 @@ void main() {
   TestWidgetsFlutterBinding.ensureInitialized();
 
   const ported = [
-    'Asuka',
+    'Crimson',
     'Sepia',
     'Cyan',
     'Emerald',
     'Amber',
-    'Kanade',
+    'Lavender',
     'Rose',
   ];
 
@@ -37,13 +37,13 @@ void main() {
   });
 
   test('each ported preset resolves by its stored name', () {
-    final totoro = schemePalettes[AppColorScheme.totoro]!;
+    final totoro = schemePalettes[AppColorScheme.azure]!;
     for (final name in ported) {
       final palette = paletteForScheme(name);
       expect(
         palette.accent,
         isNot(totoro.accent),
-        reason: '$name fell through to the Totoro fallback',
+        reason: '$name fell through to the Azure fallback',
       );
       // The picker stores capitalised names but matching is case-insensitive.
       expect(paletteForScheme(name.toLowerCase()).accent, palette.accent);
@@ -87,17 +87,25 @@ void main() {
   });
 
   test('a name stored before the recolor still resolves', () {
-    // The five renamed presets were written to SharedPreferences by earlier
-    // builds. Left unmigrated they would match no enum entry and quietly fall
-    // back to Totoro, moving the swatch under the reader's feet.
+    // Every name written by an earlier build: the five recolored presets
+    // and the six renamed without one. Left unmigrated they would match no
+    // enum entry and quietly fall back to Azure, moving the swatch under the
+    // reader's feet.
     expect(migrateSchemeName('Mion'), 'Sepia');
     expect(migrateSchemeName('rikka'), 'Cyan');
     expect(migrateSchemeName('SAKURA'), 'Emerald');
     expect(migrateSchemeName('mamimi'), 'Amber');
     expect(migrateSchemeName('Itsuka'), 'Rose');
+    expect(migrateSchemeName('Totoro'), 'Azure');
+    expect(migrateSchemeName('dynamic'), 'Violet');
+    expect(migrateSchemeName('Expressive'), 'Tangerine');
+    expect(migrateSchemeName('miku'), 'Teal');
+    expect(migrateSchemeName('asuka'), 'Crimson');
+    expect(migrateSchemeName('Kanade'), 'Lavender');
     // Names that never existed land on the default instead of an empty scheme.
-    expect(migrateSchemeName('Nonsense'), 'Totoro');
-    expect(migrateSchemeName('totoro'), 'Totoro');
+    expect(migrateSchemeName('Nonsense'), 'Azure');
+    // A scheme that kept its name still round-trips with picker casing.
+    expect(migrateSchemeName('monochrome'), 'Monochrome');
   });
 
   test('picking a ported preset actually re-themes the app', () async {
@@ -120,7 +128,7 @@ void main() {
     expect(bundle.darkTheme.colorScheme.primary, expected.primary);
     expect(
       bundle.darkTheme.colorScheme.primary,
-      isNot(colorSchemeFor('totoro', Brightness.dark).primary),
+      isNot(colorSchemeFor('azure', Brightness.dark).primary),
     );
   });
 }

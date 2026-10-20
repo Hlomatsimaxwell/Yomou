@@ -6,19 +6,21 @@ import 'package:shared_preferences/shared_preferences.dart';
 import 'package:yomou/core/security/screenshot_policy.dart';
 import 'package:yomou/core/theme/amoled.dart';
 
-/// Named color schemes matching Kotatsu's preset themes.
+/// Named colour schemes, one per swatch in the appearance picker. Named for
+/// the colour each paints rather than a character, so the label says what the
+/// card looks like before it is tapped.
 enum AppColorScheme {
-  totoro,
-  dynamic,
-  expressive,
-  miku,
+  azure,
+  violet,
+  tangerine,
+  teal,
   monochrome,
-  asuka,
+  crimson,
   sepia,
   cyan,
   emerald,
   amber,
-  kanade,
+  lavender,
   rose,
 }
 
@@ -41,28 +43,28 @@ class SchemePalette {
 }
 
 const Map<AppColorScheme, SchemePalette> schemePalettes = {
-  AppColorScheme.totoro: SchemePalette(
+  AppColorScheme.azure: SchemePalette(
     accent: Color(0xFF4C8DFF),
     accentLight: Color(0xFFA5C8FF),
     accentDark: Color(0xFF2B5CE6),
     surface: Color(0xFF1F2F4D),
     secondary: Color(0xFFA5C8FF),
   ),
-  AppColorScheme.dynamic: SchemePalette(
+  AppColorScheme.violet: SchemePalette(
     accent: Color(0xFF8E5BFF),
     accentLight: Color(0xFFC9B6FF),
     accentDark: Color(0xFF6937E6),
     surface: Color(0xFF251F3D),
     secondary: Color(0xFFC9B6FF),
   ),
-  AppColorScheme.expressive: SchemePalette(
+  AppColorScheme.tangerine: SchemePalette(
     accent: Color(0xFFFF6B35),
     accentLight: Color(0xFFFFB69B),
     accentDark: Color(0xFFE64512),
     surface: Color(0xFF3A2118),
     secondary: Color(0xFFFFB69B),
   ),
-  AppColorScheme.miku: SchemePalette(
+  AppColorScheme.teal: SchemePalette(
     accent: Color(0xFF3FC5B5),
     accentLight: Color(0xFF9DEDE2),
     accentDark: Color(0xFF249C90),
@@ -76,7 +78,7 @@ const Map<AppColorScheme, SchemePalette> schemePalettes = {
     surface: Color(0xFF000000),
     secondary: Color(0xFF666666),
   ),
-  AppColorScheme.asuka: SchemePalette(
+  AppColorScheme.crimson: SchemePalette(
     accent: Color(0xFFE63946),
     accentLight: Color(0xFFFFC9C6),
     accentDark: Color(0xFFC62828),
@@ -111,7 +113,7 @@ const Map<AppColorScheme, SchemePalette> schemePalettes = {
     surface: Color(0xFF33301A),
     secondary: Color(0xFFFFF3B0),
   ),
-  AppColorScheme.kanade: SchemePalette(
+  AppColorScheme.lavender: SchemePalette(
     accent: Color(0xFFA9A9C7),
     accentLight: Color(0xFFDFDFEC),
     accentDark: Color(0xFF8686B0),
@@ -131,7 +133,7 @@ const Map<AppColorScheme, SchemePalette> schemePalettes = {
 SchemePalette paletteForScheme(String name) {
   final scheme = AppColorScheme.values.firstWhere(
     (s) => s.name.toLowerCase() == name.toLowerCase(),
-    orElse: () => AppColorScheme.totoro,
+    orElse: () => AppColorScheme.azure,
   );
   return schemePalettes[scheme]!;
 }
@@ -172,7 +174,7 @@ class AppearanceSettings {
 
   // All requested defaults from spec
   factory AppearanceSettings.defaults() => const AppearanceSettings(
-        colorScheme: 'Totoro',
+        colorScheme: 'Azure',
         themeMode: ThemeMode.system,
         listMode: 'Grid',
         gridSize: 100,
@@ -324,17 +326,26 @@ class AppearanceSettings {
 /// picker stores them.
 String migrateSchemeName(String name) {
   const legacy = {
+    // The five recolored presets...
     'mion': 'Sepia',
     'rikka': 'Cyan',
     'sakura': 'Emerald',
     'mamimi': 'Amber',
     'itsuka': 'Rose',
+    // ...and the six renamed without a recolor, so a name written by any
+    // earlier build still lands on the scheme it used to mean.
+    'totoro': 'Azure',
+    'dynamic': 'Violet',
+    'expressive': 'Tangerine',
+    'miku': 'Teal',
+    'asuka': 'Crimson',
+    'kanade': 'Lavender',
   };
   final lower = name.toLowerCase();
   if (AppColorScheme.values.any((s) => s.name == lower)) {
     return '${lower[0].toUpperCase()}${lower.substring(1)}';
   }
-  return legacy[lower] ?? 'Totoro';
+  return legacy[lower] ?? 'Azure';
 }
 
 class _AppearancePersistence {
@@ -372,7 +383,7 @@ class _AppearancePersistence {
     final themeMode = ThemeMode.values.asNameMap()[themeModeStr] ?? ThemeMode.system;
 
     return AppearanceSettings(
-      colorScheme: migrateSchemeName(p.getString(_colorScheme) ?? 'Totoro'),
+      colorScheme: migrateSchemeName(p.getString(_colorScheme) ?? 'Azure'),
       themeMode: themeMode,
       listMode: p.getString(_listMode) ?? 'Grid',
       gridSize: p.getDouble(_gridSize) ?? 100,
@@ -608,7 +619,7 @@ Color themeSeedFor(String schemeName) {
   try {
     final scheme = AppColorScheme.values.firstWhere(
       (s) => s.name.toLowerCase() == schemeName.toLowerCase(),
-      orElse: () => AppColorScheme.totoro,
+      orElse: () => AppColorScheme.azure,
     );
     return schemePalettes[scheme]!.accent;
   } catch (_) {
@@ -621,7 +632,7 @@ Color? themeSecondaryFor(String schemeName) {
   try {
     final scheme = AppColorScheme.values.firstWhere(
       (s) => s.name.toLowerCase() == schemeName.toLowerCase(),
-      orElse: () => AppColorScheme.totoro,
+      orElse: () => AppColorScheme.azure,
     );
     return schemePalettes[scheme]?.secondary;
   } catch (_) {
