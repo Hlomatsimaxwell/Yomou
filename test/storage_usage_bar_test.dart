@@ -68,6 +68,26 @@ void main() {
               .width,
       ];
 
+  /// How tall each wedge was drawn, left to right.
+  ///
+  /// The other half of a wedge's box: [widths] alone reports a correctly
+  /// proportioned row of wedges that paint nothing, because a wedge is a
+  /// childless [ColoredBox] and one of those takes the smallest size its
+  /// constraints allow.
+  List<double> heights(WidgetTester tester) => [
+        for (var i = 0; i < wedges(tester).length; i++)
+          tester
+              .getSize(
+                find
+                    .descendant(
+                      of: find.byType(StorageUsageBar),
+                      matching: find.byType(ColoredBox),
+                    )
+                    .at(i),
+              )
+              .height,
+      ];
+
   /// The bar's own box: the one [Container] on the screen as tall as the bar.
   /// The legend's dots are [Container]s too, but they are half that.
   Finder track() => find.byWidgetPredicate(
@@ -168,6 +188,39 @@ void main() {
       StorageUsageBar.barHeight,
       StorageUsageBar.barHeight / 2,
     ]);
+  });
+
+  testWidgets('every wedge is drawn as tall as the bar itself', (tester) async {
+    // The bug the floors above could not reach: a wedge is a childless
+    // [ColoredBox], which sizes to the smallest side its constraints allow,
+    // and the Row's centred cross axis leaves that side at a minimum of 0.
+    // Every wedge therefore laid out as a flat line in the middle of the pill
+    // and painted nothing -- the track and its hairline were the whole bar,
+    // whatever the legend underneath it quoted. Widths are only half the
+    // measurement: the wedges have to stand the full height to be seen.
+    await pump(tester, [
+      segment('Saved manga', 40 * mb, StorageUsageBar.savedMangaColor),
+      segment('Pages cache', 40 * mb, StorageUsageBar.pagesCacheColor),
+      segment('Available', 60 * gb, const Color(0xFFE0E0E0)),
+    ]);
+
+    expect(wedges(tester), hasLength(3));
+    expect(heights(tester), [
+      for (var i = 0; i < wedges(tester).length; i++) StorageUsageBar.barHeight,
+    ]);
+    // And they start at the track's own top edge rather than floating in it.
+    final trackTop = tester.getRect(track()).top;
+    final firstTop = tester
+        .getRect(
+          find
+              .descendant(
+                of: find.byType(StorageUsageBar),
+                matching: find.byType(ColoredBox),
+              )
+              .first,
+        )
+        .top;
+    expect(firstTop, trackTop);
   });
 
   testWidgets('a bucket with nothing in it keeps its legend, not a wedge',

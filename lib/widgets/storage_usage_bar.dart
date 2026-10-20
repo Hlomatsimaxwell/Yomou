@@ -127,7 +127,16 @@ class StorageUsageBar extends StatelessWidget {
             child: LayoutBuilder(
               builder: (context, constraints) {
                 if (total <= 0) return const SizedBox.expand();
+                // Wedges are childless ColoredBoxes, and one of those sizes
+                // itself to its constraints' smallest side. The Row's default
+                // cross axis is centred, which leaves the height loose at that
+                // side's minimum -- 0 -- so every wedge laid out flat against
+                // the middle of the pill and painted nothing: the track and its
+                // hairline were all that ever showed, whatever the legend said.
+                // Stretching pins the cross axis to the bar's own height, so
+                // each wedge fills it the way the track already does.
                 return Row(
+                  crossAxisAlignment: CrossAxisAlignment.stretch,
                   children: [
                     for (var i = 0; i < wedges.length; i++)
                       if (i == wedges.length - 1)
