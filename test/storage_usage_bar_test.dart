@@ -43,51 +43,6 @@ void main() {
     );
   }
 
-  /// The wedges across the bar, left to right.
-  List<ColoredBox> wedges(WidgetTester tester) => tester
-      .widgetList<ColoredBox>(
-        find.descendant(
-          of: find.byType(StorageUsageBar),
-          matching: find.byType(ColoredBox),
-        ),
-      )
-      .toList();
-
-  /// How wide each wedge was drawn, left to right.
-  List<double> widths(WidgetTester tester) => [
-        for (var i = 0; i < wedges(tester).length; i++)
-          tester
-              .getSize(
-                find
-                    .descendant(
-                      of: find.byType(StorageUsageBar),
-                      matching: find.byType(ColoredBox),
-                    )
-                    .at(i),
-              )
-              .width,
-      ];
-
-  /// How tall each wedge was drawn, left to right.
-  ///
-  /// The other half of a wedge's box: [widths] alone reports a correctly
-  /// proportioned row of wedges that paint nothing, because a wedge is a
-  /// childless [ColoredBox] and one of those takes the smallest size its
-  /// constraints allow.
-  List<double> heights(WidgetTester tester) => [
-        for (var i = 0; i < wedges(tester).length; i++)
-          tester
-              .getSize(
-                find
-                    .descendant(
-                      of: find.byType(StorageUsageBar),
-                      matching: find.byType(ColoredBox),
-                    )
-                    .at(i),
-              )
-              .height,
-      ];
-
   /// The bar's own box: the one [Container] on the screen as tall as the bar.
   /// The legend's dots are [Container]s too, but they are half that.
   Finder track() => find.byWidgetPredicate(
@@ -100,6 +55,57 @@ void main() {
   Finder dot() => find.byWidgetPredicate(
         (w) => w is Container && w.constraints?.maxHeight == 12,
       );
+
+  /// The wedges across the bar, left to right.
+  ///
+  /// The tree holds them the other way round -- the chip on the left is built
+  /// last so that it paints over its neighbour's rounding -- so this sorts
+  /// them back into the order they are read.
+  List<ColoredBox> wedges(WidgetTester tester) {
+    final found = tester
+        .widgetList<ColoredBox>(
+          find.descendant(
+            of: find.byType(StorageUsageBar),
+            matching: find.byType(ColoredBox),
+          ),
+        )
+        .toList();
+    return found
+      ..sort(
+        (a, b) => tester
+            .getRect(find.byWidget(a))
+            .left
+            .compareTo(tester.getRect(find.byWidget(b)).left),
+      );
+  }
+
+  /// How much of the bar each wedge holds, left to right.
+  ///
+  /// A wedge is drawn as a chip reaching half the bar's height past its own
+  /// share, so its box is wider than the share it reports. The share is where
+  /// the next chip's box begins, and the last one's runs to the track's right
+  /// edge -- the reach past it is clipped by the pill.
+  List<double> shares(WidgetTester tester) {
+    final rects = [
+      for (final wedge in wedges(tester)) tester.getRect(find.byWidget(wedge)),
+    ];
+    return [
+      for (var i = 0; i < rects.length - 1; i++)
+        rects[i + 1].left - rects[i].left,
+      tester.getRect(track()).right - rects.last.left,
+    ];
+  }
+
+  /// How tall each wedge was drawn, left to right.
+  ///
+  /// The other half of a wedge's box: [shares] alone can report a correctly
+  /// proportioned bar whose wedges paint nothing, because a wedge is a
+  /// childless [ColoredBox] and one of those takes the smallest size its
+  /// constraints allow.
+  List<double> heights(WidgetTester tester) => [
+        for (final wedge in wedges(tester))
+          tester.getSize(find.byWidget(wedge)).height,
+      ];
 
   test('the three wedges are the reference\'s hues, not the scheme\'s', () {
     // The reference seeds its wedges with `Color.BLUE`, `Color.GREEN` and
@@ -162,7 +168,7 @@ void main() {
       segment('Available', 60 * gb, const Color(0xFFE0E0E0)),
     ]);
 
-    expect(widths(tester), [
+    expect(shares(tester), [
       closeTo(trackWidth * 0.2, 0.01),
       closeTo(trackWidth * 0.2, 0.01),
       // The last one is the remainder the others leave, and here that is the
@@ -183,7 +189,7 @@ void main() {
       segment('Available', 60 * gb, const Color(0xFFE0E0E0)),
     ]);
 
-    expect(widths(tester).take(2), [
+    expect(shares(tester).take(2), [
       StorageUsageBar.barHeight / 2,
       StorageUsageBar.barHeight / 2,
     ]);
@@ -207,7 +213,7 @@ void main() {
       segment('Available', 320 * gb, const Color(0xFFE0E0E0)),
     ]);
 
-    final drawn = widths(tester);
+    final drawn = shares(tester);
     expect(drawn.first, StorageUsageBar.barHeight / 2);
     expect(drawn[1], StorageUsageBar.barHeight / 2);
     expect(drawn.first, lessThanOrEqualTo(drawn[1]));
@@ -224,18 +230,19 @@ void main() {
       segment('Available', 40 * gb, const Color(0xFFE0E0E0)),
     ]);
 
-    final drawn = widths(tester);
+    final drawn = shares(tester);
     expect(drawn[1], closeTo(3 * drawn.first, 0.01));
   });
 
   testWidgets('every wedge is drawn as tall as the bar itself', (tester) async {
-    // The bug the floors above could not reach: a wedge is a childless
-    // [ColoredBox], which sizes to the smallest side its constraints allow,
-    // and the Row's centred cross axis leaves that side at a minimum of 0.
-    // Every wedge therefore laid out as a flat line in the middle of the pill
-    // and painted nothing -- the track and its hairline were the whole bar,
-    // whatever the legend underneath it quoted. Widths are only half the
-    // measurement: the wedges have to stand the full height to be seen.
+    // The bug the floors above could not reach, and the one the chip drawing
+    // could bring back: a wedge is a childless [ColoredBox], which sizes to
+    // the smallest side its constraints allow. Left loose in height -- as a
+    // centred flex row leaves it -- that side has a minimum of 0, and every
+    // wedge lays out as a flat line in the middle of the pill, painting
+    // nothing: the track and its hairline become the whole bar, whatever the
+    // legend underneath it quotes. Shares are only half the measurement: the
+    // wedges have to stand the full height to be seen.
     await pump(tester, [
       segment('Saved manga', 40 * mb, StorageUsageBar.savedMangaColor),
       segment('Pages cache', 40 * mb, StorageUsageBar.pagesCacheColor),
@@ -248,17 +255,65 @@ void main() {
     ]);
     // And they start at the track's own top edge rather than floating in it.
     final trackTop = tester.getRect(track()).top;
-    final firstTop = tester
-        .getRect(
-          find
-              .descendant(
-                of: find.byType(StorageUsageBar),
-                matching: find.byType(ColoredBox),
-              )
-              .first,
-        )
-        .top;
+    final firstTop = tester.getRect(find.byWidget(wedges(tester).first)).top;
     expect(firstTop, trackTop);
+  });
+
+  testWidgets('each wedge is a chip rounded like the pill it sits in',
+      (tester) async {
+    // The reference draws every segment as a round rect as round as the bar
+    // itself, reaching cornerSize past its own share, in reverse order so the
+    // chip in front fills the rounding behind it. A wedge therefore reads as
+    // a pill of its own tucked under the one before it, rather than as a
+    // slice cut from one strip.
+    await pump(tester, [
+      segment('Saved manga', 20 * gb, StorageUsageBar.savedMangaColor),
+      segment('Pages cache', 60 * gb, StorageUsageBar.pagesCacheColor),
+      segment('Available', 20 * gb, const Color(0xFFE0E0E0)),
+    ]);
+
+    final chips = tester.widgetList<ClipRRect>(
+      find.descendant(
+        of: find.byType(StorageUsageBar),
+        matching: find.byType(ClipRRect),
+      ),
+    );
+    expect(chips, hasLength(3));
+    for (final chip in chips) {
+      expect(
+        chip.borderRadius,
+        BorderRadius.circular(StorageUsageBar.barHeight / 2),
+      );
+    }
+
+    // Each chip reaches half the bar's height into the share behind it, which
+    // is the reach the chip in front is painted over. The last one reaches
+    // past the track's right edge, where the pill's own clip cuts it.
+    final boxes = wedges(tester);
+    final rects = [
+      for (final box in boxes) tester.getRect(find.byWidget(box)),
+    ];
+    for (var i = 0; i < rects.length - 1; i++) {
+      expect(
+        rects[i].right - rects[i + 1].left,
+        closeTo(StorageUsageBar.barHeight / 2, 0.01),
+      );
+    }
+    expect(
+      rects.last.right - tester.getRect(track()).right,
+      closeTo(StorageUsageBar.barHeight / 2, 0.01),
+    );
+
+    // Painted right to left, so the chip on the left is drawn last and lies
+    // over its neighbour's rounding: the stack holds them in reverse order.
+    final stack = tester.widget<Stack>(
+      find.descendant(
+        of: find.byType(StorageUsageBar),
+        matching: find.byType(Stack),
+      ),
+    );
+    expect((stack.children.first as Positioned).left, greaterThan(0));
+    expect((stack.children.last as Positioned).left, 0);
   });
 
   testWidgets('a bucket with nothing in it keeps its legend, not a wedge',

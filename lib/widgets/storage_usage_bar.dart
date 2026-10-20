@@ -32,6 +32,10 @@ Color _referenceHue(double hue) => HSLColor.fromAHSL(1, hue, 0.5, 0.5).toColor()
 /// network screen: one bar cut into proportional wedges, with a legend under
 /// it giving each wedge's size and name.
 ///
+/// Each wedge is drawn as a chip of its own -- a round rect as round as the
+/// pill it sits in, reaching half the bar's height past its share so the chip
+/// in front fills its rounding -- rather than as a slice cut out of one strip.
+///
 /// The three filled wedges take the reference's own colours rather than the
 /// scheme's accents, because the reference's are not the scheme's: they are
 /// hue-derived, and only the fourth -- the container colour the track itself is
@@ -132,30 +136,52 @@ class StorageUsageBar extends StatelessWidget {
             child: LayoutBuilder(
               builder: (context, constraints) {
                 if (total <= 0) return const SizedBox.expand();
-                // Wedges are childless ColoredBoxes, and one of those sizes
-                // itself to its constraints' smallest side. The Row's default
-                // cross axis is centred, which leaves the height loose at that
-                // side's minimum -- 0 -- so every wedge laid out flat against
-                // the middle of the pill and painted nothing: the track and its
-                // hairline were all that ever showed, whatever the legend said.
-                // Stretching pins the cross axis to the bar's own height, so
-                // each wedge fills it the way the track already does.
-                return Row(
-                  crossAxisAlignment: CrossAxisAlignment.stretch,
+                // Where each wedge starts, and how much of the bar it holds:
+                // the share its bytes earn or the floor, with the last one
+                // taking whatever the others leave -- the remainder the pane
+                // hands over last.
+                final shares = <double>[];
+                final offsets = <double>[];
+                var placed = 0.0;
+                for (var i = 0; i < wedges.length; i++) {
+                  final share = i == wedges.length - 1
+                      ? constraints.maxWidth - placed
+                      : _wedgeWidth(
+                          width: constraints.maxWidth,
+                          bytes: wedges[i].bytes,
+                          total: total,
+                        );
+                  offsets.add(placed);
+                  shares.add(share);
+                  placed += share;
+                }
+                // Drawn right to left, the way the reference walks its
+                // segments: each wedge is a round rect reaching half the bar's
+                // height past its own share, and the one on the left is
+                // painted last, so it lies over that reach. The rounding of a
+                // chip is therefore filled with the chip in front of it rather
+                // than with the track, and every wedge reads as a pill of its
+                // own tucked under the one before it. The bar's own pill clips
+                // the ends, so the first chip's left rounding and the last
+                // one's reach are cut to the track.
+                return Stack(
+                  clipBehavior: Clip.none,
                   children: [
-                    for (var i = 0; i < wedges.length; i++)
-                      if (i == wedges.length - 1)
-                        // The remainder, whatever the wedges before it left.
-                        Expanded(child: ColoredBox(color: wedges[i].color))
-                      else
-                        SizedBox(
-                          width: _wedgeWidth(
-                            width: constraints.maxWidth,
-                            bytes: wedges[i].bytes,
-                            total: total,
-                          ),
+                    for (var i = wedges.length - 1; i >= 0; i--)
+                      Positioned(
+                        left: offsets[i],
+                        top: 0,
+                        bottom: 0,
+                        width: shares[i] + barHeight / 2,
+                        // Tight top to bottom: a childless ColoredBox sizes
+                        // itself to the smallest side its constraints allow,
+                        // and this is what holds that side at the bar's own
+                        // height instead of at zero.
+                        child: ClipRRect(
+                          borderRadius: BorderRadius.circular(barHeight / 2),
                           child: ColoredBox(color: wedges[i].color),
                         ),
+                      ),
                   ],
                 );
               },
