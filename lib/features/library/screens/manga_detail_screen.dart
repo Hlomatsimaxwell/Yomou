@@ -2353,6 +2353,16 @@ class _MangaDetailScreenState extends ConsumerState<MangaDetailScreen> {
                       ),
                     ),
                   ),
+                  if (isCurrent)
+                    const Positioned(
+                      left: 4,
+                      top: 4,
+                      child: Icon(
+                        MdiIcons.play,
+                        size: 12,
+                        color: Colors.green,
+                      ),
+                    ),
                   if (downloaded)
                     Positioned(
                       right: 4,
