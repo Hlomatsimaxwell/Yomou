@@ -1263,12 +1263,14 @@ class _MangaDetailScreenState extends ConsumerState<MangaDetailScreen> {
               ),
             ),
           ),
-          SizedBox.expand(
-            child: DraggableScrollableSheet(
-              controller: _sheetController,
-              initialChildSize: _trayCollapsedSize,
-              minChildSize: _trayCollapsedSize,
-              maxChildSize: 1.0,
+          Center(
+            child: Padding(
+              padding: const EdgeInsets.symmetric(horizontal: 20),
+              child: DraggableScrollableSheet(
+                controller: _sheetController,
+                initialChildSize: _trayCollapsedSize,
+                minChildSize: _trayCollapsedSize,
+                maxChildSize: 1.0,
               snap: true,
               // The same list the bar's drag snaps against, so there is one set
               // of resting sizes rather than two that can drift apart. It is
@@ -1326,6 +1328,7 @@ class _MangaDetailScreenState extends ConsumerState<MangaDetailScreen> {
                   ),
                 );
               },
+              ),
             ),
           ),
 
