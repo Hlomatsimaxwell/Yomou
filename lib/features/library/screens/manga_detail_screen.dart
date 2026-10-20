@@ -4564,14 +4564,6 @@ class _SheetHeaderDelegate extends SliverPersistentHeaderDelegate {
         ),
         const SizedBox(width: 2),
         _buildTabIcon(
-          Icons.grid_view,
-          activeTab == 1,
-          dark: dark,
-          scheme: scheme,
-          onTap: () => onTabSelected(1),
-        ),
-        const SizedBox(width: 2),
-        _buildTabIcon(
           Icons.image,
           activeTab == 1,
           dark: dark,
