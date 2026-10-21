@@ -1703,11 +1703,23 @@ class _MangaDetailScreenState extends ConsumerState<MangaDetailScreen> {
   /// surface rather than a bar of their own. Its *bottom sheet* form -- the drag
   /// handle -- is the phone tray's, and the phone tray keeps it.
   ///
-  /// The button folds the pane rather than closing it. The reference's close
-  /// hides its sheet outright because that sheet is an overlay with somewhere to
-  /// hide to; this one is a pane holding half the window, so it rolls up to the
-  /// bar instead and the same button brings it back. Nothing is lost either way:
-  /// the tabs, the read action and the list all return exactly as they were.
+  /// The reference's title is set in `?attr/textAppearanceBodyLarge`, which its
+  /// base theme does not override (the Google Sans override lives in the
+  /// *Expressive* overlay), so it resolves to Material's own body-large: 16sp on
+  /// a 24sp line, weight 400, 0.5 letter spacing. Sizing a plain `TextStyle` to
+  /// 16 alone lost the other three, and the 500 weight it used to carry made the
+  /// title read as a heading rather than as the reference's plain body-large.
+  ///
+  /// The button is the reference's close: a fixed `?actionModeCloseDrawable`
+  /// glyph, 16dp of padding around it, an 8dp gap off the card's end edge, and a
+  /// borderless ripple rather than a filled icon button. It tint is
+  /// `?colorControlActivated`, which is the theme's primary.
+  ///
+  /// It folds the pane rather than closing it, because the reference's close
+  /// hides a sheet that is an overlay with somewhere to hide to, and this is a
+  /// pane holding half the window. The bar is the pane's one resting place, so
+  /// that is where the fold goes; the same button brings it back, with the tabs,
+  /// the read action and the list exactly as they were.
   Widget _buildWidePaneTitleBar(
     BuildContext context, {
     required bool dark,
@@ -1715,8 +1727,9 @@ class _MangaDetailScreenState extends ConsumerState<MangaDetailScreen> {
   }) {
     final l = AppLocalizations.of(context);
     return Padding(
-      // The reference's side-sheet bar pads 8dp vertically and puts 16dp
-      // between the title and the card edge.
+      // The reference's side-sheet bar is `paddingVertical 8dp`; the 16dp that
+      // sets the title off the card edge is the title's own `marginStart`, and
+      // the 8dp on the other side is the button's `marginEnd`.
       padding: const EdgeInsets.symmetric(vertical: 8),
       child: Row(
         children: [
@@ -1727,23 +1740,39 @@ class _MangaDetailScreenState extends ConsumerState<MangaDetailScreen> {
               // bar with. It is the pane's, not the tab's: the tabs below it say
               // which list is showing, and this says what the whole card is.
               l.detailTabChapters,
+              maxLines: 1,
+              overflow: TextOverflow.ellipsis,
               style: TextStyle(
-                color: dark ? Colors.white : const Color(0xFF1C1B1F),
+                // `textAppearanceBodyLarge` leaves the colour to the theme, so
+                // this is `textColorPrimary` rather than a picked hex.
+                color: scheme.onSurface,
                 fontSize: 16,
-                fontWeight: FontWeight.w500,
+                height: 24 / 16,
+                fontWeight: FontWeight.w400,
+                letterSpacing: 0.5,
               ),
             ),
           ),
-          IconButton(
-            // The reference tints this with `colorControlActivated`, which is
-            // the theme's primary -- the one glyph on the bar that is an action
-            // rather than a label.
-            icon: Icon(
-              _wideTrayFolded ? MdiIcons.chevronLeft : MdiIcons.close,
-              color: scheme.primary,
+          // A borderless ripple, as the reference's
+          // `selectableItemBackgroundBorderless` is, rather than the filled
+          // splash an `IconButton` draws.
+          InkResponse(
+            onTap: () => setState(() => _wideTrayFolded = !_wideTrayFolded),
+            radius: 28,
+            child: Padding(
+              // The reference's own 16dp, which is what makes the target the
+              // size it is around the glyph.
+              padding: const EdgeInsets.all(16),
+              child: Icon(
+                // The reference shows one glyph and never changes it. Folding
+                // is this app's, not the reference's, so the glyph only turns
+                // around when there is something to reopen -- the same control,
+                // pointing the other way.
+                _wideTrayFolded ? MdiIcons.chevronLeft : MdiIcons.close,
+                color: scheme.primary,
+                size: 24,
+              ),
             ),
-            tooltip: _wideTrayFolded ? l.chapters : l.close,
-            onPressed: () => setState(() => _wideTrayFolded = !_wideTrayFolded),
           ),
           const SizedBox(width: 8),
         ],
@@ -1944,6 +1973,14 @@ class _MangaDetailScreenState extends ConsumerState<MangaDetailScreen> {
                             ? FontWeight.normal
                             : FontWeight.w700,
                         fontSize: _kChapterTitleSize,
+                        // `?attr/textAppearanceBodyLarge`'s line and tracking.
+                        // The face is this app's own -- an unread row is set
+                        // bold here, where the reference leaves it regular and
+                        // leans on colour alone -- but the metrics around it are
+                        // the appearance's, so the row boxes to the same height
+                        // the reference's does.
+                        height: 24 / 16,
+                        letterSpacing: 0.5,
                       ),
                     ),
                   ),
@@ -1970,6 +2007,12 @@ class _MangaDetailScreenState extends ConsumerState<MangaDetailScreen> {
                   // whisper rather than a strain.
                   color: scheme.onSurface.withValues(alpha: 0.45),
                   fontSize: _kChapterSupportingSize,
+                  // `?attr/textAppearanceBodySmall`: 12sp on a 16sp line, with
+                  // its own tracking. The line height is what keeps the pair
+                  // from collapsing into each other at this size.
+                  height: 16 / 12,
+                  fontWeight: FontWeight.w400,
+                  letterSpacing: 0.4,
                 ),
               ),
               trailing: Row(
@@ -2590,8 +2633,16 @@ class _MangaDetailScreenState extends ConsumerState<MangaDetailScreen> {
                       overflow: TextOverflow.ellipsis,
                       style: TextStyle(
                         color: textColor,
-                        fontWeight: isCurrent ? FontWeight.w700 : FontWeight.w600,
-                        fontSize: 13,
+                        // `?attr/textAppearanceTitleMedium`: 16sp on a 24sp line,
+                        // weight 500, 0.15 tracking. The tile is only 80dp wide,
+                        // so this is the size the reference sets its number at
+                        // inside it -- and the weight stays at the appearance's
+                        // 500 either way, with the current chapter marked by its
+                        // colour rather than by going a step bolder.
+                        fontWeight: FontWeight.w500,
+                        fontSize: 16,
+                        height: 24 / 16,
+                        letterSpacing: 0.15,
                       ),
                     ),
                   ),
