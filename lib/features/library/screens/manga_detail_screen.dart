@@ -91,6 +91,76 @@ const double _kTrayHalfSize = 0.5;
 /// out of the bar.
 const double _kTrayLipTrim = 10;
 
+/// The corner radius of a chapter grid tile.
+///
+/// Kotatsu-Redo draws its grid tile as `Widget.Kotatsu.Details.ChapterGridCard`,
+/// which is `Widget.Material3.CardView.Outlined` with nothing overridden on top
+/// of it. That style is what names the radius: Material3's outlined card rounds
+/// at 12dp, and the reference's own installed build measures out at the same
+/// place. It is deliberately not the 20dp of the reference's *Expressive* card,
+/// which is a different, opt-in theme -- the reference's default theme is the
+/// one this follows.
+const double _kChapterGridCorner = 12;
+
+/// How thick a chapter grid tile's outline is drawn.
+///
+/// `Widget.Material3.CardView.Outlined` strokes at the Material3 card width,
+/// which is a hairline. As a plain `double` rather than a `BorderSide` so the
+/// callers can pick the colour the tile's own state calls for.
+const double _kChapterGridStroke = 1;
+
+/// The gap between chapter grid tiles, in both axes.
+///
+/// The reference's grid cells carry no margin of their own under its default
+/// theme -- the `8dp`/`3dp` insets belong to the Expressive variant -- so the
+/// spacing is the grid's and this is the number the reference's grid_layout
+/// uses, the same one its cover grids do.
+const double _kChapterGridGap = 8;
+
+/// The width of a chapter grid tile, from the reference's `chapter_grid_width`.
+///
+/// Kotatsu-Redo's grid span helper divides the pane by this figure to decide how
+/// many cells fit, so a tile is exactly this wide wherever the grid lands. Here
+/// it is the maximum extent, which lays out the same way in a pane of any width.
+const double _kChapterGridWidth = 80;
+
+/// The top/bottom/end margins around the wide layout's chapters card, in dp.
+///
+/// Kotatsu-Redo's side tray is not a bare pane: it is `card_chapters`, a
+/// `MaterialCardView` inset from the window by `grid_spacing_outer` at the top
+/// and `side_card_offset` at the right and bottom. Those two figures are 2dp and
+/// 8dp, and they are what lift the card off the window edges and let its rounded
+/// corners read.
+const double _kSideCardOffset = 8;
+const double _kSideCardTopInset = 2;
+
+/// The widest the detail column may grow on a wide window.
+///
+/// The reference holds its own wide header column to `width_percent 0.5` and
+/// `width_max 420dp` at the same time -- half the window, but never more than
+/// 420dp -- so on a very wide display the details stop stretching and the
+/// chapters card takes the rest. Both figures are the reference's.
+const double _kDetailColumnMaxWidth = 420;
+const double _kDetailColumnWidthPercent = 0.5;
+
+/// The shortest a chapter row may be, from the reference's item height.
+///
+/// Kotatsu-Redo's `chapter_list_item_height` is 48dp, and its row is a title
+/// over one line of metadata inside it. A short title still gets the full 48
+/// rather than collapsing to its text, which is what keeps a list of one-word
+/// chapters from reading as a ragged stack.
+const double _kChapterRowHeight = 48;
+
+/// The two sizes a chapter row is set in, from the reference's text appearances.
+///
+/// `detailsChapterTitleTextAppearance` is `?attr/textAppearanceBodyLarge` -- 16sp
+/// -- and the supporting line under it is `?attr/textAppearanceBodySmall` -- 12sp.
+/// The pair is what gives the row its shape: a title big enough to be the thing
+/// the eye lands on, and a single quiet line beneath it that stays legible when
+/// it is greyed back for a read chapter.
+const double _kChapterTitleSize = 16;
+const double _kChapterSupportingSize = 12;
+
 /// The bottom safe-area inset, raised to at least [kBottomChromeClearance].
 ///
 /// Some gesture-nav skins (notably EMUI) paint a translucent swipe strip over
@@ -267,6 +337,16 @@ class _MangaDetailScreenState extends ConsumerState<MangaDetailScreen> {
   bool _widePaneScrollListening = false;
   bool _trayScrollListening = false;
   bool _trayAtBottom = false;
+
+  // Whether the wide layout's chapters card is rolled up to its title bar.
+  //
+  // The tray on a phone has extent to drag and states to rest in; this card has
+  // neither -- it is a pane with a fixed width and the window's full height --
+  // so it has no collapsed *size* to travel to. What it can do instead is fold
+  // away to its own header, which is the same gesture the reference's close
+  // button makes: its side sheet dismisses to HIDDEN, and this is the one
+  // resting place a fixed pane has that still leaves the control visible.
+  bool _wideTrayFolded = false;
 
   // Where the tray bar's drag started. Null whenever no drag is in progress,
   // which is also how the drag callbacks know to ignore a stray update.
@@ -1447,13 +1527,30 @@ class _MangaDetailScreenState extends ConsumerState<MangaDetailScreen> {
   /// The tray does not exist here. There is nothing to drag and nothing to
   /// expand, so the header drops its handle and chevron and keeps the tabs,
   /// Continue pill, order toggle and selection mode that lived in the tray.
+  ///
+  /// The two halves are not an even split and are not meant to be. Kotatsu-Redo
+  /// pins its own wide header column to `width_percent 0.5` with a `width_max`
+  /// of 420dp, and everything the column does not take is the chapters card;
+  /// the details stop stretching once they reach 420dp and the list gets the
+  /// rest. Keeping that rule rather than an even `flex` split is what stops a
+  /// wide window from turning into two equally-wide columns with the details
+  /// spread across half of it.
   Widget _buildWideLayout(BuildContext context) {
     final dark = Theme.of(context).brightness == Brightness.dark;
+    final scheme = Theme.of(context).colorScheme;
+    final width = MediaQuery.sizeOf(context).width;
+    final detailWidth = (width * _kDetailColumnWidthPercent).clamp(
+      0.0,
+      _kDetailColumnMaxWidth,
+    );
     return Row(
       crossAxisAlignment: CrossAxisAlignment.stretch,
       children: [
-        Expanded(
-          flex: 5,
+        // The reference's own half-rule, as a fixed width rather than a flex:
+        // the detail column is half the window until its own cap bites, and the
+        // chapters card takes whatever is left.
+        SizedBox(
+          width: detailWidth,
           child: SingleChildScrollView(
             // Distinct from the tray: the bottom inset here is only the safe
             // area, because there is no bar to clear.
@@ -1501,64 +1598,156 @@ class _MangaDetailScreenState extends ConsumerState<MangaDetailScreen> {
             ),
           ),
         ),
-        // A hairline rather than a wide divider: it has to read as a pane
-        // boundary without pulling attention from the covers.
-        VerticalDivider(
-          width: 1,
-          thickness: 1,
-          color: dark ? Colors.white12 : Colors.black12,
-        ),
+        // The tray is not a bare pane beside the details: the reference wraps
+        // the whole chapters sheet in `card_chapters`, a card inset from the
+        // window by 2dp at the top and 8dp at the right and bottom. The card is
+        // what makes the list read as a panel sitting on the page rather than a
+        // second page of its own, and it is why the two halves need no divider
+        // between them -- the card's own edge and shadow draw that boundary.
         Expanded(
-          flex: 6,
-          child: Stack(
-            children: [
-              CustomScrollView(
-                controller: _buildWidePaneController(),
-                slivers: [
-                  SliverPersistentHeader(
-                    pinned: true,
-                    delegate: _buildSheetHeaderDelegate(docked: true),
-                  ),
-                  if (_batchQueued > 0 || _activeJob != null)
-                    SliverToBoxAdapter(
-                      child: DownloadBatchBanner(
-                        job: _activeJob,
-                        pendingCount: _batchQueued,
-                        onPause: _toggleJobPause,
-                        onCancel: _cancelJob,
+          child: Padding(
+            padding: EdgeInsets.only(
+              top: _kSideCardTopInset,
+              right: _kSideCardOffset,
+              bottom: _kSideCardOffset,
+            ),
+            child: Material(
+              color: dark ? amoled(context, 0xFF1E1E20) : scheme.surfaceContainerLow,
+              // The reference's `card_chapters` is a plain Material3 card, which
+              // is the elevated one: a 1dp lift over the page, a rounded corner,
+              // and no stroke. The lift is what gives it a soft edge against the
+              // backdrop art behind it.
+              elevation: 1,
+              borderRadius: BorderRadius.circular(_kChapterGridCorner),
+              clipBehavior: Clip.antiAlias,
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.stretch,
+                children: [
+                  // The reference's side-sheet header bar: a title on the left
+                  // and a close button on the right, above the tray's own
+                  // controls. On a phone the sheet is dragged and its handle
+                  // does the work, but a docked pane has nothing to drag -- the
+                  // title is what names the pane and the button is the way back
+                  // out of it. Both are the reference's: `?attr/textAppearance
+                  // BodyLarge` at 16dp from the edge, and a tinted close glyph
+                  // at 8dp from the other.
+                  _buildWidePaneTitleBar(context, dark: dark, scheme: scheme),
+                  if (!_wideTrayFolded)
+                    Expanded(
+                      child: Stack(
+                        children: [
+                          CustomScrollView(
+                            controller: _buildWidePaneController(),
+                            slivers: [
+                              SliverPersistentHeader(
+                                pinned: true,
+                                delegate: _buildSheetHeaderDelegate(docked: true),
+                              ),
+                              if (_batchQueued > 0 || _activeJob != null)
+                                SliverToBoxAdapter(
+                                  child: DownloadBatchBanner(
+                                    job: _activeJob,
+                                    pendingCount: _batchQueued,
+                                    onPause: _toggleJobPause,
+                                    onCancel: _cancelJob,
+                                  ),
+                                ),
+                              if (_activeTab == 0)
+                                _chaptersGridView
+                                    ? _buildChapterGridSliver()
+                                    : _buildChapterListSliver()
+                              else if (_activeTab == 1)
+                                _buildPagesGridSliver()
+                              else
+                                _buildBookmarksSliver(),
+                            ],
+                          ),
+
+                          // Live whenever the list is actually long enough to need
+                          // it. The tray version also fades this in only at full
+                          // screen; a pane has the full height from the start, so
+                          // there is no state to wait for -- but the length check
+                          // still applies, or a three-chapter manga would show a
+                          // button that cannot do anything. Sat at 16dp it read as
+                          // pinned to the pane's bottom edge alongside the safe
+                          // area; lifted to 40 it floats over the last rows
+                          // instead.
+                          if (_trayCanScroll && !_selectionMode)
+                            Positioned(
+                              right: 14,
+                              bottom: 40 + _bottomClearance(context),
+                              child: _TrayJumpButton(
+                                atBottom: _trayAtBottom,
+                                onTap: _trayAtBottom
+                                    ? _jumpTrayToTop
+                                    : _jumpTrayToBottom,
+                              ),
+                            ),
+                        ],
                       ),
                     ),
-                  if (_activeTab == 0)
-                    _chaptersGridView
-                        ? _buildChapterGridSliver()
-                        : _buildChapterListSliver()
-                  else if (_activeTab == 1)
-                    _buildPagesGridSliver()
-                  else
-                    _buildBookmarksSliver(),
                 ],
               ),
-
-              // Live whenever the list is actually long enough to need it. The
-              // tray version also fades this in only at full screen; a pane has
-              // the full height from the start, so there is no state to wait
-              // for -- but the length check still applies, or a three-chapter
-              // manga would show a button that cannot do anything. Sat at 16dp
-              // it read as pinned to the pane's bottom edge alongside the safe
-              // area; lifted to 40 it floats over the last rows instead.
-              if (_trayCanScroll && !_selectionMode)
-                Positioned(
-                  right: 14,
-                  bottom: 40 + _bottomClearance(context),
-                  child: _TrayJumpButton(
-                    atBottom: _trayAtBottom,
-                    onTap: _trayAtBottom ? _jumpTrayToTop : _jumpTrayToBottom,
-                  ),
-                ),
-            ],
+            ),
           ),
         ),
       ],
+    );
+  }
+
+  /// The wide card's own title bar: "Chapters" and the fold control.
+  ///
+  /// This is the reference's `AdaptiveSheetHeaderBar` in its *side sheet* form,
+  /// which is the one the wide layout gets: a `BodyLarge` title at 16dp from the
+  /// start edge, and a close button at 8dp from the end, both on the card's own
+  /// surface rather than a bar of their own. Its *bottom sheet* form -- the drag
+  /// handle -- is the phone tray's, and the phone tray keeps it.
+  ///
+  /// The button folds the pane rather than closing it. The reference's close
+  /// hides its sheet outright because that sheet is an overlay with somewhere to
+  /// hide to; this one is a pane holding half the window, so it rolls up to the
+  /// bar instead and the same button brings it back. Nothing is lost either way:
+  /// the tabs, the read action and the list all return exactly as they were.
+  Widget _buildWidePaneTitleBar(
+    BuildContext context, {
+    required bool dark,
+    required ColorScheme scheme,
+  }) {
+    final l = AppLocalizations.of(context);
+    return Padding(
+      // The reference's side-sheet bar pads 8dp vertically and puts 16dp
+      // between the title and the card edge.
+      padding: const EdgeInsets.symmetric(vertical: 8),
+      child: Row(
+        children: [
+          const SizedBox(width: 16),
+          Expanded(
+            child: Text(
+              // The tray's name, and the same string the reference titles the
+              // bar with. It is the pane's, not the tab's: the tabs below it say
+              // which list is showing, and this says what the whole card is.
+              l.detailTabChapters,
+              style: TextStyle(
+                color: dark ? Colors.white : const Color(0xFF1C1B1F),
+                fontSize: 16,
+                fontWeight: FontWeight.w500,
+              ),
+            ),
+          ),
+          IconButton(
+            // The reference tints this with `colorControlActivated`, which is
+            // the theme's primary -- the one glyph on the bar that is an action
+            // rather than a label.
+            icon: Icon(
+              _wideTrayFolded ? MdiIcons.chevronLeft : MdiIcons.close,
+              color: scheme.primary,
+            ),
+            tooltip: _wideTrayFolded ? l.chapters : l.close,
+            onPressed: () => setState(() => _wideTrayFolded = !_wideTrayFolded),
+          ),
+          const SizedBox(width: 8),
+        ],
+      ),
     );
   }
 
@@ -1660,7 +1849,12 @@ class _MangaDetailScreenState extends ConsumerState<MangaDetailScreen> {
     }
 
     return SliverPadding(
-      padding: EdgeInsets.fromLTRB(8, 0, 8, 16 + _bottomClearance(context)),
+      // No horizontal inset of its own: the reference's chapter rows carry
+      // none under its default theme, and the 16dp that sets the text off the
+      // card edge is the row's own `listPreferredItemPadding`, not the list's.
+      // An outer inset here as well would push the text in twice and leave the
+      // row's ripple and any selection border floating short of the edge.
+      padding: EdgeInsets.only(bottom: 16 + _bottomClearance(context)),
       sliver: SliverList(
         delegate: SliverChildBuilderDelegate((context, index) {
           final originalIndex = searched[index];
@@ -1675,145 +1869,154 @@ class _MangaDetailScreenState extends ConsumerState<MangaDetailScreen> {
           // metadata under it, so it has to be as strong as the surface allows.
           final titleBase = dark ? Colors.white : scheme.onSurface;
 
-          return ListTile(
+          return ConstrainedBox(
             key: ValueKey(ch.id),
-            // A chapter row is a title with one line of metadata under it.
-            // Dense because the default tile keeps a min height that pads the
-            // pair out well past what two short lines need -- the reference's
-            // chapter rows are a tight 48dp, and the tray reads as one block
-            // rather than a stack of cards at that density. The type is set
-            // explicitly below, so dense tightens the box without shrinking
-            // the text.
-            dense: true,
-            contentPadding: const EdgeInsets.symmetric(vertical: 2, horizontal: 8),
-            shape: isSelected
-                ? RoundedRectangleBorder(
-                    borderRadius: BorderRadius.circular(12),
-                    side: BorderSide(
-                      color: dark ? Colors.white : const Color(0xFF334155),
-                      width: 1.5,
-                    ),
-                  )
-                : null,
-            tileColor: isSelected
-                ? (dark ? amoled(context, 0xFF2C2C2C) : const Color(0xFFE2E8F0))
-                : null,
-            title: Row(
-              children: [
-                if (isCurrent)
-                  Padding(
-                    padding: const EdgeInsets.only(right: 8),
-                    child: Icon(
-                      MdiIcons.play,
-                      color: Colors.green,
-                      size: 20,
-                    ),
-                  ),
-                Expanded(
-                  child: Text(
-                    mangaDetailChapterLabel(
-                      l: l,
-                      chapterNumber: ch.chapterNumber,
-                      title: ch.title,
-                    ),
-                    maxLines: 1,
-                    overflow: TextOverflow.ellipsis,
-                    style: TextStyle(
-                      color: isCurrent
-                          ? Colors.green
-                          : (isRead
-                                ? titleBase.withValues(alpha: 0.45)
-                                : titleBase),
-                      // A read row has to recede, not just dim. The reference
-                      // sets its title and description at the same hint
-                      // colour in a normal face so the eye slips past the
-                      // whole row to the first unread chapter -- three-
-                      // quarters white at full bold was too close to live to
-                      // notice. Both lines land on the metadata's quiet here,
-                      // which is the same flattening.
-                      fontWeight: isRead && !isCurrent
-                          ? FontWeight.normal
-                          : FontWeight.w700,
-                      fontSize: 15,
-                    ),
-                  ),
-                ),
-              ],
-            ),
-            subtitle: Text(
-              () {
-                final metadata = _chapterMetadataSubtitle(ch);
-                if (metadata.isNotEmpty) return metadata;
-                final l = AppLocalizations.of(context);
-                if (isRead && downloaded) {
-                  return l.chapterStatusReadDownloaded;
-                }
-                if (isRead) return l.chapterStatusRead;
-                if (downloaded) return l.chapterStatusDownloaded;
-                return '';
-              }(),
-              style: TextStyle(
-                // The row's supporting line, and it has to stay clearly under
-                // the chapter number: the number is the only thing the eye
-                // should land on, so this is deliberately a step down in both
-                // weight and colour. Not *lighter* than this, though -- at
-                // 10.5px a very faint grey stops being quiet and starts being
-                // unreadable, which is a different thing, and the reference's
-                // ghosted date gets away with its low contrast by being set
-                // several points larger. Around 45% of the title's colour is
-                // about as quiet as this can go and still read as a date.
-                color: Theme.of(
-                  context,
-                ).colorScheme.onSurface.withValues(alpha: 0.45),
-                fontSize: 10.5,
+            // The reference's chapter row is at least 48dp whatever its title
+            // costs, so a column of one-word chapters still lines up instead of
+            // collapsing to the text and going ragged.
+            constraints: const BoxConstraints(minHeight: _kChapterRowHeight),
+            child: ListTile(
+              // A chapter row is a title with one line of metadata under it.
+              // Dense because the default tile keeps a min height that pads the
+              // pair out well past what two short lines need -- the reference's
+              // chapter rows are a tight 48dp, and the tray reads as one block
+              // rather than a stack of cards at that density. The type is set
+              // explicitly below, so dense tightens the box without shrinking
+              // the text.
+              dense: true,
+              // The reference's `listPreferredItemPaddingStart`/`End`, which is
+              // what sets the title and its supporting line off the card edge.
+              contentPadding: const EdgeInsets.symmetric(
+                vertical: 2,
+                horizontal: 16,
               ),
-            ),
-            trailing: Row(
-              mainAxisSize: MainAxisSize.min,
-              children: [
-                if (downloaded)
-                  Padding(
-                    padding: const EdgeInsets.only(right: 10),
-                    child: Icon(
-                      MdiIcons.sd,
-                      color: dark ? Colors.white70 : const Color(0xFF49454F),
-                      size: 18,
+              // The reference's default theme draws its chapter list item as a
+              // transparent card with no corner and no stroke, so the row has
+              // no card of its own to fall back on: the only state the surface
+              // has to carry is the one the reader picked, and that is what the
+              // border and tint below are for.
+              shape: isSelected
+                  ? RoundedRectangleBorder(
+                      borderRadius: BorderRadius.circular(_kChapterGridCorner),
+                      side: BorderSide(
+                        color: dark ? Colors.white : const Color(0xFF334155),
+                        width: 1.5,
+                      ),
+                    )
+                  : null,
+              tileColor: isSelected
+                  ? (dark ? amoled(context, 0xFF2C2C2C) : const Color(0xFFE2E8F0))
+                  : null,
+              title: Row(
+                children: [
+                  if (isCurrent)
+                    Padding(
+                      padding: const EdgeInsets.only(right: 8),
+                      child: Icon(
+                        MdiIcons.play,
+                        color: Colors.green,
+                        size: 20,
+                      ),
                     ),
-                  ),
-                if (isSelected)
-                  Icon(
-                    MdiIcons.checkboxBlankCircle,
-                    color: dark
-                        ? Colors.white
-                        : Theme.of(context).colorScheme.primary,
-                    size: 18,
-                  )
-                else if (_jobChapterState(ch.id) != ChapterJobState.none)
-                  Padding(
-                    padding: const EdgeInsets.only(right: 8),
-                    child: SizedBox(
-                      width: 20,
-                      height: 20,
-                      child: ChapterJobIndicator(
-                        state: _jobChapterState(ch.id),
-                        isDark: dark,
+                  Expanded(
+                    child: Text(
+                      mangaDetailChapterLabel(
+                        l: l,
+                        chapterNumber: ch.chapterNumber,
+                        title: ch.title,
+                      ),
+                      maxLines: 1,
+                      overflow: TextOverflow.ellipsis,
+                      style: TextStyle(
+                        color: isCurrent
+                            ? Colors.green
+                            : (isRead
+                                  ? titleBase.withValues(alpha: 0.45)
+                                  : titleBase),
+                        // A read row has to recede, not just dim. The reference
+                        // sets its title and description at the same hint
+                        // colour in a normal face so the eye slips past the
+                        // whole row to the first unread chapter -- three-
+                        // quarters white at full bold was too close to live to
+                        // notice. Both lines land on the metadata's quiet here,
+                        // which is the same flattening.
+                        fontWeight: isRead && !isCurrent
+                            ? FontWeight.normal
+                            : FontWeight.w700,
+                        fontSize: _kChapterTitleSize,
                       ),
                     ),
                   ),
-              ],
+                ],
+              ),
+              subtitle: Text(
+                () {
+                  final metadata = _chapterMetadataSubtitle(ch);
+                  if (metadata.isNotEmpty) return metadata;
+                  final l = AppLocalizations.of(context);
+                  if (isRead && downloaded) {
+                    return l.chapterStatusReadDownloaded;
+                  }
+                  if (isRead) return l.chapterStatusRead;
+                  if (downloaded) return l.chapterStatusDownloaded;
+                  return '';
+                }(),
+                style: TextStyle(
+                  // The row's supporting line, and it has to stay clearly under
+                  // the chapter number: the number is the only thing the eye
+                  // should land on, so this is deliberately a step down in both
+                  // weight and colour. The reference sets it a full 4sp under
+                  // its title, which is what lets the low contrast stay a
+                  // whisper rather than a strain.
+                  color: scheme.onSurface.withValues(alpha: 0.45),
+                  fontSize: _kChapterSupportingSize,
+                ),
+              ),
+              trailing: Row(
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  if (downloaded)
+                    Padding(
+                      padding: const EdgeInsets.only(right: 10),
+                      child: Icon(
+                        MdiIcons.sd,
+                        color: dark ? Colors.white70 : const Color(0xFF49454F),
+                        size: 18,
+                      ),
+                    ),
+                  if (isSelected)
+                    Icon(
+                      MdiIcons.checkboxBlankCircle,
+                      color: dark ? Colors.white : scheme.primary,
+                      size: 18,
+                    )
+                  else if (_jobChapterState(ch.id) != ChapterJobState.none)
+                    Padding(
+                      padding: const EdgeInsets.only(right: 8),
+                      child: SizedBox(
+                        width: 20,
+                        height: 20,
+                        child: ChapterJobIndicator(
+                          state: _jobChapterState(ch.id),
+                          isDark: dark,
+                        ),
+                      ),
+                    ),
+                ],
+              ),
+              onTap: () {
+                if (_selectionMode) {
+                  _toggleSelection(ch.id);
+                } else {
+                  _openReader(
+                    chapterIndex: !searched.contains(originalIndex)
+                        ? originalIndex
+                        : _chapters.indexOf(_chapters[originalIndex]),
+                  );
+                }
+              },
+              onLongPress: () => _enterSelection(ch.id),
             ),
-            onTap: () {
-              if (_selectionMode) {
-                _toggleSelection(ch.id);
-              } else {
-                _openReader(
-                  chapterIndex: !searched.contains(originalIndex)
-                      ? originalIndex
-                      : _chapters.indexOf(_chapters[originalIndex]),
-                );
-              }
-            },
-            onLongPress: () => _enterSelection(ch.id),
           );
         }, childCount: searched.length),
       ),
@@ -2297,12 +2500,17 @@ class _MangaDetailScreenState extends ConsumerState<MangaDetailScreen> {
     final current = _currentDisplayIndex;
 
     return SliverPadding(
-      padding: EdgeInsets.fromLTRB(8, 8, 8, 16 + _bottomClearance(context)),
+      padding: EdgeInsets.fromLTRB(
+        _kChapterGridGap,
+        _kChapterGridGap,
+        _kChapterGridGap,
+        16 + _bottomClearance(context),
+      ),
       sliver: SliverGrid(
         gridDelegate: SliverGridDelegateWithMaxCrossAxisExtent(
-          maxCrossAxisExtent: 80,
-          mainAxisSpacing: 8,
-          crossAxisSpacing: 8,
+          maxCrossAxisExtent: _kChapterGridWidth,
+          mainAxisSpacing: _kChapterGridGap,
+          crossAxisSpacing: _kChapterGridGap,
           childAspectRatio: 1.0,
         ),
         delegate: SliverChildBuilderDelegate((context, index) {
@@ -2312,14 +2520,45 @@ class _MangaDetailScreenState extends ConsumerState<MangaDetailScreen> {
           final isCurrent = originalIndex == current;
           final downloaded = downloadedChapterIds.contains(ch.id);
           final label = ch.chapterNumber.isNotEmpty ? ch.chapterNumber : '${originalIndex + 1}';
+          // Every tile is the reference's outlined grid card: a surface panel
+          // with a hairline outline around it. The reference's default theme
+          // gives `ChapterGridCard` this look -- `CardView.Outlined`, nothing
+          // overridden -- and its own build renders exactly that: a 2px band of
+          // `colorOutline` at the tile edge, a 12dp corner, and a surface fill.
+          // Its *Expressive* theme is the one that swaps this for a filled,
+          // borderless 20dp card; that theme is opt-in, so this follows the
+          // default.
+          //
+          // The fill is the page's own surface rather than a tint of it, so the
+          // read and current states ride on top as a wash -- blending with the
+          // surface keeps the tile a surface whatever state it is in, instead
+          // of turning it into a flat colour block.
+          final surface = scheme.surface;
           final bg = isCurrent
-              ? Colors.green.withValues(alpha: dark ? 0.25 : 0.18)
+              ? Color.alphaBlend(
+                  Colors.green.withValues(alpha: dark ? 0.25 : 0.18),
+                  surface,
+                )
               : isRead
-                  ? (dark ? Colors.white.withValues(alpha: 0.06) : Colors.black.withValues(alpha: 0.04))
-                  : (dark ? Colors.white.withValues(alpha: 0.08) : Colors.black.withValues(alpha: 0.06));
-          final borderSide = isCurrent
-              ? const BorderSide(color: Colors.green, width: 1.5)
-              : BorderSide(color: dark ? Colors.white24 : Colors.black12);
+                  ? Color.alphaBlend(
+                      (dark ? Colors.white : Colors.black).withValues(
+                        alpha: dark ? 0.06 : 0.04,
+                      ),
+                      surface,
+                    )
+                  : surface;
+          // The outline is the card's, so it is drawn in every state; only its
+          // colour changes, to mark the tile the reader is on and the ones they
+          // have picked. A chosen tile gets the primary colour and the current
+          // one green, both heavier than the resting hairline.
+          final outlineColor = isCurrent
+              ? Colors.green
+              : _selectedIds.contains(ch.id)
+                  ? (dark ? Colors.white : scheme.primary)
+                  : scheme.outlineVariant;
+          final strokeWidth = (isCurrent || _selectedIds.contains(ch.id))
+              ? 1.5
+              : _kChapterGridStroke;
           final textColor = isCurrent
               ? Colors.green
               : isRead
@@ -2328,7 +2567,10 @@ class _MangaDetailScreenState extends ConsumerState<MangaDetailScreen> {
 
           return Material(
             color: bg,
-            shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10), side: borderSide),
+            shape: RoundedRectangleBorder(
+              borderRadius: BorderRadius.circular(_kChapterGridCorner),
+              side: BorderSide(color: outlineColor, width: strokeWidth),
+            ),
             clipBehavior: Clip.antiAlias,
             child: InkWell(
               onTap: () {
@@ -4478,10 +4720,22 @@ class _SheetHeaderDelegate extends SliverPersistentHeaderDelegate {
       onVerticalDragEnd: isSelectionMode ? null : onBarDragEnd,
       child: Container(
         decoration: BoxDecoration(
-          color: dark ? amoled(context, 0xFF1E1E20) : Colors.white,
-          border: dark
+          // A docked header sits *inside* the chapters card and takes the
+          // card's own surface: the reference's side-sheet header bar carries
+          // no background and no rule of its own, so the title, tabs and Read
+          // button read as painted straight onto the card. Painting it white
+          // here instead left a strip a shade lighter than the card around it,
+          // which is the one thing a pane header must not look like. The tray
+          // -- which floats over the page rather than in a card -- still has to
+          // be opaque, so it keeps its own fill and its hairline.
+          color: docked
+              ? Colors.transparent
+              : (dark ? amoled(context, 0xFF1E1E20) : Colors.white),
+          border: docked
               ? null
-              : const Border(bottom: BorderSide(color: Colors.black12)),
+              : (dark
+                    ? null
+                    : const Border(bottom: BorderSide(color: Colors.black12))),
         ),
         padding: EdgeInsets.only(
           left: 10,
