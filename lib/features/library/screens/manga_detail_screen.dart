@@ -338,16 +338,6 @@ class _MangaDetailScreenState extends ConsumerState<MangaDetailScreen> {
   bool _trayScrollListening = false;
   bool _trayAtBottom = false;
 
-  // Whether the wide layout's chapters card is rolled up to its title bar.
-  //
-  // The tray on a phone has extent to drag and states to rest in; this card has
-  // neither -- it is a pane with a fixed width and the window's full height --
-  // so it has no collapsed *size* to travel to. What it can do instead is fold
-  // away to its own header, which is the same gesture the reference's close
-  // button makes: its side sheet dismisses to HIDDEN, and this is the one
-  // resting place a fixed pane has that still leaves the control visible.
-  bool _wideTrayFolded = false;
-
   // Where the tray bar's drag started. Null whenever no drag is in progress,
   // which is also how the drag callbacks know to ignore a stray update.
   double? _trayDragStartSize;
@@ -1632,7 +1622,6 @@ class _MangaDetailScreenState extends ConsumerState<MangaDetailScreen> {
                   // BodyLarge` at 16dp from the edge, and a tinted close glyph
                   // at 8dp from the other.
                   _buildWidePaneTitleBar(context, dark: dark, scheme: scheme),
-                  if (!_wideTrayFolded)
                     Expanded(
                       child: Stack(
                         children: [
@@ -1719,7 +1708,13 @@ class _MangaDetailScreenState extends ConsumerState<MangaDetailScreen> {
   /// hides a sheet that is an overlay with somewhere to hide to, and this is a
   /// pane holding half the window. The bar is the pane's one resting place, so
   /// that is where the fold goes; the same button brings it back, with the tabs,
-  /// the read action and the list exactly as they were.
+  /// The reference's side-sheet header bar, in the only form a fixed pane can
+  /// take: a title on the left, and nothing else. The reference's own bar adds
+  /// a close button on the right, but that button calls `dismissSheet()` ->
+  /// HIDDEN, which only makes sense for an overlay sheet. This is a pane
+  /// holding half the window, so there is nothing to hide and no button to
+  /// draw; the title is what names the card, and the tabs below it say which
+  /// list is showing.
   Widget _buildWidePaneTitleBar(
     BuildContext context, {
     required bool dark,
@@ -1728,8 +1723,7 @@ class _MangaDetailScreenState extends ConsumerState<MangaDetailScreen> {
     final l = AppLocalizations.of(context);
     return Padding(
       // The reference's side-sheet bar is `paddingVertical 8dp`; the 16dp that
-      // sets the title off the card edge is the title's own `marginStart`, and
-      // the 8dp on the other side is the button's `marginEnd`.
+      // sets the title off the card edge is the title's own `marginStart`.
       padding: const EdgeInsets.symmetric(vertical: 8),
       child: Row(
         children: [
@@ -1737,8 +1731,7 @@ class _MangaDetailScreenState extends ConsumerState<MangaDetailScreen> {
           Expanded(
             child: Text(
               // The tray's name, and the same string the reference titles the
-              // bar with. It is the pane's, not the tab's: the tabs below it say
-              // which list is showing, and this says what the whole card is.
+              // bar with. It is the pane's, not the tab's.
               l.detailTabChapters,
               maxLines: 1,
               overflow: TextOverflow.ellipsis,
@@ -1753,28 +1746,6 @@ class _MangaDetailScreenState extends ConsumerState<MangaDetailScreen> {
               ),
             ),
           ),
-          // A borderless ripple, as the reference's
-          // `selectableItemBackgroundBorderless` is, rather than the filled
-          // splash an `IconButton` draws.
-          InkResponse(
-            onTap: () => setState(() => _wideTrayFolded = !_wideTrayFolded),
-            radius: 28,
-            child: Padding(
-              // The reference's own 16dp, which is what makes the target the
-              // size it is around the glyph.
-              padding: const EdgeInsets.all(16),
-              child: Icon(
-                // The reference shows one glyph and never changes it. Folding
-                // is this app's, not the reference's, so the glyph only turns
-                // around when there is something to reopen -- the same control,
-                // pointing the other way.
-                _wideTrayFolded ? MdiIcons.chevronLeft : MdiIcons.close,
-                color: scheme.primary,
-                size: 24,
-              ),
-            ),
-          ),
-          const SizedBox(width: 8),
         ],
       ),
     );
