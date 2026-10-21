@@ -203,7 +203,12 @@ class _MangaPreviewPaneState extends ConsumerState<MangaPreviewPane> {
   }) {
     final scheme = Theme.of(context).colorScheme;
     return Padding(
-      padding: const EdgeInsets.fromLTRB(16, 4, 16, 0),
+      // 16 at the top, matching the body below it: the cover and title now sit
+      // inside a card rather than against the pane's own top edge, and 4 -- the
+      // value this carried when the pane was a bare column -- left the header
+      // crowding the card's border. The sides and bottom keep their old
+      // measures: the body's padding already spaces the rest.
+      padding: const EdgeInsets.fromLTRB(16, 16, 16, 0),
       child: Row(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
