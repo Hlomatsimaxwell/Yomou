@@ -1621,7 +1621,6 @@ class _MangaDetailScreenState extends ConsumerState<MangaDetailScreen> {
                   // out of it. Both are the reference's: `?attr/textAppearance
                   // BodyLarge` at 16dp from the edge, and a tinted close glyph
                   // at 8dp from the other.
-                  _buildWidePaneTitleBar(context, dark: dark, scheme: scheme),
                     Expanded(
                       child: Stack(
                         children: [
@@ -1708,49 +1707,6 @@ class _MangaDetailScreenState extends ConsumerState<MangaDetailScreen> {
   /// hides a sheet that is an overlay with somewhere to hide to, and this is a
   /// pane holding half the window. The bar is the pane's one resting place, so
   /// that is where the fold goes; the same button brings it back, with the tabs,
-  /// The reference's side-sheet header bar, in the only form a fixed pane can
-  /// take: a title on the left, and nothing else. The reference's own bar adds
-  /// a close button on the right, but that button calls `dismissSheet()` ->
-  /// HIDDEN, which only makes sense for an overlay sheet. This is a pane
-  /// holding half the window, so there is nothing to hide and no button to
-  /// draw; the title is what names the card, and the tabs below it say which
-  /// list is showing.
-  Widget _buildWidePaneTitleBar(
-    BuildContext context, {
-    required bool dark,
-    required ColorScheme scheme,
-  }) {
-    final l = AppLocalizations.of(context);
-    return Padding(
-      // The reference's side-sheet bar is `paddingVertical 8dp`; the 16dp that
-      // sets the title off the card edge is the title's own `marginStart`.
-      padding: const EdgeInsets.symmetric(vertical: 8),
-      child: Row(
-        children: [
-          const SizedBox(width: 16),
-          Expanded(
-            child: Text(
-              // The tray's name, and the same string the reference titles the
-              // bar with. It is the pane's, not the tab's.
-              l.detailTabChapters,
-              maxLines: 1,
-              overflow: TextOverflow.ellipsis,
-              style: TextStyle(
-                // `textAppearanceBodyLarge` leaves the colour to the theme, so
-                // this is `textColorPrimary` rather than a picked hex.
-                color: scheme.onSurface,
-                fontSize: 16,
-                height: 24 / 16,
-                fontWeight: FontWeight.w400,
-                letterSpacing: 0.5,
-              ),
-            ),
-          ),
-        ],
-      ),
-    );
-  }
-
   /// The wide pane's scroll controller, with the at-bottom listener attached
   /// the first time it is asked for.
   ///
