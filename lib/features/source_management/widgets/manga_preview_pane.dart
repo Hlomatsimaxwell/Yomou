@@ -4,6 +4,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:yomou/core/database/source_cache.dart';
 import 'package:yomou/core/diagnostics/diag_log.dart';
 import 'package:yomou/core/widgets/empty_state.dart';
+import 'package:yomou/core/widgets/kotatsu_icon.dart';
 import 'package:yomou/data/models/manga.dart';
 import 'package:yomou/data/models/manga_details.dart';
 import 'package:yomou/data/providers/sources_provider.dart';
@@ -237,37 +238,42 @@ class _MangaPreviewPaneState extends ConsumerState<MangaPreviewPane> {
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
+                // The reference's title block: HeadlineSmall (24) in bold, up
+                // to five lines, with 4 between the lines beneath it -- its
+                // `textView_title`, `textView_subtitle` and `textView_author`
+                // and the margins between them. The pane is wide enough now to
+                // let a long title run rather than clipping it at two.
                 Text(
                   title,
-                  maxLines: 2,
+                  maxLines: 5,
                   overflow: TextOverflow.ellipsis,
                   style: TextStyle(
-                    fontSize: 20,
+                    fontSize: 24,
                     fontWeight: FontWeight.w700,
                     color: dark ? Colors.white : scheme.onSurface,
                   ),
                 ),
                 if (alsoKnownAs.isNotEmpty) ...[
-                  const SizedBox(height: 6),
+                  const SizedBox(height: 4),
                   Text(
                     alsoKnownAs,
-                    maxLines: 1,
+                    maxLines: 3,
                     overflow: TextOverflow.ellipsis,
                     style: TextStyle(
-                      fontSize: 13,
+                      fontSize: 14,
                       color: dark ? Colors.white70 : Colors.black54,
                     ),
                   ),
                 ],
                 if (author.isNotEmpty) ...[
-                  const SizedBox(height: 6),
+                  const SizedBox(height: 4),
                   Text(
                     author,
                     maxLines: 1,
                     overflow: TextOverflow.ellipsis,
                     style: TextStyle(
-                      fontSize: 13,
-                      fontWeight: FontWeight.w500,
+                      fontSize: 14,
+                      fontWeight: FontWeight.w700,
                       color: dark ? Colors.white70 : Colors.black87,
                     ),
                   ),
@@ -384,9 +390,16 @@ class _MangaPreviewPaneState extends ConsumerState<MangaPreviewPane> {
               width: 44,
               height: 44,
               child: IconButton(
-                // The reference's own expand glyph: its `ic_expand` vector is
-                // this exact path, which the icon font carries as `resize`.
-                icon: const Icon(MdiIcons.resize, size: 18),
+                // The reference's own expand glyph, ported as an asset rather
+                // than approximated: its `ic_expand` is a two-arrow vector that
+                // no glyph in Material's or MDI's fonts matches.
+                icon: KotatsuIcon(
+                  'ic_expand',
+                  size: 18,
+                  color: dark
+                      ? Colors.white70
+                      : Theme.of(context).colorScheme.onSurface,
+                ),
                 tooltip: l.openFullDetails,
                 onPressed: widget.onOpenFull,
                 padding: EdgeInsets.zero,

@@ -7,6 +7,7 @@ import 'package:flutter_test/flutter_test.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import 'package:yomou/core/database/database_helper.dart';
 import 'package:yomou/core/widgets/empty_state.dart';
+import 'package:yomou/core/widgets/kotatsu_icon.dart';
 import 'package:yomou/data/models/manga.dart';
 import 'package:yomou/data/models/manga_details.dart';
 import 'package:yomou/features/source_management/widgets/manga_preview_pane.dart';
@@ -142,7 +143,7 @@ void main() {
     expect(find.text('Preview'), findsNothing);
     expect(find.byIcon(MdiIcons.close), findsOneWidget);
     // The old header's fullscreen glyph is gone; the break-out now lives
-    // beside Read as a resize arrow.
+    // beside Read as the reference's expand mark.
     expect(find.byIcon(MdiIcons.fullscreen), findsNothing);
     final closeRect = tester.getRect(find.byIcon(MdiIcons.close));
     expect(closeRect.right, greaterThan(300), reason: 'pinned to the right');
@@ -165,16 +166,17 @@ void main() {
     expect(coverClip.borderRadius, BorderRadius.circular(16));
 
     final title = tester.widget<Text>(find.text(details.title));
-    expect(title.style!.fontSize, 20);
+    expect(title.style!.fontSize, 24);
     expect(title.style!.fontWeight, FontWeight.w700);
-    expect(title.maxLines, 2);
+    expect(title.maxLines, 5);
     final titleRect = tester.getRect(find.text(details.title));
     expect(titleRect.left, greaterThan(coverRect.right));
 
     // The second line carries the other name the two endpoints disagree on,
     // and vanishes when they agree -- here they do not.
     final aka = tester.widget<Text>(find.text(listingTitle));
-    expect(aka.style!.fontSize, 13);
+    expect(aka.style!.fontSize, 14);
+    expect(aka.maxLines, 3);
     // Unset weight reads as regular, which is what the line must be.
     expect(aka.style!.fontWeight ?? FontWeight.w400, FontWeight.w400);
     final akaRect = tester.getRect(find.text(listingTitle));
@@ -183,8 +185,8 @@ void main() {
     // Author is direct text at the same size -- and with no label in front of
     // it, and no State or Year rows below it.
     final author = tester.widget<Text>(find.text(details.author));
-    expect(author.style!.fontSize, 13);
-    expect(author.style!.fontWeight, FontWeight.w500);
+    expect(author.style!.fontSize, 14);
+    expect(author.style!.fontWeight, FontWeight.w700);
     expect(find.text(l.detailAuthor), findsNothing);
     expect(find.text(l.detailState), findsNothing);
     expect(find.text(details.year), findsNothing);
@@ -212,10 +214,12 @@ void main() {
       const Size.fromHeight(44),
     );
 
-    // The break-out shares that row: 18px arrow, centred on the button.
-    final expand = find.byIcon(MdiIcons.resize);
+    // The break-out shares that row: the reference's 18px expand glyph,
+    // centred on the button.
+    final expand = find.byType(KotatsuIcon);
     expect(expand, findsOneWidget);
-    expect(tester.widget<Icon>(expand).size, 18);
+    expect(tester.widget<KotatsuIcon>(expand).size, 18);
+    expect(tester.widget<KotatsuIcon>(expand).name, 'ic_expand');
     expect(find.byTooltip(l.openFullDetails), findsOneWidget);
     final expandRect = tester.getRect(expand);
     expect(expandRect.left, greaterThan(readRect.right - 1));

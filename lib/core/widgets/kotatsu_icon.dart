@@ -33,6 +33,10 @@ const List<String> kKotatsuIconNames = <String>[
   'ic_filter_menu',
   'ic_timelapse',
   'ic_expand_more',
+  // Our preview pane's break-out button. Kotatsu-Redo's own preview carries the
+  // same glyph (`ic_expand`); it is not on a settings row of ours, so it is
+  // listed here only to be bundled and checked like the rest.
+  'ic_expand',
   'ic_list_detailed',
   'ic_suggestion',
   'ic_drawer_menu',

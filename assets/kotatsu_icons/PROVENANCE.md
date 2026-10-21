@@ -35,6 +35,7 @@ none match Remix.
 | `ic_data_privacy.svg` | Kotatsu-Redo `res/drawable/ic_data_privacy.xml` | MDI `mdiShieldAccountVariantOutline` |
 | `ic_download.svg` | Kotatsu-Redo `res/drawable/ic_download.xml` | MDI `mdiDownloadOutline` |
 | `ic_drawer_menu.svg` | Kotatsu-Redo `res/drawable/ic_drawer_menu.xml` | Material `outlined/menu` |
+| `ic_expand.svg` | Kotatsu-Redo `res/drawable/ic_expand.xml` | ? `two arrows to opposite corners` |
 | `ic_expand_more.svg` | Kotatsu-Redo `res/drawable/ic_expand_more.xml` | Material `filled/arrow_drop_down` |
 | `ic_feed.svg` | Kotatsu-Redo `res/drawable/ic_feed.xml` | Material `rss_feed` |
 | `ic_filter_menu.svg` | Kotatsu-Redo `res/drawable/ic_filter_menu.xml` | MDI `mdiFilterMenuOutline` |
