@@ -321,7 +321,7 @@ class _SourceSearchResultsScreenState
           IconButton(
             tooltip: AppLocalizations.of(context).randomMangaTooltip,
             icon: Icon(
-              MdiIcons.diceMultipleOutline,
+              Icons.casino_outlined,
               color: dark ? Colors.white : const Color(0xFF1C1B1F),
             ),
             onPressed: _openRandomManga,

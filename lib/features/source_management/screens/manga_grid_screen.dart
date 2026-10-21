@@ -529,7 +529,7 @@ class _MangaGridScreenState extends ConsumerState<MangaGridScreen> {
           // Updated dice button tap handler
           IconButton(
             icon: Icon(
-              MdiIcons.diceMultipleOutline,
+              Icons.casino_outlined,
               color: dark ? Colors.white : const Color(0xFF1C1B1F),
             ),
             onPressed: _openRandomManga,

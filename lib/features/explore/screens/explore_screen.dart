@@ -48,7 +48,7 @@ class _ExploreScreenState extends ConsumerState<ExploreScreen> {
       'labelKey': 'bookmarks',
       'type': 'bookmarks',
     },
-    {'icon': MdiIcons.diceMultipleOutline, 'labelKey': 'random', 'type': 'random'},
+    {'icon': Icons.casino_outlined, 'labelKey': 'random', 'type': 'random'},
     {
       'icon': MdiIcons.downloadOutline,
       'labelKey': 'downloads',
