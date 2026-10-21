@@ -188,8 +188,10 @@ class _MangaPreviewPaneState extends ConsumerState<MangaPreviewPane> {
   /// The cover is a fixed box rather than this app's grid ratio: the grid
   /// crops tall and narrow for a wall of covers, while this header sits at
   /// 13:18 beside the title, and a box inside the reference's own size range
-  /// (roughly 110-130 wide) keeps the title column the room it needs in a
-  /// pane only 340 wide.
+  /// (roughly 110-130 wide) keeps the title column the room it needs. The
+  /// reference gets the same proportion by making its own cover 30% of the
+  /// pane; a fixed box says the same thing on a pane whose width now follows
+  /// the window.
   Widget _buildHeader(
     BuildContext context,
     bool dark,

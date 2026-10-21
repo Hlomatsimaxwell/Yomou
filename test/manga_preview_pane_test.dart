@@ -67,10 +67,20 @@ void main() {
     });
   }
 
+  /// The pane's width at the window this test pumps.
+  ///
+  /// The pane is no longer a fixed 340: it is the reference's 40% share of the
+  /// window, clamped to 320-600. A 340-wide viewport is right at the foot of
+  /// that range -- 40% of the window it stands in for would be 136, so it is
+  /// the clamp, not the share, that is in force. The geometry below is the
+  /// card's own, though, not the pane's, so the numbers hold at any width in
+  /// the range; what the test needs is only to pump the pane at one of them.
+  const paneWidth = 340.0;
+
   /// Pumps the pane alone, at the width the browse screen gives it.
   Future<AppLocalizations> pumpPane(WidgetTester tester, Manga manga) async {
     SharedPreferences.setMockInitialValues({});
-    tester.view.physicalSize = const Size(340, 800);
+    tester.view.physicalSize = const Size(paneWidth, 800);
     tester.view.devicePixelRatio = 1.0;
     addTearDown(tester.view.reset);
 

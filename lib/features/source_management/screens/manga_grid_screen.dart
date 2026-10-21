@@ -562,15 +562,17 @@ class _MangaGridScreenState extends ConsumerState<MangaGridScreen> {
     if (!usesWideLayout(context)) return catalogue;
     final showPane = _filterPaneOpen || _previewManga != null;
     if (!showPane) return catalogue;
+    // The pane floats beside the catalogue as a rounded card rather than
+    // sitting in a full-height column of its own. That is the reference's own
+    // shape -- its side pane is a Material card inset by the same margins on
+    // three sides -- and it is what lets the grid keep the width a divider and
+    // a flush edge would have taken, at no cost to the pane: the corners read
+    // as a card because of the margin around them, not because of anything the
+    // pane does itself.
     return Row(
       crossAxisAlignment: CrossAxisAlignment.stretch,
       children: [
         Expanded(child: catalogue),
-        VerticalDivider(
-          width: 1,
-          thickness: 1,
-          color: dark ? Colors.white12 : Colors.black12,
-        ),
         _buildFilterPane(context, dark),
       ],
     );
@@ -749,15 +751,30 @@ class _MangaGridScreenState extends ConsumerState<MangaGridScreen> {
   /// The filter as a permanent pane beside the catalogue.
   ///
   /// Same controls as the sheet; see [MangaFilterSheet] on why the apply path
-  /// differs. Fixed width rather than a flex share: the filter's sections are
-  /// rows of genre pills, and a pane that flexes would either wrap them into a
-  /// ragged ladder on a very wide window or start clipping them on a merely
-  /// tablet-sized one.
+  /// differs.
+  ///
+  /// Sized the way the reference sizes its side pane: a share of the window
+  /// rather than a fixed number, held between the two ends of its own range. A
+  /// fixed width could only ever be right for one window -- 340 is a phone's
+  /// pane and a rounding error beside an 8-column grid -- while the share is
+  /// what keeps the pane and the catalogue in proportion as the window grows.
+  ///
+  /// The clamps are the part a bare percentage gets wrong. Below 800 wide a
+  /// uniform 40% would fall under the 320 the filter's genre pills need to sit
+  /// in two columns instead of a ladder of one; above 1500 it would run past
+  /// 600, which is where a text column stops reading well and the extra width
+  /// is better spent on covers. That is the reference's 320-600dp range, and
+  /// its 0.4 share, in logical pixels.
   Widget _buildFilterPane(BuildContext context, bool dark) {
     final source = getSourceByName(widget.sourceName);
     final preview = _previewManga;
+    final width =
+        (MediaQuery.sizeOf(context).width * _kPaneWidthFraction).clamp(
+      _kPaneWidthMin,
+      _kPaneWidthMax,
+    );
     return SizedBox(
-      width: 340,
+      width: width,
       // A preview slides in over the filter rather than replacing it, so
       // closing the preview reveals the filter still as the user left it --
       // half-made genre selections and all. Rebuilding the filter from
@@ -767,36 +784,79 @@ class _MangaGridScreenState extends ConsumerState<MangaGridScreen> {
       // The filter is only mounted while it is actually open, so a pane left
       // showing just a preview does not keep a whole second scroll view alive
       // behind it.
-      child: Stack(
-        children: [
-          if (_filterPaneOpen)
-            Positioned.fill(
-              child: MangaFilterSheet(
-                initial: _filter,
-                tags: _tags,
-                presetsKey: 'source_presets_${source.id}',
-                onSave: _saveFilter,
-                inline: true,
-                onApplied: _applyFilter,
-                onClose: () => setState(() => _filterPaneOpen = false),
-              ),
-            ),
-          if (preview != null)
-            Positioned.fill(
-              child: Material(
-                color: Theme.of(context).scaffoldBackgroundColor,
-                child: MangaPreviewPane(
-                  manga: preview,
-                  onRead: () => _openDetail(preview, autoStartReader: true),
-                  onOpenFull: () => _openDetail(preview),
-                  onClose: () => setState(() => _previewManga = null),
+      child: Padding(
+        // The reference's own insets: an equal margin on both sides and the
+        // bottom, and the tighter grid spacing above, so the card's top edge
+        // lines up with the first row of covers rather than sitting a grid
+        // gap below it.
+        padding: const EdgeInsets.fromLTRB(
+          _kPaneGap,
+          _kPaneGapTop,
+          _kPaneGap,
+          _kPaneGap,
+        ),
+        child: Card.outlined(
+          // Zero because the padding above is the pane's whole margin. Left at
+          // its default this adds a second 4 of its own and the card stops
+          // lining up with the insets it was measured for.
+          margin: EdgeInsets.zero,
+          // The M3 card outline role, which is the one the reference's own
+          // Material card draws its border in. Elevation is left off: the app
+          // paints no shadows anywhere, and an outlined card is the shape that
+          // does not need one.
+          shape: RoundedRectangleBorder(
+            borderRadius: BorderRadius.circular(_kPaneCorner),
+            side: BorderSide(color: Theme.of(context).colorScheme.outlineVariant),
+          ),
+          // One clip for both occupants: whichever of them is showing, its own
+          // scroll cannot paint over the card's rounded corners.
+          clipBehavior: Clip.antiAlias,
+          child: Stack(
+            children: [
+              if (_filterPaneOpen)
+                Positioned.fill(
+                  child: MangaFilterSheet(
+                    initial: _filter,
+                    tags: _tags,
+                    presetsKey: 'source_presets_${source.id}',
+                    onSave: _saveFilter,
+                    inline: true,
+                    onApplied: _applyFilter,
+                    onClose: () => setState(() => _filterPaneOpen = false),
+                  ),
                 ),
-              ),
-            ),
-        ],
+              if (preview != null)
+                // No fill of its own: the card behind the preview is already
+                // the surface, so painting the scaffold colour here would put a
+                // square-cornered square back inside a rounded card.
+                Positioned.fill(
+                  child: MangaPreviewPane(
+                    manga: preview,
+                    onRead: () => _openDetail(preview, autoStartReader: true),
+                    onOpenFull: () => _openDetail(preview),
+                    onClose: () => setState(() => _previewManga = null),
+                  ),
+                ),
+            ],
+          ),
+        ),
       ),
     );
   }
+
+  /// The pane's width, as the reference sets it: a 0.4 share of the window,
+  /// clamped to a 320-600 logical-pixel range.
+  static const _kPaneWidthFraction = 0.4;
+  static const _kPaneWidthMin = 320.0;
+  static const _kPaneWidthMax = 600.0;
+
+  /// The air around the pane card, matching the reference's side-pane margins
+  /// and grid spacing.
+  static const _kPaneGap = 8.0;
+  static const _kPaneGapTop = 4.0;
+
+  /// Its corner radius, off Material 3's own card shape.
+  static const _kPaneCorner = 12.0;
 
   /// The manga whose preview is showing, or null when the filter is on top.
   Manga? _previewManga;
@@ -1104,9 +1164,9 @@ class _MangaGridScreenState extends ConsumerState<MangaGridScreen> {
       padding: const EdgeInsets.symmetric(horizontal: 16),
       // Measured from the constraints rather than the viewport: on a wide
       // layout this grid shares the row with the filter pane, so the viewport
-      // is 340px wider than the grid actually is. Deriving columns from the
-      // viewport there would size eight cells into space that holds six and a
-      // half, and every cover would come out narrower than intended.
+      // is the pane's width wider than the grid actually is. Deriving columns
+      // from the viewport there would size eight cells into space that holds
+      // six and a half, and every cover would come out narrower than intended.
       child: LayoutBuilder(
         builder: (context, constraints) {
           final width = constraints.maxWidth;
