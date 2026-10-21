@@ -800,6 +800,10 @@ class _MangaGridScreenState extends ConsumerState<MangaGridScreen> {
           // its default this adds a second 4 of its own and the card stops
           // lining up with the insets it was measured for.
           margin: EdgeInsets.zero,
+          // The card's own surface, named rather than taken from the theme's
+          // default: both occupants opaquely fill the pane with it, so it has
+          // to be a colour this file controls.
+          color: Theme.of(context).colorScheme.surfaceContainerLow,
           // The M3 card outline role, which is the one the reference's own
           // Material card draws its border in. Elevation is left off: the app
           // paints no shadows anywhere, and an outlined card is the shape that
@@ -826,15 +830,22 @@ class _MangaGridScreenState extends ConsumerState<MangaGridScreen> {
                   ),
                 ),
               if (preview != null)
-                // No fill of its own: the card behind the preview is already
-                // the surface, so painting the scaffold colour here would put a
-                // square-cornered square back inside a rounded card.
+                // Opaque, and it has to be. The preview is a sheet stacked on
+                // top of the filter rather than a replacement for it, and a
+                // transparent one would let the filter's pills and labels read
+                // straight through the preview's own text. The fill is the
+                // card's colour so the two layers are one surface, and the
+                // card's clip rounds it off, so it cannot put a square corner
+                // back inside the border.
                 Positioned.fill(
-                  child: MangaPreviewPane(
-                    manga: preview,
-                    onRead: () => _openDetail(preview, autoStartReader: true),
-                    onOpenFull: () => _openDetail(preview),
-                    onClose: () => setState(() => _previewManga = null),
+                  child: ColoredBox(
+                    color: Theme.of(context).colorScheme.surfaceContainerLow,
+                    child: MangaPreviewPane(
+                      manga: preview,
+                      onRead: () => _openDetail(preview, autoStartReader: true),
+                      onOpenFull: () => _openDetail(preview),
+                      onClose: () => setState(() => _previewManga = null),
+                    ),
                   ),
                 ),
             ],
