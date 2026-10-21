@@ -4,7 +4,6 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:yomou/core/database/source_cache.dart';
 import 'package:yomou/core/diagnostics/diag_log.dart';
 import 'package:yomou/core/widgets/empty_state.dart';
-import 'package:yomou/core/widgets/manga_grid_metrics.dart';
 import 'package:yomou/data/models/manga.dart';
 import 'package:yomou/data/models/manga_details.dart';
 import 'package:yomou/data/providers/sources_provider.dart';
@@ -19,14 +18,21 @@ import 'package:yomou/widgets/cached_manga_image.dart';
 /// multi-select; none of that belongs in a pane the width of a phone, and
 /// duplicating it here would leave two screens to keep in step. What this
 /// carries is the part a browse decision actually needs -- cover, title,
-/// author, publication state and summary -- plus the two ways out: read it, or
-/// break out to the real screen.
+/// author and summary -- plus the two ways out: read it, or break out to the
+/// real screen.
 ///
-/// Author, state, year and summary are only on [MangaDetails], not on the
-/// listing rows, so showing them costs one request per newly-tapped cover.
-/// It goes through [SourceCache.mangaDetails], the same cache the detail
-/// screen reads, so a cover that is previewed and then opened costs nothing
-/// extra, and re-tapping it is free.
+/// The shape follows the reference preview: the card's single close control
+/// sits at the top-right of the header row beside the cover and title, Read
+/// and the break-out share the row directly under it, tags follow as outlined
+/// pills, and the summary runs on with no caption over it. State and year are
+/// deliberately absent here -- their key-value table is what the header was
+/// rebuilt to remove, and the full screen's cards still carry both.
+///
+/// Author and summary are only on [MangaDetails], not on the listing rows, so
+/// showing them costs one request per newly-tapped cover. It goes through
+/// [SourceCache.mangaDetails], the same cache the detail screen reads, so a
+/// cover that is previewed and then opened costs nothing extra, and re-tapping
+/// it is free.
 class MangaPreviewPane extends ConsumerStatefulWidget {
   final Manga manga;
 
@@ -133,11 +139,32 @@ class _MangaPreviewPaneState extends ConsumerState<MangaPreviewPane> {
     final title = (details?.title.isNotEmpty ?? false)
         ? details!.title
         : widget.manga.title;
+    // The second line the reference fills with an alt title. This app has no
+    // alt-title field, so the honest local equivalent is the other name the
+    // two endpoints disagree on: the listing row's own title, shown once the
+    // detail endpoint reports a different one. Matching titles say nothing
+    // twice and the line stays hidden, the way the reference hides it.
+    final alsoKnownAs =
+        widget.manga.title.isNotEmpty && widget.manga.title != title
+            ? widget.manga.title
+            : '';
 
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
-        _buildHeader(context, dark, l),
+        // Built before the fetch settles: cover and title are what the grid
+        // already showed, so the close control -- the one way out of the pane
+        // that never waits on a request -- is on screen in every state the
+        // body below can be in.
+        _buildHeader(
+          context,
+          dark,
+          l,
+          title: title,
+          coverUrl: coverUrl,
+          alsoKnownAs: alsoKnownAs,
+          author: details?.author ?? '',
+        ),
         Expanded(
           child: _loading
               ? Center(
@@ -149,39 +176,102 @@ class _MangaPreviewPaneState extends ConsumerState<MangaPreviewPane> {
                 )
               : _error != null
                   ? _buildError(context, dark, l)
-                  : _buildBody(context, dark, l, title, coverUrl),
+                  : _buildBody(context, dark, l),
         ),
       ],
     );
   }
 
-  Widget _buildHeader(BuildContext context, bool dark, AppLocalizations l) {
+  /// Cover and title share the row, with the card's only close control at its
+  /// top-right corner.
+  ///
+  /// The cover is a fixed box rather than this app's grid ratio: the grid
+  /// crops tall and narrow for a wall of covers, while this header sits at
+  /// 13:18 beside the title, and a box inside the reference's own size range
+  /// (roughly 110-130 wide) keeps the title column the room it needs in a
+  /// pane only 340 wide.
+  Widget _buildHeader(
+    BuildContext context,
+    bool dark,
+    AppLocalizations l, {
+    required String title,
+    required String coverUrl,
+    required String alsoKnownAs,
+    required String author,
+  }) {
+    final scheme = Theme.of(context).colorScheme;
     return Padding(
-      padding: const EdgeInsets.fromLTRB(8, 4, 8, 4),
+      padding: const EdgeInsets.fromLTRB(16, 4, 16, 0),
       child: Row(
+        crossAxisAlignment: CrossAxisAlignment.start,
         children: [
+          ClipRRect(
+            borderRadius: BorderRadius.circular(16),
+            child: SizedBox(
+              width: 120,
+              height: 172,
+              child: CachedMangaImage(
+                imageUrl: coverUrl,
+                fit: BoxFit.cover,
+                errorWidget: (context, url, error) => Container(
+                  color: dark ? const Color(0xFF2C2C2E) : Colors.black12,
+                  alignment: Alignment.center,
+                  child: Icon(
+                    MdiIcons.bookOpenVariant,
+                    color: dark ? Colors.white38 : Colors.black38,
+                    size: 32,
+                  ),
+                ),
+              ),
+            ),
+          ),
+          const SizedBox(width: 16),
+          Expanded(
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Text(
+                  title,
+                  maxLines: 2,
+                  overflow: TextOverflow.ellipsis,
+                  style: TextStyle(
+                    fontSize: 20,
+                    fontWeight: FontWeight.w700,
+                    color: dark ? Colors.white : scheme.onSurface,
+                  ),
+                ),
+                if (alsoKnownAs.isNotEmpty) ...[
+                  const SizedBox(height: 6),
+                  Text(
+                    alsoKnownAs,
+                    maxLines: 1,
+                    overflow: TextOverflow.ellipsis,
+                    style: TextStyle(
+                      fontSize: 13,
+                      color: dark ? Colors.white70 : Colors.black54,
+                    ),
+                  ),
+                ],
+                if (author.isNotEmpty) ...[
+                  const SizedBox(height: 6),
+                  Text(
+                    author,
+                    maxLines: 1,
+                    overflow: TextOverflow.ellipsis,
+                    style: TextStyle(
+                      fontSize: 13,
+                      fontWeight: FontWeight.w500,
+                      color: dark ? Colors.white70 : Colors.black87,
+                    ),
+                  ),
+                ],
+              ],
+            ),
+          ),
           IconButton(
             icon: const Icon(MdiIcons.close, size: 22),
             tooltip: l.close,
             onPressed: widget.onClose,
-          ),
-          const SizedBox(width: 4),
-          Expanded(
-            child: Text(
-              l.sourcePreview,
-              style: TextStyle(
-                fontSize: 18,
-                fontWeight: FontWeight.w700,
-                color: dark
-                    ? Colors.white
-                    : Theme.of(context).colorScheme.onSurface,
-              ),
-            ),
-          ),
-          IconButton(
-            icon: const Icon(MdiIcons.fullscreen, size: 20),
-            tooltip: l.openFullDetails,
-            onPressed: widget.onOpenFull,
           ),
         ],
       ),
@@ -239,13 +329,9 @@ class _MangaPreviewPaneState extends ConsumerState<MangaPreviewPane> {
     );
   }
 
-  Widget _buildBody(
-    BuildContext context,
-    bool dark,
-    AppLocalizations l,
-    String title,
-    String coverUrl,
-  ) {
+  /// Read and the break-out share the first row, tags follow as pills, and the
+  /// summary runs on directly beneath them.
+  Widget _buildBody(BuildContext context, bool dark, AppLocalizations l) {
     final accent = ref.watch(accentProvider);
     final details = _details;
     // The listing row's own tags when the fetch has not supplied any, so the
@@ -256,53 +342,57 @@ class _MangaPreviewPaneState extends ConsumerState<MangaPreviewPane> {
     final description = details?.description.trim() ?? '';
 
     return ListView(
-      padding: const EdgeInsets.fromLTRB(16, 4, 16, 20),
+      padding: const EdgeInsets.fromLTRB(16, 16, 16, 20),
       children: [
-        Center(
-          child: ClipRRect(
-            borderRadius: BorderRadius.circular(16),
-            child: AspectRatio(
-              aspectRatio: kMangaCoverAspectRatio,
-              child: CachedMangaImage(
-                imageUrl: coverUrl,
-                fit: BoxFit.cover,
-                errorWidget: (context, url, error) => Container(
-                  color: dark ? const Color(0xFF2C2C2E) : Colors.black12,
-                  alignment: Alignment.center,
-                  child: Icon(
-                    MdiIcons.bookOpenVariant,
-                    color: dark ? Colors.white38 : Colors.black38,
-                    size: 32,
+        Row(
+          children: [
+            Expanded(
+              // Filled with the app's accent rather than outlined. It is the
+              // pane's one primary action, and the accent is the same colour
+              // the reader's own controls use, so the button is recognisably
+              // "go read this" and not just another bordered control sharing
+              // the column. The label flips to black on a pale accent so a
+              // white-accent monochrome scheme does not white out its own text.
+              child: FilledButton(
+                onPressed: widget.onRead,
+                style: FilledButton.styleFrom(
+                  backgroundColor: accent,
+                  foregroundColor: accent.computeLuminance() > 0.5
+                      ? Colors.black
+                      : Colors.white,
+                  minimumSize: const Size.fromHeight(44),
+                  textStyle: const TextStyle(
+                    fontSize: 15,
+                    fontWeight: FontWeight.w600,
                   ),
+                  shape: RoundedRectangleBorder(
+                    borderRadius: BorderRadius.circular(20),
+                  ),
+                ),
+                child: Text(l.readAction),
+              ),
+            ),
+            const SizedBox(width: 8),
+            SizedBox(
+              width: 44,
+              height: 44,
+              child: IconButton(
+                // The reference's own expand glyph: its `ic_expand` vector is
+                // this exact path, which the icon font carries as `resize`.
+                icon: const Icon(MdiIcons.resize, size: 18),
+                tooltip: l.openFullDetails,
+                onPressed: widget.onOpenFull,
+                padding: EdgeInsets.zero,
+                constraints: const BoxConstraints.tightFor(
+                  width: 44,
+                  height: 44,
                 ),
               ),
             ),
-          ),
+          ],
         ),
-        const SizedBox(height: 16),
-        Text(
-          title,
-          maxLines: 3,
-          overflow: TextOverflow.ellipsis,
-          style: TextStyle(
-            fontSize: 17,
-            fontWeight: FontWeight.w700,
-            color: dark ? Colors.white : Theme.of(context).colorScheme.onSurface,
-          ),
-        ),
-        const SizedBox(height: 10),
-        _metaRow(
-          context,
-          dark,
-          l.detailAuthor,
-          (details?.author.isEmpty ?? true) ? l.unknown : details!.author,
-        ),
-        if ((details?.status.isEmpty ?? true) == false)
-          _metaRow(context, dark, l.detailState, details!.status),
-        if ((details?.year.isEmpty ?? true) == false)
-          _metaRow(context, dark, l.detailYear, details!.year),
         if (tags.isNotEmpty) ...[
-          const SizedBox(height: 12),
+          const SizedBox(height: 16),
           Wrap(
             spacing: 6,
             runSpacing: 6,
@@ -310,13 +400,14 @@ class _MangaPreviewPaneState extends ConsumerState<MangaPreviewPane> {
               for (final tag in tags)
                 Container(
                   padding: const EdgeInsets.symmetric(
-                    horizontal: 9,
+                    horizontal: 10,
                     vertical: 4,
                   ),
                   decoration: BoxDecoration(
                     color: Colors.transparent,
-                    borderRadius: BorderRadius.circular(8),
+                    borderRadius: BorderRadius.circular(10),
                     border: Border.all(
+                      width: 1,
                       color: dark ? Colors.white38 : Colors.black38,
                     ),
                   ),
@@ -331,18 +422,7 @@ class _MangaPreviewPaneState extends ConsumerState<MangaPreviewPane> {
             ],
           ),
         ],
-        const SizedBox(height: 16),
-        Text(
-          l.description,
-          style: TextStyle(
-            fontSize: 13,
-            fontWeight: FontWeight.w700,
-            color: dark
-                ? Colors.white70
-                : Theme.of(context).colorScheme.onSurface,
-          ),
-        ),
-        const SizedBox(height: 6),
+        const SizedBox(height: 12),
         Text(
           description.isEmpty ? l.noDescription : description,
           style: TextStyle(
@@ -351,78 +431,7 @@ class _MangaPreviewPaneState extends ConsumerState<MangaPreviewPane> {
             color: dark ? Colors.white54 : Colors.black54,
           ),
         ),
-        const SizedBox(height: 20),
-        // Filled with the app's accent rather than outlined. It is the pane's
-        // one primary action, and the accent is the same colour the reader's
-        // own controls use, so the button is recognisably "go read this" and
-        // not just another bordered control sharing the column.
-        GestureDetector(
-          onTap: widget.onRead,
-          child: Container(
-            height: 46,
-            width: double.infinity,
-            alignment: Alignment.center,
-            decoration: BoxDecoration(
-              color: accent,
-              borderRadius: BorderRadius.circular(23),
-            ),
-            child: Row(
-              mainAxisSize: MainAxisSize.min,
-              children: [
-                const Icon(
-                  MdiIcons.bookEducationOutline,
-                  size: 18,
-                  color: Colors.white,
-                ),
-                const SizedBox(width: 8),
-                Text(
-                  l.readAction,
-                  style: const TextStyle(
-                    color: Colors.white,
-                    fontSize: 15,
-                    fontWeight: FontWeight.w600,
-                  ),
-                ),
-              ],
-            ),
-          ),
-        ),
       ],
-    );
-  }
-
-  Widget _metaRow(
-    BuildContext context,
-    bool dark,
-    String label,
-    String value,
-  ) {
-    return Padding(
-      padding: const EdgeInsets.only(bottom: 4),
-      child: Row(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          SizedBox(
-            width: 78,
-            child: Text(
-              label,
-              style: TextStyle(
-                fontSize: 12,
-                color: dark ? Colors.white38 : Colors.black45,
-              ),
-            ),
-          ),
-          Expanded(
-            child: Text(
-              value,
-              style: TextStyle(
-                fontSize: 12,
-                color: dark ? Colors.white70 : Colors.black87,
-              ),
-            ),
-          ),
-        ],
-      ),
     );
   }
 

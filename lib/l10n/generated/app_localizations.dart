@@ -3338,12 +3338,6 @@ abstract class AppLocalizations {
   /// **'Apply'**
   String get filterApply;
 
-  /// No description provided for @sourcePreview.
-  ///
-  /// In en, this message translates to:
-  /// **'Preview'**
-  String get sourcePreview;
-
   /// No description provided for @openFullDetails.
   ///
   /// In en, this message translates to:

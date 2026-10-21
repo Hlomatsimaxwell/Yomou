@@ -897,7 +897,6 @@
   "filterSave": "Save",
   "filterDone": "Done",
   "filterApply": "Apply",
-  "sourcePreview": "Preview",
   "openFullDetails": "Open full details",
   "previewSourceMissing": "Source not available",
   "previewSourceMissingSubtitle": "This title came from a source that is no longer installed, so its details cannot be loaded.",

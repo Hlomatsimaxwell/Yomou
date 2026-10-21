@@ -1802,9 +1802,6 @@ class AppLocalizationsEn extends AppLocalizations {
   String get filterApply => 'Apply';
 
   @override
-  String get sourcePreview => 'Preview';
-
-  @override
   String get openFullDetails => 'Open full details';
 
   @override
