@@ -1889,23 +1889,29 @@ class _MangaDetailScreenState extends ConsumerState<MangaDetailScreen> {
                             : (isRead
                                   ? titleBase.withValues(alpha: 0.45)
                                   : titleBase),
-                        // A read row has to recede, not just dim. The reference
-                        // sets its title and description at the same hint
-                        // colour in a normal face so the eye slips past the
-                        // whole row to the first unread chapter -- three-
-                        // quarters white at full bold was too close to live to
-                        // notice. Both lines land on the metadata's quiet here,
-                        // which is the same flattening.
-                        fontWeight: isRead && !isCurrent
-                            ? FontWeight.normal
-                            : FontWeight.w700,
+                        // The reference's list row is bold for exactly one
+                        // chapter: the one being read. Its delegate puts the
+                        // current row's title and description in
+                        // `Typeface.BOLD` and leaves every other row at the
+                        // title appearance's regular 400 -- unread included.
+                        // The installed build bears it out: the current row's
+                        // glyphs carry a three-pixel stem where the row below
+                        // carries two.
+                        //
+                        // So an unread chapter is not bold here either. It
+                        // used to be, and it used to be the only thing that
+                        // set it apart; now its full-strength title against
+                        // the read row's dimmed one does that work, which is
+                        // the reference's own way of telling the two apart.
+                        // Only the chapter being read is bold.
+                        fontWeight: isCurrent
+                            ? FontWeight.w700
+                            : FontWeight.normal,
                         fontSize: _kChapterTitleSize,
                         // `?attr/textAppearanceBodyLarge`'s line and tracking.
-                        // The face is this app's own -- an unread row is set
-                        // bold here, where the reference leaves it regular and
-                        // leans on colour alone -- but the metrics around it are
-                        // the appearance's, so the row boxes to the same height
-                        // the reference's does.
+                        // The metrics around the face are the appearance's, so
+                        // the row boxes to the same height the reference's
+                        // does; the face itself follows the rule above.
                         height: 24 / 16,
                         letterSpacing: 0.5,
                       ),
@@ -1932,13 +1938,21 @@ class _MangaDetailScreenState extends ConsumerState<MangaDetailScreen> {
                   // weight and colour. The reference sets it a full 4sp under
                   // its title, which is what lets the low contrast stay a
                   // whisper rather than a strain.
-                  color: scheme.onSurface.withValues(alpha: 0.45),
+                  //
+                  // The current row is the one exception, and it is the
+                  // reference's exception too: it brings the chapter being
+                  // read up to the primary colour and to a bold face, on both
+                  // of its lines, so the row the reader is on is the one that
+                  // steps out. Every other row keeps the whisper.
+                  color: isCurrent
+                      ? titleBase
+                      : scheme.onSurface.withValues(alpha: 0.45),
                   fontSize: _kChapterSupportingSize,
                   // `?attr/textAppearanceBodySmall`: 12sp on a 16sp line, with
                   // its own tracking. The line height is what keeps the pair
                   // from collapsing into each other at this size.
                   height: 16 / 12,
-                  fontWeight: FontWeight.w400,
+                  fontWeight: isCurrent ? FontWeight.w700 : FontWeight.w400,
                   letterSpacing: 0.4,
                 ),
               ),
@@ -2563,10 +2577,20 @@ class _MangaDetailScreenState extends ConsumerState<MangaDetailScreen> {
                         // `?attr/textAppearanceTitleMedium`: 16sp on a 24sp line,
                         // weight 500, 0.15 tracking. The tile is only 80dp wide,
                         // so this is the size the reference sets its number at
-                        // inside it -- and the weight stays at the appearance's
-                        // 500 either way, with the current chapter marked by its
-                        // colour rather than by going a step bolder.
-                        fontWeight: FontWeight.w500,
+                        // inside it.
+                        //
+                        // The weight is the reference's own rule, read off its
+                        // grid delegate: it holds every tile at the
+                        // appearance's 500 and puts the current one in
+                        // `Typeface.BOLD`. Its number therefore steps up to
+                        // 700 when it is the chapter being read, and the
+                        // installed build shows exactly that -- the current
+                        // tile's digit has a solid crossbar and a stem a
+                        // pixel wider than the same digit in a neighbouring
+                        // tile. The colour and the play icon already say
+                        // which tile is current; the weight is what makes the
+                        // number itself read as heavier than its neighbours.
+                        fontWeight: isCurrent ? FontWeight.w700 : FontWeight.w500,
                         fontSize: 16,
                         height: 24 / 16,
                         letterSpacing: 0.15,
