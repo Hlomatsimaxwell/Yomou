@@ -5308,14 +5308,22 @@ class _ReadMenuButtonState extends State<_ReadMenuButton> {
       builder: (context, controller, child) {
         return Material(
           color: widget.color,
-          shape: const RoundedRectangleBorder(
-            borderRadius: BorderRadius.horizontal(right: Radius.circular(22)),
+          // Closed, the icon half keeps the flat edge it shares with the
+          // label beside it. Open, it turns into a round button: the
+          // reference's `SplitButton.IconButton` goes circular while it is
+          // checked, which is the state its menu puts it in.
+          shape: RoundedRectangleBorder(
+            borderRadius: _open
+                ? const BorderRadius.all(Radius.circular(22))
+                : const BorderRadius.horizontal(right: Radius.circular(22)),
           ),
           clipBehavior: Clip.antiAlias,
           child: InkWell(
             onTap: () => controller.isOpen ? controller.close() : controller.open(),
             child: Padding(
-              padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
+              // 48dp wide, the width the reference's icon half measures at
+              // with its chevron in the middle.
+              padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 10),
               child: Icon(
                 _open ? MdiIcons.chevronUp : MdiIcons.chevronDown,
                 color: widget.onAccent,
