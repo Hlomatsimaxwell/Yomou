@@ -5188,8 +5188,15 @@ class _SheetHeaderDelegate extends SliverPersistentHeaderDelegate {
                 label,
                 style: TextStyle(
                   color: onAccent,
+                  // Material3's `labelLarge`: 14sp on a 0.1 tracking, at
+                  // weight 500. The reference's leading half is a plain
+                  // `SplitButton.LeadingButton.Filled` and its default theme
+                  // leaves Material's own label appearance alone, so this is
+                  // the face its "Continue · 3" is set in. This app's own
+                  // weight 700 made the button read as the loudest thing on
+                  // the page, which is not what the reference's is.
                   fontSize: 14,
-                  fontWeight: FontWeight.w700,
+                  fontWeight: FontWeight.w500,
                   letterSpacing: 0.1,
                 ),
               ),
