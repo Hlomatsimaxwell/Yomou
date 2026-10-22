@@ -143,6 +143,15 @@ const double _kSideCardTopInset = 2;
 const double _kDetailColumnMaxWidth = 420;
 const double _kDetailColumnWidthPercent = 0.5;
 
+/// The widest the phone's chapter tray may get, in dp.
+///
+/// The reference's mobile sheet is not full-bleed. Material caps a bottom
+/// sheet at 640dp and centres it, so on a window wider than that the detail
+/// page stays visible on either side of the panel -- the reference's own
+/// build measures out at exactly 640dp, both full-screen and in a split
+/// window, and at that cap it sits centred with the page showing past it.
+const double _kTrayMaxWidth = 640;
+
 /// The shortest a chapter row may be, from the reference's item height.
 ///
 /// Kotatsu-Redo's `chapter_list_item_height` is 48dp, and its row is a title
@@ -1336,68 +1345,77 @@ class _MangaDetailScreenState extends ConsumerState<MangaDetailScreen> {
           Center(
             child: Padding(
               padding: const EdgeInsets.symmetric(horizontal: 20),
-              child: DraggableScrollableSheet(
-                controller: _sheetController,
-                initialChildSize: _trayCollapsedSize,
-                minChildSize: _trayCollapsedSize,
-                maxChildSize: 1.0,
-              snap: true,
-              // The same list the bar's drag snaps against, so there is one set
-              // of resting sizes rather than two that can drift apart. It is
-              // cached rather than built inline here: a fresh list on every
-              // build reads as changed `snapSizes` to the sheet, which then
-              // re-snaps -- and it used to do that mid-drag, which is part of
-              // why a swipe up could stop short of full screen.
-              snapSizes: _traySnapSizes,
-              builder: (context, scrollController) {
-                _sheetContentController = scrollController;
-                if (!_trayScrollListening) {
-                  _trayScrollListening = true;
-                  scrollController.addListener(_onTrayContentScroll);
-                }
-                final dark = Theme.of(context).brightness == Brightness.dark;
-                return Container(
-                  decoration: BoxDecoration(
-                    color: dark ? amoled(context, 0xFF1E1E20) : Colors.white,
-                    borderRadius: _isExpanded
-                        ? BorderRadius.zero
-                        : const BorderRadius.vertical(top: Radius.circular(28)),
-                  ),
-                  child: ClipRRect(
-                    borderRadius: _isExpanded
-                        ? BorderRadius.zero
-                        : const BorderRadius.vertical(top: Radius.circular(28)),
-                    child: CustomScrollView(
-                      controller: scrollController,
-                      slivers: [
-                        SliverPersistentHeader(
-                          pinned: true,
-                          delegate: _buildSheetHeaderDelegate(),
-                        ),
-                        if (_batchQueued > 0 || _activeJob != null)
-                          SliverToBoxAdapter(
-                            child: DownloadBatchBanner(
-                              job: _activeJob,
-                              pendingCount: _batchQueued,
-                              onPause: _toggleJobPause,
-                              onCancel: _cancelJob,
+              // The reference's mobile sheet stops short of the window's edges
+              // and sits in the middle of it: Material caps a bottom sheet at
+              // 640dp, so on anything wider the detail page stays visible on
+              // either side of the panel rather than the panel running to both
+              // edges. Yomou's tray was full-bleed, which on a wide window left
+              // it stranded against the screen.
+              child: ConstrainedBox(
+                constraints: const BoxConstraints(maxWidth: _kTrayMaxWidth),
+                child: DraggableScrollableSheet(
+                  controller: _sheetController,
+                  initialChildSize: _trayCollapsedSize,
+                  minChildSize: _trayCollapsedSize,
+                  maxChildSize: 1.0,
+                  snap: true,
+                  // The same list the bar's drag snaps against, so there is one set
+                  // of resting sizes rather than two that can drift apart. It is
+                  // cached rather than built inline here: a fresh list on every
+                  // build reads as changed `snapSizes` to the sheet, which then
+                  // re-snaps -- and it used to do that mid-drag, which is part of
+                  // why a swipe up could stop short of full screen.
+                  snapSizes: _traySnapSizes,
+                  builder: (context, scrollController) {
+                    _sheetContentController = scrollController;
+                    if (!_trayScrollListening) {
+                      _trayScrollListening = true;
+                      scrollController.addListener(_onTrayContentScroll);
+                    }
+                    final dark = Theme.of(context).brightness == Brightness.dark;
+                    return Container(
+                      decoration: BoxDecoration(
+                        color: dark ? amoled(context, 0xFF1E1E20) : Colors.white,
+                        borderRadius: _isExpanded
+                            ? BorderRadius.zero
+                            : const BorderRadius.vertical(top: Radius.circular(28)),
+                      ),
+                      child: ClipRRect(
+                        borderRadius: _isExpanded
+                            ? BorderRadius.zero
+                            : const BorderRadius.vertical(top: Radius.circular(28)),
+                        child: CustomScrollView(
+                          controller: scrollController,
+                          slivers: [
+                            SliverPersistentHeader(
+                              pinned: true,
+                              delegate: _buildSheetHeaderDelegate(),
                             ),
-                          ),
-                        if (_showSheetContent) ...[
-                          if (_activeTab == 0)
-                            _chaptersGridView
-                                ? _buildChapterGridSliver()
-                                : _buildChapterListSliver()
-                          else if (_activeTab == 1)
-                            _buildPagesGridSliver()
-                          else
-                            _buildBookmarksSliver(),
-                        ],
-                      ],
-                    ),
-                  ),
-                );
-              },
+                            if (_batchQueued > 0 || _activeJob != null)
+                              SliverToBoxAdapter(
+                                child: DownloadBatchBanner(
+                                  job: _activeJob,
+                                  pendingCount: _batchQueued,
+                                  onPause: _toggleJobPause,
+                                  onCancel: _cancelJob,
+                                ),
+                              ),
+                            if (_showSheetContent) ...[
+                              if (_activeTab == 0)
+                                _chaptersGridView
+                                    ? _buildChapterGridSliver()
+                                    : _buildChapterListSliver()
+                              else if (_activeTab == 1)
+                                _buildPagesGridSliver()
+                              else
+                                _buildBookmarksSliver(),
+                            ],
+                          ],
+                        ),
+                      ),
+                    );
+                  },
+                ),
               ),
             ),
           ),
