@@ -5087,20 +5087,20 @@ class _SheetHeaderDelegate extends SliverPersistentHeaderDelegate {
             child: Container(
               padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
               color: leftColor,
-              child: Row(
-                children: [
-                  Icon(MdiIcons.arrowRight, color: onAccent, size: 18),
-                  const SizedBox(width: 4),
-                  Text(
-                    label,
-                    style: TextStyle(
-                      color: onAccent,
-                      fontSize: 14,
-                      fontWeight: FontWeight.w700,
-                      letterSpacing: 0.1,
-                    ),
-                  ),
-                ],
+              // The label stands alone: the reference's leading half is a
+              // plain `SplitButton.LeadingButton.Filled`, so its "Continue ·
+              // 3" carries no glyph of its own -- the only icon in the pair is
+              // the chevron on the dropdown half beside it. The arrow that
+              // used to sit in front of the word was this app's own, and it
+              // made the button read as a link rather than as the action.
+              child: Text(
+                label,
+                style: TextStyle(
+                  color: onAccent,
+                  fontSize: 14,
+                  fontWeight: FontWeight.w700,
+                  letterSpacing: 0.1,
+                ),
               ),
             ),
           ),
