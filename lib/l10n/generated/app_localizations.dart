@@ -2246,6 +2246,12 @@ abstract class AppLocalizations {
   /// **'Download'**
   String get detailDownload;
 
+  /// No description provided for @removeFromHistory.
+  ///
+  /// In en, this message translates to:
+  /// **'Remove from history'**
+  String get removeFromHistory;
+
   /// No description provided for @favorited.
   ///
   /// In en, this message translates to:

@@ -563,6 +563,7 @@
   "deselectAll": "Deselect all",
   "toggleRead": "Toggle read",
   "detailDownload": "Download",
+  "removeFromHistory": "Remove from history",
   "favorited": "Favorited",
   "favorite": "Favorite",
   "chapterOfTotal": "Chapter {current} of {total}",

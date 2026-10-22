@@ -14,6 +14,7 @@ import 'package:shared_preferences/shared_preferences.dart';
 import 'package:url_launcher/url_launcher.dart';
 import 'package:yomou/core/database/database_helper.dart';
 import 'package:yomou/core/haptics.dart';
+import 'package:yomou/core/providers/incognito_provider.dart';
 import 'package:yomou/core/widgets/ios/ios_press.dart';
 import 'package:yomou/core/database/source_cache.dart';
 import 'package:yomou/core/deep_links.dart';
@@ -1491,6 +1492,14 @@ class _MangaDetailScreenState extends ConsumerState<MangaDetailScreen> {
       hasDownloaded: _isSelectedDownloaded,
       onRemoveDownloads: _deleteSelectedDownloads,
       onDownload: _downloadSelectedChapters,
+      isIncognito: ref.watch(incognitoProvider),
+      // The reference only offers "Remove from history" when there is history
+      // to remove, and the manga is in the history exactly when it has been
+      // read far enough to leave a mark.
+      hasHistory: _lastReadChapter >= 0,
+      onToggleIncognito: _toggleIncognito,
+      onRemoveFromHistory: _removeFromHistory,
+      onDownloadManga: () => _showSaveMangaDialog(context),
       onBarTap: () {
         if (docked) return;
         // One stop per tap, so each tap is a step that can be seen: bar to
@@ -2819,6 +2828,52 @@ class _MangaDetailScreenState extends ConsumerState<MangaDetailScreen> {
       case 'shortcut':
         _createShortcut();
     }
+  }
+
+  /// Flips the app's incognito flag.
+  ///
+  /// The reference's split button opens the reader for one manga with its
+  /// history suppressed, which is a per-manga thing; Yomou's incognito is the
+  /// session-wide flag it already has, and the one the Explore and History
+  /// menus already offer. So this item turns that flag on and off, and the
+  /// check beside it says which way it is set.
+  Future<void> _toggleIncognito() async {
+    final current = ref.read(incognitoProvider);
+    await ref.read(incognitoProvider.notifier).set(!current);
+  }
+
+  /// Takes the manga back out of the reading history.
+  ///
+  /// The reference offers this only when there is history to take back, and
+  /// the rows it removes are snapshotted so the action can be undone.
+  Future<void> _removeFromHistory() async {
+    final removed = await DatabaseHelper.instance.deleteFromHistory([
+      widget.mangaId,
+    ]);
+    if (!mounted) return;
+    bumpHistoryRevision(ref);
+    // The manga is out of the history now, so the page has to stop reading as
+    // if it had been read: the button falls back to "Read", the progress bar
+    // empties, and the menu drops its "Remove from history" row.
+    setState(() {
+      _lastReadChapter = -1;
+      _lastReadPage = 0;
+    });
+    final l = AppLocalizations.of(context);
+    showIosUndoToast(
+      context,
+      message: l.historyRemovedCount(1),
+      undoLabel: l.historyUndo,
+      onUndo: () async {
+        await DatabaseHelper.instance.restoreHistoryRows(
+          removed.manga,
+          removed.progress,
+        );
+        // Put the page's own state back too, so the button reads "Continue"
+        // again rather than waiting for the next reload.
+        await _loadProgress();
+      },
+    );
   }
 
   /// The tray's own menu: what the list can do to itself. Chapters-only for
@@ -4683,6 +4738,28 @@ class _SheetHeaderDelegate extends SliverPersistentHeaderDelegate {
   final bool hasDownloaded;
   final VoidCallback onRemoveDownloads;
   final VoidCallback onDownload;
+
+  /// Whether the app is in incognito mode.
+  ///
+  /// The split button's menu carries the toggle, so the button has to know
+  /// which way it is currently set to wear a check beside it.
+  final bool isIncognito;
+
+  /// Whether this manga is in the reading history.
+  ///
+  /// The reference only offers "Remove from history" when there is history
+  /// to remove, and so does this menu.
+  final bool hasHistory;
+  final VoidCallback onToggleIncognito;
+  final VoidCallback onRemoveFromHistory;
+
+  /// Downloads the whole manga.
+  ///
+  /// The split button's "Download" is the manga's own download -- the same
+  /// one the page's download button offers -- and not the selection header's
+  /// download of whichever chapters are ticked.
+  final VoidCallback onDownloadManga;
+
   // Null hides the button: the tabs without a list menu pass it, so the
   // header does not offer a sheet with nothing in it.
   final VoidCallback? onOverflow;
@@ -4717,6 +4794,11 @@ class _SheetHeaderDelegate extends SliverPersistentHeaderDelegate {
     this.hasDownloaded = false,
     required this.onRemoveDownloads,
     required this.onDownload,
+    this.isIncognito = false,
+    this.hasHistory = false,
+    required this.onToggleIncognito,
+    required this.onRemoveFromHistory,
+    required this.onDownloadManga,
     required this.onOverflow,
   });
 
@@ -5050,15 +5132,17 @@ class _SheetHeaderDelegate extends SliverPersistentHeaderDelegate {
     final label = (hasRead)
         ? '${l.continueAction} · ${continueChapterNumber ?? ''}'.trim()
         : l.readAction;
-    // The pill wears the accent the user picked, with the dropdown half a step
-    // darker and a lighter hairline between them -- the relationship the fixed
-    // blues had. The label takes whichever of black or white reads on that
-    // accent: a green or monochrome pill cannot carry white.
+    // The pill wears the accent the user picked. The label takes whichever of
+    // black or white reads on that accent: a green or monochrome pill cannot
+    // carry white.
+    //
+    // Both halves are that one colour. The reference's split button is a
+    // `SplitButton.LeadingButton.Filled` and a `SplitButton.IconButton.Filled`
+    // side by side, and a filled split button fills both of its halves the
+    // same; what tells them apart is the gap, not a second shade. This app's
+    // own darker dropdown half and its hairline seam made the pair read as
+    // two buttons rather than as one split in two.
     final leftColor = accent;
-    final rightColor = Color.alphaBlend(
-      Colors.black.withValues(alpha: 0.18),
-      accent,
-    );
     final onAccent =
         ThemeData.estimateBrightnessForColor(leftColor) == Brightness.dark
         ? Colors.white
@@ -5078,7 +5162,6 @@ class _SheetHeaderDelegate extends SliverPersistentHeaderDelegate {
           ),
         ],
       ),
-      clipBehavior: Clip.antiAlias,
       child: Row(
         mainAxisSize: MainAxisSize.min,
         children: [
@@ -5086,7 +5169,15 @@ class _SheetHeaderDelegate extends SliverPersistentHeaderDelegate {
             onTap: onContinuePressed,
             child: Container(
               padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
-              color: leftColor,
+              // The label's half is rounded on the outside only: the two halves
+              // are separate shapes with a gap between them, the way the
+              // reference's `MaterialSplitButton` draws them.
+              decoration: BoxDecoration(
+                color: leftColor,
+                borderRadius: const BorderRadius.horizontal(
+                  left: Radius.circular(22),
+                ),
+              ),
               // The label stands alone: the reference's leading half is a
               // plain `SplitButton.LeadingButton.Filled`, so its "Continue ·
               // 3" carries no glyph of its own -- the only icon in the pair is
@@ -5104,32 +5195,50 @@ class _SheetHeaderDelegate extends SliverPersistentHeaderDelegate {
               ),
             ),
           ),
-          InkWell(
-            onTap: onContinuePressed,
-            child: Container(
-              padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
-              decoration: BoxDecoration(
-                color: rightColor,
-                border: Border(
-                  left: BorderSide(
-                    color: Color.alphaBlend(
-                      Colors.white.withValues(alpha: 0.35),
-                      accent,
-                    ),
-                    width: 0.5,
-                  ),
-                ),
-              ),
-              child: Icon(
-                MdiIcons.chevronDown,
-                color: onAccent,
-                size: 20,
-              ),
-            ),
+          // The gap between the halves. The reference's split button leaves
+          // the surface showing through it -- two pixels in the reference's
+          // own build -- rather than drawing the two halves as one shape
+          // with a rule down the seam.
+          const SizedBox(width: 2),
+          _ReadMenuButton(
+            color: leftColor,
+            onAccent: onAccent,
+            menuChildren: _buildReadMenuChildren(context),
           ),
         ],
       ),
     );
+  }
+
+  /// The split button's menu: what can be done to the manga from here.
+  ///
+  /// The reference's icon half is not a second copy of the Read action -- it
+  /// opens a menu of its own, with the chevron turning over while the menu is
+  /// up. Its rows are the things that act on the manga rather than on the
+  /// list: incognito mode, taking the manga back out of the history, and
+  /// downloading it. The reference also lists the manga's branches there, but
+  /// a Yomou manga has one source, so there is nothing to choose between.
+  List<Widget> _buildReadMenuChildren(BuildContext context) {
+    final l = AppLocalizations.of(context);
+    return [
+      MenuItemButton(
+        leadingIcon: const Icon(MdiIcons.incognito, size: 20),
+        trailingIcon: isIncognito ? const Icon(MdiIcons.check, size: 18) : null,
+        onPressed: onToggleIncognito,
+        child: Text(l.incognitoMode),
+      ),
+      if (hasHistory)
+        MenuItemButton(
+          leadingIcon: const Icon(MdiIcons.deleteOutline, size: 20),
+          onPressed: onRemoveFromHistory,
+          child: Text(l.removeFromHistory),
+        ),
+      MenuItemButton(
+        leadingIcon: const Icon(MdiIcons.downloadOutline, size: 20),
+        onPressed: onDownloadManga,
+        child: Text(l.detailDownload),
+      ),
+    ];
   }
 
   @override
@@ -5152,7 +5261,71 @@ class _SheetHeaderDelegate extends SliverPersistentHeaderDelegate {
         oldDelegate.isSelectionMode != isSelectionMode ||
         oldDelegate.selectedCount != selectedCount ||
         oldDelegate.isAllSelectedRead != isAllSelectedRead ||
-        oldDelegate.hasDownloaded != hasDownloaded;
+        oldDelegate.hasDownloaded != hasDownloaded ||
+        oldDelegate.isIncognito != isIncognito ||
+        oldDelegate.hasHistory != hasHistory;
+  }
+}
+
+/// The split button's dropdown half.
+///
+/// The reference's Read button is a `MaterialSplitButton`: the leading half
+/// reads, and the icon half beside it opens a menu. This is that icon half --
+/// the chevron, which turns over while the menu is up the way the
+/// reference's `?expandCollapseIndicator` does.
+///
+/// The menu is an anchor menu rather than a sheet, because the reference's
+/// is a small card that hangs off the button it belongs to rather than a
+/// panel that takes over the screen.
+class _ReadMenuButton extends StatefulWidget {
+  final Color color;
+  final Color onAccent;
+  final List<Widget> menuChildren;
+
+  const _ReadMenuButton({
+    required this.color,
+    required this.onAccent,
+    required this.menuChildren,
+  });
+
+  @override
+  State<_ReadMenuButton> createState() => _ReadMenuButtonState();
+}
+
+class _ReadMenuButtonState extends State<_ReadMenuButton> {
+  /// Whether the menu is up, so the chevron can turn over while it is.
+  bool _open = false;
+
+  @override
+  Widget build(BuildContext context) {
+    return MenuAnchor(
+      onOpen: () => setState(() => _open = true),
+      onClose: () => setState(() => _open = false),
+      // The menu hangs above the button: there is no room below it, and the
+      // reference's own menu sits on top of the button it came from.
+      style: const MenuStyle(alignment: AlignmentDirectional.bottomStart),
+      menuChildren: widget.menuChildren,
+      builder: (context, controller, child) {
+        return Material(
+          color: widget.color,
+          shape: const RoundedRectangleBorder(
+            borderRadius: BorderRadius.horizontal(right: Radius.circular(22)),
+          ),
+          clipBehavior: Clip.antiAlias,
+          child: InkWell(
+            onTap: () => controller.isOpen ? controller.close() : controller.open(),
+            child: Padding(
+              padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
+              child: Icon(
+                _open ? MdiIcons.chevronUp : MdiIcons.chevronDown,
+                color: widget.onAccent,
+                size: 20,
+              ),
+            ),
+          ),
+        );
+      },
+    );
   }
 }
 

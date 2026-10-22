@@ -342,6 +342,7 @@
   "deselectAll": "Desmarcar todo",
   "toggleRead": "Alternar leído",
   "detailDownload": "Descargar",
+  "removeFromHistory": "Quitar del historial",
   "favorited": "En favoritos",
   "favorite": "Favorito",
   "chapterOfTotal": "Capítulo {current} de {total}",

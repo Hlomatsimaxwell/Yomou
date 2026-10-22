@@ -1198,6 +1198,9 @@ class AppLocalizationsEn extends AppLocalizations {
   String get detailDownload => 'Download';
 
   @override
+  String get removeFromHistory => 'Remove from history';
+
+  @override
   String get favorited => 'Favorited';
 
   @override
