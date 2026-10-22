@@ -35,9 +35,9 @@ Alignment modeSegmentIndicatorAlignment(int activeTab, int tabs) {
 ///
 /// Icon-only, three square toggles on one track: the redesign drops the text
 /// labels so the control reads as a switch rather than a row of labelled
-/// buttons. The unread pip is deliberately kept -- it is a count of chapters
-/// waiting, not a label on a button, and taking it out would leave the pane
-/// with no way to say that anything is unread.
+/// buttons. The pip is deliberately kept -- it is a count, not a label on a
+/// button, and taking it out would leave the pane with no way to say that
+/// anything has turned up.
 ///
 /// The active fill is a plain white pill on a deliberately darkened track.
 /// White on the untinted M3 container is real but quiet -- the container roles
@@ -52,15 +52,19 @@ class ModeSegmentControl extends StatelessWidget {
     super.key,
     required this.activeTab,
     required this.onTabSelected,
-    this.unreadCount = 0,
+    this.newChaptersCount = 0,
     this.badge,
   });
 
   final int activeTab;
   final ValueChanged<int> onTabSelected;
 
-  /// Unread chapters, shown on the Chapters segment. Zero hides the badge.
-  final int unreadCount;
+  /// Chapters that have turned up since the reader last saved progress, shown
+  /// on the Chapters segment. Zero hides the badge.
+  ///
+  /// Not the unread count: this is the number that says there is something
+  /// new, which is what the reference's own badge carries.
+  final int newChaptersCount;
 
   /// Overrides the default unread badge. The badge is a slot because the tray's
   /// own pip is drawn by its tab idiom, and this control should not get to
@@ -78,7 +82,9 @@ class ModeSegmentControl extends StatelessWidget {
         scheme: scheme,
         dark: dark,
         onTap: () => onTabSelected(0),
-        badge: unreadCount > 0 ? (badge ?? _UnreadBadge(unreadCount)) : null,
+        badge: newChaptersCount > 0
+            ? (badge ?? _CountBadge(newChaptersCount))
+            : null,
       ),
       _buildSquareIconSegment(
         icon: Icons.grid_view,
@@ -173,9 +179,9 @@ class ModeSegmentControl extends StatelessWidget {
   /// One square toggle: its icon, lit as the indicator slides under it.
   ///
   /// Icon-only because the redesign drops the text labels -- the control reads
-  /// as a switch rather than a row of labelled buttons. The unread pip stays
-  /// on the Chapters segment: it is a count, not a label, and it is the only
-  /// place in the pane that says how much is waiting.
+  /// as a switch rather than a row of labelled buttons. The pip stays on the
+  /// Chapters segment: it is a count, not a label, and it is the only place in
+  /// the pane that says how much has turned up.
   Widget _buildSquareIconSegment({
     required IconData icon,
     required bool active,
@@ -214,9 +220,9 @@ class ModeSegmentControl extends StatelessWidget {
   }
 }
 
-/// The default unread-count pip, used when the caller does not supply one.
-class _UnreadBadge extends StatelessWidget {
-  const _UnreadBadge(this.count);
+/// The default count pip, used when the caller does not supply one.
+class _CountBadge extends StatelessWidget {
+  const _CountBadge(this.count);
 
   final int count;
 

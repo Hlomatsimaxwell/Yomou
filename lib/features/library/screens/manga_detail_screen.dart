@@ -315,6 +315,10 @@ class _MangaDetailScreenState extends ConsumerState<MangaDetailScreen> {
   double _lastReadChapter = -1;
   int _lastReadPage = 0;
 
+  /// The chapter count as it stood when the reader last saved progress. What
+  /// the source has now over and above this is what has turned up since.
+  int _lastTrayTotalChapters = 0;
+
   // Real bookmarks for this manga.
   List<Bookmark> _bookmarks = [];
 
@@ -600,6 +604,10 @@ class _MangaDetailScreenState extends ConsumerState<MangaDetailScreen> {
           ? (row!['lastReadChapter'] as num).toDouble()
           : -1;
       _lastReadPage = (row?['lastReadPage'] as int?) ?? 0;
+      // The chapter count as it stood when the reader last saved progress.
+      // What the source has now over and above this is what has turned up
+      // since, which is the number the tray's badge carries.
+      _lastTrayTotalChapters = (row?['lastTrayTotalChapters'] as int?) ?? 0;
       final total = (row?['totalChapters'] as int? ?? 0);
       if (_lastReadChapter >= 0 && total > 0) {
         final clamped = _lastReadChapter.clamp(0, total.toDouble());
@@ -1093,15 +1101,25 @@ class _MangaDetailScreenState extends ConsumerState<MangaDetailScreen> {
     return _chapters.length;
   }
 
-  // Number of chapters not yet read (based on last-read position).
-  int get _unreadCount {
-    if (_chapters.isEmpty) return 0;
-    if (_lastReadChapter <= 0) return _chapters.length;
-    final total = _resolvedTotalChapters;
+  /// Chapters that have turned up since the reader last saved progress.
+  ///
+  /// This is what the reference badges its chapters tab with: not the
+  /// chapters still unread, but the ones that have appeared since the reader
+  /// was last here. A manga read up to its end has nothing unread and still
+  /// has this count, which is the whole point of the badge -- it says "there
+  /// is something new", not "you have fallen behind".
+  ///
+  /// Zero when there is nothing to compare against: a manga never read has no
+  /// "since", and every chapter of it would otherwise read as new.
+  int get _newChaptersCount {
+    final lastSeen = _lastTrayTotalChapters;
+    if (lastSeen <= 0) return 0;
+    final total = _chapters.isNotEmpty
+        ? _chapters.length
+        : (_details?.totalChapters ?? 0);
     if (total <= 0) return 0;
-    return (total - _lastReadChapter.round())
-        .clamp(0, _chapters.length)
-        .toInt();
+    final added = total - lastSeen;
+    return added > 0 ? added : 0;
   }
 
   // Index of the chapter to resume from, based on last-read position.
@@ -1468,7 +1486,7 @@ class _MangaDetailScreenState extends ConsumerState<MangaDetailScreen> {
       // page around it.
       topPadding: MediaQuery.of(context).padding.top,
       bottomPadding: docked ? 0 : _trayBottomLip,
-      unreadCount: _unreadCount,
+      newChaptersCount: _newChaptersCount,
       showContinueButton: _activeTab == 0 && _chapters.isNotEmpty,
       hasRead: _lastReadChapter >= 0,
       continueChapterNumber:
@@ -4712,7 +4730,12 @@ class _SheetHeaderDelegate extends SliverPersistentHeaderDelegate {
   final Color accent;
   final double topPadding;
   final double bottomPadding;
-  final int unreadCount;
+  /// Chapters that have turned up since the reader last saved progress.
+  ///
+  /// This is the number the reference badges its chapters tab with, and it is
+  /// not the unread count: it says "there is something new", not "you have
+  /// fallen behind".
+  final int newChaptersCount;
   final bool showContinueButton;
   final bool hasRead;
   final String? continueChapterNumber;
@@ -4771,7 +4794,7 @@ class _SheetHeaderDelegate extends SliverPersistentHeaderDelegate {
     required this.accent,
     required this.topPadding,
     this.bottomPadding = 0,
-    this.unreadCount = 0,
+    this.newChaptersCount = 0,
     this.showContinueButton = false,
     this.hasRead = false,
     this.continueChapterNumber,
@@ -4920,13 +4943,17 @@ class _SheetHeaderDelegate extends SliverPersistentHeaderDelegate {
       key: const ValueKey('defaultTrayHeader'),
       crossAxisAlignment: CrossAxisAlignment.center,
       children: [
-        // Chapter list tab (shows unread count when there are unread chapters).
+        // Chapter list tab, badged with the chapters that have turned up since
+        // the reader was last here -- the same count the docked pane's mode
+        // control wears, and the one the reference badges its chapters tab
+        // with.
         _buildTabIcon(
           Icons.format_list_bulleted,
           activeTab == 0,
           dark: dark,
           scheme: scheme,
           onTap: () => onTabSelected(0),
+          badge: newChaptersCount > 0 ? _buildBadge(newChaptersCount) : null,
         ),
         const SizedBox(width: 2),
         _buildTabIcon(
@@ -5055,8 +5082,8 @@ class _SheetHeaderDelegate extends SliverPersistentHeaderDelegate {
     return ModeSegmentControl(
       activeTab: activeTab,
       onTabSelected: onTabSelected,
-      unreadCount: unreadCount,
-      badge: unreadCount > 0 ? _buildBadge(unreadCount) : null,
+      newChaptersCount: newChaptersCount,
+      badge: newChaptersCount > 0 ? _buildBadge(newChaptersCount) : null,
     );
   }
 
@@ -5261,7 +5288,7 @@ class _SheetHeaderDelegate extends SliverPersistentHeaderDelegate {
         oldDelegate.accent != accent ||
         oldDelegate.topPadding != topPadding ||
         oldDelegate.bottomPadding != bottomPadding ||
-        oldDelegate.unreadCount != unreadCount ||
+        oldDelegate.newChaptersCount != newChaptersCount ||
         oldDelegate.showContinueButton != showContinueButton ||
         oldDelegate.hasRead != hasRead ||
         oldDelegate.continueChapterNumber != continueChapterNumber ||
