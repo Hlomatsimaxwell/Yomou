@@ -108,6 +108,3 @@ lib/
 - Design inspiration: [Kotatsu](https://github.com/KotatsuApp/Kotatsu), [Kotatsu-Redo](https://github.com/Kotatsu-Redo/Kotatsu-Redo)
 - iOS sideloading inspiration: [LiveContainer](https://github.com/LiveContainer/LiveContainer), [SideStore](https://github.com/SideStore/SideStore)
 
-## License
-
-_TODO: pick a license._
