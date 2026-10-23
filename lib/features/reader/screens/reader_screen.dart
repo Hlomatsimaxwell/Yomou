@@ -14,6 +14,7 @@ import 'package:path_provider/path_provider.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import 'package:yomou/core/theme/amoled.dart';
 import 'package:yomou/widgets/safe_image.dart';
+import 'package:yomou/widgets/material_symbol.dart';
 import 'package:yomou/widgets/sheet_snap.dart';
 import 'package:yomou/core/cache/app_cache.dart';
 import 'package:yomou/core/haptics.dart';
@@ -1700,8 +1701,8 @@ class _ReaderScreenState extends ConsumerState<ReaderScreen>
                   const Spacer(),
                   if (_isAllSelectedInTray)
                     IconButton(
-                      icon: Icon(
-                        MdiIcons.checkboxMultipleBlankOutline,
+                      icon: MaterialSymbol(
+                        MaterialSymbol.selectAll,
                         color: iconColor,
                       ),
                       tooltip: AppLocalizations.of(context).deselectAll,
@@ -1715,8 +1716,8 @@ class _ReaderScreenState extends ConsumerState<ReaderScreen>
                         onPressed: _selectChapterRange,
                       ),
                     IconButton(
-                      icon: Icon(
-                        MdiIcons.checkboxMultipleBlankOutline,
+                      icon: MaterialSymbol(
+                        MaterialSymbol.selectAll,
                         color: iconColor,
                       ),
                       tooltip: AppLocalizations.of(context).selectAll,
@@ -1746,7 +1747,7 @@ class _ReaderScreenState extends ConsumerState<ReaderScreen>
                     )
                   else
                     IconButton(
-                      icon: Icon(MdiIcons.downloadOutline, color: iconColor),
+                      icon: MaterialSymbol(MaterialSymbol.download, color: iconColor),
                       tooltip: AppLocalizations.of(context).detailDownload,
                       onPressed: _downloadSelectedChapters,
                     ),
@@ -4444,7 +4445,6 @@ class _ReaderProgressTrackState extends State<_ReaderProgressTrack> {
 
   @override
   Widget build(BuildContext context) {
-    final dark = Theme.of(context).brightness == Brightness.dark;
     final relativeMax = widget.chapterPageCount > 1
         ? widget.chapterPageCount - 1
         : 0;
@@ -4452,169 +4452,26 @@ class _ReaderProgressTrackState extends State<_ReaderProgressTrack> {
       0,
       relativeMax,
     );
-    final accent = widget.accent;
-    final dim = dark ? Colors.white70 : const Color(0xFF49454F);
 
     return Column(
       mainAxisSize: MainAxisSize.min,
       children: [
-        _DottedPageSlider(
+        // The same material slider every settings and library screen uses.
+        // A single-page chapter maps to a disabled track at the far right,
+        // standing in for the static full track the old dotted control drew.
+        Slider(
           min: 0,
-          max: relativeMax.toDouble(),
-          value: relative.toDouble(),
-          accent: accent,
-          dotColor: dim,
-          // Seek live while dragging (updates the reader as the thumb moves).
-          onChangeStart: (v) => widget.onSeek(widget.chapterStart + v.round()),
-          onChanged: (v) => widget.onSeek(widget.chapterStart + v.round()),
+          max: relativeMax > 0 ? relativeMax.toDouble() : 1,
+          value: relative.toDouble() > relativeMax
+              ? 1.0
+              : relative.toDouble(),
+          onChanged: relativeMax > 0
+              ? (v) => widget.onSeek(widget.chapterStart + v.round())
+              : null,
         ),
       ],
     );
   }
-}
-
-/// Custom pill slider whose track is a row of evenly spaced dots instead of a
-/// solid line. The active span glows with the accent color; the thumb is a
-/// solid, larger handle that stays visually distinct from the dot track.
-class _DottedPageSlider extends StatefulWidget {
-  const _DottedPageSlider({
-    required this.min,
-    required this.max,
-    required this.value,
-    required this.accent,
-    required this.dotColor,
-    required this.onChanged,
-    required this.onChangeStart,
-  });
-
-  final double min;
-  final double max;
-  final double value;
-  final Color accent;
-  final Color dotColor;
-  final ValueChanged<double> onChanged;
-  final ValueChanged<double> onChangeStart;
-
-  @override
-  State<_DottedPageSlider> createState() => _DottedPageSliderState();
-}
-
-class _DottedPageSliderState extends State<_DottedPageSlider> {
-  double _fraction(double dx, double width) {
-    const thumbInset = 15.0;
-    final usable = (width - thumbInset * 2).clamp(0.0, double.infinity);
-    if (usable <= 0) return 0;
-    return ((dx - thumbInset) / usable).clamp(0.0, 1.0);
-  }
-
-  double _valueAt(double dx, double width) {
-    final frac = _fraction(dx, width);
-    return widget.min + frac * (widget.max - widget.min);
-  }
-
-  @override
-  Widget build(BuildContext context) {
-    return LayoutBuilder(
-      builder: (context, constraints) {
-        const height = 34.0;
-        // Single-page chapters can't move; keep the track static.
-        final enabled = widget.max > widget.min;
-        return GestureDetector(
-          behavior: HitTestBehavior.opaque,
-          onTapDown: enabled
-              ? (d) {
-                  widget.onChangeStart(
-                    _valueAt(d.localPosition.dx, constraints.maxWidth),
-                  );
-                  widget.onChanged(
-                    _valueAt(d.localPosition.dx, constraints.maxWidth),
-                  );
-                }
-              : null,
-          onHorizontalDragStart: enabled
-              ? (d) {
-                  widget.onChangeStart(
-                    _valueAt(d.localPosition.dx, constraints.maxWidth),
-                  );
-                }
-              : null,
-          onHorizontalDragUpdate: enabled
-              ? (d) {
-                  widget.onChanged(
-                    _valueAt(d.localPosition.dx, constraints.maxWidth),
-                  );
-                }
-              : null,
-          child: CustomPaint(
-            size: Size(constraints.maxWidth, height),
-            painter: _DottedTrackPainter(
-              progress: enabled
-                  ? ((widget.value - widget.min) / (widget.max - widget.min))
-                        .clamp(0.0, 1.0)
-                  : 1.0,
-              accent: widget.accent,
-              dotColor: widget.dotColor,
-            ),
-          ),
-        );
-      },
-    );
-  }
-}
-
-class _DottedTrackPainter extends CustomPainter {
-  const _DottedTrackPainter({
-    required this.progress,
-    required this.accent,
-    required this.dotColor,
-  });
-
-  final double progress;
-  final Color accent;
-  final Color dotColor;
-
-  @override
-  void paint(Canvas canvas, Size size) {
-    const thumbRadius = 14.0;
-    const dotRadius = 3.0;
-    const dotSpacing = 9.0;
-    final left = thumbRadius;
-    final right = size.width - thumbRadius;
-    final cy = size.height / 2;
-    final length = right - left;
-    if (length <= 0) return;
-
-    final count = (length / dotSpacing).floor().clamp(2, 256);
-    final spacing = length / (count - 1);
-    final edgeX = left + length * progress;
-
-    for (var i = 0; i < count; i++) {
-      final dx = left + i * spacing;
-      final active = dx <= edgeX;
-      final dotPaint = Paint()
-        ..color = active ? accent : dotColor
-        ..style = PaintingStyle.fill;
-      canvas.drawCircle(Offset(dx, cy), dotRadius, dotPaint);
-    }
-
-    // Distinct, solid thumb that pops against the dot track.
-    canvas.drawCircle(
-      Offset(edgeX, cy),
-      thumbRadius,
-      Paint()..color = Colors.white,
-    );
-    canvas.drawCircle(
-      Offset(edgeX, cy),
-      thumbRadius - 1.5,
-      Paint()..color = accent,
-    );
-  }
-
-  @override
-  bool shouldRepaint(covariant _DottedTrackPainter oldDelegate) =>
-      oldDelegate.progress != progress ||
-      oldDelegate.accent != accent ||
-      oldDelegate.dotColor != dotColor;
 }
 
 class _ChapterDownloadTask {
