@@ -1988,7 +1988,22 @@ class _MangaDetailScreenState extends ConsumerState<MangaDetailScreen> {
             // costs, so a column of one-word chapters still lines up instead of
             // collapsing to the text and going ragged.
             constraints: const BoxConstraints(minHeight: _kChapterRowHeight),
-            child: ListTile(
+            // The picked row's stroke and wash live on this wrapper rather
+            // than the tile: a ListTile's `tileColor` and `shape` are Ink,
+            // and Ink paints onto the nearest Material ancestor -- far above
+            // the tray's opaque fill -- so both the wash and the border
+            // painted themselves underneath it and vanished.
+            child: DecoratedBox(
+              decoration: BoxDecoration(
+                color: isSelected
+                    ? scheme.primary.withValues(alpha: 0.10)
+                    : null,
+                borderRadius: BorderRadius.circular(3),
+                border: isSelected
+                    ? Border.all(color: scheme.primary, width: 1)
+                    : null,
+              ),
+              child: ListTile(
               // A chapter row is a title with one line of metadata under it.
               // Dense because the default tile keeps a min height that pads the
               // pair out well past what two short lines need -- the reference's
@@ -2008,18 +2023,14 @@ class _MangaDetailScreenState extends ConsumerState<MangaDetailScreen> {
               // no card of its own to fall back on: the only state the surface
               // has to carry is the one the reader picked, and that is what the
               // border and tint below are for.
-              shape: isSelected
-                  ? RoundedRectangleBorder(
-                      borderRadius: BorderRadius.circular(_kChapterGridCorner),
-                      side: BorderSide(
-                        color: dark ? Colors.white : const Color(0xFF334155),
-                        width: 1.5,
-                      ),
-                    )
-                  : null,
-              tileColor: isSelected
-                  ? (dark ? amoled(context, 0xFF2C2C2C) : const Color(0xFFE2E8F0))
-                  : null,
+              // The reference marks a picked row with its own primary: a 2dp
+              // stroke and a wash of the same colour inside a 3dp corner
+              // (ChaptersSelectionDecoration -- its card branch mixes the
+              // primary a fifth into the surface and lays that down at half
+              // strength, which lands at about a tenth of the primary over
+              // the page; measured off its build, light and dark agree at
+              // near this alpha).
+              // The tile itself paints no colour -- the wrapper above does.
               title: Row(
                 children: [
                   if (isCurrent)
@@ -2126,10 +2137,15 @@ class _MangaDetailScreenState extends ConsumerState<MangaDetailScreen> {
                       ),
                     ),
                   if (isSelected)
+                    // The reference's pick mark is Material's checked circle
+                    // -- a filled disc with the check cut through -- tinted
+                    // the primary, 16dp (ic_mtrl_checked_circle at
+                    // `chapter_check_size`). The plain ring it replaced
+                    // read as a dot rather than a decision.
                     Icon(
-                      MdiIcons.checkboxBlankCircle,
-                      color: dark ? Colors.white : scheme.primary,
-                      size: 18,
+                      MdiIcons.checkCircle,
+                      color: scheme.primary,
+                      size: 16,
                     )
                   else if (_jobChapterState(ch.id) != ChapterJobState.none)
                     Padding(
@@ -2157,6 +2173,7 @@ class _MangaDetailScreenState extends ConsumerState<MangaDetailScreen> {
                 }
               },
               onLongPress: () => _enterSelection(ch.id),
+            ),
             ),
           );
         }, childCount: searched.length),
