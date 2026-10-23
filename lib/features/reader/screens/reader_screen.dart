@@ -3,6 +3,9 @@ import 'dart:async';
 import 'dart:convert';
 import 'dart:io';
 import 'dart:ui' show ImageFilter;
+// intl exports its own TextDirection class, which would shadow dart:ui's
+// enum here; the seek bar needs the enum to flip itself for RTL series.
+import 'dart:ui' as ui show TextDirection;
 import 'package:battery_plus/battery_plus.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/gestures.dart';
@@ -1082,6 +1085,7 @@ class _ReaderScreenState extends ConsumerState<ReaderScreen>
       pageController: _pageController,
       onSeek: _jumpToPage,
       accent: accent,
+      reversed: _readingMode == ReadingMode.rightToLeft,
     );
   }
 
@@ -4368,6 +4372,7 @@ class _ReaderProgressTrack extends StatefulWidget {
     required this.pageController,
     required this.onSeek,
     required this.accent,
+    required this.reversed,
   });
 
   final int session;
@@ -4380,6 +4385,10 @@ class _ReaderProgressTrack extends StatefulWidget {
   final ValueChanged<int> onSeek;
   final Color accent;
 
+  /// Whether the series reads right to left, which flips the track like the
+  /// reference's `setSliderReversed` for its reversed pager.
+  final bool reversed;
+
   @override
   State<_ReaderProgressTrack> createState() => _ReaderProgressTrackState();
 }
@@ -4387,6 +4396,14 @@ class _ReaderProgressTrack extends StatefulWidget {
 class _ReaderProgressTrackState extends State<_ReaderProgressTrack> {
   int _currentIndex = 0;
   int _lastSession = -1;
+
+  // The thumb's home while a drag is under way. The reference drags its
+  // slider without seeking -- the page only moves when the drag ends -- so
+  // while tracking, the thumb is drawn from here and not from the pager,
+  // which nobody is moving.
+  double? _dragValue;
+  bool _tracking = false;
+  bool _changed = false;
 
   @override
   void initState() {
@@ -4452,24 +4469,66 @@ class _ReaderProgressTrackState extends State<_ReaderProgressTrack> {
       0,
       relativeMax,
     );
+    final double value = _dragValue ?? relative.toDouble();
+
+    Widget slider = Slider(
+      // The same material slider every settings and library screen uses.
+      // A single-page chapter maps to a disabled track at the far right,
+      // standing in for the static full track the old dotted control drew.
+      min: 0,
+      max: relativeMax > 0 ? relativeMax.toDouble() : 1,
+      value: value > relativeMax ? relativeMax.toDouble() : value,
+      divisions: relativeMax > 0 ? relativeMax : null,
+      // The reference's floating label: the page under the thumb, numbered
+      // from 1 within the chapter like its PageLabelFormatter does.
+      label: '${value.round() + 1}',
+      onChanged: relativeMax > 0
+          ? (v) {
+              if (_tracking) {
+                // The reference drags silently: the thumb moves, the chapter
+                // waits for the release -- its ReaderActionsView only marks
+                // isSliderChanged while tracking and seeks in
+                // onStopTrackingTouch. Seeking per tick here would swim the
+                // pager beneath a moving thumb.
+                _changed = true;
+                setState(() => _dragValue = v);
+              } else {
+                // A value change that never started a drag is a track tap:
+                // the reference's non-tracking branch of onValueChange jumps
+                // outright.
+                widget.onSeek(widget.chapterStart + v.round());
+              }
+            }
+          : null,
+      onChangeStart: relativeMax > 0
+          ? (v) {
+              _tracking = true;
+              _changed = false;
+              setState(() => _dragValue = v);
+            }
+          : null,
+      onChangeEnd: relativeMax > 0
+          ? (v) {
+              _tracking = false;
+              if (!_changed) return; // A tap already seeked in onChanged.
+              setState(() => _dragValue = null);
+              widget.onSeek(widget.chapterStart + v.round());
+            }
+          : null,
+    );
+    // A series read right to left flips the track, what the reference's
+    // setSliderReversed does for its reversed pager: forward means turning
+    // pages in reading order, so low numbers sit on the right.
+    if (widget.reversed) {
+      slider = Directionality(
+        textDirection: ui.TextDirection.rtl,
+        child: slider,
+      );
+    }
 
     return Column(
       mainAxisSize: MainAxisSize.min,
-      children: [
-        // The same material slider every settings and library screen uses.
-        // A single-page chapter maps to a disabled track at the far right,
-        // standing in for the static full track the old dotted control drew.
-        Slider(
-          min: 0,
-          max: relativeMax > 0 ? relativeMax.toDouble() : 1,
-          value: relative.toDouble() > relativeMax
-              ? 1.0
-              : relative.toDouble(),
-          onChanged: relativeMax > 0
-              ? (v) => widget.onSeek(widget.chapterStart + v.round())
-              : null,
-        ),
-      ],
+      children: [slider],
     );
   }
 }
