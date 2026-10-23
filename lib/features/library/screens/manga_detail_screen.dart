@@ -2130,8 +2130,12 @@ class _MangaDetailScreenState extends ConsumerState<MangaDetailScreen> {
                   if (downloaded)
                     Padding(
                       padding: const EdgeInsets.only(right: 10),
+                      // The reference's downloaded mark is its ic_storage.xml,
+                      // whose path data is Material's classic sd_storage
+                      // glyph -- the outlined card with the top port -- not
+                      // MDI's solid rounded `sd` this used to be.
                       child: Icon(
-                        MdiIcons.sd,
+                        Icons.sd_storage,
                         color: dark ? Colors.white70 : const Color(0xFF49454F),
                         size: 18,
                       ),
@@ -2785,7 +2789,7 @@ class _MangaDetailScreenState extends ConsumerState<MangaDetailScreen> {
                     Positioned(
                       right: 4,
                       bottom: 4,
-                      child: Icon(MdiIcons.sd, size: 12, color: textColor.withValues(alpha: 0.7)),
+                      child: Icon(Icons.sd_storage, size: 12, color: textColor.withValues(alpha: 0.7)),
                     ),
                 ],
               ),
@@ -3118,7 +3122,7 @@ class _MangaDetailScreenState extends ConsumerState<MangaDetailScreen> {
       if (downloaded.isNotEmpty)
         _buildOverflowRow(
           context,
-          MdiIcons.sd,
+          Icons.sd_storage,
           l.detailOnDevice,
           'onDevice',
           checked: _downloadedOnly,
