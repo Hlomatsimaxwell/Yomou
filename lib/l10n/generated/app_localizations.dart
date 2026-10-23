@@ -2309,7 +2309,7 @@ abstract class AppLocalizations {
   /// No description provided for @searchChapters.
   ///
   /// In en, this message translates to:
-  /// **'Search chapters'**
+  /// **'Find chapter'**
   String get searchChapters;
 
   /// No description provided for @chaptersGridView.

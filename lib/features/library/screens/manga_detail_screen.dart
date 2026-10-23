@@ -371,6 +371,18 @@ class _MangaDetailScreenState extends ConsumerState<MangaDetailScreen> {
   // resume point all keep addressing the full list underneath.
   bool _downloadedOnly = false;
   String _chapterSearch = '';
+
+  /// Whether the tray bar is swapped for the chapter-search row.
+  ///
+  /// The reference's search is the toolbar's collapsing action view: the bar
+  /// gives way to a live query field, the sheet expands and locks while the
+  /// field is open, and back (or the field's own arrow) collapses it and
+  /// clears the query. This is the screen-side half of that: open, the query
+  /// and the flag; the headers themselves live in the sheet's delegate.
+  bool _chapterSearchActive = false;
+  final TextEditingController _chapterSearchController =
+      TextEditingController();
+  final FocusNode _chapterSearchFocus = FocusNode();
   // Chapters view mode: false = list (default), true = grid.
   bool _chaptersGridView = false;
   // Pages grid size 50-150%
@@ -874,6 +886,8 @@ class _MangaDetailScreenState extends ConsumerState<MangaDetailScreen> {
     _jobPoll?.cancel();
     _sheetController.dispose();
     _widePaneController.dispose();
+    _chapterSearchController.dispose();
+    _chapterSearchFocus.dispose();
     super.dispose();
   }
 
@@ -883,6 +897,34 @@ class _MangaDetailScreenState extends ConsumerState<MangaDetailScreen> {
       duration: const Duration(milliseconds: 250),
       curve: Curves.easeOutCubic,
     );
+  }
+
+  /// Swaps the bar for the search row.
+  ///
+  /// The reference expands and locks its sheet while the search view is
+  /// open -- the list is what the search is for, so it stays on screen the
+  /// whole time. Any query already showing is seeded into the field so the
+  /// row reopens on the letters it left behind.
+  void _openChapterSearch({required bool docked}) {
+    _chapterSearchController.text = _chapterSearch;
+    setState(() => _chapterSearchActive = true);
+    // The docked pane has no sheet to raise: the list is always full height
+    // there, so only the tray has an expand step.
+    if (!docked) _animateSheetTo(1.0);
+  }
+
+  /// Ends the search: the query, the field's text and the flag all go
+  /// together, the way the reference clears its view on collapse. The sheet
+  /// stays where the search left it -- expanded -- exactly as the reference's
+  /// unlock does; from here the bar's own tap and drag carry it onward.
+  void _closeChapterSearch() {
+    _chapterSearchFocus.unfocus();
+    _chapterSearchController.clear();
+    if (!_chapterSearchActive && _chapterSearch.isEmpty) return;
+    setState(() {
+      _chapterSearch = '';
+      _chapterSearchActive = false;
+    });
   }
 
   /// The lip the collapsed tray keeps under its bar.
@@ -1285,6 +1327,16 @@ class _MangaDetailScreenState extends ConsumerState<MangaDetailScreen> {
 
   @override
   Widget build(BuildContext context) {
+    // The screen sits under the search's back handling: while the search is
+    // open, back ends the search -- clearing the query -- and only a further
+    // back leaves the screen. That is the Flutter half of the reference's
+    // OnBackPressedCallback for its search view, and one scope covers both
+    // layouts; the layouts themselves are built below untouched.
+    return _withSearchBackHandling(child: _buildScreen(context));
+  }
+
+  /// Details page, tray (phone) or two-pane (wide).
+  Widget _buildScreen(BuildContext context) {
     if (usesWideLayout(context)) {
       return Scaffold(
         backgroundColor: Theme.of(context).scaffoldBackgroundColor,
@@ -1303,6 +1355,13 @@ class _MangaDetailScreenState extends ConsumerState<MangaDetailScreen> {
             child: GestureDetector(
               behavior: HitTestBehavior.opaque,
               onTap: () {
+                // Searching: a tap on the page below the tray ends the
+                // search, not the sheet -- the reference's dismiss pass also
+                // leaves its sheet standing once a search view is open on it.
+                if (_chapterSearchActive) {
+                  _closeChapterSearch();
+                  return;
+                }
                 // Tapping the content background dismisses the open sheet.
                 if (_sheetController.size > 0.12) _dismissSheet();
               },
@@ -1374,17 +1433,28 @@ class _MangaDetailScreenState extends ConsumerState<MangaDetailScreen> {
               constraints: const BoxConstraints(maxWidth: _kTrayMaxWidth),
               child: DraggableScrollableSheet(
                 controller: _sheetController,
-                initialChildSize: _trayCollapsedSize,
-                minChildSize: _trayCollapsedSize,
+                // The reference expands its sheet *and locks it* while a
+                // search view is open on it: floor raised to full height, the
+                // tray cannot be dragged or tapped smaller. Snap sizes are
+                // dropped with the floor (they must sit inside min..max), and
+                // the initial size moves with both -- it only counts on the
+                // first build, but the sheet asserts it sits inside the
+                // range too.
+                initialChildSize: _chapterSearchActive
+                    ? 1.0
+                    : _trayCollapsedSize,
+                minChildSize: _chapterSearchActive ? 1.0 : _trayCollapsedSize,
                 maxChildSize: 1.0,
-                snap: true,
+                snap: !_chapterSearchActive,
                 // The same list the bar's drag snaps against, so there is one set
                 // of resting sizes rather than two that can drift apart. It is
                 // cached rather than built inline here: a fresh list on every
                 // build reads as changed `snapSizes` to the sheet, which then
                 // re-snaps -- and it used to do that mid-drag, which is part of
-                // why a swipe up could stop short of full screen.
-                snapSizes: _traySnapSizes,
+                // why a swipe up could stop short of full screen. Dropped while
+                // the search lock holds: snap sizes have to sit inside the
+                // min..max range, and the raised floor pushes them out.
+                snapSizes: _chapterSearchActive ? null : _traySnapSizes,
                 builder: (context, scrollController) {
                   _sheetContentController = scrollController;
                   if (!_trayScrollListening) {
@@ -1483,6 +1553,23 @@ class _MangaDetailScreenState extends ConsumerState<MangaDetailScreen> {
     );
   }
 
+  /// Back first ends the search, not the screen.
+  ///
+  /// The reference installs an `OnBackPressedCallback` for its search view:
+  /// while it is open, back collapses it -- clearing the query -- and only a
+  /// further back leaves the screen. `canPop` gated on the flag is the
+  /// Flutter half of that; the collapse is `_closeChapterSearch`.
+  Widget _withSearchBackHandling({required Widget child}) {
+    return PopScope(
+      canPop: !_chapterSearchActive,
+      onPopInvokedWithResult: (didPop, result) {
+        if (didPop) return;
+        _closeChapterSearch();
+      },
+      child: child,
+    );
+  }
+
   /// Builds the chapter-list header for whichever layout is showing.
   ///
   /// [docked] is the wide layout, where the list is a pane rather than a tray.
@@ -1552,6 +1639,15 @@ class _MangaDetailScreenState extends ConsumerState<MangaDetailScreen> {
       // chapters tab has one so far, so the other tabs pass null and the
       // header hides the button rather than opening an empty sheet.
       onOverflow: (_activeTab == 0 || _activeTab == 1) ? () => _showTrayMenu(context) : null,
+      // The search is the chapters tab's, so the other tabs leave the row
+      // without one -- the same rule the reference's menu follows, where the
+      // magnifier is only offered where chapters exist to be found.
+      searchActive: _chapterSearchActive,
+      searchController: _chapterSearchController,
+      searchFocus: _chapterSearchFocus,
+      onSearchOpen: () => _openChapterSearch(docked: docked),
+      onSearchQuery: (query) => setState(() => _chapterSearch = query),
+      onSearchClose: _closeChapterSearch,
       onTabSelected: (index) {
         setState(() => _activeTab = index);
         if (docked) return;
@@ -3002,12 +3098,6 @@ class _MangaDetailScreenState extends ConsumerState<MangaDetailScreen> {
       return;
     }
     final action = await _showMenuSheet(context, [
-      _buildOverflowRow(
-        context,
-        MdiIcons.magnify,
-        l.searchChapters,
-        'search',
-      ),
       if (downloaded.isNotEmpty)
         _buildOverflowRow(
           context,
@@ -3043,42 +3133,6 @@ class _MangaDetailScreenState extends ConsumerState<MangaDetailScreen> {
         });
         final prefs = await SharedPreferences.getInstance();
         await prefs.setBool('detail.chaptersGridView', _chaptersGridView);
-      case 'search':
-        final currentSearch = _chapterSearch;
-        final buildCtx = context;
-        setState(() {
-          if (currentSearch.isNotEmpty) {
-            _chapterSearch = '';
-          }
-        });
-        if (!buildCtx.mounted) break;
-        if (!buildCtx.mounted) break;
-        final query = await showDialog<String>(
-          context: buildCtx,
-          builder: (ctx) {
-            final c = TextEditingController(text: _chapterSearch == ' ' ? '' : _chapterSearch);
-            return AlertDialog(
-              title: Text(l.searchChapters),
-              content: TextField(
-                controller: c,
-                autofocus: true,
-                decoration: InputDecoration(hintText: l.searchChapters),
-              ),
-              actions: [
-                TextButton(
-                  onPressed: () => Navigator.pop(ctx, null),
-                  child: Text(MaterialLocalizations.of(ctx).cancelButtonLabel),
-                ),
-                TextButton(
-                  onPressed: () => Navigator.pop(ctx, c.text),
-                  child: Text(MaterialLocalizations.of(ctx).okButtonLabel),
-                ),
-              ],
-            );
-          },
-        );
-        if (!mounted) break;
-        setState(() => _chapterSearch = query ?? '');
     }
   }
 
@@ -4803,6 +4857,18 @@ class _SheetHeaderDelegate extends SliverPersistentHeaderDelegate {
   // header does not offer a sheet with nothing in it.
   final VoidCallback? onOverflow;
 
+  /// Whether the bar is swapped for the chapter-search row.
+  ///
+  /// While it is, the bar carries no tap or drag of its own -- the search is
+  /// the reference's locked state, where nothing but the field's own back
+  /// arrow, the system back, or a tap outside moves anything.
+  final bool searchActive;
+  final TextEditingController? searchController;
+  final FocusNode? searchFocus;
+  final VoidCallback? onSearchOpen;
+  final VoidCallback? onSearchClose;
+  final ValueChanged<String>? onSearchQuery;
+
   _SheetHeaderDelegate({
     this.docked = false,
     required this.isExpanded,
@@ -4839,6 +4905,12 @@ class _SheetHeaderDelegate extends SliverPersistentHeaderDelegate {
     required this.onRemoveFromHistory,
     required this.onDownloadManga,
     required this.onOverflow,
+    this.searchActive = false,
+    this.searchController,
+    this.searchFocus,
+    this.onSearchOpen,
+    this.onSearchClose,
+    this.onSearchQuery,
   });
 
   @override
@@ -4851,14 +4923,20 @@ class _SheetHeaderDelegate extends SliverPersistentHeaderDelegate {
     final scheme = Theme.of(context).colorScheme;
     return GestureDetector(
       behavior: HitTestBehavior.opaque,
-      onTap: isSelectionMode || docked ? null : onBarTap,
+      onTap: isSelectionMode || searchActive || docked ? null : onBarTap,
       // The bar is the tray's handle. `down` rather than the default `start`
       // so the sheet does not jump by the touch slop the moment the drag is
       // recognised.
       dragStartBehavior: DragStartBehavior.down,
-      onVerticalDragStart: isSelectionMode ? null : onBarDragStart,
-      onVerticalDragUpdate: isSelectionMode ? null : onBarDragUpdate,
-      onVerticalDragEnd: isSelectionMode ? null : onBarDragEnd,
+      onVerticalDragStart: isSelectionMode || searchActive
+          ? null
+          : onBarDragStart,
+      onVerticalDragUpdate: isSelectionMode || searchActive
+          ? null
+          : onBarDragUpdate,
+      onVerticalDragEnd: isSelectionMode || searchActive
+          ? null
+          : onBarDragEnd,
       child: Container(
         decoration: BoxDecoration(
           // A docked header sits *inside* the chapters card and takes the
@@ -4901,6 +4979,8 @@ class _SheetHeaderDelegate extends SliverPersistentHeaderDelegate {
               duration: const Duration(milliseconds: 200),
               child: isSelectionMode
                   ? _buildSelectionHeader(context, dark: dark, scheme: scheme)
+                  : searchActive
+                  ? _buildSearchHeader(context, dark: dark, scheme: scheme)
                   : _buildDefaultHeader(context, dark: dark, scheme: scheme),
             ),
           ],
@@ -4942,6 +5022,16 @@ class _SheetHeaderDelegate extends SliverPersistentHeaderDelegate {
           if (showContinueButton) ...[
             _buildPrimaryButton(context: context, dark: dark, scheme: scheme),
             const SizedBox(width: 8),
+          ],
+          if (onSearchOpen != null && activeTab == 0) ...[
+            _buildTabIcon(
+              MdiIcons.magnify,
+              false,
+              dark: dark,
+              scheme: scheme,
+              onTap: onSearchOpen,
+            ),
+            const SizedBox(width: 2),
           ],
           if (onOverflow != null)
             _buildTabIcon(
@@ -5003,6 +5093,19 @@ class _SheetHeaderDelegate extends SliverPersistentHeaderDelegate {
         // what moves the tray, so a button that repeats one of those gestures
         // only decorates the corner it sits in.
         if (isExpanded && onOverflow != null) ...[
+          // The magnifier sits beside, not behind, the overflow: the
+          // reference's search is a toolbar action (`showAsAction="always"`)
+          // and the rest of the menu -- reverse, grid, on-device -- is what
+          // the live ⋮ holds. Chapters only: the pages and bookmarks tabs
+          // have nothing for a query to find.
+          if (onSearchOpen != null && activeTab == 0)
+            _buildTabIcon(
+              MdiIcons.magnify,
+              false,
+              dark: dark,
+              scheme: scheme,
+              onTap: onSearchOpen,
+            ),
           _buildTabIcon(
             Icons.more_vert,
             false,
@@ -5020,9 +5123,63 @@ class _SheetHeaderDelegate extends SliverPersistentHeaderDelegate {
     );
   }
 
-  // Selection mode header: close, count, range, mark-read and download.
-  Widget _buildSelectionHeader(
+  /// The search row: the reference's toolbar with its search view expanded.
+  ///
+  /// A back arrow to collapse, the magnifier riding *inside* the field the
+  /// way an AppCompat `SearchView` draws it, the live query, and the ⋮ still
+  /// in its corner -- the one edit the reference makes to its own toolbar.
+  /// Filtering is not a job for a dialog here any more than it is there.
+  Widget _buildSearchHeader(
     BuildContext context, {
+    required bool dark,
+    required ColorScheme scheme,
+  }) {
+    final iconColor = dark ? Colors.white : const Color(0xFF1C1B1F);
+    return Row(
+      key: const ValueKey('searchTrayHeader'),
+      children: [
+        IconButton(
+          icon: Icon(MdiIcons.arrowLeft, color: iconColor),
+          tooltip: MaterialLocalizations.of(context).backButtonTooltip,
+          onPressed: onSearchClose,
+        ),
+        Expanded(
+          child: TextField(
+            controller: searchController,
+            focusNode: searchFocus,
+            autofocus: true,
+            onChanged: onSearchQuery,
+            textInputAction: TextInputAction.search,
+            onSubmitted: (_) => searchFocus?.unfocus(),
+            style: TextStyle(color: iconColor, fontSize: 16),
+            decoration: InputDecoration(
+              isDense: true,
+              filled: false,
+              border: InputBorder.none,
+              prefixIcon: Icon(MdiIcons.magnify, color: iconColor, size: 20),
+              prefixIconConstraints: const BoxConstraints(minWidth: 36),
+              hintText: AppLocalizations.of(context).searchChapters,
+              hintStyle: TextStyle(
+                color: Colors.grey.withValues(alpha: dark ? 0.9 : 1.0),
+                fontSize: 16,
+              ),
+            ),
+          ),
+        ),
+        if (onOverflow != null)
+          _buildTabIcon(
+            Icons.more_vert,
+            false,
+            dark: dark,
+            scheme: scheme,
+            onTap: onOverflow,
+          ),
+      ],
+    );
+  }
+
+  // Selection mode header: close, count, range, mark-read and download.
+  Widget _buildSelectionHeader(BuildContext context, {
     required bool dark,
     required ColorScheme scheme,
   }) {
@@ -5313,7 +5470,8 @@ class _SheetHeaderDelegate extends SliverPersistentHeaderDelegate {
         oldDelegate.isAllSelectedRead != isAllSelectedRead ||
         oldDelegate.hasDownloaded != hasDownloaded ||
         oldDelegate.isIncognito != isIncognito ||
-        oldDelegate.hasHistory != hasHistory;
+        oldDelegate.hasHistory != hasHistory ||
+        oldDelegate.searchActive != searchActive;
   }
 }
 

@@ -1232,7 +1232,7 @@ class AppLocalizationsEn extends AppLocalizations {
   String get detailState => 'State';
 
   @override
-  String get searchChapters => 'Search chapters';
+  String get searchChapters => 'Find chapter';
 
   @override
   String get chaptersGridView => 'Chapters grid view';
