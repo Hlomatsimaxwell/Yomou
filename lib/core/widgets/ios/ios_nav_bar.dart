@@ -13,6 +13,12 @@ class IosNavBar extends StatelessWidget {
   final bool showBack;
   final VoidCallback? onBack;
 
+  /// Flat header: nothing painted of its own, so the row reads as sitting
+  /// straight on the screen the way the reference's `MaterialToolbar` does
+  /// -- there is no band, no hairline, nothing separating the nav row from
+  /// the page it belongs to.
+  final bool flat;
+
   const IosNavBar({
     super.key,
     this.title,
@@ -21,6 +27,7 @@ class IosNavBar extends StatelessWidget {
     this.actions = const [],
     this.showBack = false,
     this.onBack,
+    this.flat = false,
   }) : assert(
          title != null || titleWidget != null,
          'IosNavBar requires either [title] or [titleWidget]',
@@ -58,15 +65,17 @@ class IosNavBar extends StatelessWidget {
       child: Container(
         height: 56,
         padding: const EdgeInsets.symmetric(horizontal: 8),
-        decoration: BoxDecoration(
-          color: dark ? Colors.black : Colors.white,
-          border: Border(
-            bottom: BorderSide(
-              color: dark ? const Color(0xFF1F1F23) : Colors.black12,
-              width: 0.5,
-            ),
-          ),
-        ),
+        decoration: flat
+            ? null
+            : BoxDecoration(
+                color: dark ? Colors.black : Colors.white,
+                border: Border(
+                  bottom: BorderSide(
+                    color: dark ? const Color(0xFF1F1F23) : Colors.black12,
+                    width: 0.5,
+                  ),
+                ),
+              ),
         child: Row(
           children: [
             SizedBox(width: 44, child: Center(child: leadingWidget)),

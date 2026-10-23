@@ -3874,7 +3874,7 @@ abstract class AppLocalizations {
   /// No description provided for @editPickFromFiles.
   ///
   /// In en, this message translates to:
-  /// **'Pick image file'**
+  /// **'Pick custom file'**
   String get editPickFromFiles;
 
   /// No description provided for @editCoversFromSources.
@@ -3889,12 +3889,6 @@ abstract class AppLocalizations {
   /// **'Use default cover'**
   String get editUseDefaultCover;
 
-  /// No description provided for @editCustomCover.
-  ///
-  /// In en, this message translates to:
-  /// **'Custom'**
-  String get editCustomCover;
-
   /// No description provided for @editTitleHint.
   ///
   /// In en, this message translates to:
@@ -3906,24 +3900,6 @@ abstract class AppLocalizations {
   /// In en, this message translates to:
   /// **'These changes will affect how manga is displayed in the app.'**
   String get editChangesNote;
-
-  /// No description provided for @editDiscardTitle.
-  ///
-  /// In en, this message translates to:
-  /// **'Discard changes?'**
-  String get editDiscardTitle;
-
-  /// No description provided for @editDiscardContent.
-  ///
-  /// In en, this message translates to:
-  /// **'You have unsaved changes. They will be lost if you leave now.'**
-  String get editDiscardContent;
-
-  /// No description provided for @editDiscard.
-  ///
-  /// In en, this message translates to:
-  /// **'Discard'**
-  String get editDiscard;
 
   /// No description provided for @editNoAltCovers.
   ///

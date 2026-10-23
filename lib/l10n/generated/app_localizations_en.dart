@@ -2100,7 +2100,7 @@ class AppLocalizationsEn extends AppLocalizations {
   String get historyNotFavorite => 'Not in favorites';
 
   @override
-  String get editPickFromFiles => 'Pick image file';
+  String get editPickFromFiles => 'Pick custom file';
 
   @override
   String get editCoversFromSources => 'Covers from other sources';
@@ -2109,24 +2109,11 @@ class AppLocalizationsEn extends AppLocalizations {
   String get editUseDefaultCover => 'Use default cover';
 
   @override
-  String get editCustomCover => 'Custom';
-
-  @override
   String get editTitleHint => 'Manga title';
 
   @override
   String get editChangesNote =>
       'These changes will affect how manga is displayed in the app.';
-
-  @override
-  String get editDiscardTitle => 'Discard changes?';
-
-  @override
-  String get editDiscardContent =>
-      'You have unsaved changes. They will be lost if you leave now.';
-
-  @override
-  String get editDiscard => 'Discard';
 
   @override
   String get editNoAltCovers =>
