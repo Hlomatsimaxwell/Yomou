@@ -1398,6 +1398,23 @@ class _MangaDetailScreenState extends ConsumerState<MangaDetailScreen> {
                       borderRadius: _isExpanded
                           ? BorderRadius.zero
                           : const BorderRadius.vertical(top: Radius.circular(28)),
+                      // The reference's sheet is a Material modal bottom
+                      // sheet, and its shadow is the library's default:
+                      // level-1 elevation, 1dp -- a tight fringe hugging the
+                      // edges rather than the wide soft blot a floating
+                      // card carries, so the blur stays small. Taken at the
+                      // reference's literal strength (~22% darkening at an
+                      // edge, from its own build) it read as a smudge on a
+                      // bright page, so the density is halved and only its
+                      // shape -- edge-hugging, gone within 16dp -- kept.
+                      boxShadow: [
+                        BoxShadow(
+                          color: Colors.black.withValues(
+                            alpha: dark ? 0.26 : 0.22,
+                          ),
+                          blurRadius: 10,
+                        ),
+                      ],
                     ),
                     child: ClipRRect(
                       borderRadius: _isExpanded
