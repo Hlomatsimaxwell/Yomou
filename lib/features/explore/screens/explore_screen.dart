@@ -8,6 +8,7 @@ import 'package:yomou/core/widgets/ios/ios_menu.dart';
 import 'package:yomou/core/widgets/ios/ios_press.dart';
 import 'package:yomou/core/widgets/ios/ios_toast.dart';
 import 'package:yomou/core/widgets/tab_header.dart';
+import 'package:yomou/widgets/material_symbol.dart';
 import 'package:yomou/core/widgets/responsive.dart' show usesWideLayout;
 import 'package:yomou/core/widgets/manga_grid_metrics.dart';
 import 'package:yomou/core/widgets/search_bar.dart';
@@ -233,6 +234,12 @@ class _ExploreScreenState extends ConsumerState<ExploreScreen> {
                               color: dark ? Colors.white38 : Colors.black38,
                               strokeWidth: 2,
                             ),
+                          )
+                        else if (btn['icon'] == MdiIcons.downloadOutline)
+                          MaterialSymbol(
+                            MaterialSymbol.download,
+                            color: fgColor,
+                            size: 20,
                           )
                         else
                           Icon(

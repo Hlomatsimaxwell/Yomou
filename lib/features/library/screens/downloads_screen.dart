@@ -18,6 +18,7 @@ import 'package:yomou/features/reader/services/chapter_downloader.dart';
 import 'package:yomou/features/settings/screens/downloads_settings_screen.dart';
 import 'package:yomou/l10n/generated/app_localizations.dart';
 import 'package:yomou/widgets/cached_manga_image.dart';
+import 'package:yomou/widgets/material_symbol.dart';
 import 'package:yomou/widgets/m3_components.dart';
 
 /// Every chapter downloaded to local storage, grouped into one card per manga
@@ -387,11 +388,7 @@ class _DownloadsScreenState extends ConsumerState<DownloadsScreen> {
         ),
         actions: [
           IconButton(
-            icon: Icon(
-              allSelected
-                  ? MdiIcons.checkboxBlankOutline
-                  : MdiIcons.checkboxMultipleBlank,
-            ),
+            icon: MaterialSymbol(MaterialSymbol.selectAll),
             tooltip: allSelected ? l.deselectAll : l.selectAll,
             onPressed: _toggleSelectAll,
           ),

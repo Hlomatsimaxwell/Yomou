@@ -2,6 +2,7 @@ import 'dart:math' as math;
 
 import 'package:yomou/core/theme/amoled.dart';
 import 'package:yomou/widgets/cached_manga_image.dart';
+import 'package:yomou/widgets/material_symbol.dart';
 import 'package:yomou/widgets/manga_hero.dart';
 import 'package:yomou/widgets/source_icon.dart';
 import 'package:flutter/material.dart';
@@ -1388,13 +1389,13 @@ class _HistoryScreenState extends ConsumerState<HistoryScreen> {
     final dark = Theme.of(context).brightness == Brightness.dark;
     final fg = dark ? Colors.white : const Color(0xFF1C1B1F);
 
-    Widget navAction(IconData icon, VoidCallback onTap) {
+    Widget navAction(Widget icon, VoidCallback onTap) {
       return Center(
         child: AppPress(
           onTap: onTap,
           child: Padding(
             padding: const EdgeInsets.all(8),
-            child: Icon(icon, color: fg, size: 22),
+            child: icon,
           ),
         ),
       );
@@ -1402,7 +1403,7 @@ class _HistoryScreenState extends ConsumerState<HistoryScreen> {
 
     return IosNavBar(
       showBack: false,
-      leading: navAction(MdiIcons.close, _exitSelection),
+      leading: navAction(Icon(MdiIcons.close, color: fg, size: 22), _exitSelection),
       titleWidget: Text(
         AppLocalizations.of(
           context,
@@ -1411,13 +1412,15 @@ class _HistoryScreenState extends ConsumerState<HistoryScreen> {
       ),
       actions: [
         navAction(
-          _allVisibleSelected
-              ? MdiIcons.checkboxMultipleBlank
-              : MdiIcons.checkboxMultipleBlankOutline,
+          MaterialSymbol(
+            MaterialSymbol.selectAll,
+            color: fg,
+            size: 22,
+          ),
           _toggleSelectAll,
         ),
-        navAction(MdiIcons.deleteOutline, _deleteSelected),
-        navAction(MdiIcons.dotsVertical, _showSelectionActions),
+        navAction(Icon(MdiIcons.deleteOutline, color: fg, size: 22), _deleteSelected),
+        navAction(Icon(MdiIcons.dotsVertical, color: fg, size: 22), _showSelectionActions),
       ],
     );
   }

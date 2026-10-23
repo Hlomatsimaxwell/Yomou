@@ -4,6 +4,7 @@ import 'package:flutter/gestures.dart' show DragStartBehavior;
 import 'package:flutter/rendering.dart' show ScrollDirection;
 import 'package:yomou/core/theme/amoled.dart';
 import 'package:yomou/widgets/cached_manga_image.dart';
+import 'package:yomou/widgets/material_symbol.dart';
 import 'package:yomou/widgets/manga_hero.dart';
 import 'package:yomou/widgets/cover_viewer.dart';
 import 'package:yomou/widgets/sheet_snap.dart';
@@ -5224,8 +5225,8 @@ class _SheetHeaderDelegate extends SliverPersistentHeaderDelegate {
         const Spacer(),
         if (isAllSelected)
           IconButton(
-            icon: Icon(
-              MdiIcons.checkboxMultipleBlankOutline,
+            icon: MaterialSymbol(
+              MaterialSymbol.selectAll,
               color: iconColor,
             ),
             tooltip: AppLocalizations.of(context).deselectAll,
@@ -5239,7 +5240,10 @@ class _SheetHeaderDelegate extends SliverPersistentHeaderDelegate {
               onPressed: onSelectRange,
             ),
           IconButton(
-            icon: Icon(MdiIcons.checkboxMultipleBlankOutline, color: iconColor),
+            icon: MaterialSymbol(
+              MaterialSymbol.selectAll,
+              color: iconColor,
+            ),
             tooltip: AppLocalizations.of(context).selectAll,
             onPressed: onSelectAll,
           ),
@@ -5260,7 +5264,7 @@ class _SheetHeaderDelegate extends SliverPersistentHeaderDelegate {
           )
         else
           IconButton(
-            icon: Icon(MdiIcons.downloadOutline, color: iconColor),
+            icon: MaterialSymbol(MaterialSymbol.download, color: iconColor),
             tooltip: AppLocalizations.of(context).detailDownload,
             onPressed: onDownload,
           ),
@@ -5462,7 +5466,7 @@ class _SheetHeaderDelegate extends SliverPersistentHeaderDelegate {
           child: Text(l.removeFromHistory),
         ),
       MenuItemButton(
-        leadingIcon: const Icon(MdiIcons.downloadOutline, size: 20),
+        leadingIcon: MaterialSymbol(MaterialSymbol.download, size: 20),
         onPressed: onDownloadManga,
         child: Text(l.detailDownload),
       ),
