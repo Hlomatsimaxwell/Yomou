@@ -63,6 +63,14 @@
         <meta-data
             android:name="com.google.android.gms.version"
             android:value="12451000" />
+
+        <!-- The notification plugin's action buttons (download Pause/Cancel)
+             send their taps to this receiver via an explicit-component
+             PendingIntent; the plugin README requires the app to declare it,
+             and a missing declaration silently no-ops every press. -->
+        <receiver
+            android:exported="false"
+            android:name="com.dexterous.flutterlocalnotifications.ActionBroadcastReceiver" />
     </application>
     <!-- Required to query activities that can process text, see:
          https://developer.android.com/training/package-visibility and

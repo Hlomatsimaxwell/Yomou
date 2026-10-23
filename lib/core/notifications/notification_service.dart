@@ -75,10 +75,28 @@ class NotificationService {
   static const String lastSuggestedSentPrefsKey = 'last_suggested_sent_ms';
   static const String _channelId = 'new_chapters';
   static const String _channelName = 'New chapters';
+  /// The reference's alert glyph for its new-chapter channel (its
+  /// ic_stat_book_plus open-book-plus mark). Status-bar icons are tiny, so
+  /// the shared plain-ligature icon reads as noise next to the reference's.
+  static const String _newChapterIcon = 'ic_stat_new_chapters';
   static const String _suggestedChannelId = 'suggested_manga';
   static const String _suggestedChannelName = 'Suggested manga';
+  /// The reference's badge glyph for its suggestions channel
+  /// (ic_stat_suggestion).
+  static const String _suggestedIcon = 'ic_stat_suggestion';
   static const String _suggestedCategoryId = 'suggested';
-  static const int _suggestedNotificationId = 482002;
+  static const int _suggestedNotificationIdBase = 482002;
+  static const String _suggestionGroupKey = 'yomou_suggestions';
+  static const String _doneIcon = 'ic_stat_done';
+  static const String _errorIcon = 'ic_stat_error';
+  /// The reference posts a silent progress note from its tracker worker
+  /// while a check runs (its track_worker channel, IMPORTANCE_LOW). Yomou's
+  /// periodic task mirrors it, so this channel exists before the task posts.
+  static const String _checkChannelId = 'check_worker';
+  static const String _checkChannelName = 'Check for new chapters';
+  static const String _checkChannelDescription =
+      'Progress of background checks for new chapters';
+  static const int _checkNoteId = 482020;
   static const String payloadFeed = 'feed';
   static const String payloadSuggested = 'suggested';
 
@@ -93,6 +111,11 @@ class NotificationService {
   static const int _newChapterSummaryId = 482003;
   static const int _newChapterChildIdBase = 0x100000;
 
+  /// The id the periodic check's progress note posts under. Passed to
+  /// WorkManager's foreground config so the service and the repaint share it,
+  /// the way the download jobs manage their own note.
+  static int get checkNoteId => _checkNoteId;
+
   static const String _readActionId = 'read';
   static const String _moreActionId = 'more';
 
@@ -105,6 +128,9 @@ class NotificationService {
 
   int _newChapterChildId(String mangaId) =>
       _newChapterChildIdBase + (mangaId.hashCode & 0xFFFFF);
+
+  int _suggestedId(String mangaId) =>
+      _suggestedNotificationIdBase + (mangaId.hashCode & 0x3FFFF);
 
   final FlutterLocalNotificationsPlugin _plugin =
       FlutterLocalNotificationsPlugin();
@@ -223,6 +249,7 @@ class NotificationService {
     required String coverUrl,
     required int newCount,
     required String latestChapterTitle,
+    required bool nsfw,
     String? sourceId,
   }) async {
     if (!supported) return;
@@ -237,6 +264,7 @@ class NotificationService {
       android: AndroidNotificationDetails(
         _channelId,
         _channelName,
+        icon: _newChapterIcon,
         channelDescription:
             'Alerts when manga in your library get new chapters',
         importance: Importance.defaultImportance,
@@ -245,6 +273,10 @@ class NotificationService {
         setAsGroupSummary: false,
         groupAlertBehavior: GroupAlertBehavior.summary,
         largeIcon: bytes != null ? ByteArrayAndroidBitmap(bytes) : null,
+        // The reference hides its NSFW posts from the lock screen entirely
+        // (VISIBILITY_SECRET in TrackerNotificationHelper); everything else
+        // shows in full.
+        visibility: nsfw ? NotificationVisibility.secret : null,
       ),
       iOS: DarwinNotificationDetails(
         subtitle: countText,
@@ -282,6 +314,7 @@ class NotificationService {
       android: AndroidNotificationDetails(
         _channelId,
         _channelName,
+        icon: _newChapterIcon,
         channelDescription:
             'Alerts when manga in your library get new chapters',
         importance: Importance.defaultImportance,
@@ -320,6 +353,7 @@ class NotificationService {
       coverUrl: 'https://picsum.photos/seed/onepiece/300/420',
       newCount: 3,
       latestChapterTitle: "1128 — Oden's Return",
+      nsfw: false,
     );
     await showNewChapterNotification(
       mangaId: 'preview_jujutsu',
@@ -327,6 +361,7 @@ class NotificationService {
       coverUrl: 'https://picsum.photos/seed/jujutsu/300/420',
       newCount: 1,
       latestChapterTitle: 'Chapter 235',
+      nsfw: false,
     );
     await showNewChapterNotification(
       mangaId: 'preview_solo_leveling',
@@ -334,6 +369,7 @@ class NotificationService {
       coverUrl: 'https://picsum.photos/seed/solo/300/420',
       newCount: 1,
       latestChapterTitle: 'Chapter 176',
+      nsfw: false,
     );
     await showNewChaptersGroupSummary(
       seriesCount: 3,
@@ -382,9 +418,15 @@ class NotificationService {
     final android = AndroidNotificationDetails(
       _suggestedChannelId,
       _suggestedChannelName,
+      icon: _suggestedIcon,
       channelDescription: 'Recommendations based on what you read',
       importance: Importance.defaultImportance,
       priority: Priority.defaultPriority,
+      // The reference's suggestions carry CATEGORY_RECOMMENDATION.
+      category: AndroidNotificationCategory.recommendation,
+      // An id per manga, the way the reference hashes theirs: two suggestions
+      // stack instead of the next digest replacing the last card.
+      groupKey: _suggestionGroupKey,
       largeIcon: bytes != null ? ByteArrayAndroidBitmap(bytes) : null,
       // Compact, text-first card: no big banner. The cover stays a small
       // thumbnail in the collapsed view; expanding shows the full description.
@@ -406,7 +448,9 @@ class NotificationService {
     );
 
     await _plugin.show(
-      id: _suggestedNotificationId,
+      // Stable per manga, so a later digest of the same series updates that
+      // card in place while a different one stacks alongside it.
+      id: _suggestedId(manga.mangaId ?? manga.mangaTitle),
       title: title,
       body: text,
       notificationDetails: NotificationDetails(android: android, iOS: ios),
@@ -432,6 +476,7 @@ class NotificationService {
     required int id,
     required String title,
     required String body,
+    bool success = true,
   }) async {
     if (!supported) return;
 
@@ -445,6 +490,9 @@ class NotificationService {
           android: AndroidNotificationDetails(
             _backupChannelId,
             _backupChannelName,
+            // The reference's result posts carry the done check on success
+            // and the platform's error glyph on failure.
+            icon: success ? _doneIcon : _errorIcon,
             channelDescription: _backupChannelDescription,
             importance: Importance.high,
             priority: Priority.high,
@@ -514,6 +562,70 @@ class NotificationService {
     } catch (_) {}
   }
 
+  /// Creates the check-progress channel up front, so the periodic task's
+  /// foreground config name lands on a channel with the reference's wording
+  /// rather than WorkManager's generic "Long-running tasks".
+  Future<void> ensureCheckChannel() async {
+    if (!Platform.isAndroid) return;
+    try {
+      await init();
+      await _plugin
+          .resolvePlatformSpecificImplementation<
+            AndroidFlutterLocalNotificationsPlugin
+          >()
+          ?.createNotificationChannel(
+            AndroidNotificationChannel(
+              _checkChannelId,
+              _checkChannelName,
+              description: _checkChannelDescription,
+              importance: Importance.low,
+            ),
+          );
+    } catch (_) {}
+  }
+
+  /// The silent "Checking for new chapters" note the reference's tracker
+  /// worker pins while it scans (its `track_worker` channel, IMPORTANCE_LOW):
+  /// an ongoing line under the running check, gone as soon as the check ends.
+  /// The id matches the foreground config so this repaints the service's own
+  /// notification in place, the way the download jobs manage theirs.
+  Future<void> showCheckProgress() async {
+    if (!Platform.isAndroid) return;
+    try {
+      await ensureCheckChannel();
+      await _plugin.show(
+        id: _checkNoteId,
+        title: _checkChannelName,
+        body: 'Checking in the background…',
+        notificationDetails: NotificationDetails(
+          android: AndroidNotificationDetails(
+            _checkChannelId,
+            _checkChannelName,
+            channelDescription: _checkChannelDescription,
+            importance: Importance.low,
+            priority: Priority.low,
+            ongoing: true,
+            autoCancel: false,
+            onlyAlertOnce: true,
+            playSound: false,
+            enableVibration: false,
+            showProgress: true,
+            maxProgress: 1,
+            indeterminate: true,
+          ),
+        ),
+      );
+    } catch (_) {}
+  }
+
+  /// Drops the check progress note after the routine cycle finishes.
+  Future<void> hideCheckProgress() async {
+    if (!Platform.isAndroid) return;
+    try {
+      await _plugin.cancel(id: _checkNoteId);
+    } catch (_) {}
+  }
+
   /// Dev/demo: shows a realistic "suggested manga" card with a cover image for
   /// previewing its look and layout.
   Future<void> showTestSuggested() async {
@@ -548,7 +660,9 @@ class NotificationService {
       final map = jsonDecode(payload);
       if (map is! Map) return null;
       final kind = map['kind'];
-      if (kind != 'newChapter' && kind != 'suggestion') return null;
+      if (kind != 'newChapter' && kind != 'suggestion' && kind != 'download') {
+        return null;
+      }
       final source = map['source'];
       return NotificationTarget(
         kind: kind as String,
@@ -556,6 +670,7 @@ class NotificationService {
         title: map['title']?.toString() ?? '',
         coverUrl: map['cover']?.toString() ?? '',
         sourceId: source is String && source.isNotEmpty ? source : null,
+        jobId: map['job']?.toString() ?? '',
       );
     } catch (_) {
       return null;
@@ -610,13 +725,18 @@ class NotificationTarget {
     required this.title,
     required this.coverUrl,
     this.sourceId,
+    this.jobId = '',
   });
 
-  /// 'newChapter' for library updates, 'suggestion' for recommendations.
+  /// 'newChapter' for library updates, 'suggestion' for recommendations,
+  /// 'download' for a finished download batch.
   final String kind;
 
   final String mangaId;
   final String title;
   final String coverUrl;
   final String? sourceId;
+
+  /// The WorkManager job id on download targets, for the pause/cancel actions.
+  final String jobId;
 }

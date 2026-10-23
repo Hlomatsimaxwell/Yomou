@@ -208,6 +208,14 @@
   "dlgDownloadPaused": "Paused",
   "dlgDownloadPages": "{done} of {total} pages",
   "dlgDownloadChapterOf": "Chapter {done} of {total}",
+  "dlgDownloadEta": "~{minutes} min left",
+  "@dlgDownloadEta": {
+    "placeholders": {
+      "minutes": {
+        "type": "int"
+      }
+    }
+  },
   "dlgDownloadComplete": "Download complete",
   "dlgDownloadCompleteBody": "{done} chapters saved to this device",
   "@dlgDownloadCompleteBody": {

@@ -896,6 +896,12 @@ abstract class AppLocalizations {
   /// **'Chapter {done} of {total}'**
   String dlgDownloadChapterOf(Object done, Object total);
 
+  /// No description provided for @dlgDownloadEta.
+  ///
+  /// In en, this message translates to:
+  /// **'~{minutes} min left'**
+  String dlgDownloadEta(int minutes);
+
   /// No description provided for @dlgDownloadComplete.
   ///
   /// In en, this message translates to:

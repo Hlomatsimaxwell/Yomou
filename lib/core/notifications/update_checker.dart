@@ -21,6 +21,7 @@ class LibraryStatus {
     required this.latestChapterTitle,
     required this.latestChapterDate,
     required this.isFavorite,
+    this.isNsfw = false,
   });
 
   final String mangaId;
@@ -44,6 +45,12 @@ class LibraryStatus {
   final String latestChapterTitle;
   final DateTime? latestChapterDate;
   final bool isFavorite;
+
+  /// Whether the series carries the tags the app counts as NSFW. The
+  /// reference papers over adult titles' notifications on the lock screen
+  /// (VISIBILITY_SECRET in TrackerNotificationHelper), so the flag survives
+  /// the scan to gate that.
+  final bool isNsfw;
 
   /// Chapters newer than what the user has seen in the app.
   int get newSinceRead => liveTotal - storedTotal;
@@ -69,6 +76,7 @@ class LibraryStatus {
     'latestChapterTitle': latestChapterTitle,
     'latestChapterDate': latestChapterDate?.toIso8601String(),
     'isFavorite': isFavorite,
+    'isNsfw': isNsfw,
   };
 
   factory LibraryStatus.fromJson(Map<String, dynamic> json) {
@@ -87,6 +95,7 @@ class LibraryStatus {
               ? null
               : DateTime.tryParse(json['latestChapterDate'] as String),
       isFavorite: json['isFavorite'] as bool? ?? false,
+      isNsfw: json['isNsfw'] as bool? ?? false,
     );
   }
 }
@@ -244,6 +253,7 @@ class UpdateChecker {
         latestChapterTitle: latest?.$1 ?? 'New chapter',
         latestChapterDate: latest?.$2,
         isFavorite: isFavorite,
+        isNsfw: _tagsAreNsfw(tags),
       ).toJson();
     } catch (_) {
       return null;

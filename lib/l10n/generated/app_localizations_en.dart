@@ -463,6 +463,11 @@ class AppLocalizationsEn extends AppLocalizations {
   }
 
   @override
+  String dlgDownloadEta(int minutes) {
+    return '~$minutes min left';
+  }
+
+  @override
   String get dlgDownloadComplete => 'Download complete';
 
   @override

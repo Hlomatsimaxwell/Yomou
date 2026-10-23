@@ -2,6 +2,7 @@ import 'dart:io';
 
 import 'package:flutter/material.dart';
 
+import 'package:yomou/core/image_referer.dart';
 import 'package:yomou/widgets/safe_image.dart';
 
 /// Network image that renders manga covers with source-specific referer
@@ -48,27 +49,10 @@ class CachedMangaImage extends StatelessWidget {
   static const String localScheme = 'local://';
 
   /// CDN host suffix -> the referer that host expects.
-  static const Map<String, String> _referers = {
-    'mangahere.com': 'https://www.mangatown.com/',
-    'mangahere.org': 'https://www.mangatown.com/',
-    'comicknew.pictures': 'https://comick.live/',
-    'comick.pictures': 'https://comick.live/',
-    'likemanga.ink': 'https://likemanga.ink/',
-    'mgread.io': 'https://likemanga.ink/',
-    'arenascan.com': 'https://arenascan.com/',
-    'asurascans.com': 'https://asurascans.com/',
-    '2xstorage.com': 'https://www.manganato.gg/',
-    'waitst.com': 'https://www.manganato.gg/',
-    'mgeko.cc': 'https://www.mgeko.cc/',
-    'imgsrv4.com': 'https://www.mgeko.cc/',
-    'imgsrv5.com': 'https://www.mgeko.cc/',
-    // MangaPill serves every cover through this one CDN, which 403s on a
-    // missing referer and 200s for the site root.
-    'readdetectiveconan.com': 'https://mangapill.com/',
-    // SeiManga keeps both its covers and its scans on this host, which 403s on
-    // a missing or foreign referer and 200s when the mirror is sent.
-    'sei.one-way.work': 'https://1.seimanga.me/',
-  };
+  ///
+  /// The table itself lives in [ImageReferer] so the notification fetches can
+  /// send the same headers; the public `refererFor` static keeps the source
+  /// tests working without re-typing the table here.
 
   /// Path prefix -> the referer that host expects, for sources whose image host
   /// rotates and so cannot be listed by name.
@@ -83,28 +67,13 @@ class CachedMangaImage extends StatelessWidget {
   ///
   /// The leading slash is what keeps `2xstorage.com` out of this: that host
   /// matches a name, never a `/storage/` path.
-  static const Map<String, String> _referersByPath = {
-    '/storage/': 'https://mangaball.com/',
-  };
 
   /// The referer [imageUrl]'s host expects, or null when it needs none.
   ///
   /// Public so a test can assert the mapping against real captured markup: a
   /// cover host missing from this table is a silent 403, not a broken URL, so
   /// nothing in the app would otherwise complain about it.
-  static String? refererFor(Uri uri) {
-    for (final entry in _referers.entries) {
-      if (uri.host == entry.key || uri.host.endsWith('.${entry.key}')) {
-        return entry.value;
-      }
-    }
-    for (final entry in _referersByPath.entries) {
-      if (uri.path.startsWith(entry.key)) {
-        return entry.value;
-      }
-    }
-    return null;
-  }
+  static String? refererFor(Uri uri) => ImageReferer.refererFor(uri);
 
   Map<String, String>? get _headers {
     final uri = Uri.tryParse(imageUrl);

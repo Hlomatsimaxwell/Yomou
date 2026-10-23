@@ -182,6 +182,9 @@ void _handleNotificationResponse(NotificationResponse response) {
     _openMangaDetail(navigator, target);
     return;
   }
+  // A download note (running or finished) carries its series the way the
+  // reference's download states do; the generic library lookup below opens
+  // it like any alert does.
   unawaited(_openSeriesFromNotification(navigator, target));
 }
 

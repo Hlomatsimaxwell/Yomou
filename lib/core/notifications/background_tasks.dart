@@ -33,6 +33,15 @@ void callbackDispatcher() {
     if (task == DownloadScheduler.taskName) {
       return runDownloadJob(inputData);
     }
+    // The routine cycle runs as a foreground service (see
+    // registerUpdateCheckTask), and its note is ours to repaint: a silent
+    // "check in progress" line, gone the moment the cycle ends, mirroring
+    // the reference's track_worker note.
+    final service = NotificationService.instance;
+    try {
+      await service.init();
+      await service.showCheckProgress();
+    } catch (_) {}
     try {
       await runUpdateCheck();
     } catch (_) {
@@ -42,6 +51,9 @@ void callbackDispatcher() {
     // Suggestions ride the same routine cycle (see [runSuggestedDigest]).
     try {
       await runSuggestedDigest();
+    } catch (_) {}
+    try {
+      await service.hideCheckProgress();
     } catch (_) {}
     return true;
   });
@@ -65,6 +77,23 @@ Future<bool> runDownloadJob(Map<String, dynamic>? inputData) async {
   // Row gone: the job was cancelled from the Downloads screen. Nothing to do,
   // and reporting failure would make WorkManager retry work the user declined.
   if (job == null) return true;
+  // Already paused before this run began (paused while queued, or resumed
+  // from the note's Resume button): present the paused state instead of
+  // exiting silently, since the waits that normally paint it never run.
+  if (job.status == DownloadJobStatus.paused) {
+    await DownloadNotifications.showPaused(
+      jobId: jobId,
+      title: job.mangaTitle ?? '',
+      coverUrl: job.coverUrl,
+      donePages: job.donePages,
+      totalPages: job.totalPages,
+      doneChapters: job.doneChapters,
+      totalChapters: job.totalChapters,
+      mangaId: job.mangaId,
+      sourceId: job.sourceId,
+    );
+    return true;
+  }
   if (!job.status.isOpen) return true;
 
   await DownloadNotifications.ensureInitialized();
@@ -82,22 +111,36 @@ Future<bool> runDownloadJob(Map<String, dynamic>? inputData) async {
   // Repainting the notification and writing the row on every single page would
   // be a lot of platform calls for a 40-page chapter, so coalesce them.
   var lastPaint = DateTime.fromMillisecondsSinceEpoch(0);
+  // Reference's ETA: elapsed time over pages done, extended to what remains.
+  final jobStart = DateTime.now();
   final jobTitle = job.mangaTitle ?? '';
   final jobCover = job.coverUrl;
   final jobTotalPages = job.totalPages;
   final jobTotalChapters = job.totalChapters;
   final jobMangaId = job.mangaId;
+  final jobSourceId = job.sourceId;
 
   Future<void> repaint(bool force) async {
     final now = DateTime.now();
     if (!force && now.difference(lastPaint).inMilliseconds < 400) return;
     lastPaint = now;
-    await DatabaseHelper.instance.setDownloadJobProgress(
+    // Counters only: a Pause or Cancel pressed between pages writes its
+    // verdict in status, and this repaint must not overwrite it with
+    // `running` — the tail reads the row to decide who owns the batch.
+    await DatabaseHelper.instance.touchDownloadJobCounters(
       jobId,
-      status: DownloadJobStatus.running.name,
       doneChapters: doneChapters,
       donePages: donePages,
     );
+    // Project the batch's own pace forward: seconds per page so far, times
+    // the pages that remain, rounded to minutes. The reference computes its
+    // "~n min left" the same way, off the download's own throughput.
+    int? etaMinutes;
+    final elapsed = now.difference(jobStart).inSeconds;
+    if (!force && jobTotalPages > 0 && donePages >= 4 && elapsed >= 10) {
+      etaMinutes = ((jobTotalPages - donePages) / (donePages / elapsed) / 60)
+          .round();
+    }
     await DownloadNotifications.showProgress(
       jobId: jobId,
       title: jobTitle,
@@ -107,6 +150,9 @@ Future<bool> runDownloadJob(Map<String, dynamic>? inputData) async {
       doneChapters: doneChapters,
       totalChapters: jobTotalChapters,
       indeterminate: jobTotalPages == 0,
+      etaMinutes: etaMinutes,
+      mangaId: jobMangaId,
+      sourceId: jobSourceId,
     );
   }
 
@@ -161,9 +207,43 @@ Future<bool> runDownloadJob(Map<String, dynamic>? inputData) async {
   }
 
   final completed = !stopped && failure == null;
-  final status = stopped
-      ? DownloadJobStatus.cancelled
-      : failure != null
+
+  // Re-read the row: whatever stopped this batch wrote its status from
+  // outside (pause or cancel from the note's buttons), and the reading
+  // decides what this worker owns afterwards. A paused row must survive as
+  // paused — the worker stamping cancelled over it would orphan the batch
+  // the Resume button can't bring back — and a cancelled or gone row means
+  // the user dismissed the batch, so neither its progress nor its notes are
+  // ours to resurrect.
+  final row = await DatabaseHelper.instance.getDownloadJobRow(jobId);
+  final rowStatus = DownloadJobStatus.parse(row?['status'] as String?);
+  if (row == null || rowStatus == DownloadJobStatus.cancelled) {
+    await DownloadNotifications.cancel(jobId);
+    return true;
+  }
+  if (rowStatus == DownloadJobStatus.paused) {
+    await DatabaseHelper.instance.setDownloadJobProgress(
+      jobId,
+      status: DownloadJobStatus.paused.name,
+      doneChapters: doneChapters,
+      donePages: donePages,
+    );
+    await DownloadNotifications.showPaused(
+      jobId: jobId,
+      title: jobTitle,
+      coverUrl: jobCover,
+      donePages: donePages,
+      totalPages: jobTotalPages,
+      doneChapters: doneChapters,
+      totalChapters: jobTotalChapters,
+      mangaId: jobMangaId,
+      sourceId: jobSourceId,
+      error: failure,
+    );
+    return true;
+  }
+
+  final status = failure != null
       ? DownloadJobStatus.failed
       : DownloadJobStatus.completed;
 
@@ -182,10 +262,15 @@ Future<bool> runDownloadJob(Map<String, dynamic>? inputData) async {
     doneChapters: doneChapters,
     totalChapters: jobTotalChapters,
     error: failure,
+    mangaId: jobMangaId,
+    sourceId: jobSourceId,
   );
 
-  // A failed batch is worth retrying; a completed or abandoned one is not.
-  return !completed;
+  // A batch that saved its part and one that stopped are both settled on
+  // the row, so the worker always reports success back to WorkManager; the
+  // old `!completed` inverted this and made WorkManager re-run finished
+  // batches moments later.
+  return true;
 }
 
 /// True when the job row says stop, or has been deleted outright.
@@ -251,6 +336,7 @@ Future<void> runUpdateCheck() async {
         newCount: delta,
         latestChapterTitle: status.latestChapterTitle,
         sourceId: status.sourceId.isEmpty ? null : status.sourceId,
+        nsfw: status.isNsfw,
       );
       totalNew += delta;
       seriesCount += 1;
@@ -294,7 +380,10 @@ const suggestionDigestInterval = Duration(hours: 8);
 
 /// Opportunistically suggests a manga the user hasn't read yet, based on their
 /// top genres. Tasks no work until enough time has passed since the last
-/// suggestion. No-op on a fresh install (no reading taste yet).
+/// suggestion, and stays quiet until there is actually reading history: a
+/// fresh install only has `getPopularManga` to fall back on, so without that
+/// guard the suggestion card would fire the moment the first routine cycle
+/// ran after enabling notifications.
 Future<void> runSuggestedDigest() async {
   final service = NotificationService.instance;
   await service.init();
@@ -325,6 +414,11 @@ Future<void> runSuggestedDigest() async {
     final id = row['mangaId']?.toString();
     if (id != null && id.isNotEmpty) libraryIds.add(id);
   }
+  // The popular-source fallback below is for readers nothing in the taste
+  // model yet covers, not for an empty device: without any history there is
+  // nothing to suggest around, so hold off (the reference's suggestions are
+  // history-driven the same way).
+  if (libraryIds.isEmpty) return;
 
   final candidates = <Manga>[];
   for (final source in sources) {
@@ -530,6 +624,10 @@ Future<void> registerUpdateCheckTask() async {
   }
 
   final wifiOnly = await NotificationSettings.isWifiOnly();
+  // The check runs the way the reference's tracker worker does: inside a
+  // foreground service carrying its own silent progress note. The channel is
+  // created first, so the config name lands on the reference's wording.
+  await NotificationService.instance.ensureCheckChannel();
   try {
     await Workmanager().registerPeriodicTask(
       updateCheckTaskName,
@@ -539,6 +637,14 @@ Future<void> registerUpdateCheckTask() async {
         networkType: wifiOnly ? NetworkType.unmetered : NetworkType.connected,
       ),
       existingWorkPolicy: ExistingPeriodicWorkPolicy.replace,
+      foregroundServiceConfig: ForegroundServiceConfig(
+        notificationId: NotificationService.checkNoteId,
+        notificationChannelId: 'check_worker',
+        notificationChannelName: 'Check for new chapters',
+        notificationTitle: 'Check for new chapters',
+        notificationText: 'Checking in the background…',
+        foregroundServiceType: ForegroundServiceType.dataSync,
+      ),
     );
   } catch (e) {
     // Don't crash the app on iOS if BGTaskScheduler registration fails.

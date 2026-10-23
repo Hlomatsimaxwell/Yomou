@@ -145,8 +145,14 @@ class DownloadScheduler {
   }
 
   /// Stops a job but keeps the row and its progress so it can be resumed.
+  ///
+  /// Mirrors the reference's `PausingHandle.pause()`: it only flips the
+  /// signal its running worker waits on — the job is never cancelled, so the
+  /// worker survives to notice the pause and paint the paused note itself.
+  /// Stopping the WorkManager job here would kill the worker between pages:
+  /// the row would be left paused with nobody left to announce it, which is
+  /// exactly the bug the first on-device test hit.
   static Future<void> pause(String jobId) async {
-    await _stopPlatform(jobId);
     await DatabaseHelper.instance.setDownloadJobProgress(
       jobId,
       status: DownloadJobStatus.paused.name,
@@ -167,6 +173,10 @@ class DownloadScheduler {
       job.jobId,
       status: DownloadJobStatus.queued.name,
     );
+    // The paused note belongs to the suspended batch; the re-registered job
+    // is running again, so its shadow would stack a dead state on top of the
+    // fresh progress note.
+    await DownloadNotifications.cancel(job.jobId);
     await enqueue(
       mangaId: job.mangaId,
       mangaTitle: job.mangaTitle,

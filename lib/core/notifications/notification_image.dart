@@ -1,6 +1,8 @@
 import 'dart:io';
 import 'dart:typed_data';
 
+import 'package:yomou/core/image_referer.dart';
+
 /// Fetches a cover image for use as a notification's large icon.
 ///
 /// Shared by the chapter/suggestion notifications and the download
@@ -26,6 +28,10 @@ class NotificationImage {
     final client = HttpClient()..connectionTimeout = const Duration(seconds: 5);
     try {
       final request = await client.getUrl(Uri.parse(url));
+      // Hotlink-protected CDNs answer a bare request 403; the widget grid
+      // sends this same referer, so the notification does too.
+      final referer = ImageReferer.refererFor(Uri.parse(url));
+      if (referer != null) request.headers.set(HttpHeaders.refererHeader, referer);
       final response = await request.close().timeout(
         const Duration(seconds: 10),
       );

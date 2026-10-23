@@ -60,6 +60,7 @@
     "dlgDownloadPaused",
     "dlgDownloadPages",
     "dlgDownloadChapterOf",
+    "dlgDownloadEta",
     "dlgDownloadComplete",
     "dlgDownloadCompleteBody",
     "dlgDownloadFailed",

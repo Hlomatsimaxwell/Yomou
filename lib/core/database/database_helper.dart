@@ -1298,6 +1298,30 @@ class DatabaseHelper {
     );
   }
 
+  /// Records the running worker's counters only, leaving status untouched.
+  ///
+  /// A repaint lands seconds after a pause or cancel can be written from the
+  /// notification's buttons; restamping `running` here would resurrect the
+  /// row over the user's verdict and orphan the paused batch.
+  Future<void> touchDownloadJobCounters(
+    String jobId, {
+    int? doneChapters,
+    int? donePages,
+  }) async {
+    final db = await instance.database;
+    final values = <String, Object?>{
+      'updatedAt': DateTime.now().toIso8601String(),
+    };
+    if (doneChapters != null) values['doneChapters'] = doneChapters;
+    if (donePages != null) values['donePages'] = donePages;
+    await db.update(
+      'download_jobs',
+      values,
+      where: 'jobId = ?',
+      whereArgs: [jobId],
+    );
+  }
+
   Future<void> deleteDownloadJob(String jobId) async {
     final db = await instance.database;
     await db.delete(
