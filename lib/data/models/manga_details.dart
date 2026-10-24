@@ -1,3 +1,5 @@
+import 'package:yomou/core/text_sanitizer.dart';
+
 import 'manga_translation.dart';
 
 class MangaDetails {
@@ -29,22 +31,31 @@ class MangaDetails {
   /// [MangaSource.websiteMangaUrl].
   final String publicUrl;
 
-  const MangaDetails({
+  // Not const, deliberately: scraped strings run through [sanitizeMangaText]
+  // here, at the gate every detail parser passes through. Nothing in the
+  // codebase needs this in a constant context, and a `const` field of text
+  // the source mangled would be worse than the redesign.
+  MangaDetails({
     required this.id,
-    required this.title,
+    required String title,
     required this.coverUrl,
     required this.sourceId,
-    this.description = '',
-    this.author = '',
+    String description = '',
+    String author = '',
     this.status = '',
     this.year = '',
-    this.tags = const [],
+    List<String> tags = const [],
     this.followers = 0,
     this.totalChapters = 0,
     this.language = '',
     this.translations = const [],
     this.publicUrl = '',
-  });
+  })  : title = title.sanitizeMangaText(),
+        description = description.sanitizeMangaText(),
+        author = author.sanitizeMangaText(),
+        tags = List<String>.unmodifiable(
+          tags.map((tag) => tag.sanitizeMangaText()),
+        );
 
   factory MangaDetails.fromJson(Map<String, dynamic> json) {
     return MangaDetails(

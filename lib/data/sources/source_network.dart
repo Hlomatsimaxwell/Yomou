@@ -1,3 +1,5 @@
+import 'dart:convert';
+
 import 'package:dio/dio.dart';
 import 'package:flutter/foundation.dart';
 import 'package:shared_preferences/shared_preferences.dart';
@@ -365,7 +367,14 @@ abstract class DioSource {
           validateStatus: (_) => true,
         ),
       );
-      final body = String.fromCharCodes(res.data ?? const []);
+      // Dio hands back the raw body, and a site that omits its charset
+      // header -- or one whose CMS lies about being windows-1252 -- makes
+      // String.fromCharCodes paint every é, dash and typographic quote as
+      // mojibake, because it reads one character per byte. Decoding the
+      // bytes as UTF-8 directly is the only faithful reading; a torn
+      // partial sequence yields spare replacement marks the text
+      // sanitizer can still patch, so it is allowed to survive.
+      final body = utf8.decode(res.data ?? const [], allowMalformed: true);
       if (saveCookies) await _storeSetCookies(res.headers.map);
       if (res.statusCode != 200) {
         if (isCloudflareChallenge(
@@ -452,7 +461,10 @@ abstract class DioSource {
           validateStatus: (_) => true,
         ),
       );
-      final body = String.fromCharCodes(res.data ?? const []);
+      // Same reading rule as grabText: the bytes are UTF-8 until a server
+      // proves otherwise, and appending latin-1 by accident is what turns
+      // form-driven listings into â€™ soup.
+      final body = utf8.decode(res.data ?? const [], allowMalformed: true);
       if (isCloudflareChallenge(
         status: res.statusCode ?? 0,
         headers: res.headers.map,

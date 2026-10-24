@@ -1,3 +1,5 @@
+import 'dart:convert';
+
 import 'package:dio/dio.dart';
 import 'package:yomou/data/models/manga_source.dart';
 import 'package:yomou/data/sources/source_network.dart';
@@ -89,10 +91,15 @@ Future<SourceTestResult> testMangaSource(MangaSource source) async {
     final client = dioSource != null
         ? await dioSource.dio
         : Dio(BaseOptions(baseUrl: source.baseUrl, headers: source.headers));
-    final response = await client.get<String>(
+    // The head is shown to the user in the source manager, so the same
+    // UTF-8 reading rule as the fetching layer applies here too: dio's
+    // plain type falls back to latin-1 on a server that omits charset,
+    // and the head then reports mojibake that the pages themselves do not
+    // show.
+    final response = await client.get<List<int>>(
       url,
       options: Options(
-        responseType: ResponseType.plain,
+        responseType: ResponseType.bytes,
         // Report 4xx/5xx as data instead of throwing, so a 403 is visible.
         validateStatus: (_) => true,
       ),
@@ -100,7 +107,9 @@ Future<SourceTestResult> testMangaSource(MangaSource source) async {
     status = response.statusCode;
     contentType = response.headers.value('content-type');
     server = response.headers.value('server');
-    bodyHead = _head(response.data ?? '');
+    bodyHead = _head(
+      utf8.decode(response.data ?? const [], allowMalformed: true),
+    );
   } catch (e) {
     error = e.toString();
   }

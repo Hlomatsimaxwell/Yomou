@@ -1,3 +1,5 @@
+import 'package:yomou/core/text_sanitizer.dart';
+
 class Chapter {
   final String id;
   final String title;
@@ -8,12 +10,16 @@ class Chapter {
 
   Chapter({
     required this.id,
-    required this.title,
+    required String title,
     required this.chapterNumber,
     this.releaseDate,
     required this.url,
-    this.scanlator = '',
-  });
+    String scanlator = '',
+  })  // The sanitizer rides in through the constructor for the same reason
+      // as everywhere else scraped text is cleaned: one gate, not one per
+      // source parser.
+      : title = title.sanitizeMangaText(),
+        scanlator = scanlator.sanitizeMangaText();
 
   factory Chapter.fromJson(Map<String, dynamic> json) {
     return Chapter(

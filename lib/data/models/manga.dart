@@ -1,3 +1,5 @@
+import 'package:yomou/core/text_sanitizer.dart';
+
 class Manga {
   final String id;
   final String title;
@@ -25,12 +27,22 @@ class Manga {
 
   Manga({
     required this.id,
-    required this.title,
+    required String title,
     required this.coverUrl,
-    this.description,
+    String? description,
     required this.sourceId,
-    this.tags = const [],
-  }) {
+    List<String> tags = const [],
+  })  // Scraped strings go through the sanitizer at the one gate every
+      // parser passes through -- this constructor -- so a source that
+      // hands over mojibake, markup wrappers or HTML entities is fixed
+      // once, not fifteen parsers later. Rows read back out of the cache
+      // keep the same guarantee: garbage written by an older build is
+      // repaired at read, with nothing to migrate.
+      : title = title.sanitizeMangaText(),
+        description = description?.sanitizeMangaText(),
+        tags = List<String>.unmodifiable(
+          tags.map((tag) => tag.sanitizeMangaText()),
+        ) {
     if (!looksLikeSourceId(sourceId)) {
       throw ArgumentError.value(
         sourceId,

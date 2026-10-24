@@ -290,7 +290,7 @@ void main() {
   ) async {
     // Details that answer the request with almost nothing: no author, no
     // tags, no summary -- what a thin source actually reports.
-    final sparse = const MangaDetails(
+    final sparse = MangaDetails(
       id: 'sparse-1',
       title: 'Sparse',
       coverUrl: '',
