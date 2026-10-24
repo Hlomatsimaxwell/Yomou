@@ -5,6 +5,22 @@ All notable changes to Yomou are documented here.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [1.1.7] - 2026-10-24
+
+### Added
+- **Source icons are the sites' own logos now** — a port of Kotatsu-Redo's favicon pipeline. Every source icon is discovered from the site's homepage itself (PWA manifest, icon links, apple-touch icons), tried smallest-fitting first with each failure falling through to the next candidate, and cached for 30 days so a homepage is scraped once and every later launch starts from disk. Tiles whose site offers nothing loadable keep the letter plate, as the reference does.
+
+### Changed
+- **The Continue button carries the reference's glyph** — the reader-over-open-book icon Kotatsu-Redo's own continue button uses, in the frosted and solid looks alike.
+- **In tablet view the Continue button lives in the navigation rail** — parked above the tab items at the rail's head, the way the reference's railFab sits, instead of floating over the covers in a corner.
+- **Dark mode paints the scheme's own surfaces** — outside the Black toggle, surfaces take the shade the colour scheme's seed decides (a dark grey that varies per preset) the way the reference's dark mode does; Black still flattens everything to black, and the appearance screen's swatches draw what the theme actually paints.
+- **The reader's seek-bar label follows the theme** — the floating page bubble no longer sits on Material's fixed inverse-grey pill; it takes its colours from the scheme in both light and dark modes.
+
+### Fixed
+- **Titles and summaries no longer arrive as mojibake** — wherever a site serves UTF-8 without a charset header, the fetch layer read its HTML one character per byte and every multi-byte character fell apart. Both fetch paths now decode the bytes properly, so 'â€'-style garbage stops appearing.
+- **The Disable NSFW switch finally takes** — a flip made while the app was still loading its saved settings was silently overwritten by that load, leaving the switch false after a restart. Setters now wait for the load, and the flagging matches the reference's rule: regular catalogues that merely carry some adult titles are not flagged whole.
+- **Source logos survived Cloudflare** — logo downloads ride a browser user agent and referer, so gated sites such as WeebCentral no longer 403 their own icons.
+
 ## [1.1.6] - 2026-10-14
 
 ### Added
