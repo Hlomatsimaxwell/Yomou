@@ -175,13 +175,15 @@ class NotificationService {
     );
   }
 
-  /// Payload of the notification that launched the app, if any.
-  Future<String?> launchPayload() async {
+  /// The notification that launched the app, if any. The whole response —
+  /// including `actionId` — because a cold start from READ/MORE must replay
+  /// the pressed action, not degrade into a plain notification tap.
+  Future<NotificationResponse?> launchResponse() async {
     if (!supported) return null;
     try {
       final details = await _plugin.getNotificationAppLaunchDetails();
       if (details?.didNotificationLaunchApp ?? false) {
-        return details?.notificationResponse?.payload;
+        return details?.notificationResponse;
       }
     } catch (_) {}
     return null;

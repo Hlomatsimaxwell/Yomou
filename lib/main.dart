@@ -109,18 +109,14 @@ void main() async {
   // 2b. Opt-in bring-up check for browser-rendered sources.
   SourceSelfTest.schedule();
 
-  // 3. If a notification launched the app, open the feed once we have a frame.
+  // 3. If a notification launched the app, replay it faithfully once we have
+  // a frame: action presses keep their actionId, so a cold-start READ opens
+  // the suggestion's detail page and MORE the suggestions feed.
   if (mobile) {
-    final payload = await NotificationService.instance.launchPayload();
-    if (payload != null) {
+    final response = await NotificationService.instance.launchResponse();
+    if (response != null) {
       WidgetsBinding.instance.addPostFrameCallback(
-        (_) => _handleNotificationResponse(
-          NotificationResponse(
-            notificationResponseType:
-                NotificationResponseType.selectedNotification,
-            payload: payload,
-          ),
-        ),
+        (_) => _handleNotificationResponse(response),
       );
     }
   }
@@ -151,6 +147,9 @@ int _appGeneration = 0;
 /// - tap on an individual "new chapter" alert → the series page (only when the
 ///   series actually exists in the library; preview payloads are skipped).
 void _handleNotificationResponse(NotificationResponse response) {
+  // TODO temporary diagnostics, remove before commit
+  debugPrint('notif response type=${response.notificationResponseType} '
+      'action=${response.actionId} payload=${response.payload}');
   final navigator = appNavigatorKey.currentState;
   if (navigator == null) return;
   if (response.actionId != null) {

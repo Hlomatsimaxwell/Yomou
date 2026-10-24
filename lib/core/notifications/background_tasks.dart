@@ -1,13 +1,20 @@
 import 'dart:async';
+import 'dart:collection';
 import 'dart:convert';
 import 'dart:io';
+import 'dart:math';
 
+import 'package:flutter/foundation.dart';
+import 'package:flutter/services.dart' show BackgroundIsolateBinaryMessenger,
+    RootIsolateToken;
 import 'package:shared_preferences/shared_preferences.dart';
 import 'package:workmanager/workmanager.dart';
 import 'package:yomou/core/database/database_helper.dart';
+import 'package:yomou/core/database/source_cache.dart';
 import 'package:yomou/core/notifications/download_notification.dart';
 import 'package:yomou/core/notifications/notification_service.dart';
 import 'package:yomou/core/notifications/notification_settings.dart';
+import 'package:yomou/core/notifications/suggestion_ranking.dart';
 import 'package:yomou/core/notifications/update_checker.dart';
 import 'package:yomou/core/storage/storage_stats.dart';
 import 'package:yomou/data/models/manga.dart';
@@ -30,6 +37,14 @@ const String _androidTaskName = 'checkUpdates';
 @pragma('vm:entry-point')
 void callbackDispatcher() {
   Workmanager().executeTask((task, inputData) async {
+    // This headless isolate gets its own root token: without pointing the
+    // background messenger at it, every source call that touches a platform
+    // channel (chapter totals, tag vocabularies, webview fetches) fails with
+    // "The BackgroundIsolateBinaryMessenger.instance value is invalid" and
+    // the per-source catches swallow it into empty results.
+    BackgroundIsolateBinaryMessenger.ensureInitialized(
+      RootIsolateToken.instance!,
+    );
     if (task == DownloadScheduler.taskName) {
       return runDownloadJob(inputData);
     }
@@ -378,12 +393,21 @@ Future<void> _logCheck(
 /// pings when the user is actually getting updates.
 const suggestionDigestInterval = Duration(hours: 8);
 
-/// Opportunistically suggests a manga the user hasn't read yet, based on their
-/// top genres. Tasks no work until enough time has passed since the last
-/// suggestion, and stays quiet until there is actually reading history: a
-/// fresh install only has `getPopularManga` to fall back on, so without that
-/// guard the suggestion card would fire the moment the first routine cycle
-/// ran after enabling notifications.
+/// The worker's caps, kept so the digest sweeps no wider a net than the
+/// reference's suggestion cycle: twenty per source, 280 raw, and the ranked
+/// list the notification draws from is as long as its own.
+const _digestPerSource = 20;
+const _digestRawCap = 280;
+const _digestRankedCap = 160;
+
+/// Suggests a manga to announce, picked the way the reference's
+/// SuggestionsWorker turns a library into a recommendation (see
+/// [runSuggestedDigest] for the full pipeline).
+///
+/// Everything here runs wherever [runSuggestedDigest] runs — a background
+/// cycle — so the network layout is deliberately the bounded sequential
+/// sweep, not the feed's fan-out: suggestions have no deadline the reader is
+/// staring at.
 Future<void> runSuggestedDigest() async {
   final service = NotificationService.instance;
   await service.init();
@@ -398,65 +422,270 @@ Future<void> runSuggestedDigest() async {
   }
 
   final sourceRows = sourceRowsFromPrefs(prefs);
-  final sources = resolveActiveSources(sourceRows);
+  // Enabled sources only, shuffled the way the worker shuffles
+  // getEnabledSources(): which site leads the sweep must never be the
+  // registry order, or one lucky source owns every notification.
+  final sources = boundVariantFamilies(resolveActiveSources(sourceRows));
   if (sources.isEmpty) return;
+  // TODO temporary diagnostics, remove before commit
+  debugPrint('digest stage0 gate=open sources=${sources.length}');
 
-  final topTags = await DatabaseHelper.instance.getUserTopTags(limit: 5);
-  final allowedCategories = await NotificationSettings.favoriteCategories();
-  final excludeNsfw = !(await NotificationSettings.nsfwAllowed());
-
-  final libraryIds = <String>{};
   final libraryRows = [
     ...await DatabaseHelper.instance.getHistory(),
     ...await DatabaseHelper.instance.getFavorites(),
   ];
+  final libraryKeys = <String>{};
   for (final row in libraryRows) {
     final id = row['mangaId']?.toString();
-    if (id != null && id.isNotEmpty) libraryIds.add(id);
+    if (id != null && id.isNotEmpty) libraryKeys.add(libraryKeyOf(row, id));
   }
-  // The popular-source fallback below is for readers nothing in the taste
-  // model yet covers, not for an empty device: without any history there is
-  // nothing to suggest around, so hold off (the reference's suggestions are
-  // history-driven the same way).
-  if (libraryIds.isEmpty) return;
+  // The sweep below is for readers something in the taste model can speak
+  // about, not for an empty device: without any history there is nothing to
+  // seed the taste from (the reference seeds from history the same way).
+  if (libraryKeys.isEmpty) return;
 
-  final candidates = <Manga>[];
-  for (final source in sources) {
-    if (candidates.length >= 3) break;
-    try {
-      final pool = topTags.isNotEmpty
-          ? await source
-                .searchMangaByTags(topTags)
-                .timeout(const Duration(seconds: 10), onTimeout: () => const [])
-          : await source
-                .getPopularManga(page: 1)
-                .timeout(const Duration(seconds: 10), onTimeout: () => []);
-      for (final manga in pool) {
-        if (manga.id.isNotEmpty && !libraryIds.contains(manga.id)) {
-          candidates.add(manga);
-        }
-        if (candidates.length >= 3) break;
+  // --- The seed: 20 recent history + 20 latest favourites, minus dropped --
+  //
+  // Opened, barely read and left for weeks is what the reader turned away
+  // from, not a taste to echo. A favourite is never that, however little of
+  // it has been read.
+  final favouriteKeys = {
+    for (final row in libraryRows)
+      if ((row['isFavorite'] as int? ?? 0) == 1)
+        libraryKeyOf(row, row['mangaId']?.toString() ?? '')
+  };
+  final seenKeys = <String>{};
+  final seed = <Map<String, dynamic>>[];
+  void takeSeed(List<Map<String, dynamic>> rows) {
+    for (final row in rows) {
+      if (seed.length >= 40) break;
+      final id = row['mangaId']?.toString();
+      if (id == null || id.isEmpty) continue;
+      final key = libraryKeyOf(row, id);
+      if (!seenKeys.add(key)) continue;
+      if (favouriteKeys.contains(key)) {
+        seed.add(row);
+        continue;
       }
+      // The reference's isDropped: progress in 0..0.1 and the title last
+      // touched more than 21 days ago. A row with no chapter total has no
+      // meaningful progress — that is unknown, not dropped.
+      final total = (row['totalChapters'] as int?) ?? 0;
+      double? percent;
+      final lastReadChapter = (row['lastReadChapter'] as num?)?.toDouble() ?? 0;
+      if (total > 0) {
+        percent = (lastReadChapter.clamp(0.0, total.toDouble()) / total);
+      }
+      final lastReadAt = DateTime.tryParse(
+        row['lastReadAt']?.toString() ?? '',
+      );
+      if (isDropped(percent, lastReadAt, DateTime.now())) continue;
+      seed.add(row);
+    }
+  }
+  takeSeed([...await DatabaseHelper.instance.getHistory()].take(20).toList());
+  // The reference seeds favourites by recency (`getLastManga`), but this
+  // table has no favourite-since column — it reads alphabetically. Sorting
+  // by when they were last read approximates "the 20 newest favourites"
+  // without one.
+  final favourites = [...await DatabaseHelper.instance.getFavorites()]
+    ..sort((a, b) {
+      final aAt = DateTime.tryParse(a['lastReadAt']?.toString() ?? '');
+      final bAt = DateTime.tryParse(b['lastReadAt']?.toString() ?? '');
+      return (bAt ?? DateTime.fromMillisecondsSinceEpoch(0)).compareTo(
+        aAt ?? DateTime.fromMillisecondsSinceEpoch(0),
+      );
+    });
+  takeSeed(favourites.take(20).toList());
+  if (seed.isEmpty) return;
+
+  // --- Taste: distinctive tags, TF-IDF, not frequency ---------------------  //
+  // The score pairs how often a tag recurs in the seed with how rare it is
+  // across everything the app has stored: frequent `action` in a library
+  // where nearly everything is `action` carries almost no weight, while
+  // `villainess` — rarer across the corpus — enough to lead the search.
+  final corpus = TagStatistics.fromRows(
+    await DatabaseHelper.instance.getMangaWithTags(),
+  );
+  final seedTags = [
+    for (final row in seed)
+      ..._storedTagList(row['tags']?.toString() ?? '[]'),
+  ];
+  final rankedTags = distinctiveTags(seedTags, corpus.rarity, 10);
+  // TODO temporary diagnostics, remove before commit
+  debugPrint('digest stage1 seed=${seed.length} tags=${seedTags.length} '
+      'corpusTotal=${corpus.total} ranked=$rankedTags');
+  if (rankedTags.isEmpty) {
+    // The reference yields nothing here either: with no tags over the seed
+    // there is no tag to search any source with, and popularity alone is not
+    // taste. Staying silent beats pinging a best-seller.
+    return;
+  }
+
+  // --- Sweep: per source, off that source's own vocabulary ----------------
+  final excludeNsfw = !(await NotificationSettings.nsfwAllowed());
+  final pool = <Manga>[];
+  for (final source in sources) {
+    if (pool.length >= _digestRawCap) break;
+    try {
+      // The source's own tag names, cached like every other raw list.
+      final vocab = await SourceCache.tags(
+        sourceId: source.id,
+        fetch: source.getAvailableTags,
+      ).timeout(const Duration(seconds: 10), onTimeout: () => const []);
+      if (vocab.isEmpty) {
+        // No vocabulary to match against: the reference skips the source
+        // rather than searching it unfiltered — best-sellers are not taste.
+        continue;
+      }
+      // The ranked tags, folded into this source's own spelling. Two ranked
+      // tags never knowingly collapse: the fold keeps the first spelling the
+      // vocabulary offers for each, skipping repeats.
+      final matched = <String>[];
+      for (final ranked in rankedTags) {
+        for (final own in vocab) {
+          if (almostEquals(ranked, own)) {
+            if (!matched.contains(own)) matched.add(own);
+            break;
+          }
+        }
+      }
+      if (matched.isEmpty) continue;
+      // Two telling tags together find what is actually alike; one alone
+      // casts the wider net the reference falls back to.
+      var found = await source
+          .searchMangaByTags(matched.take(2).toList())
+          .timeout(const Duration(seconds: 10), onTimeout: () => const []);
+      if (found.isEmpty && matched.length > 1) {
+        found = await source
+            .searchMangaByTags([matched.first])
+            .timeout(const Duration(seconds: 10), onTimeout: () => const []);
+      }
+      if (excludeNsfw) {
+        found = found
+            .where((manga) => !NotificationSettings.tagsAreNsfw(manga.tags))
+            .toList();
+      }
+      // TODO temporary diagnostics, remove before commit
+      debugPrint('digest stage2 ${source.id} matched=$matched '
+          'found=${found.length} pool=${pool.length}');
+      if (found.isEmpty) continue;
+      found.shuffle();
+      pool.addAll(found.take(_digestPerSource));
     } catch (_) {}
   }
-  if (candidates.isEmpty) return;
 
-  // Pick the first candidate whose details pass the filters (NSFW/categories),
-  // so preferences gate recommendations too.
-  for (final candidate in candidates) {
+  // --- Rank: how much of the reader's taste each candidate echoes ---------
+  //
+  // The reference's candidates carry their tags from the search itself, so
+  // relevance is computed on real data. Listing pages leave Manga.tags
+  // empty, though: every candidate would tie at zero and the sort would
+  // just preserve sweep order — biasing later draws to whichever source
+  // happened to start the sweep. Two guards:
+  //
+  //  1. round-robin the pool across sources first, so one source cannot own
+  //     the head of the ranked list merely by arriving early;
+  //  2. push tag-less candidates behind tagged ones — a tie at zero cannot
+  //     tell taste apart, but a tag also proves the source parses its own
+  //     data, so those candidates rank first within the same score.
+  // Round-robin across sources: pool order follows the sweep, and a sweep
+  // that starts on one source would otherwise park twenty of its titles at
+  // the front of the ranked list — the shadow of "one lucky source owns
+  // every notification" the reference kills with its shuffled sweep.
+  final bySource = <String, Queue<Manga>>{};
+  for (final manga in pool) {
+    (bySource[manga.sourceId] ??= Queue()).add(manga);
+  }
+  final interleaved = <Manga>[];
+  var open = bySource.values.where((q) => q.isNotEmpty).toList();
+  while (open.isNotEmpty) {
+    final next = <Queue<Manga>>[];
+    for (final q in open) {
+      interleaved.add(q.removeFirst());
+      if (q.isNotEmpty) next.add(q);
+    }
+    open = next;
+  }
+
+  final rankedCandidates = <(Manga, double)>[];
+  final distinctKeys = <String>{};
+  for (final manga in interleaved) {
+    if (manga.id.isEmpty) continue;
+    // A notification must not ping a title the reader already has: the cut
+    // the reference's Suggestions screen applies in its UI happens here,
+    // before anything can be announced. Same series through two sources is
+    // one suggestion.
+    if (libraryKeys.contains(libraryKeyOf(
+      {'sourceId': manga.sourceId},
+      manga.id,
+    ))) {
+      continue;
+    }
+    if (!distinctKeys.add('${manga.sourceId}\u0000${normalizeTag(manga.title)}')) {
+      continue;
+    }
+    rankedCandidates.add(
+      (manga, computeRelevance(manga.tags, rankedTags)),
+    );
+  }
+  // TODO temporary diagnostics, remove before commit
+  debugPrint('digest stage3 pool=${pool.length} ranked=${rankedCandidates.length}');
+  if (rankedCandidates.isEmpty) return;
+  rankedCandidates.sort((a, b) {
+    final byRelevance = b.$2.compareTo(a.$2);
+    if (byRelevance != 0) return byRelevance;
+    final byTagged =
+        (a.$1.tags.isEmpty ? 1 : 0).compareTo(b.$1.tags.isEmpty ? 1 : 0);
+    return byTagged;
+  });
+  final suggestions = rankedCandidates.take(_digestRankedCap).toList();
+  // TODO temporary diagnostics, remove before commit
+  debugPrint('digest stage3b best=${suggestions.take(3).map((s) => (s.$1.title, s.$2)).toList()}');
+
+  // --- Announce: one draw from the best third ------------------------------
+  //
+  // Up to four attempts, exactly like the reference's publish(): each draw
+  // must survive its own details — chapters exist, NSFW and category gates
+  // — before it is worth a notification. There are no lists stored to fall
+  // back on: a sweep that cannot find a passing title simply stays quiet
+  // until the next cycle.
+  final allowedCategories = await NotificationSettings.favoriteCategories();
+  for (var attempt = 0; attempt < 4; attempt++) {
+    final index = pickAnnounceIndex(suggestions.length, Random());
+    final candidate = suggestions[index];
     final detailsSource = sources.firstWhere(
-      (s) => s.id == candidate.sourceId,
+      (s) => s.id == candidate.$1.sourceId,
       orElse: () => sources.first,
     );
     final details = await detailsSource
-        .getMangaDetails(candidate.id)
-        .then((value) => value, onError: (_) => null);
+        .getMangaDetails(candidate.$1.id)
+        .timeout(const Duration(seconds: 10), onTimeout: () => null)
+        .then(
+          (value) => value,
+          onError: (_) => null,
+        );
+    // TODO temporary diagnostics, remove before commit
+    debugPrint('digest stage4 attempt=$attempt id=${candidate.$1.id} '
+        'source=${candidate.$1.sourceId} details=${details == null ? "null" : details.totalChapters}');
     if (details == null || details.id.isEmpty) continue;
-    if (excludeNsfw && NotificationSettings.tagsAreNsfw(details.tags)) {
-      continue;
+    // Some sources report chapter totals only through the chapters API and
+    // leave the details payload at zero (MangaDex, MangaTown). Without the
+    // fallback below they would all be skipped and the sweep would come up
+    // empty on every cycle.
+    var chapterCount = details.totalChapters;
+    if (chapterCount <= 0) {
+      chapterCount = await detailsSource
+          .getTotalChapters(details.id)
+          .timeout(const Duration(seconds: 10), onTimeout: () => 0)
+          .then(
+            (value) => value,
+            onError: (_) => 0,
+          );
     }
+    if (chapterCount <= 0) continue;
+    if (excludeNsfw && NotificationSettings.tagsAreNsfw(details.tags)) continue;
     if (allowedCategories.isNotEmpty &&
-        details.tags.toSet().intersection(allowedCategories).isEmpty) {
+        !allowedCategories.any(details.tags.contains)) {
       continue;
     }
 
@@ -464,11 +693,11 @@ Future<void> runSuggestedDigest() async {
       SuggestedMangaNotification(
         mangaTitle: details.title,
         genres: details.tags,
-        chapterCount: details.totalChapters,
+        chapterCount: chapterCount,
         synopsis: details.description,
         coverUrl: details.coverUrl,
-        mangaId: candidate.id,
-        sourceId: candidate.sourceId,
+        mangaId: candidate.$1.id,
+        sourceId: candidate.$1.sourceId,
       ),
     );
     await DatabaseHelper.instance.addNotificationLog(
@@ -476,6 +705,7 @@ Future<void> runSuggestedDigest() async {
       summary: jsonEncode({
         'title': details.title,
         'coverUrl': details.coverUrl,
+        'relevance': candidate.$2.toStringAsFixed(4),
       }),
     );
     await prefs.setInt(
@@ -483,6 +713,25 @@ Future<void> runSuggestedDigest() async {
       DateTime.now().millisecondsSinceEpoch,
     );
     return;
+  }
+}
+
+/// The library key a row stores under: source-scoped, the same identity the
+/// update scan merges entries by, so the same slug from two sites never
+/// reads as one series.
+String libraryKeyOf(Map<String, dynamic> row, String mangaId) =>
+    '${row['sourceId']?.toString() ?? ''}\u0000$mangaId';
+
+/// Decodes the `tags` cell the way every write path stores it: one JSON list
+/// of titles per row. A row the decoder cannot read simply has no taste.
+List<String> _storedTagList(String? raw) {
+  if (raw == null || raw.isEmpty || raw == '[]') return const [];
+  try {
+    final decoded = jsonDecode(raw);
+    if (decoded is! List) return const [];
+    return [for (final e in decoded) if (e is String) e];
+  } on Exception {
+    return const [];
   }
 }
 

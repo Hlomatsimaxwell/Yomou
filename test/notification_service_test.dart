@@ -52,7 +52,7 @@ void main() {
 
     final service = NotificationService.instance;
     await service.init();
-    expect(await service.launchPayload(), isNull);
+    expect(await service.launchResponse(), isNull);
     await service.showTestNewChapters();
     await service.showTestSuggested();
     await service.showBackupProgress(

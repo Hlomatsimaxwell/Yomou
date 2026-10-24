@@ -1,6 +1,7 @@
 import 'dart:convert';
 import 'dart:isolate';
 
+import 'package:flutter/services.dart';
 import 'package:yomou/core/database/database_helper.dart';
 import 'package:yomou/data/providers/sources_provider.dart';
 
@@ -145,9 +146,22 @@ class UpdateChecker {
     // Only the fields the scan needs, reduced to JSON-safe values so the list
     // can travel across the isolate boundary. Keep a single scan bounded: on
     // slow phones a library-wide sweep saturates the device and can ANR.
-    final allRows = merged.values.toList();
+    //
+    // The cap keeps the entries the reader touched most recently, not the
+    // alphabetical tail: favourites come out of the DB sorted by title, so
+    // cutting after them skipped everything from A past the M forever.
+    final allRows = merged.values.toList()
+      ..sort((a, b) {
+        final bAt =
+            DateTime.tryParse(b['lastReadAt']?.toString() ?? '') ??
+                DateTime.fromMillisecondsSinceEpoch(0);
+        final aAt =
+            DateTime.tryParse(a['lastReadAt']?.toString() ?? '') ??
+                DateTime.fromMillisecondsSinceEpoch(0);
+        return bAt.compareTo(aAt);
+      });
     final capped = allRows.length > maxScannedEntries
-        ? allRows.sublist(allRows.length - maxScannedEntries)
+        ? allRows.sublist(0, maxScannedEntries)
         : allRows;
     final rows = capped.map((row) => <String, dynamic>{
       'mangaId': row['mangaId']?.toString() ?? '',
@@ -160,14 +174,26 @@ class UpdateChecker {
       'isFavorite': (row['isFavorite'] as int? ?? 0) == 1 ? 1 : 0,
       'tags': row['tags']?.toString() ?? '',
     }).toList();
-
     // DB rows (maps of JSON-safe values) and the filter settings cross the
     // isolate boundary; everything else — HTTP, parsing, allocations — stays
     // off the UI thread. Cap concurrency with a small breather between
     // batches to stay polite to the sources.
+    //
+    // Platform channels do not work in a fresh isolate until its messenger is
+    // pointed at the sending isolate's token: every chapter fetch would throw
+    // "The BackgroundIsolateBinaryMessenger.instance value is invalid", and
+    // with per-entry catches swallowing that, the scan would quietly return
+    // an empty list forever (each series "not available"). The token must be
+    // captured in the calling isolate before the closure transfers.
+    final token = RootIsolateToken.instance;
     final results = await Isolate.run(
-      () => _scanRows(rows, concurrency, disabledSourceIds, allowedCategories,
-          excludeNsfw),
+      () async {
+        if (token != null) {
+          BackgroundIsolateBinaryMessenger.ensureInitialized(token);
+        }
+        return _scanRows(rows, concurrency, disabledSourceIds, allowedCategories,
+            excludeNsfw);
+      },
     );
 
     return results
@@ -215,8 +241,10 @@ class UpdateChecker {
       final mangaId = row['mangaId']?.toString() ?? '';
       if (mangaId.isEmpty) return null;
 
-      final storedTotal = (row['totalChapters'] as int?) ?? 0;
-      if (storedTotal <= 0) return null;
+      // No storedTotal guard: a favourite that has never had its detail
+      // screen opened stores 0, and dropping those made the scan announce
+      // nothing for most of the library. The live fetch below is the real
+      // count; storedTotal only feeds newSinceRead.
 
       final mangaSourceId = row['sourceId']?.toString() ?? '';
       if (mangaSourceId.isNotEmpty &&
@@ -247,7 +275,7 @@ class UpdateChecker {
         coverUrl: row['coverUrl']?.toString() ?? '',
         sourceId: mangaSourceId,
         liveTotal: liveTotal,
-        storedTotal: storedTotal,
+        storedTotal: (row['totalChapters'] as int?) ?? 0,
         lastNotifiedChapters: (row['lastNotifiedChapters'] as int?) ?? 0,
         lastSeenChapters: (row['lastSeenChapters'] as int?) ?? 0,
         latestChapterTitle: latest?.$1 ?? 'New chapter',
