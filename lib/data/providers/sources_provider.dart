@@ -7,6 +7,10 @@ import 'package:yomou/features/settings/providers/cache_settings_provider.dart';
 import 'package:yomou/features/content_preferences/providers/content_preferences_provider.dart';
 import 'source_sort.dart';
 import 'source_usage_provider.dart';
+import '../sources/anzmangashd_source.dart';
+import '../sources/begatranslation_source.dart';
+import '../sources/apollcomics_source.dart';
+import '../sources/asia_lotuss_source.dart';
 import '../sources/atsumoe_source.dart';
 import '../sources/seimanga_source.dart';
 import '../sources/mangaball_source.dart';
@@ -193,6 +197,14 @@ MangaSource getSourceByName(String name) {
         'mangafire-ptbr',
         () => MangaFireSource(sourceId: 'mangafire-ptbr', langCode: 'pt-br'),
       );
+    case 'AnzMangasHd':
+      return _shared('anzmangashd', AnzMangasHdSource.new);
+    case 'Bega Translation':
+      return _shared('begatranslation', BegaTranslationSource.new);
+    case 'Apoll Comics':
+      return _shared('apollcomics', ApollComicsSource.new);
+    case 'Asia Lotuss':
+      return _shared('asialotuss', AsiaLotussSource.new);
     default:
       return _mangaBallByName(name) ??
           _shared(
@@ -266,6 +278,14 @@ MangaSource? getSourceBySourceId(String sourceId) {
       return getSourceByName('MangaFire Portuguese');
     case 'mangafire-ptbr':
       return getSourceByName('MangaFire Portuguese Brazil');
+    case 'anzmangashd':
+      return getSourceByName('AnzMangasHd');
+    case 'begatranslation':
+      return getSourceByName('Bega Translation');
+    case 'apollcomics':
+      return getSourceByName('Apoll Comics');
+    case 'asialotuss':
+      return getSourceByName('Asia Lotuss');
     case 'manganato':
       return getSourceByName('Manganato');
     default:
@@ -721,6 +741,30 @@ class SourcesNotifier extends StateNotifier<List<Map<String, dynamic>>> {
       'isPinned': false,
     },
     {
+      'name': 'AnzMangasHd',
+      'language': 'Manga, Spanish',
+      'bgColor': const Color(0xFFE91E63),
+      'text': 'AM',
+      'iconUrl': 'https://www.anzmanga25.com/uploads/favicon.png',
+      'isPinned': false,
+    },
+    {
+      'name': 'Apoll Comics',
+      'language': 'Manga, Spanish',
+      'bgColor': const Color(0xFF6B46C1),
+      'text': 'AC',
+      'iconUrl': 'https://apollcomics.es/favicon.ico',
+      'isPinned': false,
+    },
+    {
+      'name': 'Asia Lotuss',
+      'language': 'Manga, Spanish',
+      'bgColor': const Color(0xFFEC4899),
+      'text': 'AL',
+      'iconUrl': 'https://asialotuss.com/favicon.ico',
+      'isPinned': false,
+    },
+    {
       'name': 'MangaDex', // Moved to top for easier testing
       'language': 'Manga, Various languages',
       'bgColor': const Color(0xFF381F1D),
@@ -939,6 +983,14 @@ class SourcesNotifier extends StateNotifier<List<Map<String, dynamic>>> {
       'iconUrl': 'https://mangafire.to/assets/mangafire/logo.png',
       'isPinned': false,
       'nsfw': true,
+    },
+    {
+      'name': 'Bega Translation',
+      'language': 'Manga, Spanish',
+      'bgColor': const Color(0xFF009688),
+      'text': 'BT',
+      'iconUrl': 'https://begatranslation.com/favicon.ico',
+      'isPinned': false,
     },
   ];
 

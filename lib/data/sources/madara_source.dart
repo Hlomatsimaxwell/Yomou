@@ -388,7 +388,7 @@ class InlineDomPageExtractor implements MadaraPageUrlExtractor {
           img.attributes['src'] ??
           '';
       if (src.isEmpty) continue;
-      var url = src;
+      var url = src.trim();
       if (url.startsWith('//')) url = 'https:$url';
       if (appendStyleList) url = url.contains('?') ? '$url&style=list' : '$url?style=list';
       if (!pages.contains(url)) pages.add(url);
