@@ -622,35 +622,22 @@ class _HomeScreenState extends ConsumerState<HomeScreen>
           child: useRail
               ? Row(
                   children: [
-                    _buildNavRail(context, updatesCount, accent, enabledTabs),
-                    Expanded(
-                      child: Stack(
-                        children: [
-                          Positioned.fill(child: content),
-                          // The Continue FAB has to be placed by the rail
-                          // layout too. It used to live only inside the
-                          // bottom-bar overlay, so switching to the rail
-                          // silently took it away -- a reading-progress
-                          // feature vanishing because the window got wider.
-                          Positioned(
-                            right: 20,
-                            // No bottom bar to clear here, so it sits just
-                            // above the safe area instead of above the bar.
-                            bottom: MediaQuery.paddingOf(context).bottom + 20,
-                            child: showFab
-                                ? KeyedSubtree(
-                                    key: const ValueKey('continue-fab'),
-                                    child: _buildContinueFab(accent),
-                                  )
-                                : const SizedBox(
-                                    key: ValueKey('fab-hidden'),
-                                    width: 60,
-                                    height: 60,
-                                  ),
-                          ),
-                        ],
-                      ),
+                    // The Continue button sits in the rail itself now, the
+                    // reference's own wide-window shape: its railFab is an
+                    // ExtendedFloatingActionButton parked above every rail
+                    // item (navigation_rail_fab.xml), so returning to the
+                    // last chapter never needs a reach to the screen's far
+                    // corner. The old floating corner pill kept that path on
+                    // wide windows, but nothing about it matched the
+                    // reference's rail layout.
+                    _buildNavRail(
+                      context,
+                      updatesCount,
+                      accent,
+                      enabledTabs,
+                      showContinue: showFab,
                     ),
+                    Expanded(child: content),
                   ],
                 )
               : Stack(
@@ -958,8 +945,9 @@ class _HomeScreenState extends ConsumerState<HomeScreen>
     BuildContext context,
     int updatesCount,
     Color accent,
-    List<int> enabledTabs,
-  ) {
+    List<int> enabledTabs, {
+    bool showContinue = false,
+  }) {
     final dark = Theme.of(context).brightness == Brightness.dark;
     return Container(
       width: kNavRailWidth,
@@ -969,6 +957,17 @@ class _HomeScreenState extends ConsumerState<HomeScreen>
         child: Column(
           children: [
             const SizedBox(height: 8),
+            // The reference's rail header: its railFab sits above every
+            // menu item so resuming is one tap from wherever the reader
+            // happens to be. The History item keeps its place below.
+            if (showContinue)
+              Padding(
+                padding: const EdgeInsets.symmetric(
+                  horizontal: 8,
+                  vertical: 3,
+                ),
+                child: _buildRailContinueTile(accent),
+              ),
             for (final index in enabledTabs)
               Padding(
                 padding: const EdgeInsets.symmetric(
@@ -982,6 +981,77 @@ class _HomeScreenState extends ConsumerState<HomeScreen>
         ),
       ),
     );
+  }
+
+  /// The rail-mode Continue button. The reference renders this slot as an
+  /// ExtendedFloatingActionButton; here it takes the rail's square-item
+  /// geometry instead so the rail reads as one column of identical tiles,
+  /// with the continuing spinner standing in for the glyph.
+  Widget _buildRailContinueTile(Color accent) {
+    final dark = Theme.of(context).brightness == Brightness.dark;
+    final frosted = ref.watch(appearanceSettingsProvider).useFrostedGlass;
+    // The floating pill's gel recipe, squared: the action tile keeps the
+    // accent tint the rest of the rail's decorations use.
+    final glass = dark
+        ? amoled(context, 0x661C1C1E)
+        : Colors.white.withValues(alpha: 0.62);
+    final tint = accent.withValues(alpha: dark ? 0.45 : 0.32);
+    final gel = Color.alphaBlend(tint, glass);
+
+    final color = _isContinuing ? amoled(context, 0xFF2A2A2E) : gel;
+    return Tooltip(
+      message: AppLocalizations.of(context).continueAction,
+      child: Material(
+        color: Colors.transparent,
+        borderRadius: BorderRadius.circular(16),
+        child: InkWell(
+          onTap: _isContinuing ? null : _continueReading,
+          borderRadius: BorderRadius.circular(16),
+          child: ClipRRect(
+            borderRadius: BorderRadius.circular(16),
+            child: Container(
+              width: double.infinity,
+              height: 56,
+              decoration: BoxDecoration(
+                color: color,
+                border: Border.all(
+                  color: dark
+                      ? Colors.white.withValues(alpha: 0.08)
+                      : Colors.black.withValues(alpha: 0.06),
+                  width: 1,
+                ),
+              ),
+              child: frosted
+                  ? BackdropFilter(
+                      filter: ImageFilter.blur(sigmaX: 16, sigmaY: 16),
+                      child: Center(child: _railContinueGlyph(accent)),
+                    )
+                  : Center(
+                      child: _railContinueGlyph(accent),
+                    ),
+            ),
+          ),
+        ),
+      ),
+    );
+  }
+
+  Widget _railContinueGlyph(Color accent) {
+    return _isContinuing
+        ? const SizedBox(
+            width: 24,
+            height: 24,
+            child: CircularProgressIndicator(
+              color: Colors.white,
+              strokeWidth: 2.5,
+            ),
+          )
+        : Icon(
+            // Same ic_read glyph the floating pill carries.
+            Icons.local_library,
+            color: accent,
+            size: 26,
+          );
   }
 
   Widget _buildNavRailItem(
@@ -1203,7 +1273,10 @@ class _HomeScreenState extends ConsumerState<HomeScreen>
                 ),
               )
             : Icon(
-                MdiIcons.bookOpenVariant,
+                // Kotatsu-Redo's ic_read -- the Material local_library glyph,
+                // a reader's head over the open book, which is what the
+                // reference's Continue FAB and rail button both carry.
+                Icons.local_library,
                 color: accent,
                 size: 30,
               ),
@@ -1251,7 +1324,10 @@ class _HomeScreenState extends ConsumerState<HomeScreen>
                             ),
                           )
                         : Icon(
-                            MdiIcons.bookOpenVariant,
+                            // Kotatsu-Redo's ic_read for the non-frosted
+                            // branch too: both branches must carry the
+                            // reference glyph.
+                            Icons.local_library,
                             color: accent,
                             size: 30,
                           ),
