@@ -4516,6 +4516,23 @@ class _ReaderProgressTrackState extends State<_ReaderProgressTrack> {
             }
           : null,
     );
+    // The floating page label paints with the theme's inverse pair by
+    // default -- Material's expressive slider fixes it at a grey bubble,
+    // the only piece of the control that ignores the appearance the rest
+    // obeys (the path of the track and the thumb are both drawn from the
+    // accent). Pointing the bubble at the scheme's own pair follows it in
+    // both appearances: accent with its on-color printed over it reads
+    // dark-on-bright in light mode and light-on-bright in dark.
+    final cs = Theme.of(context).colorScheme;
+    slider = SliderTheme(
+      data: SliderTheme.of(context).copyWith(
+        valueIndicatorColor: cs.primary,
+        valueIndicatorTextStyle: SliderTheme.of(
+          context,
+        ).valueIndicatorTextStyle?.copyWith(color: cs.onPrimary),
+      ),
+      child: slider,
+    );
     // A series read right to left flips the track, what the reference's
     // setSliderReversed does for its reversed pager: forward means turning
     // pages in reading order, so low numbers sit on the right.
