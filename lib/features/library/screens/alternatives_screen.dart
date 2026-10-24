@@ -751,7 +751,11 @@ class _AlternativesScreenState extends ConsumerState<AlternativesScreen> {
         var showSources = false;
         return StatefulBuilder(
           builder: (ctx, setSheet) {
-            final rows = ref.read(sourcesProvider).toList();
+            // Kotatsu-Redo's AlternativesUseCase drops NSFW sources from the
+            // candidate list when "Disable NSFW" is on; the visible-rows gate
+            // also carries the reader's content preferences the way its
+            // source filtering does.
+            final rows = ref.read(visibleSourceRowsProvider).toList();
             final textColor = dark ? Colors.white : _titleLight;
             return SafeArea(
               child: Column(

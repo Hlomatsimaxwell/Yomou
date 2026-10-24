@@ -196,8 +196,14 @@ class _CacheSettingsPersistence {
 
 class CacheSettingsNotifier extends StateNotifier<CacheSettings> {
   CacheSettingsNotifier() : super(CacheSettings.defaults()) {
-    _load();
+    // Held as a Future so every setter can gate on it: the persisted values
+    // land asynchronously, and a flip made while the load is still in flight
+    // must not be wiped out by the load's trailing `state =` assignment --
+    // Disable NSFW did exactly that, silently resetting itself to false.
+    _ready = _load();
   }
+
+  late final Future<void> _ready;
 
   Future<void> _load() async {
     state = await _CacheSettingsPersistence.load();
@@ -214,31 +220,37 @@ class CacheSettingsNotifier extends StateNotifier<CacheSettings> {
   }
 
   Future<void> setStaleDays(int days) async {
+    await _ready;
     state = state.copyWith(staleDays: days);
     await _persist();
   }
 
   Future<void> setMaxCacheObjects(int objects) async {
+    await _ready;
     state = state.copyWith(maxCacheObjects: objects);
     await _persist();
   }
 
   Future<void> togglePrecacheNextChapter() async {
+    await _ready;
     state = state.copyWith(precacheNextChapter: !state.precacheNextChapter);
     await _persist();
   }
 
   Future<void> setBackupFrequency(String frequency) async {
+    await _ready;
     state = state.copyWith(backupFrequency: frequency);
     await _persist();
   }
 
   Future<void> setEnablePeriodicBackups(bool enabled) async {
+    await _ready;
     state = state.copyWith(enablePeriodicBackups: enabled);
     await _persist();
   }
 
   Future<void> setBackupsOutputDirectory(String directory) async {
+    await _ready;
     state = state.copyWith(backupsOutputDirectory: directory);
     await _persist();
   }
@@ -246,56 +258,67 @@ class CacheSettingsNotifier extends StateNotifier<CacheSettings> {
   /// Records when a backup was last completed successfully. Pass the number
   /// of milliseconds since the epoch (e.g. DateTime.now()).
   Future<void> setLastBackupAt(int at) async {
+    await _ready;
     state = state.copyWith(lastBackupAt: at);
     await _persist();
   }
 
   Future<void> setDeleteOldBackups(bool delete) async {
+    await _ready;
     state = state.copyWith(deleteOldBackups: delete);
     await _persist();
   }
 
   Future<void> setMaxNumberOfBackups(int count) async {
+    await _ready;
     state = state.copyWith(maxNumberOfBackups: count);
     await _persist();
   }
 
   Future<void> setDisableNsfw(bool disable) async {
+    await _ready;
     state = state.copyWith(disableNsfw: disable);
     await _persist();
   }
 
   Future<void> setSourceSortOrder(String order) async {
+    await _ready;
     state = state.copyWith(sourceSortOrder: order);
     await _persist();
   }
 
   Future<void> setShowSourcesInGrid(bool show) async {
+    await _ready;
     state = state.copyWith(showSourcesInGrid: show);
     await _persist();
   }
 
   Future<void> setEnableAllSources(bool enable) async {
+    await _ready;
     state = state.copyWith(enableAllSources: enable);
     await _persist();
   }
 
   Future<void> setChooseMirrorAutomatically(bool enable) async {
+    await _ready;
     state = state.copyWith(chooseMirrorAutomatically: enable);
     await _persist();
   }
 
   Future<void> setHandleLinks(bool handle) async {
+    await _ready;
     state = state.copyWith(handleLinks: handle);
     await _persist();
   }
 
   Future<void> setIncognitoMode(String mode) async {
+    await _ready;
     state = state.copyWith(incognitoMode: mode);
     await _persist();
   }
 
   Future<void> setSuggestionsRefreshMinutes(int minutes) async {
+    await _ready;
     state = state.copyWith(suggestionsRefreshMinutes: minutes);
     await _persist();
   }

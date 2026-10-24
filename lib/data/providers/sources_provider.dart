@@ -728,7 +728,6 @@ class SourcesNotifier extends StateNotifier<List<Map<String, dynamic>>> {
       'textColor': Colors.orangeAccent,
       'iconUrl': 'https://mangadex.org/favicon.ico',
       'isPinned': true,
-      'nsfw': true,
     },
     {
       'name': 'MangaDex Español',
@@ -738,7 +737,6 @@ class SourcesNotifier extends StateNotifier<List<Map<String, dynamic>>> {
       'textColor': Colors.orangeAccent,
       'iconUrl': 'https://mangadex.org/favicon.ico',
       'isPinned': false,
-      'nsfw': true,
     },
     {
       'name': 'MangaDex Portuguese BR',
@@ -748,7 +746,6 @@ class SourcesNotifier extends StateNotifier<List<Map<String, dynamic>>> {
       'textColor': Colors.orangeAccent,
       'iconUrl': 'https://mangadex.org/favicon.ico',
       'isPinned': false,
-      'nsfw': true,
     },
     {
       'name': 'WeebCentral',
@@ -813,7 +810,6 @@ class SourcesNotifier extends StateNotifier<List<Map<String, dynamic>>> {
       'text': 'S',
       'iconUrl': 'https://1.seimanga.me/favicon.ico',
       'isPinned': false,
-      'nsfw': true,
     },
     {
       'name': 'Mgeko',
