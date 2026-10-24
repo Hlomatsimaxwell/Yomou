@@ -658,30 +658,6 @@ ColorScheme colorSchemeFor(String schemeName, Brightness brightness) {
   return secondary == null ? scheme : scheme.copyWith(secondary: secondary);
 }
 
-/// The background a preset draws its cards and canvas on: white in light mode,
-/// pure black for Monochrome's AMOLED dark mode and near-black for every other
-/// scheme. Shared with [_applyBrightness] so a preview card cannot drift from
-/// the surface it imitates.
-///
-/// With [amoled] the near-black goes too: the reader has asked to trade the
-/// card/scaffold contrast for a panel that is really off, which is the whole
-/// point of the setting on an OLED screen.
-Color presetSurfaceFor(
-  String schemeName,
-  Brightness brightness, {
-  bool amoled = false,
-}) {
-  if (brightness == Brightness.light) {
-    return Colors.white;
-  }
-  if (amoled) {
-    return Colors.black;
-  }
-  return schemeName.toLowerCase() == 'monochrome'
-      ? Colors.black
-      : const Color(0xFF121212);
-}
-
 /// Complete set of light + dark [ThemeData] plus the mode, so the root
 /// MaterialApp can be driven from a single provider.
 class ThemeDataBundle {
@@ -862,19 +838,22 @@ ThemeData _applyBrightness(
   final preset = colorSchemeFor(schemeName, brightness);
   final colorScheme = black ? _blackSurfaces(preset) : preset;
 
+  // The dark scaffold wears the scheme's own surface, what Kotatsu-Redo
+  // paints when its Black toggle is off: not a fixed near-black, but the
+  // shade the scheme's seed decides -- anything from a soft grey-blue to
+  // pure black (Monochrome pins its dark surface to black) -- with "Black"
+  // flattening every surface role to black and the scaffold riding along
+  // on colorScheme.surface. Light keeps the fixed off-white the light cards
+  // lift off of.
   final scaffoldBg = dark
-      ? Colors.black
+      ? colorScheme.surface
       : const Color(0xFFF8F9FA);
 
-  // Dark surfaces are all near-black for OLED displays; light cards are pure
-  // white so they lift off the soft off-white scaffold. Monochrome opts out
-  // of the near-black and stays pure black (AMOLED) in dark mode, and the
-  // "Black" setting takes every other scheme there too.
-  final surfaceColor = presetSurfaceFor(
-    schemeName,
-    brightness,
-    amoled: black,
-  );
+  // Cards and canvas follow the same rule as the scaffold: the scheme's
+  // surface, flattened to pure black when "Black" is on. Monochrome's dark
+  // scheme already pins surface to black, so it keeps its AMOLED look with
+  // no special case of its own.
+  final surfaceColor = dark ? colorScheme.surface : Colors.white;
 
   // High-contrast text roles: the dark branch must build its own text theme
   // from a dark scheme (ThemeData() defaults to light, so reusing the light

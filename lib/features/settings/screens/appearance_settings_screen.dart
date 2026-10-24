@@ -745,11 +745,13 @@ class _SchemePreset extends StatelessWidget {
               height: 116,
               padding: const EdgeInsets.all(6),
               decoration: BoxDecoration(
-                color: presetSurfaceFor(
-                  name,
-                  brightness,
-                  amoled: AmoledMode.of(context),
-                ),
+                // The same surface the real theme paints, not a stand-in
+                // constant: the scheme's own surface, flattened to black
+                // when Black is on, so a swatch cannot drift from what the
+                // app actually looks like once it is picked.
+                color: AmoledMode.of(context)
+                    ? Colors.black
+                    : cs.surface,
                 borderRadius: BorderRadius.circular(16),
                 // Neutral on every card: the outline just defines the swatch
                 // against the settings background, and selection is announced

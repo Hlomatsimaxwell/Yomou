@@ -238,11 +238,9 @@ void main() {
     }
 
     // Light mode has no dark background to flatten, so the switch is inert
-    // there: the flag stays false and the surfaces stay white.
+    // there: the flag stays false and the cards stay white.
     expect(light.extension<AmoledMode>()!.enabled, isFalse);
     expect(light.canvasColor, Colors.white);
-    expect(presetSurfaceFor('azure', Brightness.light, amoled: true),
-        Colors.white);
 
     // Contrast: black surfaces are only worth having if what sits on them is
     // still legible. onSurface and onSurfaceVariant are what a Text or an Icon
@@ -253,9 +251,13 @@ void main() {
         greaterThanOrEqualTo(4.5));
   });
 
-  test('with Black off the dark surfaces keep their near-black', () async {
-    // The guard on the setting's default. Everything above has to hinge on the
-    // switch, not on dark mode: the app has always drawn #121212 cards.
+  test('with Black off the dark surfaces wear the scheme, not a constant',
+      () async {
+    // The dark look outside "Black" is Kotatsu-Redo's: the scheme paints its
+    // own surfaces -- the seed's shade, not a fixed #121212 -- and only the
+    // switch flattens them. The scaffold, cards and canvas are all the
+    // scheme's surface, so its tone shows through, and not one of them may
+    // read pure black without the switch.
     SharedPreferences.setMockInitialValues({});
     await SharedPreferences.getInstance();
     final container = ProviderContainer();
@@ -265,11 +267,11 @@ void main() {
 
     final dark = container.read(themeNotifierProvider).darkTheme;
     expect(dark.extension<AmoledMode>()!.enabled, isFalse);
-    expect(dark.canvasColor, const Color(0xFF121212));
-    expect(dark.cardColor, const Color(0xFF121212));
+    expect(dark.canvasColor, dark.colorScheme.surface);
+    expect(dark.cardColor, dark.colorScheme.surface);
+    expect(dark.scaffoldBackgroundColor, dark.colorScheme.surface);
+    expect(dark.colorScheme.surface, isNot(Colors.black));
     expect(dark.colorScheme.surfaceContainerHighest, isNot(Colors.black));
-    expect(presetSurfaceFor('azure', Brightness.dark),
-        const Color(0xFF121212));
   });
 }
 
