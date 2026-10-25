@@ -555,16 +555,19 @@ class _HomeScreenState extends ConsumerState<HomeScreen>
       });
     }
 
-    final showFab =
-        settings.showFloatingContinueButton &&
-        enabledTabs.contains(0) &&
-        _currentIndex == 0;
-    _visitedTabs.add(_currentIndex);
-
     // Wide windows get a side rail and no bottom bar. A bottom bar stretched
     // across a 12" tablet puts "History" and "Updates" a hand's width apart at
     // opposite ends of the display, and wastes the width the content wants.
     final useRail = usesWideLayout(context);
+
+    // Desktop layout keeps the Continue pill permanently in the rail (matches
+    // Kotatsu-Redo: native wide apps keep it reachable); on the phone it only
+    // surfaces on the History tab, where the latest chapter is most relevant.
+    final showFab =
+        settings.showFloatingContinueButton &&
+        enabledTabs.contains(0) &&
+        (useRail || _currentIndex == 0);
+    _visitedTabs.add(_currentIndex);
 
     // Shared by both layouts so the rail and the bar cannot drift into
     // different tab behaviour.

@@ -54,7 +54,7 @@ class TabHeader extends StatelessWidget {
   /// Width of the search field in the fixed layout. Enough to be a real search
   /// box without becoming a letterbox across a wide window -- a field spanning
   /// 1160px beside a title reads as a stray element rather than a control.
-  static const double fixedSearchWidth = 320;
+  static const double fixedSearchWidth = 640;
 
   @override
   Widget build(BuildContext context) {

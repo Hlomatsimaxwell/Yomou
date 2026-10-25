@@ -10,7 +10,7 @@ import 'package:yomou/data/providers/sources_provider.dart';
 import 'package:yomou/data/sources/webview_fetcher.dart';
 
 /// Number of results the suggestions feed keeps after de-duplicating.
-const _suggestionLimit = 40;
+const _suggestionLimit = 60;
 
 /// Per-source network budget, so one slow source can't stall the whole feed.
 const _sourceTimeout = Duration(seconds: 12);

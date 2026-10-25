@@ -1205,15 +1205,15 @@ class _HistoryScreenState extends ConsumerState<HistoryScreen> {
                 : TabHeaderMode.collapsing,
             title: AppLocalizations.of(context).history,
             leading: _isSelecting ? _buildSelectionBar(context) : null,
-            searchBar: _buildSearchBar(),
+            searchBar: _isSelecting ? const SizedBox.shrink() : _buildSearchBar(),
             body: CustomScrollView(
               physics: const AlwaysScrollableScrollPhysics(),
               slivers: [
-                if (!_isSelecting && appearance.showQuickFilters) ...[
+                if (appearance.showQuickFilters) ...[
                   const SliverToBoxAdapter(child: SizedBox(height: 12)),
                   SliverToBoxAdapter(child: _buildFilterChips()),
                 ],
-                if (!_isSelecting && showIncognito)
+                if (showIncognito)
                   SliverToBoxAdapter(child: _buildIncognitoIndicator()),
                 const SliverToBoxAdapter(child: SizedBox(height: 16)),
                 if (filteredList.isEmpty)
