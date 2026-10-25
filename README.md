@@ -39,7 +39,6 @@
     <img src=".github/assets/app_previews/android/Android-History.png" alt="Reading history" width="205"/>
     <img src=".github/assets/app_previews/android/Android-Detail.png" alt="Manga details" width="205"/>
     <img src=".github/assets/app_previews/android/Android-Reader.png" alt="Reader" width="205"/>
-    <img src=".github/assets/app_previews/android/Android-Explore.png" alt="Explore sources" width="205"/>
     <img src=".github/assets/app_previews/android/Android-Updates.png" alt="Updates feed" width="205"/>
     <img src=".github/assets/app_previews/android/Android-Backup_restore.png" alt="Backup and restore" width="205"/>
 </div>
@@ -49,10 +48,10 @@
 <p align="center"><i>iOS</i></p>
 
 <div align="center">
-    <img src=".github/assets/app_previews/ios/ios-detail_stats.png" alt="Manga details with statistics" width="205"/>
+    <img src=".github/assets/app_previews/ios/ios-backup_restore.png" alt="Backup and restore" width="205"/>
     <img src=".github/assets/app_previews/ios/ios-stats.png" alt="Reading statistics" width="205"/>
     <img src=".github/assets/app_previews/ios/ios-Favourites.png" alt="Favourites" width="205"/>
-    <img src=".github/assets/app_previews/ios/ios-suggestions.png" alt="Suggestions" width="205"/>
+    <img src=".github/assets/app_previews/ios/ios-updates.png" alt="Updates" width="205"/>
 </div>
 
 <br>
