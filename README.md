@@ -40,7 +40,6 @@
     <img src=".github/assets/app_previews/android/Android-Detail.png" alt="Manga details" width="205"/>
     <img src=".github/assets/app_previews/android/Android-Reader.png" alt="Reader" width="205"/>
     <img src=".github/assets/app_previews/android/Android-Updates.png" alt="Updates feed" width="205"/>
-    <img src=".github/assets/app_previews/android/Android-Backup_restore.png" alt="Backup and restore" width="205"/>
 </div>
 
 <br>
