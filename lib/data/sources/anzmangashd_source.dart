@@ -1,11 +1,13 @@
 import 'package:html/parser.dart' as html_parser;
+import 'dart:convert';
+import 'dart:io';
+
 import 'package:yomou/core/diagnostics/diag_log.dart';
 import 'package:yomou/data/models/chapter.dart';
 import 'package:yomou/data/models/manga.dart';
 import 'package:yomou/data/models/manga_details.dart';
 import 'package:yomou/data/models/manga_source.dart';
 import 'package:yomou/data/models/manga_filter.dart';
-import 'dart:io';
 
 class _CachedPage {
   _CachedPage(this.html);
@@ -105,15 +107,20 @@ class AnzMangasHdSource extends MangaSource {
       final html = await fetchHtml('$baseUrl/latest-release');
       final document = html_parser.parse(html);
       final manga = <Manga>[];
+      // This listing carries one block per chapter update, so a manga that
+      // posted several chapters appears several times in a row. Keep only the
+      // first (most recent) block for each title.
+      final seen = <String>{};
 
-      document.querySelectorAll('.manga-item').forEach((element) {
+      for (final element in document.querySelectorAll('.manga-item')) {
         final link = element.querySelector('h3.manga-heading a') ??
             element.querySelector('a');
-        if (link == null) return;
+        if (link == null) continue;
         final href = (link.attributes['href'] ?? '').trim();
         final title = link.text.trim();
         final mangaId = _idFromHref(href);
-        if (mangaId.isEmpty || title.isEmpty) return;
+        if (mangaId.isEmpty || title.isEmpty) continue;
+        if (!seen.add(mangaId)) continue;
 
         final img = element.querySelector('img');
         final cover = _coverFromImg(img);
@@ -126,7 +133,7 @@ class AnzMangasHdSource extends MangaSource {
               ? cover
               : '$baseUrl/uploads/manga/$mangaId/cover/cover_250x350.jpg',
         ));
-      });
+      }
 
       return manga;
     } catch (_) {
@@ -269,34 +276,62 @@ class AnzMangasHdSource extends MangaSource {
 
   @override
   Future<List<Manga>> searchByTitle(String query, {int page = 1}) async {
+    final watch = Stopwatch()..start();
     try {
-      final html = await fetchHtml('$baseUrl/search?q=${Uri.encodeQueryComponent(query)}');
-      final document = html_parser.parse(html);
+      final term = query.trim();
+      if (term.isEmpty) return const [];
+      // The site's search box is a jQuery autocomplete: it queries this
+      // endpoint and gets JSON back, so the HTML path never returned anything.
+      // `query` is the parameter jquery-autocomplete sends. The site's `q=`
+      // parameter is not a search -- it answers with the whole catalogue when
+      // nothing matches -- so it is deliberately not used as a fallback.
+      final body = await fetchHtml(
+        '$baseUrl/search?query=${Uri.encodeQueryComponent(term)}',
+      );
+      final suggestions = _suggestions(body);
+
       final manga = <Manga>[];
-
-      document.querySelectorAll('.manga-item').forEach((element) {
-        final link = element.querySelector('h3.manga-heading a') ??
-            element.querySelector('a');
-        if (link == null) return;
-        final href = (link.attributes['href'] ?? '').trim();
-        final title = link.text.trim();
-        final mangaId = _idFromHref(href);
-        if (mangaId.isEmpty || title.isEmpty) return;
-
-        final img = element.querySelector('img');
-        final cover = _coverFromImg(img);
-
+      final seen = <String>{};
+      for (final suggestion in suggestions) {
+        final value = suggestion['value']?.toString().trim() ?? '';
+        final mangaId = suggestion['data']?.toString().trim() ?? '';
+        if (value.isEmpty || mangaId.isEmpty) continue;
+        if (!seen.add(mangaId)) continue;
         manga.add(Manga(
           id: mangaId,
-          title: title,
+          title: value,
           sourceId: id,
-          coverUrl: cover,
+          // The autocomplete payload has no artwork; this is the site's cover
+          // path for a manga id, and the detail fetch replaces it if wrong.
+          coverUrl: '$baseUrl/uploads/manga/$mangaId/cover/cover_250x350.jpg',
         ));
-      });
-
+      }
+      diagSoon(
+        'anzmangashd: search "$term" = ${manga.length} '
+        '${watch.elapsedMilliseconds}ms',
+      );
       return manga;
-    } catch (_) {
+    } catch (e) {
+      diagSoon(
+        'anzmangashd: search "$query" threw '
+        '${watch.elapsedMilliseconds}ms: ${e.runtimeType} $e',
+      );
       return [];
+    }
+  }
+
+  /// Pulls the `suggestions` array out of the autocomplete payload, tolerating
+  /// an empty or non-JSON body.
+  static List<Map<String, dynamic>> _suggestions(String body) {
+    if (body.isEmpty) return const [];
+    try {
+      final decoded = jsonDecode(body);
+      if (decoded is! Map) return const [];
+      final raw = decoded['suggestions'];
+      if (raw is! List) return const [];
+      return raw.whereType<Map>().map((e) => e.cast<String, dynamic>()).toList();
+    } catch (_) {
+      return const [];
     }
   }
 
@@ -321,11 +356,13 @@ class AnzMangasHdSource extends MangaSource {
 
   static String _coverFromImg(dynamic img) {
     if (img == null) return '';
-    final raw = (img.attributes['data-src'] ?? img.attributes['src'] ?? '')
-        .toString()
-        .trim();
-    if (!raw.startsWith('http')) return '';
-    return raw;
+    // Listing and detail covers use `src`; reader pages use `data-src`. Either
+    // can be padded with spaces, and `data-src` is sometimes present but empty.
+    final dataSrc = (img.attributes['data-src'] ?? '').toString().trim();
+    if (dataSrc.startsWith('http')) return dataSrc;
+    final src = (img.attributes['src'] ?? '').toString().trim();
+    if (src.startsWith('http')) return src;
+    return '';
   }
 
   static String _cleanTitle(String? raw, String suffix) {
