@@ -1,10 +1,18 @@
 import 'package:html/parser.dart' as html_parser;
+import 'package:yomou/core/diagnostics/diag_log.dart';
 import 'package:yomou/data/models/chapter.dart';
 import 'package:yomou/data/models/manga.dart';
 import 'package:yomou/data/models/manga_details.dart';
 import 'package:yomou/data/models/manga_source.dart';
 import 'package:yomou/data/models/manga_filter.dart';
 import 'dart:io';
+
+class _CachedPage {
+  _CachedPage(this.html);
+
+  final String html;
+  final DateTime at = DateTime.now();
+}
 
 class AnzMangasHdSource extends MangaSource {
   @override
@@ -28,19 +36,66 @@ class AnzMangasHdSource extends MangaSource {
   // Overridable fetch hook kept for tests. Uses a plain HTTP client so the
   // page (which serves straight HTML to any client) always arrives, instead
   // of going through the shared network layer which can return empty.
+  static const _userAgent =
+      'Mozilla/5.0 (Linux; Android 10; K) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/138.0.0.0 Mobile Safari/537.36';
+
+  /// Pages fetched in the last couple of minutes.
+  ///
+  /// The detail screen asks for the same manga page twice in a row (details,
+  /// then the chapter list). The second request used to be a fresh round trip
+  /// that could stall with no timeout at all, which left the chapter tray
+  /// spinning forever and kept its cache key marked as in-flight, so every
+  /// later visit to that manga spun too. Serving both from one fetch removes
+  /// that second request and makes the two calls consistent.
+  final Map<String, _CachedPage> _pages = {};
+
   Future<String> fetchHtml(String url) async {
+    final cached = _pages[url];
+    if (cached != null &&
+        DateTime.now().difference(cached.at) < const Duration(minutes: 2)) {
+      return cached.html;
+    }
+    // One retry: the site occasionally drops a connection mid-body, and a
+    // retry is cheaper than showing an empty page for the rest of the visit.
+    for (var attempt = 0; attempt < 2; attempt++) {
+      final html = await _fetchOnce(url);
+      if (html.isNotEmpty) {
+        _pages[url] = _CachedPage(html);
+        if (_pages.length > 8) _pages.remove(_pages.keys.first);
+        return html;
+      }
+    }
+    return '';
+  }
+
+  Future<String> _fetchOnce(String url) async {
+    final watch = Stopwatch()..start();
+    final client = HttpClient()
+      ..connectionTimeout = const Duration(seconds: 12);
     try {
-      final client = HttpClient();
-      client.userAgent =
-          'Mozilla/5.0 (Linux; Android 10; K) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/138.0.0.0 Mobile Safari/537.36';
-      final req = await client.getUrl(Uri.parse(url));
-      final res = await req.close();
-      final body = await res.transform(SystemEncoding().decoder).join();
-      client.close();
-      if (res.statusCode != 200) return '';
-      return body;
-    } catch (_) {
+      final req = await client
+          .getUrl(Uri.parse(url))
+          .timeout(const Duration(seconds: 15));
+      req.headers.set(HttpHeaders.userAgentHeader, _userAgent);
+      final res =
+          await req.close().timeout(const Duration(seconds: 15));
+      final body = await res
+          .transform(const SystemEncoding().decoder)
+          .join()
+          .timeout(const Duration(seconds: 20));
+      diagSoon(
+        'anzmangashd: $url -> ${res.statusCode} ${body.length}b '
+        '${watch.elapsedMilliseconds}ms',
+      );
+      return res.statusCode == 200 ? body : '';
+    } catch (e) {
+      diagSoon(
+        'anzmangashd: $url failed ${watch.elapsedMilliseconds}ms: '
+        '${e.runtimeType} $e',
+      );
       return '';
+    } finally {
+      client.close(force: true);
     }
   }
 
@@ -81,14 +136,15 @@ class AnzMangasHdSource extends MangaSource {
 
   @override
   Future<MangaDetails?> getMangaDetails(String mangaId) async {
+    final watch = Stopwatch()..start();
     try {
       final html = await fetchHtml('$baseUrl/manga/$mangaId');
       final document = html_parser.parse(html);
 
-      final title = _cleanTitle(
-        document.querySelector('title')?.text,
-        ' - AnzManga',
-      );
+      final heading = document.querySelector('h2.widget-title')?.text.trim();
+      final title = (heading != null && heading.isNotEmpty)
+          ? heading
+          : _cleanTitle(document.querySelector('title')?.text, ' - AnzManga');
       final cover = _coverFromImg(document.querySelector('img.img-responsive'));
       final summary = document.querySelector('.well p')?.text.trim() ?? '';
 
@@ -97,6 +153,10 @@ class AnzMangasHdSource extends MangaSource {
         final t = e.text.trim();
         if (t.isNotEmpty) genres.add(t);
       });
+      diagSoon(
+        'anzmangashd: details $mangaId "${title.isEmpty ? '(no title)' : title}" '
+        '${genres.length} tags ${watch.elapsedMilliseconds}ms',
+      );
 
       return MangaDetails(
         id: mangaId,
@@ -106,20 +166,30 @@ class AnzMangasHdSource extends MangaSource {
         description: summary,
         tags: genres,
       );
-    } catch (_) {
+    } catch (e) {
+      diagSoon(
+        'anzmangashd: details $mangaId threw '
+        '${watch.elapsedMilliseconds}ms: ${e.runtimeType} $e',
+      );
       return null;
     }
   }
 
   @override
   Future<List<Chapter>> getChapters(String mangaId) async {
+    final watch = Stopwatch()..start();
     try {
       final html = await fetchHtml('$baseUrl/manga/$mangaId');
+      if (html.isEmpty) {
+        diagSoon('anzmangashd: chapters $mangaId got no html');
+        return [];
+      }
       final document = html_parser.parse(html);
       final chapters = <Chapter>[];
 
       var entries = document.querySelectorAll('ul.chapters li');
       if (entries.isEmpty) entries = document.querySelectorAll('li');
+      final entryCount = entries.length;
 
       for (final li in entries) {
         final link = li.querySelector('h5.chapter-title-rtl a, .chapter-title a, a');
@@ -136,7 +206,7 @@ class AnzMangasHdSource extends MangaSource {
           fullTitle = fullTitle.replaceFirst(dateStr, '').trim();
         }
 
-        final chapterId = _idFromHref(href, keepTail: true);
+        final chapterId = _relativeChapterId(href);
         final chapterNum = _chapterNumberFrom(fullTitle, href);
         final cleanTitle = _cleanChapterTitle(fullTitle, chapterNum);
 
@@ -149,26 +219,50 @@ class AnzMangasHdSource extends MangaSource {
         ));
       }
 
+      diagSoon(
+        'anzmangashd: chapters $mangaId = ${chapters.length} '
+        'of $entryCount entries ${watch.elapsedMilliseconds}ms',
+      );
       return chapters;
-    } catch (_) {
+    } catch (e) {
+      diagSoon(
+        'anzmangashd: chapters $mangaId threw '
+        '${watch.elapsedMilliseconds}ms: ${e.runtimeType} $e',
+      );
       return [];
     }
   }
 
   @override
   Future<List<String>> getPageUrls(String chapterId) async {
+    final watch = Stopwatch()..start();
     try {
-      final html = await fetchHtml('$baseUrl$chapterId');
+      // Chapter ids arrive as absolute URLs from the detail page; older cached
+      // rows may still hold the path form, so accept both.
+      final url = chapterId.startsWith('http')
+          ? chapterId
+          : '$baseUrl$chapterId';
+      final html = await fetchHtml(url);
       final document = html_parser.parse(html);
       final urls = <String>[];
 
-      document.querySelectorAll('img.img-responsive').forEach((img) {
-        final src = _coverFromImg(img);
-        if (src.startsWith('http')) urls.add(src);
-      });
-
+      for (final img in document.querySelectorAll('img.img-responsive')) {
+        // Reader pages lazy-load every scan from data-src; `src` is a 1x1 GIF
+        // placeholder (and the site logo on the header), so it is never a page.
+        final raw = (img.attributes['data-src'] ?? '').trim();
+        if (raw.isEmpty || raw.startsWith('data:')) continue;
+        if (!raw.startsWith('http')) continue;
+        urls.add(raw);
+      }
+      diagSoon(
+        'anzmangashd: pages $chapterId = ${urls.length} ${watch.elapsedMilliseconds}ms',
+      );
       return urls;
-    } catch (_) {
+    } catch (e) {
+      diagSoon(
+        'anzmangashd: pages $chapterId threw '
+        '${watch.elapsedMilliseconds}ms: ${e.runtimeType} $e',
+      );
       return [];
     }
   }
@@ -215,14 +309,23 @@ class AnzMangasHdSource extends MangaSource {
     return clean;
   }
 
+  /// Chapter links are absolute URLs on the detail page. Keep only the path so
+  /// the reader can rebuild the URL with the base instead of doubling it.
+  String _relativeChapterId(String href) {
+    final clean = _idFromHref(href, keepTail: true);
+    if (clean.startsWith(baseUrl)) {
+      return clean.substring(baseUrl.length);
+    }
+    return clean;
+  }
+
   static String _coverFromImg(dynamic img) {
     if (img == null) return '';
     final raw = (img.attributes['data-src'] ?? img.attributes['src'] ?? '')
         .toString()
         .trim();
-    final cleaned = raw.replaceAll(RegExp(r'^\s+'), '');
-    if (!cleaned.startsWith('http')) return '';
-    return cleaned;
+    if (!raw.startsWith('http')) return '';
+    return raw;
   }
 
   static String _cleanTitle(String? raw, String suffix) {
@@ -230,6 +333,10 @@ class AnzMangasHdSource extends MangaSource {
     var t = raw.trim();
     if (t.endsWith(suffix)) {
       t = t.substring(0, t.length - suffix.length).trim();
+    }
+    const online = ' Manga Online';
+    if (t.endsWith(online)) {
+      t = t.substring(0, t.length - online.length).trim();
     }
     return t;
   }
