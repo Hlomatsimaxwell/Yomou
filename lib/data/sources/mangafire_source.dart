@@ -134,7 +134,7 @@ class MangaFireSource extends DioSource implements MangaSource {
   /// The language branch a manga id refers to (its suffix, else this source's).
   String _langOf(String mangaId) => MangaLanguage.suffixOf(mangaId) ?? langCode;
   @override
-  String get iconUrl => 'https://mangafire.to/assets/mangafire/logo.png';
+  String get iconUrl => 'https://mangafire.to/assets/mangafire/favicon.svg';
 
   static String _nameFor(String sourceId) {
     const names = {

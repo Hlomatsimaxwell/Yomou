@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:flutter_svg/flutter_svg.dart';
 import 'package:yomou/core/theme/amoled.dart';
 import 'package:yomou/data/sources/favicon_resolver.dart';
 import 'package:yomou/data/sources/source_network.dart' show DioSource;
@@ -43,8 +44,7 @@ class SourceIcon extends StatefulWidget {
 
   /// Source name prefixes whose icon is bundled in `assets/source_icons/`
   /// (their remote icons are `.ico`/`.svg`, which Flutter cannot decode).
-  static const Map<String, String> _bundledByPrefix = {
-  };
+  static const Map<String, String> _bundledByPrefix = {};
 
   /// The loader behind every remote logo. Production wiring is
   /// [SourceIcon.defaultLoader]; tests can pin a strictly in-frame fake
@@ -63,6 +63,24 @@ class SourceIcon extends StatefulWidget {
     required Widget? Function(BuildContext, String) placeholder,
     required Widget? Function(BuildContext, String, Object) errorWidget,
   }) {
+    // Some sites (MangaFire) publish their logo only as an SVG; the raster
+    // pipeline below cannot decode that and the tile would fall back to the
+    // letter glyph, so render vectors through flutter_svg instead.
+    if (imageUrl.toLowerCase().endsWith('.svg')) {
+      return SvgPicture.network(
+        imageUrl,
+        key: key,
+        headers: httpHeaders,
+        fit: fit,
+        width: double.infinity,
+        height: double.infinity,
+        placeholderBuilder: (context) =>
+            placeholder(context, imageUrl) ?? const SizedBox.shrink(),
+        errorBuilder: (context, error, stack) =>
+            errorWidget(context, imageUrl, error) ??
+            const SizedBox.shrink(),
+      );
+    }
     return SafeNetworkImage(
       key: key,
       imageUrl: imageUrl,
@@ -132,7 +150,7 @@ class _SourceIconState extends State<SourceIcon> {
     final dark = Theme.of(context).brightness == Brightness.dark;
     final letter = widget.name.isEmpty ? '?' : widget.name[0];
 
-    // Kotatsu-Redo's FaviconDrawable tile: the theme's own background with an
+    // Cotatsu-Redo's FaviconDrawable tile: the theme's own background with an
     // outline stroke, and the first letter painted in a colour scrolled off
     // the name. It is both the no-logo fallback and the in-flight placeholder,
     // so a source whose logo has not arrived yet (or never will) never sits as
@@ -153,6 +171,7 @@ class _SourceIconState extends State<SourceIcon> {
                   .map((e) => e.value)
                   .firstOrNull ??
               '');
+
 
     // The plate is at most [size] logical pixels, so that is all the bitmap
     // that can ever be shown. The plate itself paints at `double.infinity` to
