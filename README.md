@@ -33,56 +33,38 @@
 
 ### In-App Screenshots
 
-<!-- Android Section -->
+<p align="center"><i>Android</i></p>
 
-#### 🤖 Android
+<div align="center">
+    <img src=".github/assets/app_previews/android/Android-History.png" alt="Reading history" width="205"/>
+    <img src=".github/assets/app_previews/android/Android-Detail.png" alt="Manga details" width="205"/>
+    <img src=".github/assets/app_previews/android/Android-Reader.png" alt="Reader" width="205"/>
+    <img src=".github/assets/app_previews/android/Android-Explore.png" alt="Explore sources" width="205"/>
+    <img src=".github/assets/app_previews/android/Android-Updates.png" alt="Updates feed" width="205"/>
+    <img src=".github/assets/app_previews/android/Android-Backup_restore.png" alt="Backup and restore" width="205"/>
+</div>
 
-<p align="center">
-  <table>
-    <tr>
-      <td><img src=".github/assets/app_previews/android/Android-History.png" width="18%"/></td>
-      <td><img src=".github/assets/app_previews/android/Android-Detail.png" width="18%"/></td>
-      <td><img src=".github/assets/app_previews/android/Android-Reader.png" width="18%"/></td>
-      <td><img src=".github/assets/app_previews/android/Android-Explore.png" width="18%"/></td>
-      <td><img src=".github/assets/app_previews/android/Android-Updates.png" width="18%"/></td>
-      <td><img src=".github/assets/app_previews/android/Android-Backup_restore.png" width="18%"/></td>
-    </tr>
-  </table>
-</p>
+<br>
 
----
+<p align="center"><i>iOS</i></p>
 
-<!-- iOS Section -->
+<div align="center">
+    <img src=".github/assets/app_previews/ios/ios-detail_stats.png" alt="Manga details with statistics" width="205"/>
+    <img src=".github/assets/app_previews/ios/ios-stats.png" alt="Reading statistics" width="205"/>
+    <img src=".github/assets/app_previews/ios/ios-Favourites.png" alt="Favourites" width="205"/>
+    <img src=".github/assets/app_previews/ios/ios-suggestions.png" alt="Suggestions" width="205"/>
+</div>
 
-#### 🍎 iOS
+<br>
 
-<p align="center">
-  <table>
-    <tr>
-      <td><img src=".github/assets/app_previews/ios/ios-detail_stats.png" width="18%"/></td>
-      <td><img src=".github/assets/app_previews/ios/ios-stats.png" width="18%"/></td>
-      <td><img src=".github/assets/app_previews/ios/ios-Favourites.png" width="18%"/></td>
-      <td><img src=".github/assets/app_previews/ios/ios-suggestions.png" width="18%"/></td>
-    </tr>
-  </table>
-</p>
+<p align="center"><i>Tablet</i></p>
 
----
-
-<!-- Tablet Section -->
-
-#### 📱 Tablet Layouts
-
-<p align="center">
-  <table>
-    <tr>
-      <td><img src=".github/assets/app_previews/tabs/Tablet-Detail.png" width="23%"/></td>
-      <td><img src=".github/assets/app_previews/tabs/Tablet-History.png" width="23%"/></td>
-      <td><img src=".github/assets/app_previews/tabs/Tablet-reader.png" width="23%"/></td>
-      <td><img src=".github/assets/app_previews/tabs/Tablet-link.png" width="23%"/></td>
-    </tr>
-  </table>
-</p>
+<div align="center">
+    <img src=".github/assets/app_previews/tabs/Tablet-History.png" alt="Tablet history" width="380"/>
+    <img src=".github/assets/app_previews/tabs/Tablet-Detail.png" alt="Tablet details" width="380"/>
+    <img src=".github/assets/app_previews/tabs/Tablet-reader.png" alt="Tablet reader" width="380"/>
+    <img src=".github/assets/app_previews/tabs/Tablet-link.png" alt="Tablet split view" width="380"/>
+</div>
 
 <br>
 
