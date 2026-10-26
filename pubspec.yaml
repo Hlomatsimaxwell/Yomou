@@ -42,7 +42,6 @@ dependencies:
   battery_plus: ^7.1.1
   # Pure-Dart zip read/write for the Kotatsu .bk.zip backup format.
   archive: ^4.0.0
-
 dev_dependencies:
   flutter_test:
     sdk: flutter
@@ -59,6 +58,7 @@ flutter:
     # assets/kotatsu_icons/PROVENANCE.md for where each file came from and the
     # licence it carries.
     - assets/kotatsu_icons/
+    - assets/app_icons/
     # Material Symbols glyphs the bundled MaterialIcons font lacks: the
     # framework's actionModeSelectAllDrawable (chapter select-all) and the
     # tray-and-arrow download Kotatsu-Redo ports as ic_download.xml. See each
@@ -72,6 +72,6 @@ flutter:
 flutter_launcher_icons:
   android: true
   ios: true
-  image_path: "logo_light.png"
-  adaptive_icon_background: "#FFFFFF"
-  adaptive_icon_foreground: "logo_light.png"
+  image_path: "logo_dark.png"
+  adaptive_icon_background: "#000000"
+  adaptive_icon_foreground: "logo_dark.png"

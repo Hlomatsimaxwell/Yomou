@@ -7,11 +7,54 @@ import 'package:yomou/features/settings/providers/appearance_provider.dart';
 import 'package:yomou/core/security/app_lock.dart';
 import 'package:yomou/core/security/pin_lock_screen.dart';
 import 'package:yomou/core/theme/amoled.dart';
+import 'package:yomou/core/app_icon/app_icon_service.dart';
 import 'package:yomou/l10n/generated/app_localizations.dart';
 import 'package:yomou/widgets/m3_components.dart';
 
 class AppearanceSettingsScreen extends ConsumerWidget {
   const AppearanceSettingsScreen({super.key});
+
+  static Future<void> _showAppIconSelector(BuildContext context) async {
+    final current = await AppIconService.current();
+    if (!context.mounted) return;
+    await showDialog<void>(
+      context: context,
+      builder: (ctx) {
+        return AlertDialog(
+          title: const Text('App Icon'),
+          content: Row(
+            mainAxisAlignment: MainAxisAlignment.spaceEvenly,
+            children: [
+              _IconPreview(
+                label: 'Dark',
+                asset: 'assets/app_icons/app_icon_dark.png',
+                isSelected: current == AppIconVariant.dark,
+                onTap: () async {
+                  await AppIconService.set(AppIconVariant.dark);
+                  if (ctx.mounted) Navigator.pop(ctx);
+                },
+              ),
+              _IconPreview(
+                label: 'Light',
+                asset: 'assets/app_icons/app_icon_light.png',
+                isSelected: current == AppIconVariant.light,
+                onTap: () async {
+                  await AppIconService.set(AppIconVariant.light);
+                  if (ctx.mounted) Navigator.pop(ctx);
+                },
+              ),
+            ],
+          ),
+          actions: [
+            TextButton(
+              onPressed: () => Navigator.pop(ctx),
+              child: const Text('Cancel'),
+            ),
+          ],
+        );
+      },
+    );
+  }
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
@@ -131,6 +174,16 @@ class AppearanceSettingsScreen extends ConsumerWidget {
           subtitle: Text(_themeModeLabel(l, settings.themeMode)),
           onTap: () => _showThemeModeSelector(context, ref, settings, notifier),
         ),
+        // App Icon selector. Shows a row for each available icon (dark/light)
+        // with a live preview and the current selection marked. Only supported
+        // on Android for now; on other platforms the tile is hidden.
+        if (AppIconService.isSupported)
+          ListTile(
+            leading: const Icon(MdiIcons.application, size: 24),
+            title: const Text('App Icon'),
+            subtitle: const Text('Choose light or dark launcher icon'),
+            onTap: () => _showAppIconSelector(context),
+          ),
         // Only meaningful against a dark background, so it is offered only
         // when one is showing: a switch that changes nothing reads as broken.
         if (Theme.of(context).brightness == Brightness.dark)
@@ -861,5 +914,55 @@ extension StringExtension on String {
   String capitalize() {
     if (isEmpty) return this;
     return '${this[0].toUpperCase()}${substring(1)}';
+  }
+}
+/// A tappable icon preview used in the app-icon selector dialog.
+class _IconPreview extends StatelessWidget {
+  const _IconPreview({
+    required this.label,
+    required this.asset,
+    required this.isSelected,
+    required this.onTap,
+  });
+
+  final String label;
+  final String asset;
+  final bool isSelected;
+  final VoidCallback onTap;
+
+  @override
+  Widget build(BuildContext context) {
+    final scheme = Theme.of(context).colorScheme;
+    return GestureDetector(
+      onTap: onTap,
+      child: Column(
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          Container(
+            width: 80,
+            height: 80,
+            decoration: BoxDecoration(
+              borderRadius: BorderRadius.circular(18),
+              border: Border.all(
+                color: isSelected ? scheme.primary : Colors.transparent,
+                width: 3,
+              ),
+            ),
+            child: ClipRRect(
+              borderRadius: BorderRadius.circular(16),
+              child: Image.asset(asset, fit: BoxFit.cover),
+            ),
+          ),
+          const SizedBox(height: 8),
+          Text(
+            label,
+            style: TextStyle(
+              fontWeight: isSelected ? FontWeight.w600 : FontWeight.w400,
+              color: isSelected ? scheme.primary : null,
+            ),
+          ),
+        ],
+      ),
+    );
   }
 }
