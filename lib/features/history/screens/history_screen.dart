@@ -36,6 +36,8 @@ import 'package:yomou/data/models/manga_source.dart';
 import 'package:yomou/data/providers/sources_provider.dart';
 import 'package:yomou/l10n/generated/app_localizations.dart';
 import 'package:yomou/core/widgets/search_bar.dart';
+import 'package:yomou/core/app_update/app_update_service.dart';
+import 'package:url_launcher/url_launcher.dart';
 
 /// Reading-progress ring, pinned to the top-right of a cover.
 ///
@@ -1280,6 +1282,27 @@ class _HistoryScreenState extends ConsumerState<HistoryScreen> {
       trailing: Row(
         mainAxisSize: MainAxisSize.min,
         children: [
+          Consumer(
+            builder: (context, ref, _) {
+              final update = ref.watch(appUpdateProvider).valueOrNull;
+              if (update == null) return const SizedBox.shrink();
+              return AppPress(
+                onTap: () async {
+                  final uri = Uri.parse(update.apkUrl);
+                  if (await canLaunchUrl(uri)) {
+                    await launchUrl(uri, mode: LaunchMode.externalApplication);
+                  }
+                },
+                child: Padding(
+                  padding: const EdgeInsets.all(8),
+                  child: Tooltip(
+                    message: 'Update available: ${update.version}',
+                    child: Icon(MdiIcons.download, color: iconColor, size: 22),
+                  ),
+                ),
+              );
+            },
+          ),
           if (_searchQuery.isNotEmpty)
             AppPress(
               onTap: () {
