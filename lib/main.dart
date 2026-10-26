@@ -456,6 +456,17 @@ class _HomeScreenState extends ConsumerState<HomeScreen>
   /// tapping the scrim.
   Future<void> _maybeShowWelcome() async {
     if (await isWelcomeCompleted()) return;
+    // If the user already has existing library data (e.g. after clearing app
+    // data or restoring), don't show the welcome sheet again.
+    try {
+      final db = DatabaseHelper.instance;
+      final history = await db.getHistory();
+      final favorites = await db.getFavorites();
+      if (history.isNotEmpty || favorites.isNotEmpty) {
+        await markWelcomeCompleted();
+        return;
+      }
+    } catch (_) {}
     if (!mounted) return;
     await showWelcomeSheet(context, isDismissible: false);
   }
