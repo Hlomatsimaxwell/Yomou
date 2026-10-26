@@ -88,8 +88,6 @@ class DatgarScanlationSource extends DioSource implements MangaSource {
     try {
       if (query.isEmpty) return getPopularManga(page: page);
       final startIndex = 20 * (page - 1) + 1;
-      final url = '$baseUrl/feeds/posts/default/-/Series?alt=json&orderby=published&max-results=21&start-index=$startIndex&q=label:Series+$query';
-      // Actually the Kotatsu search uses q=label:Series+query
       final searchUrl = '$baseUrl/feeds/posts/default/-/Series?alt=json&orderby=published&max-results=21&start-index=$startIndex&q=${Uri.encodeQueryComponent(query)}';
       final jsonStr = await grabText(searchUrl);
       if (jsonStr.isEmpty) return getPopularManga(page: page);
