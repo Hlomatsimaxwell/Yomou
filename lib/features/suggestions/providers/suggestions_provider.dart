@@ -1,7 +1,9 @@
+import 'dart:convert';
 import 'dart:math';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:yomou/core/database/database_helper.dart';
 import 'package:yomou/core/database/source_cache.dart';
+import 'package:yomou/core/notifications/suggestion_ranking.dart';
 import 'package:yomou/core/providers/periodic_refresh_provider.dart';
 import 'package:yomou/core/utils/concurrent.dart';
 import 'package:yomou/data/models/manga.dart';
@@ -9,8 +11,28 @@ import 'package:yomou/data/models/manga_source.dart';
 import 'package:yomou/data/providers/sources_provider.dart';
 import 'package:yomou/data/sources/webview_fetcher.dart';
 
+List<String> _storedTagList(String? raw) {
+  if (raw == null || raw.isEmpty || raw == '[]') return const [];
+  try {
+    final decoded = jsonDecode(raw);
+    if (decoded is! List) return const [];
+    return [for (final e in decoded) if (e is String) e];
+  } on Exception {
+    return const [];
+  }
+}
+
 /// Number of results the suggestions feed keeps after de-duplicating.
-const _suggestionLimit = 60;
+const _suggestionLimit = 160;
+
+/// Per-source result cap.
+const _perSourceCap = 20;
+
+/// Raw fan-out pool size.
+const _rawFanoutPool = 280;
+
+/// Minimum results required.
+const _minResults = 12;
 
 /// Per-source network budget, so one slow source can't stall the whole feed.
 const _sourceTimeout = Duration(seconds: 12);
@@ -174,7 +196,8 @@ final suggestionsProvider = FutureProvider.family<List<Manga>, String?>((
       () => _fanout(
         sources.map((source) async {
           try {
-            return await _tags(source, [genre]);
+            final res = await _tags(source, [genre]);
+            return res.take(_perSourceCap).toList();
           } catch (_) {
             return <Manga>[];
           }
@@ -190,35 +213,87 @@ final suggestionsProvider = FutureProvider.family<List<Manga>, String?>((
     return _mixSources(perSource);
   }
 
-  final topTags = await DatabaseHelper.instance.getUserTopTags(limit: 5);
+  final db = DatabaseHelper.instance;
+  final history = await db.getHistory();
+  final favorites = await db.getFavorites();
+
+  final favouriteKeys = <String>{
+    for (final row in favorites)
+      if ((row['isFavorite'] as int? ?? 0) == 1)
+        '${row['sourceId']?.toString() ?? ''}\u0000${row['mangaId']}'
+  };
+
+  final seenKeys = <String>{};
+  final seedRows = <Map<String, dynamic>>[];
+  void takeSeed(List<Map<String, dynamic>> rows) {
+    for (final row in rows) {
+      if (seedRows.length >= 40) break;
+      final id = row['mangaId']?.toString();
+      if (id == null || id.isEmpty) continue;
+      final key = '${row['sourceId']?.toString() ?? ''}\u0000$id';
+      if (!seenKeys.add(key)) continue;
+      if (favouriteKeys.contains(key)) {
+        seedRows.add(row);
+        continue;
+      }
+      final total = (row['totalChapters'] as int?) ?? 0;
+      double? percent;
+      final lastReadChapter = (row['lastReadChapter'] as num?)?.toDouble() ?? 0;
+      if (total > 0) {
+        percent = (lastReadChapter.clamp(0.0, total.toDouble()) / total);
+      }
+      final lastReadAt = DateTime.tryParse(row['lastReadAt']?.toString() ?? '');
+      if (isDropped(percent, lastReadAt, DateTime.now())) continue;
+      seedRows.add(row);
+    }
+  }
+
+  takeSeed(history.take(20).toList());
+  final favSorted = [...favorites]
+    ..sort((a, b) {
+      final aAt = DateTime.tryParse(a['lastReadAt']?.toString() ?? '');
+      final bAt = DateTime.tryParse(b['lastReadAt']?.toString() ?? '');
+      return (bAt ?? DateTime.fromMillisecondsSinceEpoch(0))
+          .compareTo(aAt ?? DateTime.fromMillisecondsSinceEpoch(0));
+    });
+  takeSeed(favSorted.take(20).toList());
+
+  List<String> rankedTags = [];
+  if (seedRows.isNotEmpty) {
+    final corpus = TagStatistics.fromRows(await db.getMangaWithTags());
+    final seedTags = <String>[
+      for (final row in seedRows)
+        ..._storedTagList(row['tags']?.toString() ?? '[]'),
+    ];
+    rankedTags = distinctiveTags(seedTags, corpus.rarity, 10);
+  } else {
+    rankedTags = await db.getUserTopTags(limit: 10);
+  }
 
   final perSource = await WebViewFetcher.runBackground(
     () => _fanout(
       sources.map((source) async {
         try {
-          if (topTags.isNotEmpty) {
-            final matched = await _tags(source, topTags);
+          if (rankedTags.isNotEmpty) {
+            final matched = await _tags(source, rankedTags);
             if (matched.isNotEmpty) {
-              return [matched];
+              return matched.take(_perSourceCap).toList();
             }
           }
-          return [await _popular(source)];
+          final pop = await _popular(source);
+          return pop.take(_perSourceCap).toList();
         } catch (_) {
-          return const <List<Manga>>[];
+          return const <Manga>[];
         }
       }).toList(),
       hasResult: (per) => per.any((lists) => lists.isNotEmpty),
-      // Each future wraps its manga lists, so "a source with content" is a
-      // wrapper containing at least one non-empty list. Requiring two such
-      // sources keeps the first paint a mix rather than a single source, while
-      // still beating the full fan-out window on a cold cache.
       earlyResolve: (per) =>
-          per.where((lists) => lists.any((manga) => manga.isNotEmpty)).length >=
-          2,
+          per.where((lists) => lists.isNotEmpty).length >=
+          _minResults.clamp(2, sources.length),
     ),
   );
 
-  return _mixSources(perSource.expand((lists) => lists).toList());
+  return _mixSources(perSource);
 });
 
 /// Genre/theme chips unioned across the active sources, so the filter strip

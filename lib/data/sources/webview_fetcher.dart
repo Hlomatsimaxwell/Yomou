@@ -519,7 +519,7 @@ class WebViewFetcher {
   Future<String> _settledHtml(
     InAppWebViewController controller, {
     String? expected,
-    Duration cap = const Duration(seconds: 20),
+    Duration cap = const Duration(seconds: 30),
   }) async {
     final deadline = DateTime.now().add(cap);
     var last = '';

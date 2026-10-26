@@ -273,9 +273,20 @@ class MangaFireSource extends DioSource implements MangaSource {
         url,
         sourceId: id,
         expected: 'title-grid__link',
+        timeout: const Duration(seconds: 45),
       );
       final list = _parseFilter(rendered);
       debugPrint('[mangafire] $id listing rendered -> ${list.length} $url');
+      if (list.isEmpty) {
+        final fallback = await WebViewFetcher.instance.render(
+          url,
+          sourceId: id,
+          expected: 'title-grid__link',
+          timeout: const Duration(seconds: 50),
+        );
+        final list2 = _parseFilter(fallback);
+        if (list2.isNotEmpty) return list2;
+      }
       return list;
     } on CaptchaRequiredException {
       // As in [_page]: a challenge has to reach the screen that can solve it.

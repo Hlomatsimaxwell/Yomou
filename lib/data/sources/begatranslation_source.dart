@@ -1,6 +1,7 @@
 import '../models/madara_site_config.dart';
 import 'madara_source.dart';
 import 'webview_fetcher.dart';
+import 'captcha_gate.dart';
 
 /// BegaTranslation — assumes a stock Madara/WordPress theme like the majority
 /// of Spanish sources. If the rendered HTML differs, the config here can be
@@ -44,7 +45,8 @@ class BegaTranslationSource extends MadaraSource {
   }) async {
     try {
       return await WebViewFetcher.instance.render(url, sourceId: id);
-    } catch (_) {
+    } catch (e) {
+      if (e is CaptchaRequiredException) rethrow;
       return '';
     }
   }
