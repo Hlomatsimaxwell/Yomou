@@ -284,7 +284,9 @@ class MadaraSource extends DioSource implements MangaSource {
       final chapters = <Chapter>[];
 
       for (final item in items) {
-        final link = item.querySelector(config.chapterLinkSelector);
+        final link = config.chapterLinkSelector.isEmpty
+            ? item
+            : item.querySelector(config.chapterLinkSelector);
         if (link == null) continue;
         final href = link.attributes['href'] ?? '';
         final id = _fromPath(href);
@@ -310,10 +312,10 @@ class MadaraSource extends DioSource implements MangaSource {
   }
 
   String _chapterNumber(String id, String title) {
-    final titleRe = RegExp(r'chapter\s*(\d+(?:[.\-]\d+)*)', caseSensitive: false);
+    final titleRe = RegExp(r'(?:chapter|cap[ií]tulo|cap)\s*(\d+(?:[.\-]\d+)*)', caseSensitive: false);
     final titleMatch = titleRe.firstMatch(title);
     if (titleMatch != null) return titleMatch.group(1)!;
-    final pathRe = RegExp(r'[-_/]c(?:hapter)?[-_. ]?(\d+(?:[.\-]\d+)*)');
+    final pathRe = RegExp(r'[-_/](?:ch(?:apter)?|cap(?:itulo)?)[-_. ]?(\d+(?:[.\-]\d+)*)', caseSensitive: false);
     final pathMatch = pathRe.firstMatch(id);
     if (pathMatch != null) return pathMatch.group(1)!;
     return '';

@@ -8,6 +8,9 @@ import 'package:yomou/features/content_preferences/providers/content_preferences
 import 'source_sort.dart';
 import 'source_usage_provider.dart';
 import '../sources/anzmangashd_source.dart';
+import '../sources/datgarscanlation_source.dart';
+import '../sources/inmanga_source.dart';
+import '../sources/infrafandub_source.dart';
 import '../sources/begatranslation_source.dart';
 import '../sources/apollcomics_source.dart';
 import '../sources/asia_lotuss_source.dart';
@@ -199,12 +202,24 @@ MangaSource getSourceByName(String name) {
       );
     case 'AnzMangasHd':
       return _shared('anzmangashd', AnzMangasHdSource.new);
+    case 'Datgar Scanlation':
+      return _shared('datgarscanlation', DatgarScanlationSource.new);
+    case 'InManga':
+      return _shared('inmanga', InMangaSource.new);
+    case 'InfraFandub':
+      return _shared('infrafandub', InfraFandubSource.new);
     case 'Bega Translation':
       return _shared('begatranslation', BegaTranslationSource.new);
     case 'Apoll Comics':
       return _shared('apollcomics', ApollComicsSource.new);
     case 'Asia Lotuss':
       return _shared('asialotuss', AsiaLotussSource.new);
+    case 'Datgar Scanlation':
+      return getSourceByName('Datgar Scanlation');
+    case 'InManga':
+      return getSourceByName('InManga');
+    case 'InfraFandub':
+      return getSourceByName('InfraFandub');
     default:
       return _mangaBallByName(name) ??
           _shared(
@@ -990,6 +1005,30 @@ class SourcesNotifier extends StateNotifier<List<Map<String, dynamic>>> {
       'bgColor': const Color(0xFF009688),
       'text': 'BT',
       'iconUrl': 'https://begatranslation.com/favicon.ico',
+      'isPinned': false,
+    },
+    {
+      'name': 'Datgar Scanlation',
+      'language': 'Spanish',
+      'bgColor': const Color(0xFF607D8B),
+      'text': 'DG',
+      'iconUrl': 'https://datgarscanlation.blogspot.com/favicon.ico',
+      'isPinned': false,
+    },
+    {
+      'name': 'InManga',
+      'language': 'Manga, Spanish',
+      'bgColor': const Color(0xFF4CAF50),
+      'text': 'IM',
+      'iconUrl': 'https://assets.intomanga.com/inmangafavicon.png',
+      'isPinned': false,
+    },
+    {
+      'name': 'InfraFandub',
+      'language': 'Manga, Spanish',
+      'bgColor': const Color(0xFF9C27B0),
+      'text': 'IF',
+      'iconUrl': 'https://infrafandub.com/favicon.ico',
       'isPinned': false,
     },
   ];
