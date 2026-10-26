@@ -303,6 +303,12 @@ MangaSource? getSourceBySourceId(String sourceId) {
       return getSourceByName('Asia Lotuss');
     case 'manganato':
       return getSourceByName('Manganato');
+    case 'datgarscanlation':
+      return getSourceByName('Datgar Scanlation');
+    case 'inmanga':
+      return getSourceByName('InManga');
+    case 'infrafandub':
+      return getSourceByName('InfraFandub');
     default:
       return null;
   }
