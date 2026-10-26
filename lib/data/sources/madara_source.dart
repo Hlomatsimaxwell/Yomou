@@ -7,6 +7,7 @@ import '../models/chapter.dart';
 import '../models/manga_details.dart';
 import '../models/madara_site_config.dart';
 import 'source_network.dart';
+import 'captcha_gate.dart';
 
 /// A Madara/WordPress manga source fully driven by a [MadaraSiteConfig].
 ///
@@ -120,7 +121,8 @@ class MadaraSource extends DioSource implements MangaSource {
       final path = _pageUrl(config.popularPath, page);
       final html = await grabText('$baseUrl/$path');
       return _parseMangaGrid(html);
-    } catch (_) {
+    } catch (e) {
+      if (e is CaptchaRequiredException) rethrow;
       return [];
     }
   }
@@ -135,7 +137,8 @@ class MadaraSource extends DioSource implements MangaSource {
       );
       final html = await grabText('$baseUrl/${_pageUrl(path, page)}');
       return _parseMangaGrid(html);
-    } catch (_) {
+    } catch (e) {
+      if (e is CaptchaRequiredException) rethrow;
       return [];
     }
   }
@@ -161,7 +164,8 @@ class MadaraSource extends DioSource implements MangaSource {
       );
       final html = await grabText('$baseUrl/${_pageUrl(path, page)}');
       return _parseMangaGrid(html);
-    } catch (_) {
+    } catch (e) {
+      if (e is CaptchaRequiredException) rethrow;
       return [];
     }
   }
@@ -181,7 +185,8 @@ class MadaraSource extends DioSource implements MangaSource {
         if (name.isNotEmpty && !tags.contains(name)) tags.add(name);
       }
       return tags;
-    } catch (_) {
+    } catch (e) {
+      if (e is CaptchaRequiredException) rethrow;
       return [];
     }
   }
@@ -262,7 +267,8 @@ class MadaraSource extends DioSource implements MangaSource {
         status: status,
         tags: tags,
       );
-    } catch (_) {
+    } catch (e) {
+      if (e is CaptchaRequiredException) rethrow;
       return null;
     }
   }
@@ -297,7 +303,8 @@ class MadaraSource extends DioSource implements MangaSource {
         );
       }
       return chapters;
-    } catch (_) {
+    } catch (e) {
+      if (e is CaptchaRequiredException) rethrow;
       return [];
     }
   }
