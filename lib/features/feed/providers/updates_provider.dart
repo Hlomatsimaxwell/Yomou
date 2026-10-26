@@ -54,10 +54,18 @@ class MangaUpdate {
 /// Manga in the user's library (history + favorites) with more chapters than
 /// the last count stored when they were read. Each series is checked against
 /// the source it was read from; sources the user disabled are skipped.
+// Tracks whether the initial delay has already been served, so reloads after
+// invalidation (e.g. marking a manga as seen) skip the startup delay.
+bool _updatesInitialDelayDone = false;
+
 final updatesProvider = FutureProvider<List<MangaUpdate>>((ref) async {
   // Let the first frames render before the (heavy) library scan kicks in, so
-  // the app never feels frozen at launch on slower devices.
-  await Future.delayed(const Duration(seconds: 2));
+  // the app never feels frozen at launch on slower devices. Only on the very
+  // first invocation; reloads reuse the already-warm path.
+  if (!_updatesInitialDelayDone) {
+    await Future.delayed(const Duration(seconds: 2));
+    _updatesInitialDelayDone = true;
+  }
 
   final disabled = <String>{
     for (final row in ref.watch(sourcesProvider))

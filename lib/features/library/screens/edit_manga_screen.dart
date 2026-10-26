@@ -217,8 +217,10 @@ class _EditMangaScreenState extends ConsumerState<EditMangaScreen> {
       },
       child: Scaffold(
         backgroundColor: Theme.of(context).scaffoldBackgroundColor,
-        body: Column(
-          children: [
+        body: SafeArea(
+          top: false,
+          child: Column(
+            children: [
             IosNavBar(
               showBack: false,
               // Flat like the reference's toolbar: the nav row belongs to
@@ -334,6 +336,7 @@ class _EditMangaScreenState extends ConsumerState<EditMangaScreen> {
             ),
           ],
         ),
+      ),
       ),
     );
   }
