@@ -1,6 +1,6 @@
 import 'package:flutter/widgets.dart';
 
-const double kBottomBarHeight = 60;
+const double kBottomBarHeight = 64;
 
 /// Width of the side navigation rail that replaces the bottom bar once the
 /// window is wide enough for one.
@@ -18,7 +18,7 @@ const double kNavRailWidth = 80;
 /// taken off the front.
 const double kSettingsCategoryPaneWidth = 320;
 
-const double kBottomBarSideMargin = 16;
+const double kBottomBarSideMargin = 12;
 
 const double kBottomBarBottomMargin = 8;
 
@@ -34,7 +34,7 @@ const double kBottomChromeClearance = 24;
 
 /// Cap on the floating pill's width so spacing stays tight and consistent on
 /// wide screens (and on all tabs, with or without the Continue FAB beside it).
-const double kFloatingPillMaxWidth = 330;
+const double kFloatingPillMaxWidth = 300;
 
 /// Least strip of scrim a modal sheet must leave above itself.
 ///

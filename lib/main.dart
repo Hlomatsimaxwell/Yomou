@@ -828,19 +828,30 @@ class _HomeScreenState extends ConsumerState<HomeScreen>
     final pillBorder = dark
         ? const Color(0x332C2C30)
         : Colors.black.withValues(alpha: 0.08);
+    // Kotatsu-Redo's floating nav is a fully-rounded pill (radius 50) with a
+    // 8dp drop shadow, which is what makes it read as a floating "island"
+    // instead of a docked bar. Mirror that here: pill-shaped corners and an
+    // elevation shadow so the bar lifts off the content behind it.
     final pill = Container(
       height: kBottomBarHeight,
-      padding: const EdgeInsets.fromLTRB(11, 8, 11, 8),
+      padding: const EdgeInsets.fromLTRB(8, 8, 8, 8),
       decoration: BoxDecoration(
         color: pillColor,
-        borderRadius: BorderRadius.circular(28),
+        borderRadius: BorderRadius.circular(50),
         border: Border.all(color: pillBorder),
+        boxShadow: [
+          BoxShadow(
+            color: Colors.black.withValues(alpha: 0.18),
+            blurRadius: 12,
+            offset: const Offset(0, 4),
+          ),
+        ],
       ),
       child: _buildNavRow(updatesCount, accent, settings, enabledTabs),
     );
     if (frosted) {
       return ClipRRect(
-        borderRadius: BorderRadius.circular(28),
+        borderRadius: BorderRadius.circular(50),
         child: BackdropFilter(
           filter: ImageFilter.blur(sigmaX: 16, sigmaY: 16),
           child: pill,
@@ -877,16 +888,18 @@ class _HomeScreenState extends ConsumerState<HomeScreen>
     AppearanceSettings settings,
     List<int> enabledTabs,
   ) {
-    // Items size to their content and spread with spaceBetween: the edges are
-    // pinned to the bar's padding (11dp horizontal, matching the pill's 11dp
-    // top gap) instead of being re-centered in an overflowing slot, which used
-    // to glue the wide active pill to the bar's left/right edge.
+    // Pack the items tightly toward the centre with a 4dp rhythm, matching
+    // Kotatsu-Redo's floating bar (spacedBy(4.dp)) so the pill wraps its
+    // content instead of stretching edge-to-edge and reading like a docked bar.
+    final children = <Widget>[];
+    for (var i = 0; i < enabledTabs.length; i++) {
+      if (i > 0) children.add(const SizedBox(width: 4));
+      children.add(_buildNavItem(enabledTabs[i], updatesCount, accent, settings));
+    }
     return Row(
-      mainAxisAlignment: MainAxisAlignment.spaceBetween,
-      children: [
-        for (final index in enabledTabs)
-          _buildNavItem(index, updatesCount, accent, settings),
-      ],
+      mainAxisAlignment: MainAxisAlignment.center,
+      mainAxisSize: MainAxisSize.min,
+      children: children,
     );
   }
 
