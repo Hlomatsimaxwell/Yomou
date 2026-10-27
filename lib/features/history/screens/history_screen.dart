@@ -1409,9 +1409,22 @@ class _HistoryScreenState extends ConsumerState<HistoryScreen> {
   }
 
   Widget _buildSelectionBar(BuildContext context) {
-    final dark = Theme.of(context).brightness == Brightness.dark;
-    final fg = dark ? Colors.white : const Color(0xFF1C1B1F);
+    final cs = Theme.of(context).colorScheme;
     final l = AppLocalizations.of(context);
+    // Kotatsu-Redo paints its action mode with Material's
+    // m3_appbar_overlay_color: the theme's primary at 8% over the surface
+    // role, which both lifts the bar off the page and moves with the palette.
+    // The status bar above it is set to the same colour, so the fill starts
+    // at the very top of the window rather than at the bar's own top edge.
+    final barBg = Color.alphaBlend(
+      cs.primary.withValues(alpha: 0.08),
+      cs.surface,
+    );
+    // The title/count stays at full strength; the actions sit back at "medium
+    // emphasis" (on-surface at 60%), which is what Kotatsu's action items
+    // resolve to. Colour-role based, so it follows light/dark and the preset.
+    final fg = cs.onSurface;
+    final actionFg = cs.onSurface.withValues(alpha: 0.6);
     // Mirror Kotatsu-Redo's showAsAction="ifRoom|withText": show icon + text
     // labels when there's enough width, fall back to icons only on narrow
     // screens (phones).
@@ -1432,7 +1445,7 @@ class _HistoryScreenState extends ConsumerState<HistoryScreen> {
                       Text(
                         label,
                         style: TextStyle(
-                          color: fg,
+                          color: actionFg,
                           fontSize: 11,
                           fontWeight: FontWeight.w500,
                         ),
@@ -1445,30 +1458,49 @@ class _HistoryScreenState extends ConsumerState<HistoryScreen> {
       );
     }
 
-    return IosNavBar(
+    // The bar itself is flat: the colour is painted by this box so it can run
+    // behind the status bar, the way Kotatsu colours the window's status bar
+    // along with the action bar. TabHeader leaves the inset to us.
+    return Container(
+      color: barBg,
+      padding: EdgeInsets.only(top: MediaQuery.paddingOf(context).top),
+      child: IosNavBar(
         showBack: false,
-        // The parent TabHeader already consumes the status-bar inset; applying
-        // it here again made the bar sit lower than Kotatsu's action bar.
+        flat: true,
         safeArea: false,
-        leading: navAction(Icon(MdiIcons.close, color: fg, size: 22), _exitSelection),
+        leading: navAction(
+          Icon(MdiIcons.close, color: actionFg, size: 22),
+          _exitSelection,
+        ),
         titleWidget: Text(
           l.historySelectedCount(_selectedMangaIds.length),
-          style: TextStyle(color: fg, fontSize: 17, fontWeight: FontWeight.w600),
+          style: TextStyle(
+            color: fg,
+            fontSize: 17,
+            fontWeight: FontWeight.w600,
+          ),
         ),
         actions: [
-        navAction(
-          MaterialSymbol(
-            MaterialSymbol.selectAll,
-            color: fg,
-            size: 22,
+          navAction(
+            MaterialSymbol(
+              MaterialSymbol.selectAll,
+              color: actionFg,
+              size: 22,
+            ),
+            _toggleSelectAll,
+            label: l.selectAll,
           ),
-          _toggleSelectAll,
-          label: l.selectAll,
-        ),
-        navAction(Icon(MdiIcons.deleteOutline, color: fg, size: 22), _deleteSelected,
-            label: l.delete),
-        navAction(Icon(MdiIcons.dotsVertical, color: fg, size: 22), _showSelectionActions),
-      ],
+          navAction(
+            Icon(MdiIcons.deleteOutline, color: actionFg, size: 22),
+            _deleteSelected,
+            label: l.delete,
+          ),
+          navAction(
+            Icon(MdiIcons.dotsVertical, color: actionFg, size: 22),
+            _showSelectionActions,
+          ),
+        ],
+      ),
     );
   }
 
