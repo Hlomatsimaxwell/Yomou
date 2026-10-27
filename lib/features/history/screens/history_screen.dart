@@ -27,6 +27,7 @@ import 'package:yomou/core/widgets/ios/ios_toast.dart';
 import 'package:yomou/core/widgets/manga_grid_metrics.dart';
 import 'package:yomou/core/widgets/responsive.dart' show usesWideLayout;
 import 'package:yomou/core/providers/incognito_provider.dart';
+import 'package:yomou/core/providers/selection_provider.dart';
 import 'package:yomou/features/history/providers/history_provider.dart';
 import 'package:yomou/features/history/screens/reading_statistics_screen.dart';
 import 'package:yomou/features/library/providers/downloads_provider.dart';
@@ -1368,6 +1369,7 @@ class _HistoryScreenState extends ConsumerState<HistoryScreen> {
         _selectedMangaIds.addAll(ids);
       }
     });
+    ref.read(selectionActiveProvider.notifier).state = _selectedMangaIds.isNotEmpty;
   }
 
   // True when every selected history entry is already a favorite.
@@ -1385,6 +1387,7 @@ class _HistoryScreenState extends ConsumerState<HistoryScreen> {
 
   void _enterSelection(String mangaId) {
     setState(() => _selectedMangaIds.add(mangaId));
+    ref.read(selectionActiveProvider.notifier).state = true;
   }
 
   void _toggleSelect(String mangaId) {
@@ -1393,11 +1396,13 @@ class _HistoryScreenState extends ConsumerState<HistoryScreen> {
         _selectedMangaIds.add(mangaId);
       }
     });
+    ref.read(selectionActiveProvider.notifier).state = _selectedMangaIds.isNotEmpty;
   }
 
   void _exitSelection() {
     if (!_isSelecting) return;
     setState(_selectedMangaIds.clear);
+    ref.read(selectionActiveProvider.notifier).state = false;
   }
 
   void _handleGridCardTap(BuildContext context, Map<String, dynamic> item) {
@@ -1558,6 +1563,7 @@ class _HistoryScreenState extends ConsumerState<HistoryScreen> {
     if (!mounted) return;
 
     setState(_selectedMangaIds.clear);
+    ref.read(selectionActiveProvider.notifier).state = false;
     await _loadFromProvider();
     bumpHistoryRevision(ref);
     if (!mounted) return;
@@ -1703,6 +1709,7 @@ class _HistoryScreenState extends ConsumerState<HistoryScreen> {
       return;
     }
     setState(_selectedMangaIds.clear);
+    ref.read(selectionActiveProvider.notifier).state = false;
     await _loadFromProvider();
     bumpHistoryRevision(ref);
     incognitoActive = wasIncognito;

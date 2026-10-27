@@ -8,12 +8,19 @@ import 'package:flutter_material_design_icons/flutter_material_design_icons.dart
 import 'package:yomou/data/models/manga.dart';
 import 'package:yomou/core/database/source_cache.dart';
 import 'package:yomou/data/providers/sources_provider.dart';
-import 'package:yomou/features/library/screens/manga_detail_screen.dart';
+import 'package:yomou/features/library/providers/favorites_provider.dart';
 import 'package:yomou/features/library/widgets/downloaded_badge.dart';
 import 'package:yomou/features/library/widgets/favorite_badge.dart';
 import 'package:yomou/features/suggestions/providers/suggestions_provider.dart';
+import 'package:yomou/core/share.dart';
+import 'package:yomou/core/database/database_helper.dart';
+import 'package:yomou/core/widgets/ios/ios_press.dart';
+import 'package:yomou/widgets/material_symbol.dart';
 import 'package:yomou/core/theme/layout.dart';
+import 'package:yomou/core/widgets/ios/ios_nav_bar.dart';
+import 'package:yomou/features/library/screens/manga_detail_screen.dart';
 import 'package:yomou/core/providers/incognito_provider.dart';
+import 'package:yomou/core/providers/selection_provider.dart';
 import 'package:yomou/core/widgets/empty_state.dart';
 import 'package:yomou/core/widgets/tab_header.dart';
 import 'package:yomou/core/widgets/responsive.dart' show usesWideLayout;
@@ -40,6 +47,9 @@ class _SuggestionsScreenState extends ConsumerState<SuggestionsScreen> {
   final TextEditingController _searchController = TextEditingController();
   String _searchQuery = '';
   bool _refreshing = false;
+
+  final Set<String> _selectedMangaIds = {};
+  bool get _isSelecting => _selectedMangaIds.isNotEmpty;
 
   String _listMode = 'Grid';
 
@@ -98,6 +108,241 @@ class _SuggestionsScreenState extends ConsumerState<SuggestionsScreen> {
     _refreshing = false;
   }
 
+  void _enterSelection(String mangaId) {
+    setState(() => _selectedMangaIds.add(mangaId));
+    ref.read(selectionActiveProvider.notifier).state = true;
+  }
+
+  void _toggleSelect(String mangaId) {
+    setState(() {
+      if (!_selectedMangaIds.remove(mangaId)) {
+        _selectedMangaIds.add(mangaId);
+      }
+    });
+    ref.read(selectionActiveProvider.notifier).state = _selectedMangaIds.isNotEmpty;
+  }
+
+  void _exitSelection() {
+    if (!_isSelecting) return;
+    setState(_selectedMangaIds.clear);
+    ref.read(selectionActiveProvider.notifier).state = false;
+  }
+
+  void _toggleSelectAll(List<Manga> items) {
+    final ids = items.map((m) => m.id).toList();
+    setState(() {
+      if (ids.isNotEmpty && ids.every(_selectedMangaIds.contains)) {
+        _selectedMangaIds.clear();
+      } else {
+        _selectedMangaIds.addAll(ids);
+      }
+    });
+    ref.read(selectionActiveProvider.notifier).state = _selectedMangaIds.isNotEmpty;
+  }
+
+  Future<void> _shareSelected(List<Manga> allManga) async {
+    final ids = _selectedMangaIds;
+    if (ids.isEmpty) return;
+    final buffer = StringBuffer();
+    for (final manga in allManga) {
+      if (!ids.contains(manga.id)) continue;
+      final source = getSourceBySourceId(manga.sourceId);
+      final siteUrl = source == null ? '' : source.websiteMangaUrl(manga.id);
+      if (buffer.isNotEmpty) buffer.write('\n\n');
+      buffer.write(manga.title);
+      if (siteUrl.isNotEmpty) {
+        buffer.write('\n');
+        buffer.write(siteUrl);
+      }
+    }
+    if (buffer.isEmpty) return;
+    await shareText(buffer.toString());
+  }
+
+  Future<void> _favoriteSelected(List<Manga> allManga) async {
+    final ids = _selectedMangaIds.toList();
+    if (ids.isEmpty) return;
+    for (final manga in allManga) {
+      if (!ids.contains(manga.id)) continue;
+      await DatabaseHelper.instance.setFavorite(
+        mangaId: manga.id,
+        title: manga.title,
+        coverUrl: manga.coverUrl,
+        sourceId: manga.sourceId,
+        isFavorite: true,
+      );
+    }
+    if (!mounted) return;
+    setState(_selectedMangaIds.clear);
+    bumpFavoritesRevision(ref);
+    final l = AppLocalizations.of(context);
+    showIosToast(
+      context,
+      message: l.historyFavoritedCount(ids.length),
+      duration: const Duration(seconds: 2),
+    );
+  }
+
+  Widget _buildSelectionBar(BuildContext context) {
+    final cs = Theme.of(context).colorScheme;
+    final l = AppLocalizations.of(context);
+    final barBg = Color.alphaBlend(
+      cs.primary.withValues(alpha: 0.08),
+      cs.surface,
+    );
+    final fg = cs.onSurface;
+    final actionFg = cs.onSurface.withValues(alpha: 0.6);
+    final showLabels = MediaQuery.of(context).size.width > 600;
+    final wide = MediaQuery.of(context).size.width >= 900;
+
+    Widget navAction(Widget icon, VoidCallback onTap, {String? label}) {
+      return Center(
+        child: AppPress(
+          onTap: onTap,
+          child: Padding(
+            padding: const EdgeInsets.all(8),
+            child: showLabels && label != null
+                ? Row(
+                    mainAxisSize: MainAxisSize.min,
+                    children: [
+                      icon,
+                      const SizedBox(width: 6),
+                      Text(
+                        label.toUpperCase(),
+                        style: TextStyle(
+                          color: actionFg,
+                          fontSize: 12,
+                          fontWeight: FontWeight.w500,
+                          letterSpacing: 0.6,
+                        ),
+                      ),
+                    ],
+                  )
+                : icon,
+          ),
+        ),
+      );
+    }
+
+    final suggestionsAsync = ref.read(suggestionsProvider(_selectedGenre));
+    final allManga = suggestionsAsync.valueOrNull ?? const <Manga>[];
+
+    final actions = <Widget>[
+      navAction(
+        Icon(MdiIcons.shareVariant, color: actionFg, size: 22),
+        () => _shareSelected(allManga),
+        label: l.share,
+      ),
+      navAction(
+        Icon(MdiIcons.heartOutline, color: actionFg, size: 22),
+        () => _favoriteSelected(allManga),
+        label: l.favorite,
+      ),
+    ];
+
+    if (wide) {
+      actions.add(
+        navAction(
+          MaterialSymbol(
+            MaterialSymbol.selectAll,
+            color: actionFg,
+            size: 22,
+          ),
+          () => _toggleSelectAll(allManga),
+          label: l.selectAll,
+        ),
+      );
+    } else {
+      actions.add(
+        navAction(
+          Icon(MdiIcons.dotsVertical, color: actionFg, size: 22),
+          () => _showSelectionActions(context, allManga),
+        ),
+      );
+    }
+
+    return Container(
+      color: barBg,
+      padding: EdgeInsets.only(top: MediaQuery.paddingOf(context).top),
+      child: IosNavBar(
+        showBack: false,
+        flat: true,
+        safeArea: false,
+        height: 64,
+        leading: navAction(
+          Icon(MdiIcons.close, color: actionFg, size: 22),
+          _exitSelection,
+        ),
+        titleWidget: Text(
+          '${_selectedMangaIds.length}',
+          style: TextStyle(
+            color: fg,
+            fontSize: 17,
+            fontWeight: FontWeight.w600,
+          ),
+        ),
+        actions: actions,
+      ),
+    );
+  }
+
+  void _showSelectionActions(BuildContext context, List<Manga> allManga) {
+    final dark = Theme.of(context).brightness == Brightness.dark;
+    final fg = dark ? Colors.white : const Color(0xFF1C1B1F);
+    final l = AppLocalizations.of(context);
+
+    showIosSheet(
+      context,
+      builder: (sheetContext) {
+        return Padding(
+          padding: const EdgeInsets.fromLTRB(20, 6, 20, 16),
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              _buildSheetRow(
+                icon: MdiIcons.selectAll,
+                label: l.selectAll,
+                color: fg,
+                onTap: () {
+                  Navigator.pop(context);
+                  _toggleSelectAll(allManga);
+                },
+              ),
+            ],
+          ),
+        );
+      },
+    );
+  }
+
+  Widget _buildSheetRow({
+    required IconData icon,
+    required String label,
+    required Color color,
+    required VoidCallback onTap,
+  }) {
+    return AppPress(
+      onTap: onTap,
+      child: Padding(
+        padding: const EdgeInsets.symmetric(vertical: 12, horizontal: 4),
+        child: Row(
+          children: [
+            Icon(icon, color: color, size: 22),
+            const SizedBox(width: 16),
+            Text(
+              label,
+              style: TextStyle(
+                color: color,
+                fontSize: 16,
+                fontWeight: FontWeight.w500,
+              ),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+
   @override
   Widget build(BuildContext context) {
     _gridSize = ref.watch(appearanceSettingsProvider).gridSize;
@@ -116,7 +361,8 @@ class _SuggestionsScreenState extends ConsumerState<SuggestionsScreen> {
               ? TabHeaderMode.fixed
               : TabHeaderMode.collapsing,
           title: AppLocalizations.of(context).suggestions,
-          searchBar: _buildSearchBar(),
+          leading: _isSelecting ? _buildSelectionBar(context) : null,
+          searchBar: _isSelecting ? const SizedBox.shrink() : _buildSearchBar(),
           body: CustomScrollView(
             physics: const AlwaysScrollableScrollPhysics(),
             slivers: [
@@ -788,7 +1034,12 @@ class _SuggestionsScreenState extends ConsumerState<SuggestionsScreen> {
             itemCount: items.length,
             itemBuilder: (context, index) {
               final manga = items[index];
-              return _buildMangaCard(context, manga, columns);
+              return _buildMangaCard(
+                context,
+                manga,
+                columns,
+                isSelected: _selectedMangaIds.contains(manga.id),
+              );
             },
           ),
         );
@@ -818,29 +1069,39 @@ class _SuggestionsScreenState extends ConsumerState<SuggestionsScreen> {
   /// its cells with it, so the title has to be drawn with the same value or a
   /// two-line title is measured small and painted large, and the second line
   /// lands outside the cell.
-  Widget _buildMangaCard(BuildContext context, Manga manga, int columns) {
+  Widget _buildMangaCard(
+    BuildContext context,
+    Manga manga,
+    int columns, {
+    bool isSelected = false,
+  }) {
     final dark = Theme.of(context).brightness == Brightness.dark;
     final titleColor = dark
         ? Colors.white
         : Theme.of(context).colorScheme.onSurface;
     return GestureDetector(
       onTap: () {
-        Navigator.push(
-          context,
-          MaterialPageRoute(
-            builder: (context) => MangaDetailScreen(
-              mangaId: manga.id,
-              title: manga.title,
-              imageUrl: manga.coverUrl,
-              sourceId: manga.sourceId,
-              heroTag: mangaCoverHeroTag(
-                sourceId: manga.sourceId,
+        if (_isSelecting) {
+          _toggleSelect(manga.id);
+        } else {
+          Navigator.push(
+            context,
+            MaterialPageRoute(
+              builder: (context) => MangaDetailScreen(
                 mangaId: manga.id,
+                title: manga.title,
+                imageUrl: manga.coverUrl,
+                sourceId: manga.sourceId,
+                heroTag: mangaCoverHeroTag(
+                  sourceId: manga.sourceId,
+                  mangaId: manga.id,
+                ),
               ),
             ),
-          ),
-        );
+          );
+        }
       },
+      onLongPress: () => _enterSelection(manga.id),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
@@ -879,6 +1140,35 @@ class _SuggestionsScreenState extends ConsumerState<SuggestionsScreen> {
                 ),
                 DownloadedMangaBadge(mangaId: manga.id),
                 FavoriteBadge(mangaId: manga.id),
+                if (isSelected)
+                  Positioned.fill(
+                    child: Container(
+                      decoration: BoxDecoration(
+                        color: Theme.of(
+                          context,
+                        ).colorScheme.primary.withValues(alpha: 0.35),
+                        borderRadius: BorderRadius.circular(16),
+                        border: Border.all(
+                          color: Theme.of(context).colorScheme.primary,
+                          width: 2.5,
+                        ),
+                      ),
+                      alignment: Alignment.center,
+                      child: Container(
+                        width: 26,
+                        height: 26,
+                        decoration: BoxDecoration(
+                          color: Theme.of(context).colorScheme.primary,
+                          shape: BoxShape.circle,
+                        ),
+                        child: const Icon(
+                          MdiIcons.check,
+                          color: Colors.white,
+                          size: 18,
+                        ),
+                      ),
+                    ),
+                  ),
               ],
             ),
           ),

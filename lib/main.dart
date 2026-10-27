@@ -33,6 +33,7 @@ import 'package:yomou/core/deep_links.dart';
 import 'package:yomou/core/diagnostics/source_selftest.dart';
 import 'package:yomou/core/haptics.dart';
 import 'package:yomou/core/providers/incognito_provider.dart';
+import 'package:yomou/core/providers/selection_provider.dart';
 import 'package:yomou/features/content_preferences/providers/content_preferences_provider.dart';
 import 'package:yomou/features/onboarding/welcome_sheet.dart';
 import 'package:yomou/features/whats_new/whats_new_sheet.dart';
@@ -555,6 +556,7 @@ class _HomeScreenState extends ConsumerState<HomeScreen>
     // Keep the global incognito flag loaded from the very first frame so the
     // DB/search layers never write during an incognito session.
     ref.watch(incognitoProvider);
+    final selectionActive = ref.watch(selectionActiveProvider);
 
     final enabledTabs = _enabledTabIndices(settings);
     // If the current tab got disabled, jump to the first enabled one.
@@ -664,7 +666,7 @@ class _HomeScreenState extends ConsumerState<HomeScreen>
               // stays docked above it. Everything hides together on scroll-down
               // unless pinNavUiOnScroll is on.
               AnimatedSlide(
-                offset: Offset(0, _navHiddenOnScroll ? 1.5 : 0),
+                offset: Offset(0, (_navHiddenOnScroll || selectionActive) ? 1.5 : 0),
                 duration: const Duration(milliseconds: 220),
                 curve: Curves.easeOutCubic,
                 child: Stack(

@@ -27,6 +27,7 @@ import 'package:yomou/core/database/source_cache.dart';
 import 'package:yomou/core/share.dart';
 import 'package:yomou/data/providers/sources_provider.dart';
 import 'package:yomou/core/providers/incognito_provider.dart';
+import 'package:yomou/core/providers/selection_provider.dart';
 import 'package:yomou/core/widgets/ios/ios_toast.dart';
 import 'package:yomou/features/library/screens/edit_manga_screen.dart';
 
@@ -113,6 +114,7 @@ class _FavoritesScreenState extends ConsumerState<FavoritesScreen> {
         _selectedMangaIds.addAll(ids);
       }
     });
+    ref.read(selectionActiveProvider.notifier).state = _selectedMangaIds.isNotEmpty;
   }
 
   bool get _selectedAllPinned {
@@ -126,6 +128,7 @@ class _FavoritesScreenState extends ConsumerState<FavoritesScreen> {
 
   void _enterSelection(String mangaId) {
     setState(() => _selectedMangaIds.add(mangaId));
+    ref.read(selectionActiveProvider.notifier).state = true;
   }
 
   void _toggleSelect(String mangaId) {
@@ -134,11 +137,13 @@ class _FavoritesScreenState extends ConsumerState<FavoritesScreen> {
         _selectedMangaIds.add(mangaId);
       }
     });
+    ref.read(selectionActiveProvider.notifier).state = _selectedMangaIds.isNotEmpty;
   }
 
   void _exitSelection() {
     if (!_isSelecting) return;
     setState(_selectedMangaIds.clear);
+    ref.read(selectionActiveProvider.notifier).state = false;
   }
 
   void _handleGridCardTap(Map<String, dynamic> item) {
@@ -194,6 +199,7 @@ class _FavoritesScreenState extends ConsumerState<FavoritesScreen> {
     }
     if (!mounted) return;
     setState(_selectedMangaIds.clear);
+    ref.read(selectionActiveProvider.notifier).state = false;
     ref.read(favoritesRevisionProvider.notifier).state++;
   }
 
@@ -209,6 +215,7 @@ class _FavoritesScreenState extends ConsumerState<FavoritesScreen> {
     }
     if (!mounted) return;
     setState(_selectedMangaIds.clear);
+    ref.read(selectionActiveProvider.notifier).state = false;
     ref.read(favoritesRevisionProvider.notifier).state++;
   }
 
@@ -301,6 +308,7 @@ class _FavoritesScreenState extends ConsumerState<FavoritesScreen> {
     }
     if (!mounted) return;
     setState(_selectedMangaIds.clear);
+    ref.read(selectionActiveProvider.notifier).state = false;
     ref.read(favoritesRevisionProvider.notifier).state++;
     if (!mounted) return;
     final l = AppLocalizations.of(context);
