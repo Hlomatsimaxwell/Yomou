@@ -9,6 +9,15 @@
 
 ### [⬇️ Download the latest release](https://github.com/Hlomatsimaxwell/Yomou/releases/latest)
 
+Also available via **F-Droid** (personal repo):
+
+[![F-Droid](https://img.shields.io/badge/F--Droid-Install-blue?logo=fdroid)](https://raw.githubusercontent.com/Hlomatsimaxwell/yomou-fdroid-repo/main/repo/?fingerprint=)
+
+In F-Droid: Settings → Repositories → +, then paste:
+```
+https://raw.githubusercontent.com/Hlomatsimaxwell/yomou-fdroid-repo/main/repo/
+```
+
 </div>
 
 ### Main Features
