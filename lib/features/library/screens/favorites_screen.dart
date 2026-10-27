@@ -4,7 +4,8 @@ import 'package:yomou/widgets/manga_hero.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_material_design_icons/flutter_material_design_icons.dart';
-import 'package:yomou/data/models/manga.dart';
+import 'package:yomou/data/models/manga_source.dart';
+import 'package:yomou/widgets/source_icon.dart';
 import 'package:yomou/features/library/providers/favorites_provider.dart';
 import 'package:yomou/features/library/widgets/downloaded_badge.dart';
 import 'package:yomou/features/library/widgets/favorite_badge.dart';
@@ -41,6 +42,7 @@ class _FavoritesScreenState extends ConsumerState<FavoritesScreen> {
   String _searchQuery = '';
   final Set<String> _selectedMangaIds = {};
   int _selectedFilter = -1;
+  String? _selectedSourceId;
 
   double _gridSize = kMangaGridSizeDefault;
 
@@ -63,6 +65,9 @@ class _FavoritesScreenState extends ConsumerState<FavoritesScreen> {
           )
           .toList();
     }
+    if (_selectedSourceId != null) {
+      result = result.where((m) => m['sourceId'] == _selectedSourceId).toList();
+    }
     if (_selectedFilter == 0) {
       result = result.where((m) => m['hasDownloadedChapters'] == true).toList();
     } else if (_selectedFilter == 1) {
@@ -73,6 +78,19 @@ class _FavoritesScreenState extends ConsumerState<FavoritesScreen> {
       result = result.where((m) => (m['progress'] as int) >= 100).toList();
     }
     return result;
+  }
+
+  List<MangaSource> get _pinnedSources {
+    final pinned = <MangaSource>[];
+    for (final row in ref.read(sourcesProvider)) {
+      if (row['isPinned'] != true) continue;
+      final name = row['name'] as String? ?? '';
+      if (name.isEmpty) continue;
+      final source = getSourceByName(name);
+      if (source.name != name) continue;
+      pinned.add(source);
+    }
+    return pinned;
   }
 
   List<String> get _visibleFavoriteIds {
@@ -393,11 +411,6 @@ class _FavoritesScreenState extends ConsumerState<FavoritesScreen> {
           label: l.historyEdit,
         ),
         navAction(
-          Icon(MdiIcons.checkAll, color: actionFg, size: 22),
-          _markCompletedSelected,
-          label: l.historyMarkCompleted,
-        ),
-        navAction(
           MaterialSymbol(
             MaterialSymbol.selectAll,
             color: actionFg,
@@ -479,15 +492,6 @@ class _FavoritesScreenState extends ConsumerState<FavoritesScreen> {
                       duration: const Duration(seconds: 2),
                     );
                   }
-                },
-              ),
-              _buildSheetRow(
-                icon: MdiIcons.checkAll,
-                label: l.historyMarkCompleted,
-                color: fg,
-                onTap: () {
-                  Navigator.pop(context);
-                  _markCompletedSelected();
                 },
               ),
               _buildSheetRow(
@@ -710,6 +714,21 @@ class _FavoritesScreenState extends ConsumerState<FavoritesScreen> {
                 _selectedFilter = _selectedFilter == index ? -1 : index;
               }),
             ),
+          for (final source in _pinnedSources)
+            _filterChip(
+              isSelected: _selectedSourceId == source.id,
+              leading: SourceIcon(
+                name: source.name,
+                iconUrl: source.iconUrl,
+                size: 14,
+              ),
+              label: source.name,
+              onTap: () => setState(() {
+                _selectedSourceId = _selectedSourceId == source.id
+                    ? null
+                    : source.id;
+              }),
+            ),
         ],
       ),
     );
@@ -717,9 +736,9 @@ class _FavoritesScreenState extends ConsumerState<FavoritesScreen> {
 
   Widget _filterChip({
     required bool isSelected,
-    required IconData icon,
     required String label,
     required VoidCallback onTap,
+    IconData? icon,
     Widget? leading,
   }) {
     final dark = Theme.of(context).brightness == Brightness.dark;
@@ -743,8 +762,10 @@ class _FavoritesScreenState extends ConsumerState<FavoritesScreen> {
           mainAxisSize: MainAxisSize.min,
           children: [
             if (leading != null) ...[leading, const SizedBox(width: 6)],
-            Icon(icon, size: 16, color: fg),
-            const SizedBox(width: 4),
+            if (icon != null) ...[
+              Icon(icon, size: 16, color: fg),
+              const SizedBox(width: 4),
+            ],
             Text(
               label,
               style: TextStyle(
@@ -873,12 +894,14 @@ class _FavoritesScreenState extends ConsumerState<FavoritesScreen> {
                     child: Container(
                       padding: const EdgeInsets.all(4),
                       decoration: BoxDecoration(
-                        color: Colors.black54,
+                        color: dark
+                            ? Colors.black.withValues(alpha: 0.5)
+                            : Colors.white.withValues(alpha: 0.7),
                         borderRadius: BorderRadius.circular(8),
                       ),
-                      child: const Icon(
+                      child: Icon(
                         MdiIcons.pin,
-                        color: Colors.white,
+                        color: dark ? Colors.white : Colors.black87,
                         size: 14,
                       ),
                     ),
