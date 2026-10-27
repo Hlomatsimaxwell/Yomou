@@ -1612,6 +1612,8 @@ class _HistoryScreenState extends ConsumerState<HistoryScreen> {
   Future<void> _markCompletedSelected() async {
     final ids = _selectedMangaIds.toList();
     if (ids.isEmpty) return;
+    final wasIncognito = incognitoActive;
+    incognitoActive = false;
     var changed = 0;
     for (final mangaId in ids) {
       final item = _historyItems.firstWhere(
@@ -1649,6 +1651,39 @@ class _HistoryScreenState extends ConsumerState<HistoryScreen> {
           // Best-effort: a single unresolvable series shouldn't abort the rest.
         }
       }
+
+      // Fall back to the chapter list when the source didn't report a count
+      // (Kotatsu derives "completed" from the last chapter's number).
+      if (total <= 0 && source != null) {
+        try {
+          final chapters = await SourceCache.chapters(
+            sourceId: source.id,
+            mangaId: mangaId,
+            forceRefresh: true,
+            fetch: () => source.getChapters(mangaId),
+          );
+          if (chapters.isNotEmpty) {
+            var maxNum = 0.0;
+            for (final c in chapters) {
+              final n = double.tryParse(c.chapterNumber) ?? 0;
+              if (n > maxNum) maxNum = n;
+            }
+            total = maxNum > 0 ? maxNum.round() : chapters.length;
+            if (total > 0) {
+              await DatabaseHelper.instance.upsertManga(
+                mangaId: mangaId,
+                title: title,
+                coverUrl: (item['coverUrl'] as String?) ?? '',
+                sourceId: sourceId,
+                totalChapters: total,
+              );
+            }
+          }
+        } catch (_) {
+          // Best-effort.
+        }
+      }
+
       if (total <= 0) continue;
 
       await DatabaseHelper.instance.saveMangaProgress(
@@ -1663,18 +1698,22 @@ class _HistoryScreenState extends ConsumerState<HistoryScreen> {
       );
       changed++;
     }
-    if (!mounted) return;
+    if (!mounted) {
+      incognitoActive = wasIncognito;
+      return;
+    }
     setState(_selectedMangaIds.clear);
     await _loadFromProvider();
     bumpHistoryRevision(ref);
+    incognitoActive = wasIncognito;
     if (!mounted) return;
     final l = AppLocalizations.of(context);
     showIosToast(
       context,
       message: changed > 0
-          ? l.historyMarkCompleted
-          : l.historyEmptyTitle,
-      duration: const Duration(seconds: 2),
+          ? '${l.historyMarkCompleted} ($changed)'
+          : 'No chapter info found',
+      duration: const Duration(seconds: 3),
     );
   }
 
