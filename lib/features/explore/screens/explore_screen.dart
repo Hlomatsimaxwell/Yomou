@@ -29,6 +29,9 @@ import 'package:yomou/features/settings/providers/cache_settings_provider.dart';
 import 'package:yomou/features/suggestions/providers/suggestions_provider.dart';
 import 'package:yomou/core/theme/layout.dart';
 import 'package:yomou/core/providers/incognito_provider.dart';
+import 'package:yomou/core/providers/selection_provider.dart';
+import 'package:yomou/features/source_management/screens/source_settings_screen.dart';
+import 'package:yomou/core/widgets/ios/ios_nav_bar.dart';
 import 'package:yomou/l10n/generated/app_localizations.dart';
 import 'package:yomou/widgets/source_icon.dart';
 
@@ -41,6 +44,9 @@ class ExploreScreen extends ConsumerStatefulWidget {
 
 class _ExploreScreenState extends ConsumerState<ExploreScreen> {
   bool _loadingRandom = false;
+
+  final Set<String> _selectedSourceNames = {};
+  bool get _isSelecting => _selectedSourceNames.isNotEmpty;
 
   final List<Map<String, dynamic>> _quickButtons = [
     {'icon': MdiIcons.sd, 'labelKey': 'storage', 'type': 'storage'},
@@ -67,6 +73,190 @@ class _ExploreScreenState extends ConsumerState<ExploreScreen> {
     };
   }
 
+  void _enterSelection(String name) {
+    setState(() => _selectedSourceNames.add(name));
+    ref.read(selectionActiveProvider.notifier).state = true;
+  }
+
+  void _toggleSelect(String name) {
+    setState(() {
+      if (!_selectedSourceNames.remove(name)) {
+        _selectedSourceNames.add(name);
+      }
+    });
+    ref.read(selectionActiveProvider.notifier).state = _selectedSourceNames.isNotEmpty;
+  }
+
+  void _exitSelection() {
+    if (!_isSelecting) return;
+    setState(_selectedSourceNames.clear);
+    ref.read(selectionActiveProvider.notifier).state = false;
+  }
+
+  bool get _allSelectedPinned {
+    if (_selectedSourceNames.isEmpty) return false;
+    final sources = ref.read(sortedSourceRowsProvider);
+    for (final name in _selectedSourceNames) {
+      final row = sources.firstWhere(
+        (s) => s['name'] == name,
+        orElse: () => const <String, dynamic>{},
+      );
+      if (row['isPinned'] != true) return false;
+    }
+    return true;
+  }
+
+  bool get _allSelectedUnpinned {
+    if (_selectedSourceNames.isEmpty) return false;
+    final sources = ref.read(sortedSourceRowsProvider);
+    for (final name in _selectedSourceNames) {
+      final row = sources.firstWhere(
+        (s) => s['name'] == name,
+        orElse: () => const <String, dynamic>{},
+      );
+      if (row['isPinned'] == true) return false;
+    }
+    return true;
+  }
+
+  bool get _mixedSelection {
+    if (_selectedSourceNames.isEmpty) return false;
+    return !_allSelectedPinned && !_allSelectedUnpinned;
+  }
+
+  void _pinSelected({required bool pin}) {
+    for (final name in _selectedSourceNames) {
+      final currentlyPinned = _allSelectedPinned; // not per-item; use togglePin conditionally
+      // togglePin flips; only call if needed
+    }
+    // Use togglePin for each: it flips, so ensure desired state
+    for (final name in _selectedSourceNames) {
+      final sources = ref.read(sortedSourceRowsProvider);
+      final row = sources.firstWhere(
+        (s) => s['name'] == name,
+        orElse: () => const <String, dynamic>{},
+      );
+      final isPinned = row['isPinned'] == true;
+      if (isPinned != pin) {
+        ref.read(sourcesProvider.notifier).togglePin(name);
+      }
+    }
+    _exitSelection();
+  }
+
+  void _openSettingsForSelected() {
+    if (_selectedSourceNames.length != 1) return;
+    final name = _selectedSourceNames.first;
+    final src = getSourceByName(name);
+    Navigator.push(
+      context,
+      MaterialPageRoute(
+        builder: (context) => SourceSettingsScreen(
+          sourceId: src.id,
+          sourceName: name,
+        ),
+      ),
+    );
+    _exitSelection();
+  }
+
+  Widget _buildSelectionBar(BuildContext context) {
+    final cs = Theme.of(context).colorScheme;
+    final l = AppLocalizations.of(context);
+    final barBg = Color.alphaBlend(
+      cs.primary.withValues(alpha: 0.08),
+      cs.surface,
+    );
+    final fg = cs.onSurface;
+    final actionFg = cs.onSurface.withValues(alpha: 0.6);
+    final showLabels = MediaQuery.of(context).size.width > 600;
+    final single = _selectedSourceNames.length == 1;
+    final allPinned = _allSelectedPinned;
+    final allUnpinned = _allSelectedUnpinned;
+    final mixed = _mixedSelection;
+
+    Widget navAction(Widget icon, VoidCallback onTap, {String? label}) {
+      return Center(
+        child: AppPress(
+          onTap: onTap,
+          child: Padding(
+            padding: const EdgeInsets.all(8),
+            child: showLabels && label != null
+                ? Row(
+                    mainAxisSize: MainAxisSize.min,
+                    children: [
+                      icon,
+                      const SizedBox(width: 6),
+                      Text(
+                        label.toUpperCase(),
+                        style: TextStyle(
+                          color: actionFg,
+                          fontSize: 12,
+                          fontWeight: FontWeight.w500,
+                          letterSpacing: 0.6,
+                        ),
+                      ),
+                    ],
+                  )
+                : icon,
+          ),
+        ),
+      );
+    }
+
+    final actions = <Widget>[];
+    if (!mixed) {
+      if (allPinned) {
+        actions.add(navAction(
+          Icon(MdiIcons.pinOff, color: actionFg, size: 22),
+          () => _pinSelected(pin: false),
+          label: 'Unpin',
+        ));
+      } else if (allUnpinned) {
+        actions.add(navAction(
+          Icon(MdiIcons.pin, color: actionFg, size: 22),
+          () => _pinSelected(pin: true),
+          label: 'Pin',
+        ));
+      }
+    }
+    if (single && !mixed) {
+      actions.add(navAction(
+        Icon(MdiIcons.cogOutline, color: actionFg, size: 22),
+        _openSettingsForSelected,
+        label: l.settings,
+      ));
+    }
+
+    return Container(
+      color: barBg,
+      padding: EdgeInsets.only(top: MediaQuery.paddingOf(context).top),
+      child: IosNavBar(
+        showBack: false,
+        flat: true,
+        safeArea: false,
+        height: 64,
+        leading: navAction(
+          Icon(MdiIcons.close, color: actionFg, size: 22),
+          _exitSelection,
+        ),
+        titleWidget: Text(
+          '${_selectedSourceNames.length}',
+          style: TextStyle(
+            color: fg,
+            fontSize: 17,
+            fontWeight: FontWeight.w600,
+          ),
+        ),
+        actions: actions.isEmpty
+            ? [
+                // Mixed selection: no available action; keep an empty bar.
+              ]
+            : actions,
+      ),
+    );
+  }
+
   @override
   Widget build(BuildContext context) {
     final sources = ref.watch(sortedSourceRowsProvider);
@@ -80,7 +270,8 @@ class _ExploreScreenState extends ConsumerState<ExploreScreen> {
             ? TabHeaderMode.fixed
             : TabHeaderMode.collapsing,
         title: AppLocalizations.of(context).explore,
-        searchBar: _buildSearchBar(),
+        leading: _isSelecting ? _buildSelectionBar(context) : null,
+        searchBar: _isSelecting ? const SizedBox.shrink() : _buildSearchBar(),
         body: RefreshIndicator(
           onRefresh: _refresh,
           // Slivers, not a Column inside a scroll view: the sources wall is
@@ -498,13 +689,18 @@ class _ExploreScreenState extends ConsumerState<ExploreScreen> {
           return InkWell(
             borderRadius: BorderRadius.circular(14),
             onTap: () {
-              Navigator.push(
-                context,
-                MaterialPageRoute(
-                  builder: (context) => MangaGridScreen(sourceName: name),
-                ),
-              );
+              if (_isSelecting) {
+                _toggleSelect(name);
+              } else {
+                Navigator.push(
+                  context,
+                  MaterialPageRoute(
+                    builder: (context) => MangaGridScreen(sourceName: name),
+                  ),
+                );
+              }
             },
+            onLongPress: () => _enterSelection(name),
             child: Padding(
               padding: const EdgeInsets.symmetric(vertical: 4),
               child: Row(
@@ -545,9 +741,13 @@ class _ExploreScreenState extends ConsumerState<ExploreScreen> {
                     ),
                   ),
                   Icon(
-                    MdiIcons.chevronRight,
+                    _selectedSourceNames.contains(name)
+                        ? MdiIcons.checkCircle
+                        : MdiIcons.chevronRight,
                     size: 20,
-                    color: dark ? Colors.white30 : Colors.black26,
+                    color: _selectedSourceNames.contains(name)
+                        ? Theme.of(context).colorScheme.primary
+                        : (dark ? Colors.white30 : Colors.black26),
                   ),
                 ],
               ),
@@ -587,8 +787,9 @@ class _ExploreScreenState extends ConsumerState<ExploreScreen> {
             itemCount: sources.length,
             itemBuilder: (context, index) {
               final source = sources[index];
-              final isPinned = source['isPinned'] == true;
               final name = source['name'] as String;
+              final isPinned = source['isPinned'] == true;
+              final isSelected = _selectedSourceNames.contains(name);
               final iconUrl = source['iconUrl'] as String? ?? '';
               // Inset with the plate rather than fixed, so the pin keeps its
               // place on the corner as the plate grows.
@@ -599,13 +800,18 @@ class _ExploreScreenState extends ConsumerState<ExploreScreen> {
               // from SourceIcon, which scales its own corner radius with it.
               return AppPress(
                 onTap: () {
-                  Navigator.push(
-                    context,
-                    MaterialPageRoute(
-                      builder: (context) => MangaGridScreen(sourceName: name),
-                    ),
-                  );
+                  if (_isSelecting) {
+                    _toggleSelect(name);
+                  } else {
+                    Navigator.push(
+                      context,
+                      MaterialPageRoute(
+                        builder: (context) => MangaGridScreen(sourceName: name),
+                      ),
+                    );
+                  }
                 },
+                onLongPress: () => _enterSelection(name),
                 child: Column(
                   mainAxisAlignment: MainAxisAlignment.center,
                   children: [
@@ -627,6 +833,36 @@ class _ExploreScreenState extends ConsumerState<ExploreScreen> {
                                 MdiIcons.pin,
                                 size: 12,
                                 color: dark ? Colors.white70 : Colors.black54,
+                              ),
+                            ),
+                          ),
+                        if (isSelected)
+                          Positioned.fill(
+                            child: Container(
+                              decoration: BoxDecoration(
+                                color: Theme.of(context)
+                                    .colorScheme
+                                    .primary
+                                    .withValues(alpha: 0.35),
+                                borderRadius: BorderRadius.circular(12),
+                                border: Border.all(
+                                  color: Theme.of(context).colorScheme.primary,
+                                  width: 2.5,
+                                ),
+                              ),
+                              alignment: Alignment.center,
+                              child: Container(
+                                width: 22,
+                                height: 22,
+                                decoration: BoxDecoration(
+                                  color: Theme.of(context).colorScheme.primary,
+                                  shape: BoxShape.circle,
+                                ),
+                                child: const Icon(
+                                  MdiIcons.check,
+                                  color: Colors.white,
+                                  size: 14,
+                                ),
                               ),
                             ),
                           ),
