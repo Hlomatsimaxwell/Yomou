@@ -15,6 +15,9 @@ class AppLocalizationsEn extends AppLocalizations {
   String get delete => 'Delete';
 
   @override
+  String get share => 'Share';
+
+  @override
   String get remove => 'Remove';
 
   @override

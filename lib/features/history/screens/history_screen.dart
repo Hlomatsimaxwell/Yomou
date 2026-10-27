@@ -14,6 +14,7 @@ import 'package:yomou/features/library/screens/manga_detail_screen.dart';
 import 'package:yomou/features/library/screens/edit_manga_screen.dart';
 import 'package:yomou/features/settings/screens/settings_screen.dart';
 import 'package:yomou/core/database/database_helper.dart';
+import 'package:yomou/core/share.dart';
 import 'package:yomou/core/database/source_cache.dart';
 import 'package:yomou/core/widgets/empty_state.dart';
 import 'package:yomou/core/widgets/incognito_icon.dart';
@@ -1425,6 +1426,7 @@ class _HistoryScreenState extends ConsumerState<HistoryScreen> {
     // resolve to. Colour-role based, so it follows light/dark and the preset.
     final fg = cs.onSurface;
     final actionFg = cs.onSurface.withValues(alpha: 0.6);
+    final allFavorited = _selectedAllFavorited;
     // Mirror Kotatsu-Redo's showAsAction="ifRoom|withText": show icon + text
     // labels when there's enough width, fall back to icons only on narrow
     // screens (phones).
@@ -1463,6 +1465,63 @@ class _HistoryScreenState extends ConsumerState<HistoryScreen> {
       );
     }
 
+    final actions = <Widget>[
+      navAction(
+        Icon(MdiIcons.shareVariant, color: actionFg, size: 22),
+        _shareSelected,
+        label: l.share,
+      ),
+      navAction(
+        MaterialSymbol(
+          MaterialSymbol.selectAll,
+          color: actionFg,
+          size: 22,
+        ),
+        _toggleSelectAll,
+        label: l.selectAll,
+      ),
+      navAction(
+        Icon(MdiIcons.deleteOutline, color: actionFg, size: 22),
+        _deleteSelected,
+        label: l.delete,
+      ),
+    ];
+
+    // On wide windows (tablet/desktop) Kotatsu's `ifRoom` promotes every
+    // secondary action into the bar and the overflow (three-dot) menu
+    // disappears. On phones they stay in the sheet.
+    final wide = MediaQuery.of(context).size.width >= 900;
+    if (wide) {
+      actions.addAll([
+        navAction(
+          Icon(
+            allFavorited ? MdiIcons.heart : MdiIcons.heartOutline,
+            color: actionFg,
+            size: 22,
+          ),
+          () => _favoriteSelected(remove: allFavorited),
+          label: allFavorited ? l.removeFromFavorites : l.favorite,
+        ),
+        navAction(
+          Icon(MdiIcons.pencilOutline, color: actionFg, size: 22),
+          _openEditForSelected,
+          label: l.historyEdit,
+        ),
+        navAction(
+          Icon(MdiIcons.checkAll, color: actionFg, size: 22),
+          _markCompletedSelected,
+          label: l.historyMarkCompleted,
+        ),
+      ]);
+    } else {
+      actions.add(
+        navAction(
+          Icon(MdiIcons.dotsVertical, color: actionFg, size: 22),
+          _showSelectionActions,
+        ),
+      );
+    }
+
     // The bar itself is flat: the colour is painted by this box so it can run
     // behind the status bar, the way Kotatsu colours the window's status bar
     // along with the action bar. TabHeader leaves the inset to us.
@@ -1479,33 +1538,14 @@ class _HistoryScreenState extends ConsumerState<HistoryScreen> {
           _exitSelection,
         ),
         titleWidget: Text(
-          l.historySelectedCount(_selectedMangaIds.length),
+          '${_selectedMangaIds.length}',
           style: TextStyle(
             color: fg,
             fontSize: 17,
             fontWeight: FontWeight.w600,
           ),
         ),
-        actions: [
-          navAction(
-            MaterialSymbol(
-              MaterialSymbol.selectAll,
-              color: actionFg,
-              size: 22,
-            ),
-            _toggleSelectAll,
-            label: l.selectAll,
-          ),
-          navAction(
-            Icon(MdiIcons.deleteOutline, color: actionFg, size: 22),
-            _deleteSelected,
-            label: l.delete,
-          ),
-          navAction(
-            Icon(MdiIcons.dotsVertical, color: actionFg, size: 22),
-            _showSelectionActions,
-          ),
-        ],
+        actions: actions,
       ),
     );
   }
@@ -1539,6 +1579,69 @@ class _HistoryScreenState extends ConsumerState<HistoryScreen> {
     if (!mounted) return;
     await _loadFromProvider();
     bumpHistoryRevision(ref);
+  }
+
+  Future<void> _shareSelected() async {
+    final ids = _selectedMangaIds.toList();
+    if (ids.isEmpty) return;
+
+    final buffer = StringBuffer();
+    for (final mangaId in ids) {
+      final item = _historyItems.firstWhere(
+        (e) => e['mangaId'] == mangaId,
+        orElse: () => const <String, dynamic>{},
+      );
+      if (item.isEmpty) continue;
+      final title = (item['title'] as String?) ?? '';
+      final sourceId = item['sourceId'] as String?;
+      final source = sourceId == null ? null : getSourceBySourceId(sourceId);
+      final siteUrl = source == null
+          ? ''
+          : source.websiteMangaUrl(mangaId);
+      if (buffer.isNotEmpty) buffer.write('\n\n');
+      buffer.write(title);
+      if (siteUrl.isNotEmpty) {
+        buffer.write('\n');
+        buffer.write(siteUrl);
+      }
+    }
+    if (buffer.isEmpty) return;
+    await shareText(buffer.toString());
+  }
+
+  Future<void> _markCompletedSelected() async {
+    final ids = _selectedMangaIds.toList();
+    if (ids.isEmpty) return;
+    for (final mangaId in ids) {
+      final item = _historyItems.firstWhere(
+        (e) => e['mangaId'] == mangaId,
+        orElse: () => const <String, dynamic>{},
+      );
+      if (item.isEmpty) continue;
+      final total = (item['totalReleasedChapters'] as int?) ?? 0;
+      if (total <= 0) continue;
+      await DatabaseHelper.instance.saveMangaProgress(
+        mangaId: mangaId,
+        title: (item['title'] as String?) ?? '',
+        coverUrl: (item['coverUrl'] as String?) ?? '',
+        sourceId: item['sourceId'] as String?,
+        totalChapters: total,
+        lastReadChapter: total.toDouble(),
+        lastReadPage: 0,
+        lastReadAt: DateTime.now(),
+      );
+    }
+    if (!mounted) return;
+    setState(_selectedMangaIds.clear);
+    await _loadFromProvider();
+    bumpHistoryRevision(ref);
+    if (!mounted) return;
+    final l = AppLocalizations.of(context);
+    showIosToast(
+      context,
+      message: l.historyMarkCompleted,
+      duration: const Duration(seconds: 2),
+    );
   }
 
   void _showSelectionActions() {
@@ -1581,6 +1684,15 @@ class _HistoryScreenState extends ConsumerState<HistoryScreen> {
                       duration: const Duration(seconds: 2),
                     );
                   }
+                },
+              ),
+              _buildSheetRow(
+                icon: MdiIcons.checkAll,
+                label: l.historyMarkCompleted,
+                color: fg,
+                onTap: () {
+                  Navigator.pop(context);
+                  _markCompletedSelected();
                 },
               ),
             ],
