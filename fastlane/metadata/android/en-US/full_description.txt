@@ -1,0 +1,13 @@
+Yomou is a manga reader inspired by Kotatsu-Redo, built for the long haul: multi-source support, reading progress, offline reading, and a clean Material 3 interface.
+
+Features:
+- Browse and read manga from many sources, with source presets and per-source settings
+- Reading progress rings, mark-as-completed, and history
+- Favorites with pinning
+- Downloads for offline reading
+- Suggestions / Explore feed for new chapters
+- Statistics and backup/restore
+- Incognito mode
+- Theming and app icon switcher
+
+Open source under Apache-2.0.
