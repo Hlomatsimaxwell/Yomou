@@ -12,13 +12,22 @@ import 'package:yomou/features/library/screens/manga_detail_screen.dart';
 import 'package:yomou/core/theme/layout.dart';
 import 'package:yomou/core/widgets/ios/ios_press.dart';
 import 'package:yomou/core/widgets/empty_state.dart';
+import 'package:yomou/core/widgets/ios/ios_nav_bar.dart';
 import 'package:yomou/core/widgets/ios/ios_sheet.dart';
+import 'package:yomou/widgets/material_symbol.dart';
 import 'package:yomou/core/widgets/tab_header.dart';
 import 'package:yomou/core/widgets/responsive.dart' show usesWideLayout;
 import 'package:yomou/core/widgets/manga_grid_metrics.dart';
 import 'package:yomou/features/settings/providers/appearance_provider.dart';
 import 'package:yomou/l10n/generated/app_localizations.dart';
 import 'package:yomou/core/widgets/search_bar.dart';
+import 'package:yomou/core/database/database_helper.dart';
+import 'package:yomou/core/database/source_cache.dart';
+import 'package:yomou/core/share.dart';
+import 'package:yomou/data/providers/sources_provider.dart';
+import 'package:yomou/core/providers/incognito_provider.dart';
+import 'package:yomou/core/widgets/ios/ios_toast.dart';
+import 'package:yomou/features/library/screens/edit_manga_screen.dart';
 
 class FavoritesScreen extends ConsumerStatefulWidget {
   const FavoritesScreen({super.key});
@@ -30,14 +39,12 @@ class FavoritesScreen extends ConsumerStatefulWidget {
 class _FavoritesScreenState extends ConsumerState<FavoritesScreen> {
   final TextEditingController _searchController = TextEditingController();
   String _searchQuery = '';
+  final Set<String> _selectedMangaIds = {};
+  int _selectedFilter = -1;
 
-  /// The cover size the reader chose, as a percentage of a normal cell, from
-  /// the one preference every manga grid shares. 100 is the design size.
-  ///
-  /// Synced from the provider at the top of [build] rather than watched in
-  /// place, because the grid resolves its columns inside a layout builder that
-  /// runs after build.
   double _gridSize = kMangaGridSizeDefault;
+
+  bool get _isSelecting => _selectedMangaIds.isNotEmpty;
 
   @override
   void dispose() {
@@ -45,10 +52,493 @@ class _FavoritesScreenState extends ConsumerState<FavoritesScreen> {
     super.dispose();
   }
 
+  List<Map<String, dynamic>> _filteredItems(List<Map<String, dynamic>> items) {
+    var result = items;
+    if (_searchQuery.isNotEmpty) {
+      result = result
+          .where(
+            (m) => (m['title'] as String).toLowerCase().contains(
+              _searchQuery.toLowerCase(),
+            ),
+          )
+          .toList();
+    }
+    if (_selectedFilter == 0) {
+      result = result.where((m) => m['hasDownloadedChapters'] == true).toList();
+    } else if (_selectedFilter == 1) {
+      result = result
+          .where((m) => ((m['newChapters'] as int?) ?? 0) > 0)
+          .toList();
+    } else if (_selectedFilter == 2) {
+      result = result.where((m) => (m['progress'] as int) >= 100).toList();
+    }
+    return result;
+  }
+
+  List<String> get _visibleFavoriteIds {
+    final async = ref.read(favoritesDetailProvider);
+    final items = async.valueOrNull ?? const <Map<String, dynamic>>[];
+    return _filteredItems(items).map((m) => m['mangaId'] as String).toList();
+  }
+
+  bool get _allVisibleSelected {
+    final ids = _visibleFavoriteIds;
+    return ids.isNotEmpty && ids.every(_selectedMangaIds.contains);
+  }
+
+  void _toggleSelectAll() {
+    final ids = _visibleFavoriteIds;
+    setState(() {
+      if (_allVisibleSelected) {
+        _selectedMangaIds.clear();
+      } else {
+        _selectedMangaIds.addAll(ids);
+      }
+    });
+  }
+
+  bool get _selectedAllPinned {
+    if (_selectedMangaIds.isEmpty) return false;
+    final pinned = ref.read(pinnedFavoritesProvider).valueOrNull ?? const <String>{};
+    for (final id in _selectedMangaIds) {
+      if (!pinned.contains(id)) return false;
+    }
+    return true;
+  }
+
+  void _enterSelection(String mangaId) {
+    setState(() => _selectedMangaIds.add(mangaId));
+  }
+
+  void _toggleSelect(String mangaId) {
+    setState(() {
+      if (!_selectedMangaIds.remove(mangaId)) {
+        _selectedMangaIds.add(mangaId);
+      }
+    });
+  }
+
+  void _exitSelection() {
+    if (!_isSelecting) return;
+    setState(_selectedMangaIds.clear);
+  }
+
+  void _handleGridCardTap(Map<String, dynamic> item) {
+    final mangaId = item['mangaId'] as String;
+    if (_isSelecting) {
+      _toggleSelect(mangaId);
+    } else {
+      Navigator.push(
+        context,
+        MaterialPageRoute(
+          builder: (context) => MangaDetailScreen(
+            mangaId: mangaId,
+            title: item['title'] as String,
+            imageUrl: (item['coverUrl'] as String?) ?? '',
+            sourceId: (item['sourceId'] as String?) ?? '',
+          ),
+        ),
+      );
+    }
+  }
+
+  Future<void> _shareSelected() async {
+    final ids = _selectedMangaIds.toList();
+    if (ids.isEmpty) return;
+    final details = ref.read(favoritesDetailProvider).valueOrNull ?? const [];
+    final buffer = StringBuffer();
+    for (final mangaId in ids) {
+      final item = details.firstWhere(
+        (e) => e['mangaId'] == mangaId,
+        orElse: () => const <String, dynamic>{},
+      );
+      if (item.isEmpty) continue;
+      final title = (item['title'] as String?) ?? '';
+      final sourceId = item['sourceId'] as String?;
+      final source = sourceId == null ? null : getSourceBySourceId(sourceId);
+      final siteUrl = source == null ? '' : source.websiteMangaUrl(mangaId);
+      if (buffer.isNotEmpty) buffer.write('\n\n');
+      buffer.write(title);
+      if (siteUrl.isNotEmpty) {
+        buffer.write('\n');
+        buffer.write(siteUrl);
+      }
+    }
+    if (buffer.isEmpty) return;
+    await shareText(buffer.toString());
+  }
+
+  Future<void> _pinSelected({required bool pin}) async {
+    final ids = _selectedMangaIds.toList();
+    if (ids.isEmpty) return;
+    for (final id in ids) {
+      await DatabaseHelper.instance.setPinned(mangaId: id, isPinned: pin);
+    }
+    if (!mounted) return;
+    setState(_selectedMangaIds.clear);
+    ref.read(favoritesRevisionProvider.notifier).state++;
+  }
+
+  Future<void> _removeSelected() async {
+    final ids = _selectedMangaIds.toList();
+    if (ids.isEmpty) return;
+    for (final id in ids) {
+      await DatabaseHelper.instance.setFavorite(
+        mangaId: id,
+        title: '',
+        isFavorite: false,
+      );
+    }
+    if (!mounted) return;
+    setState(_selectedMangaIds.clear);
+    ref.read(favoritesRevisionProvider.notifier).state++;
+  }
+
+  Future<void> _markCompletedSelected() async {
+    final ids = _selectedMangaIds.toList();
+    if (ids.isEmpty) return;
+    final wasIncognito = incognitoActive;
+    incognitoActive = false;
+    var changed = 0;
+    try {
+      final details = ref.read(favoritesDetailProvider).valueOrNull ?? const [];
+      for (final mangaId in ids) {
+        final item = details.firstWhere(
+          (e) => e['mangaId'] == mangaId,
+          orElse: () => const <String, dynamic>{},
+        );
+        if (item.isEmpty) continue;
+        final title = (item['title'] as String?) ?? '';
+        final sourceId = item['sourceId'] as String?;
+        final source = sourceId == null ? null : getSourceBySourceId(sourceId);
+
+        int total = (item['totalReleasedChapters'] as int?) ?? 0;
+        // favorites detail doesn't store total; fetch from DB row via getManga
+        final row = await DatabaseHelper.instance.getManga(mangaId);
+        if (total <= 0) total = (row?['totalChapters'] as int?) ?? 0;
+
+        if (total <= 0 && source != null) {
+          try {
+            final d = await SourceCache.mangaDetails(
+              sourceId: source.id,
+              mangaId: mangaId,
+              forceRefresh: true,
+              fetch: () => source.getMangaDetails(mangaId),
+            );
+            if (d != null && d.totalChapters > 0) {
+              total = d.totalChapters;
+              await DatabaseHelper.instance.upsertManga(
+                mangaId: mangaId,
+                title: d.title.isNotEmpty ? d.title : title,
+                coverUrl: d.coverUrl,
+                sourceId: sourceId,
+                totalChapters: total,
+              );
+            }
+          } catch (_) {}
+        }
+        if (total <= 0 && source != null) {
+          try {
+            final chapters = await SourceCache.chapters(
+              sourceId: source.id,
+              mangaId: mangaId,
+              forceRefresh: true,
+              fetch: () => source.getChapters(mangaId),
+            );
+            if (chapters.isNotEmpty) {
+              var maxNum = 0.0;
+              for (final c in chapters) {
+                final n = double.tryParse(c.chapterNumber) ?? 0;
+                if (n > maxNum) maxNum = n;
+              }
+              total = maxNum > 0 ? maxNum.round() : chapters.length;
+              if (total > 0) {
+                await DatabaseHelper.instance.upsertManga(
+                  mangaId: mangaId,
+                  title: title,
+                  coverUrl: (item['coverUrl'] as String?) ?? '',
+                  sourceId: sourceId,
+                  totalChapters: total,
+                );
+              }
+            }
+          } catch (_) {}
+        }
+        if (total <= 0) continue;
+
+        await DatabaseHelper.instance.saveMangaProgress(
+          mangaId: mangaId,
+          title: title,
+          coverUrl: (item['coverUrl'] as String?) ?? '',
+          sourceId: sourceId,
+          totalChapters: total,
+          lastReadChapter: total.toDouble(),
+          lastReadPage: 0,
+          lastReadAt: DateTime.now(),
+        );
+        changed++;
+      }
+    } finally {
+      incognitoActive = wasIncognito;
+    }
+    if (!mounted) return;
+    setState(_selectedMangaIds.clear);
+    ref.read(favoritesRevisionProvider.notifier).state++;
+    if (!mounted) return;
+    final l = AppLocalizations.of(context);
+    showIosToast(
+      context,
+      message: changed > 0
+          ? '${l.historyMarkCompleted} ($changed)'
+          : 'No chapter info found',
+      duration: const Duration(seconds: 3),
+    );
+  }
+
+  Future<void> _openEditForSelected() async {
+    if (_selectedMangaIds.length != 1) return;
+    final mangaId = _selectedMangaIds.first;
+    final details = ref.read(favoritesDetailProvider).valueOrNull ?? const [];
+    final item = details.firstWhere(
+      (e) => e['mangaId'] == mangaId,
+      orElse: () => const <String, dynamic>{},
+    );
+    final row = await DatabaseHelper.instance.getManga(mangaId);
+    if (!mounted) return;
+    await Navigator.push(
+      context,
+      MaterialPageRoute(
+        builder: (_) => EditMangaScreen(
+          mangaId: mangaId,
+          title: (row?['title'] as String?) ?? (item['title'] as String? ?? ''),
+          imageUrl: (row?['coverUrl'] as String?) ?? (item['coverUrl'] as String? ?? ''),
+          sourceId: (row?['sourceId'] as String?) ?? (item['sourceId'] as String? ?? ''),
+        ),
+      ),
+    );
+    _exitSelection();
+    if (!mounted) return;
+    ref.read(favoritesRevisionProvider.notifier).state++;
+  }
+
+  Widget _buildSelectionBar(BuildContext context) {
+    final cs = Theme.of(context).colorScheme;
+    final l = AppLocalizations.of(context);
+    final barBg = Color.alphaBlend(
+      cs.primary.withValues(alpha: 0.08),
+      cs.surface,
+    );
+    final fg = cs.onSurface;
+    final actionFg = cs.onSurface.withValues(alpha: 0.6);
+    final showLabels = MediaQuery.of(context).size.width > 600;
+    final wide = MediaQuery.of(context).size.width >= 900;
+    final allPinned = _selectedAllPinned;
+
+    Widget navAction(Widget icon, VoidCallback onTap, {String? label}) {
+      return Center(
+        child: AppPress(
+          onTap: onTap,
+          child: Padding(
+            padding: const EdgeInsets.all(8),
+            child: showLabels && label != null
+                ? Row(
+                    mainAxisSize: MainAxisSize.min,
+                    children: [
+                      icon,
+                      const SizedBox(width: 6),
+                      Text(
+                        label.toUpperCase(),
+                        style: TextStyle(
+                          color: actionFg,
+                          fontSize: 12,
+                          fontWeight: FontWeight.w500,
+                          letterSpacing: 0.6,
+                        ),
+                      ),
+                    ],
+                  )
+                : icon,
+          ),
+        ),
+      );
+    }
+
+    final actions = <Widget>[
+      navAction(
+        Icon(MdiIcons.shareVariant, color: actionFg, size: 22),
+        _shareSelected,
+        label: l.share,
+      ),
+      navAction(
+        Icon(
+          allPinned ? MdiIcons.pinOff : MdiIcons.pin,
+          color: actionFg,
+          size: 22,
+        ),
+        () => _pinSelected(pin: !allPinned),
+        label: allPinned ? 'Unpin' : 'Pin',
+      ),
+      navAction(
+        Icon(MdiIcons.deleteOutline, color: actionFg, size: 22),
+        _removeSelected,
+        label: l.delete,
+      ),
+    ];
+
+    if (wide) {
+      actions.addAll([
+        navAction(
+          Icon(MdiIcons.pencilOutline, color: actionFg, size: 22),
+          _openEditForSelected,
+          label: l.historyEdit,
+        ),
+        navAction(
+          Icon(MdiIcons.checkAll, color: actionFg, size: 22),
+          _markCompletedSelected,
+          label: l.historyMarkCompleted,
+        ),
+        navAction(
+          MaterialSymbol(
+            MaterialSymbol.selectAll,
+            color: actionFg,
+            size: 22,
+          ),
+          _toggleSelectAll,
+          label: l.selectAll,
+        ),
+      ]);
+    } else {
+      actions.add(
+        navAction(
+          Icon(MdiIcons.dotsVertical, color: actionFg, size: 22),
+          () => _showSelectionActions(context),
+        ),
+      );
+    }
+
+    return Container(
+      color: barBg,
+      padding: EdgeInsets.only(top: MediaQuery.paddingOf(context).top),
+      child: IosNavBar(
+        showBack: false,
+        flat: true,
+        safeArea: false,
+        height: 64,
+        leading: navAction(
+          Icon(MdiIcons.close, color: actionFg, size: 22),
+          _exitSelection,
+        ),
+        titleWidget: Text(
+          '${_selectedMangaIds.length}',
+          style: TextStyle(
+            color: fg,
+            fontSize: 17,
+            fontWeight: FontWeight.w600,
+          ),
+        ),
+        actions: actions,
+      ),
+    );
+  }
+
+  void _showSelectionActions(BuildContext context) {
+    final dark = Theme.of(context).brightness == Brightness.dark;
+    final fg = dark ? Colors.white : const Color(0xFF1C1B1F);
+    final l = AppLocalizations.of(context);
+    final allPinned = _selectedAllPinned;
+
+    showIosSheet(
+      context,
+      builder: (sheetContext) {
+        return Padding(
+          padding: const EdgeInsets.fromLTRB(20, 6, 20, 16),
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              _buildSheetRow(
+                icon: allPinned ? MdiIcons.pinOff : MdiIcons.pin,
+                label: allPinned ? 'Unpin' : 'Pin',
+                color: fg,
+                onTap: () {
+                  Navigator.pop(context);
+                  _pinSelected(pin: !allPinned);
+                },
+              ),
+              _buildSheetRow(
+                icon: MdiIcons.pencilOutline,
+                label: l.historyEdit,
+                color: fg,
+                onTap: () {
+                  Navigator.pop(context);
+                  if (_selectedMangaIds.length == 1) {
+                    _openEditForSelected();
+                  } else {
+                    showIosToast(
+                      context,
+                      message: l.editSelectOneToEdit,
+                      duration: const Duration(seconds: 2),
+                    );
+                  }
+                },
+              ),
+              _buildSheetRow(
+                icon: MdiIcons.checkAll,
+                label: l.historyMarkCompleted,
+                color: fg,
+                onTap: () {
+                  Navigator.pop(context);
+                  _markCompletedSelected();
+                },
+              ),
+              _buildSheetRow(
+                icon: MdiIcons.selectAll,
+                label: l.selectAll,
+                color: fg,
+                onTap: () {
+                  Navigator.pop(context);
+                  _toggleSelectAll();
+                },
+              ),
+            ],
+          ),
+        );
+      },
+    );
+  }
+
+  Widget _buildSheetRow({
+    required IconData icon,
+    required String label,
+    required Color color,
+    required VoidCallback onTap,
+  }) {
+    return AppPress(
+      onTap: onTap,
+      child: Padding(
+        padding: const EdgeInsets.symmetric(vertical: 12, horizontal: 4),
+        child: Row(
+          children: [
+            Icon(icon, color: color, size: 22),
+            const SizedBox(width: 16),
+            Text(
+              label,
+              style: TextStyle(
+                color: color,
+                fontSize: 16,
+                fontWeight: FontWeight.w500,
+              ),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+
   @override
   Widget build(BuildContext context) {
     _gridSize = ref.watch(appearanceSettingsProvider).gridSize;
-    final favoritesAsync = ref.watch(favoritesProvider);
+    final favoritesAsync = ref.watch(favoritesDetailProvider);
+    final pinned = ref.watch(pinnedFavoritesProvider).valueOrNull ?? const <String>{};
 
     return Scaffold(
       backgroundColor: Theme.of(context).scaffoldBackgroundColor,
@@ -57,65 +547,50 @@ class _FavoritesScreenState extends ConsumerState<FavoritesScreen> {
             ? TabHeaderMode.fixed
             : TabHeaderMode.collapsing,
         title: AppLocalizations.of(context).favorites,
-        searchBar: _buildSearchBar(),
-        body: CustomScrollView(
-          physics: const AlwaysScrollableScrollPhysics(),
-          slivers: [
-            SliverToBoxAdapter(
-              child: SizedBox(
-                height: 16,
-                child: favoritesAsync.when(
-                  loading: () => const SizedBox.shrink(),
-                  error: (e, _) => const SizedBox.shrink(),
-                  data: (_) => const SizedBox.shrink(),
-                ),
-              ),
+        leading: _isSelecting ? _buildSelectionBar(context) : null,
+        searchBar: _isSelecting ? const SizedBox.shrink() : _buildSearchBar(),
+        body: favoritesAsync.when(
+          loading: () => const Center(child: CircularProgressIndicator()),
+          error: (e, _) => Center(
+            child: Text(
+              AppLocalizations.of(context).favoritesCouldNotLoad,
             ),
-            favoritesAsync.when(
-              loading: () => SliverToBoxAdapter(
-                child: Padding(
-                  padding: const EdgeInsets.symmetric(vertical: 80),
-                  child: Center(
-                    child: CircularProgressIndicator(
-                      color: Theme.of(context).colorScheme.primary,
-                    ),
-                  ),
-                ),
-              ),
-              error: (e, _) => SliverToBoxAdapter(
-                child: Padding(
-                  padding: const EdgeInsets.symmetric(vertical: 60),
-                  child: Center(
-                    child: Text(
-                      AppLocalizations.of(context).favoritesCouldNotLoad,
-                      style: TextStyle(
-                        color: Theme.of(context).brightness == Brightness.dark
-                            ? Colors.white54
-                            : const Color(0xFF49454F),
-                        fontSize: 16,
+          ),
+          data: (items) {
+            final displayed = _filteredItems(items);
+            if (displayed.isEmpty && items.isEmpty) {
+              final l = AppLocalizations.of(context);
+              return CustomScrollView(
+                physics: const AlwaysScrollableScrollPhysics(),
+                slivers: [
+                  SliverFillRemaining(
+                    child: Center(
+                      child: EmptyState(
+                        icon: MdiIcons.heartOutline,
+                        title: _searchQuery.isNotEmpty
+                            ? AppLocalizations.of(context).favoritesNoMatch
+                            : l.favoritesEmpty,
+                        subtitle: l.favoritesEmptySubtitle,
                       ),
                     ),
                   ),
+                ],
+              );
+            }
+            return CustomScrollView(
+              physics: const AlwaysScrollableScrollPhysics(),
+              slivers: [
+                if (ref.watch(appearanceSettingsProvider).showQuickFilters) ...[
+                  SliverToBoxAdapter(child: _buildFilterChips()),
+                  const SliverToBoxAdapter(child: SizedBox(height: 8)),
+                ],
+                _buildMangaGrid(displayed, pinned),
+                SliverPadding(
+                  padding: EdgeInsets.only(bottom: bottomBarClearance(context)),
                 ),
-              ),
-              data: (items) {
-                List<Manga> displayed = items;
-                if (_searchQuery.isNotEmpty) {
-                  displayed = items
-                      .where(
-                        (m) => m.title.toLowerCase().contains(
-                          _searchQuery.toLowerCase(),
-                        ),
-                      )
-                      .toList();
-                }
-                return _buildMangaGrid(displayed);
-              },
-            ),
-            SliverPadding(
-              padding: EdgeInsets.only(bottom: bottomBarClearance(context)),
-            ),
-          ],
+              ],
+            );
+          },
         ),
       ),
     );
@@ -152,12 +627,6 @@ class _FavoritesScreenState extends ConsumerState<FavoritesScreen> {
     );
   }
 
-  /// Grid density, in the same shape as the one on History and Suggestions.
-  ///
-  /// The three-dot in this screen's search bar drew an icon and nothing else --
-  /// there was no handler behind it, so it was a control that looked live and
-  /// was not, and the grid below had no density setting at all while its two
-  /// siblings did.
   void _showGridOptionsSheet() {
     showIosSheet(
       context,
@@ -183,18 +652,6 @@ class _FavoritesScreenState extends ConsumerState<FavoritesScreen> {
                   ),
                   const SizedBox(height: 8),
                   Slider(
-                    // Left to right is small to large, which is what a size
-                    // control reads as: dragging right grows every cover and
-                    // the grid drops a column to make room. The old slider
-                    // pointed the same way -- it counted columns backwards from
-                    // the far end, so a higher thumb meant fewer, larger covers
-                    // either way. The unit is new, not the direction.
-                    //
-                    // Always live. It used to be disabled on a wide layout,
-                    // where the width decided the count and this was only a
-                    // floor -- dragging it moved a stored number and not a
-                    // single pixel. The size is the reader's everywhere now, so
-                    // a tablet changes with it too.
                     value: _gridSize,
                     min: kMangaGridSizeMin.toDouble(),
                     max: kMangaGridSizeMax.toDouble(),
@@ -204,8 +661,6 @@ class _FavoritesScreenState extends ConsumerState<FavoritesScreen> {
                         _gridSize = value;
                       });
                       setState(() {});
-                      // One size for every manga grid, so this choice follows
-                      // the reader to the other tabs as well.
                       ref
                           .read(appearanceSettingsProvider.notifier)
                           .setGridSize(value);
@@ -220,11 +675,6 @@ class _FavoritesScreenState extends ConsumerState<FavoritesScreen> {
     );
   }
 
-  /// Columns the favourites grid actually renders at [_gridSize].
-  ///
-  /// Read from here rather than from [_gridSize] wherever the number is shown or
-  /// measured, because the count is derived from the size and the width and is
-  /// not the stored number itself.
   int _resolvedColumns(BuildContext context, [double? availableWidth]) =>
       mangaGridColumns(
         context,
@@ -232,29 +682,91 @@ class _FavoritesScreenState extends ConsumerState<FavoritesScreen> {
         availableWidth: availableWidth,
       );
 
-  Widget _buildMangaGrid(List<Manga> items) {
-    if (items.isEmpty) {
-      final l = AppLocalizations.of(context);
-      return SliverToBoxAdapter(
-        child: Padding(
-          padding: const EdgeInsets.symmetric(vertical: 60, horizontal: 24),
-          child: EmptyState(
-            icon: MdiIcons.heartOutline,
-            title: _searchQuery.isNotEmpty
-                ? l.favoritesNoMatch
-                : l.favoritesEmpty,
-            subtitle: l.favoritesEmptySubtitle,
+  Widget _buildFilterChips() {
+    final filters = [
+      {'icon': MdiIcons.sd, 'labelKey': 'onDevice'},
+      {'icon': MdiIcons.fileClockOutline, 'labelKey': 'newChapters'},
+      {'icon': MdiIcons.checkAll, 'labelKey': 'completed'},
+    ];
+
+    final l = AppLocalizations.of(context);
+    final labels = [
+      l.historyOnDevice,
+      l.historyNewChapters,
+      l.historyCompleted,
+    ];
+
+    return SingleChildScrollView(
+      scrollDirection: Axis.horizontal,
+      padding: const EdgeInsets.symmetric(horizontal: 16),
+      child: Row(
+        children: [
+          for (var index = 0; index < filters.length; index++)
+            _filterChip(
+              isSelected: _selectedFilter == index,
+              icon: filters[index]['icon'] as IconData,
+              label: labels[index],
+              onTap: () => setState(() {
+                _selectedFilter = _selectedFilter == index ? -1 : index;
+              }),
+            ),
+        ],
+      ),
+    );
+  }
+
+  Widget _filterChip({
+    required bool isSelected,
+    required IconData icon,
+    required String label,
+    required VoidCallback onTap,
+    Widget? leading,
+  }) {
+    final dark = Theme.of(context).brightness == Brightness.dark;
+    final fill = dark ? Colors.white : Theme.of(context).colorScheme.primary;
+    final fg = isSelected
+        ? (dark ? Colors.black : Colors.white)
+        : (dark ? Colors.white70 : const Color(0xFF49454F));
+    return AppPress(
+      onTap: onTap,
+      child: Container(
+        margin: const EdgeInsets.only(right: 8),
+        padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
+        decoration: BoxDecoration(
+          color: isSelected ? fill : Colors.transparent,
+          borderRadius: BorderRadius.circular(20),
+          border: Border.all(
+            color: isSelected ? fill : (dark ? Colors.white24 : Colors.black12),
           ),
         ),
-      );
+        child: Row(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            if (leading != null) ...[leading, const SizedBox(width: 6)],
+            Icon(icon, size: 16, color: fg),
+            const SizedBox(width: 4),
+            Text(
+              label,
+              style: TextStyle(
+                color: fg,
+                fontSize: 13,
+                fontWeight: isSelected ? FontWeight.w600 : FontWeight.w500,
+              ),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+
+  Widget _buildMangaGrid(List<Map<String, dynamic>> items, Set<String> pinned) {
+    if (items.isEmpty) {
+      // handled by caller; keep empty sliver
+    }
+    if (items.isEmpty) {
+      return SliverToBoxAdapter(child: const SizedBox.shrink());
     }
 
-    // Measured from the constraints rather than the viewport. The nav rail sits
-    // beside this screen on a wide layout and takes 80px off it, and MediaQuery
-    // still reports the window width down here. crossAxisExtent is measured
-    // before the SliverPadding below, which is what [mangaCellAspectRatio]
-    // expects: it takes the width including the grid's own padding and subtracts
-    // that padding itself.
     return SliverLayoutBuilder(
       builder: (context, sliverConstraints) {
         final availableWidth = sliverConstraints.crossAxisExtent;
@@ -269,10 +781,6 @@ class _FavoritesScreenState extends ConsumerState<FavoritesScreen> {
               childAspectRatio: mangaCellAspectRatio(
                 context,
                 columns: columns,
-                // Measured from the resolved column count, the same rule and the
-                // same bounds the history and source grids use. A cell sized for
-                // a 10pt title and drawn with a 12pt one clips the second line of
-                // every title long enough to need one.
                 titleFontSize: mangaCardTitleFontSize(columns),
                 availableWidth: availableWidth,
               ),
@@ -282,7 +790,7 @@ class _FavoritesScreenState extends ConsumerState<FavoritesScreen> {
             itemCount: items.length,
             itemBuilder: (context, index) {
               final item = items[index];
-              return _buildMangaCard(context, item, columns);
+              return _buildMangaCard(context, item, columns, pinned);
             },
           ),
         );
@@ -290,35 +798,25 @@ class _FavoritesScreenState extends ConsumerState<FavoritesScreen> {
     );
   }
 
-  /// [columns] is the resolved count, not a stored setting: the grid measures
-  /// its cells with it, so the title has to be drawn with the same value.
-  Widget _buildMangaCard(BuildContext context, Manga item, int columns) {
+  Widget _buildMangaCard(
+    BuildContext context,
+    Map<String, dynamic> item,
+    int columns,
+    Set<String> pinned,
+  ) {
     final dark = Theme.of(context).brightness == Brightness.dark;
     final titleColor = dark
         ? Colors.white
         : Theme.of(context).colorScheme.onSurface;
+    final mangaId = item['mangaId'] as String;
+    final isSelected = _selectedMangaIds.contains(mangaId);
+    final isPinned = pinned.contains(mangaId);
     return GestureDetector(
-      onTap: () {
-        Navigator.push(
-          context,
-          MaterialPageRoute(
-            builder: (context) => MangaDetailScreen(
-              mangaId: item.id,
-              title: item.title,
-              imageUrl: item.coverUrl,
-              sourceId: item.sourceId,
-              heroTag: mangaCoverHeroTag(
-                sourceId: item.sourceId,
-                mangaId: item.id,
-              ),
-            ),
-          ),
-        );
-      },
+      onTap: () => _handleGridCardTap(item),
+      onLongPress: () => _enterSelection(mangaId),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          // Strict 2:3 Aspect Ratio for Cover Image
           AspectRatio(
             aspectRatio: kMangaCoverAspectRatio,
             child: Stack(
@@ -326,19 +824,14 @@ class _FavoritesScreenState extends ConsumerState<FavoritesScreen> {
               children: [
                 MangaCoverHero(
                   tag: mangaCoverHeroTag(
-                    sourceId: item.sourceId,
-                    mangaId: item.id,
+                    sourceId: (item['sourceId'] as String?) ?? '',
+                    mangaId: mangaId,
                   ),
                   child: ClipRRect(
                     borderRadius: BorderRadius.circular(16),
-                    // No explicit width or height. Asking for infinity is the
-                    // one size the cover decode cap refuses, which had this grid
-                    // pulling every favourite in at full source resolution --
-                    // roughly 18MB a cover -- while the other grids asked for
-                    // their real tile size and were capped.
                     child: dark
                         ? CachedMangaImage(
-                            imageUrl: item.coverUrl,
+                            imageUrl: (item['coverUrl'] as String?) ?? '',
                             fit: BoxFit.cover,
                             errorWidget: (context, url, error) => Container(
                               color: amoled(context, 0xFF2C2C2E),
@@ -356,7 +849,7 @@ class _FavoritesScreenState extends ConsumerState<FavoritesScreen> {
                               border: Border.all(color: Colors.black12),
                             ),
                             child: CachedMangaImage(
-                              imageUrl: item.coverUrl,
+                              imageUrl: (item['coverUrl'] as String?) ?? '',
                               fit: BoxFit.cover,
                               errorWidget: (context, url, error) => Container(
                                 color: Colors.black12,
@@ -371,19 +864,61 @@ class _FavoritesScreenState extends ConsumerState<FavoritesScreen> {
                           ),
                   ),
                 ),
-                // The shared badges, so turning list badges off in Appearance
-                // reaches this grid too. It used to draw its own heart inline,
-                // which ignored the setting and did not update when a title was
-                // removed from favourites.
-                DownloadedMangaBadge(mangaId: item.id),
-                FavoriteBadge(mangaId: item.id),
+                DownloadedMangaBadge(mangaId: mangaId),
+                FavoriteBadge(mangaId: mangaId),
+                if (isPinned)
+                  Positioned(
+                    top: 8,
+                    left: 8,
+                    child: Container(
+                      padding: const EdgeInsets.all(4),
+                      decoration: BoxDecoration(
+                        color: Colors.black54,
+                        borderRadius: BorderRadius.circular(8),
+                      ),
+                      child: const Icon(
+                        MdiIcons.pin,
+                        color: Colors.white,
+                        size: 14,
+                      ),
+                    ),
+                  ),
+                if (isSelected)
+                  Positioned.fill(
+                    child: Container(
+                      decoration: BoxDecoration(
+                        color: Theme.of(
+                          context,
+                        ).colorScheme.primary.withValues(alpha: 0.35),
+                        borderRadius: BorderRadius.circular(16),
+                        border: Border.all(
+                          color: Theme.of(context).colorScheme.primary,
+                          width: 2.5,
+                        ),
+                      ),
+                      alignment: Alignment.center,
+                      child: Container(
+                        width: 26,
+                        height: 26,
+                        decoration: BoxDecoration(
+                          color: Theme.of(context).colorScheme.primary,
+                          shape: BoxShape.circle,
+                        ),
+                        child: const Icon(
+                          MdiIcons.check,
+                          color: Colors.white,
+                          size: 18,
+                        ),
+                      ),
+                    ),
+                  ),
               ],
             ),
           ),
           const SizedBox(height: kMangaCardTitleGap),
           Flexible(
             child: Text(
-              item.title,
+              (item['title'] as String?) ?? '',
               maxLines: 2,
               overflow: TextOverflow.ellipsis,
               style: TextStyle(

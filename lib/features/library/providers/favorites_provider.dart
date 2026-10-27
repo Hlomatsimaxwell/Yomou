@@ -1,6 +1,7 @@
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:yomou/core/database/database_helper.dart';
 import 'package:yomou/data/models/manga.dart';
+import 'package:yomou/features/library/providers/downloads_provider.dart';
 
 List<Manga> mapFavoritesRows(List<Map<String, dynamic>> rows) {
   return rows.map((row) {
@@ -13,19 +14,52 @@ List<Manga> mapFavoritesRows(List<Map<String, dynamic>> rows) {
   }).toList();
 }
 
-// Holds a revision counter. Bumped whenever a manga is added to/removed from
-// favorites, so the favorites provider knows to refetch from the database.
 final favoritesRevisionProvider = StateProvider<int>((ref) => 0);
 
-// Fetches + maps favorites from the database. Depends on the revision so it
-// automatically refreshes whenever a favorite is toggled.
 final favoritesProvider = FutureProvider<List<Manga>>((ref) async {
   ref.watch(favoritesRevisionProvider);
   final rows = await DatabaseHelper.instance.getFavorites();
   return mapFavoritesRows(rows);
 });
 
-// Call this after toggling a favorite to make the favorites screen refresh.
+final favoritesDetailProvider = FutureProvider<List<Map<String, dynamic>>>((ref) async {
+  ref.watch(favoritesRevisionProvider);
+  ref.watch(downloadsRevisionProvider);
+  final rows = await DatabaseHelper.instance.getFavorites();
+  final downloaded = await DatabaseHelper.instance.getMangaIdsWithDownloads();
+  return rows.map((row) {
+    final lastReadChapter = (row['lastReadChapter'] as num? ?? -1).toDouble();
+    final total = (row['totalChapters'] as int? ?? 0);
+    final lastTrayTotal = (row['lastTrayTotalChapters'] as int?) ?? 0;
+    final newChapters = (lastTrayTotal > 0 && total > lastTrayTotal)
+        ? total - lastTrayTotal
+        : 0;
+    final progress = total > 0
+        ? ((lastReadChapter.clamp(0, total.toDouble()) / total) * 100)
+              .round()
+              .clamp(0, 100)
+              .toInt()
+        : 0;
+    return <String, dynamic>{
+      'mangaId': row['mangaId'],
+      'title': row['title'],
+      'coverUrl': row['coverUrl'] ?? '',
+      'sourceId': row['sourceId'],
+      'totalReleasedChapters': total,
+      'lastReadChapter': lastReadChapter,
+      'progress': progress,
+      'newChapters': newChapters,
+      'hasDownloadedChapters': downloaded.contains(row['mangaId']),
+      'isPinned': (row['isPinned'] as int? ?? 0) == 1,
+    };
+  }).toList();
+});
+
+final pinnedFavoritesProvider = FutureProvider<Set<String>>((ref) async {
+  ref.watch(favoritesRevisionProvider);
+  return DatabaseHelper.instance.getPinnedFavoriteIds();
+});
+
 void bumpFavoritesRevision(dynamic ref) {
   ref.read(favoritesRevisionProvider.notifier).state++;
 }

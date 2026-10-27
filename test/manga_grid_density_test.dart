@@ -43,10 +43,20 @@ void main() {
   Widget host({double gridSize = kMangaGridSizeDefault}) => ProviderScope(
     key: ValueKey<double>(gridSize),
     overrides: [
-      favoritesProvider.overrideWith(
+      favoritesDetailProvider.overrideWith(
         (ref) async => [
           for (var i = 0; i < 6; i++)
-            Manga(id: 'id$i', title: 'Title $i', coverUrl: '', sourceId: '0'),
+            <String, dynamic>{
+              'mangaId': 'id$i',
+              'title': 'Title $i',
+              'coverUrl': '',
+              'sourceId': '0',
+              'totalReleasedChapters': 0,
+              'progress': 0,
+              'newChapters': 0,
+              'hasDownloadedChapters': false,
+              'isPinned': false,
+            },
         ],
       ),
       downloadedMangasProvider.overrideWith((ref) async => <String>{}),

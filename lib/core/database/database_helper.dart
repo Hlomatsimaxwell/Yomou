@@ -24,7 +24,7 @@ class DatabaseHelper {
 
     return await openDatabase(
       path,
-      version: 17,
+      version: 18,
       onCreate: _createDB,
       onUpgrade: _onUpgrade,
     );
@@ -45,6 +45,7 @@ class DatabaseHelper {
           lastReadAt TEXT,
           isFavorite INTEGER DEFAULT 0,
           isReadLater INTEGER DEFAULT 0,
+          isPinned INTEGER DEFAULT 0,
           tags TEXT DEFAULT '[]'
         )
       ''');
@@ -100,6 +101,11 @@ class DatabaseHelper {
     }
     if (oldVersion < 17) {
       await repairCachedSourceIds(db);
+    }
+    if (oldVersion < 18) {
+      await db.execute(
+        'ALTER TABLE manga ADD COLUMN isPinned INTEGER DEFAULT 0',
+      );
     }
   }
 
@@ -233,6 +239,7 @@ class DatabaseHelper {
         lastReadAt TEXT,
         isFavorite INTEGER DEFAULT 0,
         isReadLater INTEGER DEFAULT 0,
+        isPinned INTEGER DEFAULT 0,
         tags TEXT DEFAULT '[]',
         originalTitle TEXT,
         originalCoverUrl TEXT,
@@ -673,6 +680,31 @@ class DatabaseHelper {
     }
   }
 
+  // Pins or unpins a favorite so it sorts to the top of the list, the way
+  // Kotatsu-Redo pins favourites to the top of a category.
+  Future<void> setPinned({
+    required String mangaId,
+    required bool isPinned,
+  }) async {
+    final db = await instance.database;
+    await db.update(
+      'manga',
+      {'isPinned': isPinned ? 1 : 0},
+      where: 'mangaId = ?',
+      whereArgs: [mangaId],
+    );
+  }
+
+  Future<Set<String>> getPinnedFavoriteIds() async {
+    final db = await instance.database;
+    final rows = await db.query(
+      'manga',
+      columns: ['mangaId'],
+      where: 'isFavorite = 1 AND isPinned = 1',
+    );
+    return rows.map((r) => r['mangaId'] as String).toSet();
+  }
+
   // Re-binds a stored manga entry to a different source extension.
   Future<void> updateMangaSource({
     required String mangaId,
@@ -818,7 +850,7 @@ class DatabaseHelper {
     return db.query(
       'manga',
       where: 'isFavorite = 1',
-      orderBy: 'title COLLATE NOCASE ASC',
+      orderBy: 'isPinned DESC, title COLLATE NOCASE ASC',
     );
   }
 
