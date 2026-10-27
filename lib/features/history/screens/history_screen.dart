@@ -1424,11 +1424,11 @@ class _HistoryScreenState extends ConsumerState<HistoryScreen> {
           child: Padding(
             padding: const EdgeInsets.all(8),
             child: showLabels && label != null
-                ? Column(
+                ? Row(
                     mainAxisSize: MainAxisSize.min,
                     children: [
                       icon,
-                      const SizedBox(height: 4),
+                      const SizedBox(width: 6),
                       Text(
                         label,
                         style: TextStyle(
@@ -1446,13 +1446,13 @@ class _HistoryScreenState extends ConsumerState<HistoryScreen> {
     }
 
     return IosNavBar(
-      showBack: false,
-      leading: navAction(Icon(MdiIcons.close, color: fg, size: 22), _exitSelection),
-      titleWidget: Text(
-        l.historySelectedCount(_selectedMangaIds.length),
-        style: TextStyle(color: fg, fontSize: 17, fontWeight: FontWeight.w600),
-      ),
-      actions: [
+        showBack: false,
+        leading: navAction(Icon(MdiIcons.close, color: fg, size: 22), _exitSelection),
+        titleWidget: Text(
+          l.historySelectedCount(_selectedMangaIds.length),
+          style: TextStyle(color: fg, fontSize: 17, fontWeight: FontWeight.w600),
+        ),
+        actions: [
         navAction(
           MaterialSymbol(
             MaterialSymbol.selectAll,

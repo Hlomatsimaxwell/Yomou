@@ -74,7 +74,13 @@ class TabHeader extends StatelessWidget {
           padding: EdgeInsets.only(top: topInset),
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.start,
-            children: [const SizedBox(height: 8), leading ?? searchBar],
+            children: [
+              const SizedBox(height: 8),
+              if (leading != null)
+                FractionallySizedBox(widthFactor: 1, child: leading!)
+              else
+                searchBar,
+            ],
           ),
         ),
         body: body,
