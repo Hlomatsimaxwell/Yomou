@@ -13,6 +13,8 @@ import 'package:yomou/features/library/screens/manga_detail_screen.dart';
 import 'package:yomou/core/theme/layout.dart';
 import 'package:yomou/core/widgets/ios/ios_press.dart';
 import 'package:yomou/core/widgets/empty_state.dart';
+import 'package:yomou/core/widgets/ios/ios_menu.dart';
+import 'package:yomou/features/settings/screens/settings_screen.dart';
 import 'package:yomou/core/widgets/ios/ios_nav_bar.dart';
 import 'package:yomou/core/widgets/ios/ios_sheet.dart';
 import 'package:yomou/widgets/material_symbol.dart';
@@ -625,8 +627,43 @@ class _FavoritesScreenState extends ConsumerState<FavoritesScreen> {
           _searchQuery = '';
         });
       },
-      trailing: AppPress(
-        onTap: _showGridOptionsSheet,
+      trailing: AppSheetPress(
+        onTap: () async {
+          final action = await showIosMenuPanel<String>(
+            context,
+            children: [
+              IosMenuRow(
+                icon: MdiIcons.viewGridOutline,
+                label: AppLocalizations.of(context).historyListOptions,
+                onTap: () => Navigator.pop(context, 'listOptions'),
+              ),
+              const IosMenuDivider(),
+              Consumer(
+                builder: (context, ref, _) => MenuToggleRow(
+                  label: AppLocalizations.of(context).incognitoMode,
+                  value: ref.watch(incognitoProvider),
+                  onChanged: (v) =>
+                      ref.read(incognitoProvider.notifier).set(v),
+                ),
+              ),
+              const IosMenuDivider(),
+              IosMenuRow(
+                icon: MdiIcons.cogOutline,
+                label: AppLocalizations.of(context).settings,
+                onTap: () => Navigator.pop(context, 'settings'),
+              ),
+            ],
+          );
+          if (!mounted) return;
+          if (action == 'listOptions') {
+            _showGridOptionsSheet();
+          } else if (action == 'settings') {
+            Navigator.push(
+              context,
+              MaterialPageRoute(builder: (context) => const SettingsScreen()),
+            );
+          }
+        },
         child: Padding(
           padding: const EdgeInsets.all(8),
           child: Icon(

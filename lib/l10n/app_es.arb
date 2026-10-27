@@ -337,6 +337,10 @@
       }
     }
   },
+  "clearUpdates": "Borrar actualizaciones",
+  "clearUpdatesPrompt": "¿Borrar todo el historial de actualizaciones permanentemente?",
+  "clearNewChaptersCounters": "También borrar información sobre nuevos capítulos",
+  "clear": "Borrar",
   "noNote": "Sin nota",
   "selectRange": "Seleccionar rango",
   "selectAll": "Seleccionar todo",

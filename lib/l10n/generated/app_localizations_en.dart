@@ -1188,6 +1188,19 @@ class AppLocalizationsEn extends AppLocalizations {
   }
 
   @override
+  String get clearUpdates => 'Clear updates';
+
+  @override
+  String get clearUpdatesPrompt => 'Clear all update history permanently?';
+
+  @override
+  String get clearNewChaptersCounters =>
+      'Also clear information about new chapters';
+
+  @override
+  String get clear => 'Clear';
+
+  @override
   String get noNote => 'No note';
 
   @override

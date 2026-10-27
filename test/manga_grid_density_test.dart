@@ -336,6 +336,8 @@ void main() {
 
     await tester.tap(find.byIcon(MdiIcons.dotsVertical));
     await tester.pumpAndSettle();
+    await tester.tap(find.text('List options'));
+    await tester.pumpAndSettle();
 
     final slider = find.byType(Slider);
     expect(slider, findsOneWidget, reason: 'the sheet has one size control');

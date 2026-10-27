@@ -1202,6 +1202,20 @@ class AppLocalizationsEs extends AppLocalizations {
   }
 
   @override
+  String get clearUpdates => 'Borrar actualizaciones';
+
+  @override
+  String get clearUpdatesPrompt =>
+      '¿Borrar todo el historial de actualizaciones permanentemente?';
+
+  @override
+  String get clearNewChaptersCounters =>
+      'También borrar información sobre nuevos capítulos';
+
+  @override
+  String get clear => 'Borrar';
+
+  @override
   String get noNote => 'Sin nota';
 
   @override

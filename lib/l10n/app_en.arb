@@ -566,6 +566,10 @@
       }
     }
   },
+  "clearUpdates": "Clear updates",
+  "clearUpdatesPrompt": "Clear all update history permanently?",
+  "clearNewChaptersCounters": "Also clear information about new chapters",
+  "clear": "Clear",
   "noNote": "No note",
   "selectRange": "Select range",
   "selectAll": "Select all",

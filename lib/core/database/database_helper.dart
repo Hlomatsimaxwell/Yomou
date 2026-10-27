@@ -542,6 +542,21 @@ class DatabaseHelper {
     }
   }
 
+  // Clears the update feed: marks every manga as seen (so nothing shows as
+  // new) and, when [clearNewChapters] is set, also resets the new-chapters
+  // counters so the "new" badges disappear.
+  Future<void> clearUpdates({required bool clearNewChapters}) async {
+    final db = await instance.database;
+    await db.rawUpdate(
+      'UPDATE manga SET lastSeenChapters = totalChapters WHERE totalChapters > 0',
+    );
+    if (clearNewChapters) {
+      await db.rawUpdate(
+        'UPDATE manga SET lastTrayTotalChapters = totalChapters',
+      );
+    }
+  }
+
   // Returns all manga that have reading history, most recently read first.
   Future<List<Map<String, dynamic>>> getHistory() async {
     final db = await instance.database;

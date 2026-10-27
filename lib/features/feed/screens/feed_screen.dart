@@ -6,16 +6,23 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_material_design_icons/flutter_material_design_icons.dart';
 import 'package:yomou/features/explore/screens/global_search_screen.dart';
 import 'package:yomou/features/feed/providers/updates_provider.dart';
-import 'package:yomou/core/theme/layout.dart';
-import 'package:yomou/core/widgets/empty_state.dart';
+import 'package:yomou/core/database/database_helper.dart';
+import 'package:yomou/core/widgets/ios/ios_menu.dart';
+import 'package:yomou/core/widgets/ios/ios_toast.dart';
+import 'package:yomou/core/widgets/search_bar.dart';
 import 'package:yomou/core/widgets/tab_header.dart';
+import 'package:yomou/core/theme/layout.dart';
+import 'package:shared_preferences/shared_preferences.dart';
+import 'package:yomou/core/widgets/ios/ios_sheet.dart';
 import 'package:yomou/core/widgets/responsive.dart' show usesWideLayout;
 import 'package:yomou/features/library/screens/manga_detail_screen.dart';
 import 'package:yomou/features/library/widgets/downloaded_badge.dart';
 import 'package:yomou/features/library/widgets/favorite_badge.dart';
 import 'package:yomou/l10n/generated/app_localizations.dart';
-import 'package:yomou/core/widgets/search_bar.dart';
-import 'package:shared_preferences/shared_preferences.dart';
+import 'package:yomou/core/widgets/empty_state.dart';
+import 'package:yomou/core/providers/incognito_provider.dart';
+import 'package:yomou/core/widgets/ios/ios_menu.dart';
+import 'package:yomou/features/settings/screens/settings_screen.dart';
 
 class FeedScreen extends ConsumerStatefulWidget {
   const FeedScreen({super.key});
@@ -56,6 +63,63 @@ class _FeedScreenState extends ConsumerState<FeedScreen> {
     } finally {
       if (mounted) setState(() => _refreshing = false);
     }
+  }
+
+  Future<void> _clearUpdatesDialog() async {
+    final l = AppLocalizations.of(context);
+    var clearCounters = true;
+    final confirmed = await showDialog<bool>(
+      context: context,
+      builder: (ctx) {
+        return StatefulBuilder(
+          builder: (ctx, setDialogState) {
+            final dark = Theme.of(ctx).brightness == Brightness.dark;
+            return AlertDialog(
+              title: Text(l.clearUpdates),
+              content: Column(
+                mainAxisSize: MainAxisSize.min,
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Text(l.clearUpdatesPrompt),
+                  const SizedBox(height: 8),
+                  Row(
+                    children: [
+                      Checkbox(
+                        value: clearCounters,
+                        onChanged: (v) =>
+                            setDialogState(() => clearCounters = v ?? true),
+                      ),
+                      Expanded(child: Text(l.clearNewChaptersCounters)),
+                    ],
+                  ),
+                ],
+              ),
+              actions: [
+                TextButton(
+                  onPressed: () => Navigator.pop(ctx, false),
+                  child: Text(l.cancel),
+                ),
+                TextButton(
+                  onPressed: () => Navigator.pop(ctx, true),
+                  child: Text(l.clear),
+                ),
+              ],
+            );
+          },
+        );
+      },
+    );
+    if (confirmed != true) return;
+    await DatabaseHelper.instance.clearUpdates(clearNewChapters: clearCounters);
+    if (!mounted) return;
+    ref.invalidate(updatesProvider);
+    await _refresh();
+    if (!mounted) return;
+    showIosToast(
+      context,
+      message: l.clearUpdates,
+      duration: const Duration(seconds: 2),
+    );
   }
 
   @override
@@ -131,12 +195,58 @@ class _FeedScreenState extends ConsumerState<FeedScreen> {
     final dark = Theme.of(context).brightness == Brightness.dark;
     return YomouSearchBar.tappable(
       hintText: AppLocalizations.of(context).searchManga,
-      trailing: Padding(
-        padding: const EdgeInsets.all(8),
-        child: Icon(
-          MdiIcons.dotsVertical,
-          color: dark ? Colors.white70 : Colors.black54,
-          size: 22,
+      trailing: AppSheetPress(
+        onTap: () async {
+          final action = await showIosMenuPanel<String>(
+            context,
+            children: [
+              IosMenuRow(
+                icon: MdiIcons.refresh,
+                label: AppLocalizations.of(context).refresh,
+                onTap: () => Navigator.pop(context, 'refresh'),
+              ),
+              const IosMenuDivider(),
+              IosMenuRow(
+                icon: MdiIcons.deleteSweepOutline,
+                label: AppLocalizations.of(context).clearUpdates,
+                onTap: () => Navigator.pop(context, 'clear'),
+              ),
+              const IosMenuDivider(),
+              Consumer(
+                builder: (context, ref, _) => MenuToggleRow(
+                  label: AppLocalizations.of(context).incognitoMode,
+                  value: ref.watch(incognitoProvider),
+                  onChanged: (v) =>
+                      ref.read(incognitoProvider.notifier).set(v),
+                ),
+              ),
+              const IosMenuDivider(),
+              IosMenuRow(
+                icon: MdiIcons.cogOutline,
+                label: AppLocalizations.of(context).settings,
+                onTap: () => Navigator.pop(context, 'settings'),
+              ),
+            ],
+          );
+          if (!mounted) return;
+          if (action == 'refresh') {
+            await _refresh();
+          } else if (action == 'clear') {
+            await _clearUpdatesDialog();
+          } else if (action == 'settings') {
+            Navigator.push(
+              context,
+              MaterialPageRoute(builder: (context) => const SettingsScreen()),
+            );
+          }
+        },
+        child: Padding(
+          padding: const EdgeInsets.all(8),
+          child: Icon(
+            MdiIcons.dotsVertical,
+            color: dark ? Colors.white70 : Colors.black54,
+            size: 22,
+          ),
         ),
       ),
       onTap: () {

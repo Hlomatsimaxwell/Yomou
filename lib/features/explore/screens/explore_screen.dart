@@ -323,6 +323,12 @@ class _ExploreScreenState extends ConsumerState<ExploreScreen> {
             context,
             children: [
               IosMenuRow(
+                icon: MdiIcons.viewGridOutline,
+                label: AppLocalizations.of(context).presetsTitle,
+                onTap: () => Navigator.pop(context, 'presets'),
+              ),
+              const IosMenuDivider(),
+              IosMenuRow(
                 icon: MdiIcons.tune,
                 label: AppLocalizations.of(context).manageSources,
                 onTap: () => Navigator.pop(context, 'manage'),
@@ -347,7 +353,14 @@ class _ExploreScreenState extends ConsumerState<ExploreScreen> {
           // The sheet had to await a tap, and this screen is free to be
           // gone by the time it returns. Pushing on a dead context throws.
           if (!mounted) return;
-          if (action == 'manage') {
+          if (action == 'presets') {
+            Navigator.push(
+              context,
+              MaterialPageRoute(
+                builder: (context) => const SourcePresetsListScreen(),
+              ),
+            );
+          } else if (action == 'manage') {
             openManageSources(context);
           } else if (action == 'settings') {
             Navigator.push(

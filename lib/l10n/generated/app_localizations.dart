@@ -2222,6 +2222,30 @@ abstract class AppLocalizations {
   /// **'{title} • Page {page}'**
   String mangaDetailBookmarkItem(Object title, int page);
 
+  /// No description provided for @clearUpdates.
+  ///
+  /// In en, this message translates to:
+  /// **'Clear updates'**
+  String get clearUpdates;
+
+  /// No description provided for @clearUpdatesPrompt.
+  ///
+  /// In en, this message translates to:
+  /// **'Clear all update history permanently?'**
+  String get clearUpdatesPrompt;
+
+  /// No description provided for @clearNewChaptersCounters.
+  ///
+  /// In en, this message translates to:
+  /// **'Also clear information about new chapters'**
+  String get clearNewChaptersCounters;
+
+  /// No description provided for @clear.
+  ///
+  /// In en, this message translates to:
+  /// **'Clear'**
+  String get clear;
+
   /// No description provided for @noNote.
   ///
   /// In en, this message translates to:
