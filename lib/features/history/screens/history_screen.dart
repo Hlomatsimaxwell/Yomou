@@ -1612,24 +1612,55 @@ class _HistoryScreenState extends ConsumerState<HistoryScreen> {
   Future<void> _markCompletedSelected() async {
     final ids = _selectedMangaIds.toList();
     if (ids.isEmpty) return;
+    var changed = 0;
     for (final mangaId in ids) {
       final item = _historyItems.firstWhere(
         (e) => e['mangaId'] == mangaId,
         orElse: () => const <String, dynamic>{},
       );
       if (item.isEmpty) continue;
-      final total = (item['totalReleasedChapters'] as int?) ?? 0;
+      final title = (item['title'] as String?) ?? '';
+      final sourceId = item['sourceId'] as String?;
+      final source = sourceId == null ? null : getSourceBySourceId(sourceId);
+
+      int total = (item['totalReleasedChapters'] as int?) ?? 0;
+      // Kotatsu fetches the series details so the last chapter (and its page
+      // count) is known even when the local row never recorded a total.
+      // Mirror that so "mark as completed" works on a fresh install.
+      if (total <= 0 && source != null) {
+        try {
+          final details = await SourceCache.mangaDetails(
+            sourceId: source.id,
+            mangaId: mangaId,
+            fetch: () => source.getMangaDetails(mangaId),
+          );
+          if (details != null && details.totalChapters > 0) {
+            total = details.totalChapters;
+            await DatabaseHelper.instance.upsertManga(
+              mangaId: mangaId,
+              title: details.title.isNotEmpty ? details.title : title,
+              coverUrl: details.coverUrl,
+              sourceId: sourceId,
+              totalChapters: total,
+            );
+          }
+        } catch (_) {
+          // Best-effort: a single unresolvable series shouldn't abort the rest.
+        }
+      }
       if (total <= 0) continue;
+
       await DatabaseHelper.instance.saveMangaProgress(
         mangaId: mangaId,
-        title: (item['title'] as String?) ?? '',
+        title: title,
         coverUrl: (item['coverUrl'] as String?) ?? '',
-        sourceId: item['sourceId'] as String?,
+        sourceId: sourceId,
         totalChapters: total,
         lastReadChapter: total.toDouble(),
         lastReadPage: 0,
         lastReadAt: DateTime.now(),
       );
+      changed++;
     }
     if (!mounted) return;
     setState(_selectedMangaIds.clear);
@@ -1639,7 +1670,9 @@ class _HistoryScreenState extends ConsumerState<HistoryScreen> {
     final l = AppLocalizations.of(context);
     showIosToast(
       context,
-      message: l.historyMarkCompleted,
+      message: changed > 0
+          ? l.historyMarkCompleted
+          : l.historyEmptyTitle,
       duration: const Duration(seconds: 2),
     );
   }
