@@ -19,6 +19,19 @@ class IosNavBar extends StatelessWidget {
   /// the page it belongs to.
   final bool flat;
 
+  /// Whether to apply the window's safe-area insets.
+  ///
+  /// When this bar is hosted by a parent that has already consumed the top
+  /// inset (e.g. [TabHeader] adding the status bar padding), leaving this on
+  /// doubles the gap and pushes the bar lower than the reference. Pass false
+  /// there so the host's inset is the only one that applies.
+  final bool safeArea;
+
+  /// Spread the actions evenly across the width instead of clustering them at
+  /// the far right. Matches Kotatsu-Redo's action bar, where the action group
+  /// fills the space between the title and the overflow menu.
+  final bool spreadActions;
+
   const IosNavBar({
     super.key,
     this.title,
@@ -28,6 +41,8 @@ class IosNavBar extends StatelessWidget {
     this.showBack = false,
     this.onBack,
     this.flat = false,
+    this.safeArea = true,
+    this.spreadActions = false,
   }) : assert(
          title != null || titleWidget != null,
          'IosNavBar requires either [title] or [titleWidget]',
@@ -60,8 +75,26 @@ class IosNavBar extends StatelessWidget {
               )
             : const SizedBox(width: 44));
 
+    final titleResolved =
+        titleWidget ??
+        Text(
+          title ?? '',
+          maxLines: 1,
+          overflow: TextOverflow.ellipsis,
+          style: TextStyle(
+            fontSize: 21,
+            fontWeight: FontWeight.w600,
+            color: dark
+                ? Colors.white
+                : Theme.of(context).colorScheme.onSurface,
+          ),
+        );
+
     return SafeArea(
+      top: safeArea,
       bottom: false,
+      left: safeArea,
+      right: safeArea,
       child: Container(
         height: 56,
         padding: const EdgeInsets.symmetric(horizontal: 8),
@@ -79,23 +112,19 @@ class IosNavBar extends StatelessWidget {
         child: Row(
           children: [
             SizedBox(width: 44, child: Center(child: leadingWidget)),
-            Expanded(
-              child:
-                  titleWidget ??
-                  Text(
-                    title ?? '',
-                    maxLines: 1,
-                    overflow: TextOverflow.ellipsis,
-                    style: TextStyle(
-                      fontSize: 21,
-                      fontWeight: FontWeight.w600,
-                      color: dark
-                          ? Colors.white
-                          : Theme.of(context).colorScheme.onSurface,
-                    ),
-                  ),
-            ),
-            Row(mainAxisSize: MainAxisSize.min, children: actions),
+            if (spreadActions) ...[
+              titleResolved,
+              const SizedBox(width: 20),
+              Expanded(
+                child: Row(
+                  mainAxisAlignment: MainAxisAlignment.spaceEvenly,
+                  children: actions,
+                ),
+              ),
+            ] else ...[
+              Expanded(child: titleResolved),
+              Row(mainAxisSize: MainAxisSize.min, children: actions),
+            ],
             const SizedBox(width: 4),
           ],
         ),

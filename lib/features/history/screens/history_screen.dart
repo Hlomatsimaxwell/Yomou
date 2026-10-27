@@ -1447,6 +1447,12 @@ class _HistoryScreenState extends ConsumerState<HistoryScreen> {
 
     return IosNavBar(
         showBack: false,
+        // The parent TabHeader already consumes the status-bar inset; applying
+        // it here again made the bar sit lower than Kotatsu's action bar.
+        safeArea: false,
+        // Spread the actions across the width like Kotatsu-Redo, instead of
+        // clustering them at the far right and leaving a dead gap.
+        spreadActions: true,
         leading: navAction(Icon(MdiIcons.close, color: fg, size: 22), _exitSelection),
         titleWidget: Text(
           l.historySelectedCount(_selectedMangaIds.length),

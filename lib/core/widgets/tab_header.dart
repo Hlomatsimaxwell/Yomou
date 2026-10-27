@@ -112,8 +112,13 @@ class TabHeader extends StatelessWidget {
                       ),
                     ),
               ),
-              const SizedBox(width: 20),
-              SizedBox(width: fixedSearchWidth, child: searchBar),
+              // A selection bar replaces the search field outright; reserving
+              // the fixed search width under it left a dead strip on the right
+              // of the header (and squeezed the bar into the remainder).
+              if (leading == null) ...[
+                const SizedBox(width: 20),
+                SizedBox(width: fixedSearchWidth, child: searchBar),
+              ],
             ],
           ),
         ),
