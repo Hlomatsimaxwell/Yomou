@@ -27,11 +27,6 @@ class IosNavBar extends StatelessWidget {
   /// there so the host's inset is the only one that applies.
   final bool safeArea;
 
-  /// Spread the actions evenly across the width instead of clustering them at
-  /// the far right. Matches Kotatsu-Redo's action bar, where the action group
-  /// fills the space between the title and the overflow menu.
-  final bool spreadActions;
-
   const IosNavBar({
     super.key,
     this.title,
@@ -42,7 +37,6 @@ class IosNavBar extends StatelessWidget {
     this.onBack,
     this.flat = false,
     this.safeArea = true,
-    this.spreadActions = false,
   }) : assert(
          title != null || titleWidget != null,
          'IosNavBar requires either [title] or [titleWidget]',
@@ -112,19 +106,8 @@ class IosNavBar extends StatelessWidget {
         child: Row(
           children: [
             SizedBox(width: 44, child: Center(child: leadingWidget)),
-            if (spreadActions) ...[
-              titleResolved,
-              const SizedBox(width: 20),
-              Expanded(
-                child: Row(
-                  mainAxisAlignment: MainAxisAlignment.spaceEvenly,
-                  children: actions,
-                ),
-              ),
-            ] else ...[
-              Expanded(child: titleResolved),
-              Row(mainAxisSize: MainAxisSize.min, children: actions),
-            ],
+            Expanded(child: titleResolved),
+            Row(mainAxisSize: MainAxisSize.min, children: actions),
             const SizedBox(width: 4),
           ],
         ),

@@ -69,61 +69,63 @@ class TabHeader extends StatelessWidget {
       // The strip takes the inset with it as it hides. The collapse is what
       // frees the height, so leaving the inset behind would pin a band of
       // background above a list that is meant to reach the window's top edge.
+      //
+      // A replacement bar (the selection bar) is full-bleed: it sits straight
+      // under the status bar with no side margins and no extra top gap, the
+      // way Kotatsu's action-mode toolbar does. The search field, by contrast,
+      // keeps the header's usual breathing room.
       return HideOnScroll(
         header: Padding(
           padding: EdgeInsets.only(top: topInset),
-          child: Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              const SizedBox(height: 8),
-              if (leading != null)
-                FractionallySizedBox(widthFactor: 1, child: leading!)
-              else
-                searchBar,
-            ],
-          ),
+          child: leading != null
+              ? leading!
+              : Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [const SizedBox(height: 8), searchBar],
+                ),
         ),
         body: body,
       );
     }
 
     final dark = Theme.of(context).brightness == Brightness.dark;
-    return Column(
-      crossAxisAlignment: CrossAxisAlignment.start,
-      children: [
-        Padding(
-          // 14 stays the header's own gap under the bar; the inset goes above
-          // it rather than joining it, so the number still means what it said.
-          padding: EdgeInsets.fromLTRB(20, 14 + topInset, 20, 14),
-          child: Row(
-            children: [
-              Expanded(
-                child: leading ??
-                    Text(
-                      title,
-                      maxLines: 1,
-                      overflow: TextOverflow.ellipsis,
-                      style: TextStyle(
-                        fontSize: 22,
-                        fontWeight: FontWeight.w600,
-                        color: dark
-                            ? Colors.white
-                            : Theme.of(context).colorScheme.onSurface,
-                      ),
+    // A selection bar is a full-bleed toolbar: it runs edge to edge under the
+    // status bar, with no 20dp side margins and no 14dp gap below it, matching
+    // Kotatsu-Redo's action-mode bar. The normal header keeps its margins.
+    final header = leading != null
+        ? Padding(
+            padding: EdgeInsets.only(top: topInset),
+            child: leading!,
+          )
+        : Padding(
+            // 14 stays the header's own gap under the bar; the inset goes
+            // above it rather than joining it, so the number still means what
+            // it said.
+            padding: EdgeInsets.fromLTRB(20, 14 + topInset, 20, 14),
+            child: Row(
+              children: [
+                Expanded(
+                  child: Text(
+                    title,
+                    maxLines: 1,
+                    overflow: TextOverflow.ellipsis,
+                    style: TextStyle(
+                      fontSize: 22,
+                      fontWeight: FontWeight.w600,
+                      color: dark
+                          ? Colors.white
+                          : Theme.of(context).colorScheme.onSurface,
                     ),
-              ),
-              // A selection bar replaces the search field outright; reserving
-              // the fixed search width under it left a dead strip on the right
-              // of the header (and squeezed the bar into the remainder).
-              if (leading == null) ...[
+                  ),
+                ),
                 const SizedBox(width: 20),
                 SizedBox(width: fixedSearchWidth, child: searchBar),
               ],
-            ],
-          ),
-        ),
-        Expanded(child: body),
-      ],
+            ),
+          );
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [header, Expanded(child: body)],
     );
   }
 }
