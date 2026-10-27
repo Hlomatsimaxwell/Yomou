@@ -1,0 +1,19 @@
+Categories:
+  - Reading
+License: Apache-2.0
+AuthorName: Hlomatsimaxwell
+SourceCode: https://github.com/Hlomatsimaxwell/Yomou
+IssueTracker: https://github.com/Hlomatsimaxwell/Yomou/issues
+Summary: A manga reader inspired by Kotatsu-Redo
+Description: |-
+  Yomou is a manga reader with multi-source support, reading progress tracking,
+  offline reading, favorites with pinning, downloads, suggestions feed, statistics
+  and backup/restore. Open source under Apache-2.0.
+
+WebSite: https://github.com/Hlomatsimaxwell/Yomou
+
+RepoType: git
+Repo: https://github.com/Hlomatsimaxwell/Yomou
+
+AutoUpdateMode: Version
+UpdateCheckMode: Tags

@@ -59,8 +59,10 @@ jobs:
         run: |
           set -euo pipefail
           rm -rf fdroid
-          mkdir -p fdroid/repo
+          mkdir -p fdroid/repo fdroid/metadata
           cp build/app/outputs/flutter-apk/app-release.apk fdroid/repo/
+          # Provide proper metadata so fdroid does not ignore the APK.
+          cp metadata/com.hlomatsi.yomou.yml fdroid/metadata/ 2>/dev/null || true
           cd fdroid
           if [ -n "${KEYSTORE_B64:-}" ]; then
             printf '%s' "$KEYSTORE_B64" | base64 -d > /tmp/fdroid-keystore.tar.gz
@@ -70,7 +72,7 @@ jobs:
             fdroid init
             echo "::warning::Generated a throw-away signing key. Save fdroid/ as FDROID_REPO_KEYSTORE_BASE64 (base64 of tar.gz) for future runs."
           fi
-          fdroid update
+          fdroid update -c
 
       - name: Upload fdroid state (save on first run)
         uses: actions/upload-artifact@v4
@@ -93,6 +95,8 @@ jobs:
           rm -rf published
           git clone "https://x-access-token:${PAT}@github.com/${{ env.FDROID_REPO }}.git" published
           rsync -a --delete fdroid/repo/ published/repo/
+          mkdir -p published/metadata
+          cp -f fdroid/metadata/*.yml published/metadata/ 2>/dev/null || true
           cp -f fdroid/index-v1.jar published/ 2>/dev/null || true
           cp -f fdroid/index.xml published/ 2>/dev/null || true
           cd published
