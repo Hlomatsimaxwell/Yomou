@@ -48,10 +48,11 @@ jobs:
       - name: Build release APK
         run: flutter build apk --release
 
-      - name: Install fdroidserver
+      - name: Install fdroidserver (pip; newer androguard)
         run: |
-          sudo apt-get update -qq
-          sudo apt-get install -y -qq fdroidserver
+          set -euo pipefail
+          python3 -m pip install --break-system-packages --quiet fdroidserver
+          fdroid --version
 
       - name: Prepare fdroid repository
         env:
