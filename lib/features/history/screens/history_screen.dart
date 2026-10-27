@@ -1443,11 +1443,16 @@ class _HistoryScreenState extends ConsumerState<HistoryScreen> {
                       icon,
                       const SizedBox(width: 6),
                       Text(
-                        label,
+                        // Kotatsu's action-menu items are all-caps (Android's
+                        // `textAllCaps` on the action menu text appearance),
+                        // with the small tracking that gives the row its
+                        // toolbar look.
+                        label.toUpperCase(),
                         style: TextStyle(
                           color: actionFg,
-                          fontSize: 11,
+                          fontSize: 12,
                           fontWeight: FontWeight.w500,
+                          letterSpacing: 0.6,
                         ),
                       ),
                     ],
@@ -1468,6 +1473,7 @@ class _HistoryScreenState extends ConsumerState<HistoryScreen> {
         showBack: false,
         flat: true,
         safeArea: false,
+        height: 64,
         leading: navAction(
           Icon(MdiIcons.close, color: actionFg, size: 22),
           _exitSelection,

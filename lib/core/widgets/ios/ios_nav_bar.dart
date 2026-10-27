@@ -27,6 +27,13 @@ class IosNavBar extends StatelessWidget {
   /// there so the host's inset is the only one that applies.
   final bool safeArea;
 
+  /// Height of the row itself, excluding any safe-area inset.
+  ///
+  /// The default is the app's ordinary nav row. The History selection bar
+  /// passes 64 to match Kotatsu-Redo's action mode, whose height comes from
+  /// Material's `m3_appbar_size_compact` (64dp).
+  final double height;
+
   const IosNavBar({
     super.key,
     this.title,
@@ -37,6 +44,7 @@ class IosNavBar extends StatelessWidget {
     this.onBack,
     this.flat = false,
     this.safeArea = true,
+    this.height = 56,
   }) : assert(
          title != null || titleWidget != null,
          'IosNavBar requires either [title] or [titleWidget]',
@@ -90,7 +98,7 @@ class IosNavBar extends StatelessWidget {
       left: safeArea,
       right: safeArea,
       child: Container(
-        height: 56,
+        height: height,
         padding: const EdgeInsets.symmetric(horizontal: 8),
         decoration: flat
             ? null
