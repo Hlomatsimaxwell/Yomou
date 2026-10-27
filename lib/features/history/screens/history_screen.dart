@@ -1891,33 +1891,34 @@ class _HistoryScreenState extends ConsumerState<HistoryScreen> {
     final fill = dark ? Colors.white : Theme.of(context).colorScheme.primary;
     final fg = isSelected
         ? (dark ? Colors.black : Colors.white)
-        : (dark ? Colors.white : const Color(0xFF334155));
+        : (dark ? Colors.white70 : const Color(0xFF49454F));
 
-    return GestureDetector(
+    return AppPress(
       onTap: onTap,
       child: Container(
-        margin: const EdgeInsets.only(right: 6),
-        padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
+        margin: const EdgeInsets.only(right: 8),
+        padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
         decoration: BoxDecoration(
           color: isSelected ? fill : Colors.transparent,
-          borderRadius: BorderRadius.circular(10),
+          borderRadius: BorderRadius.circular(20),
           border: Border.all(
-            color: isSelected
-                ? fill
-                : (dark ? Colors.white38 : Colors.black38),
+            color: isSelected ? fill : (dark ? Colors.white24 : Colors.black12),
           ),
         ),
         child: Row(
+          mainAxisSize: MainAxisSize.min,
           children: [
-            if (icon != null) Icon(icon, size: 14, color: fg),
-            ?leading,
-            const SizedBox(width: 4),
+            if (leading != null) ...[leading, const SizedBox(width: 6)],
+            if (icon != null) ...[
+              Icon(icon, size: 16, color: fg),
+              const SizedBox(width: 4),
+            ],
             Text(
               label,
               style: TextStyle(
                 color: fg,
-                fontSize: 12,
-                fontWeight: FontWeight.w500,
+                fontSize: 13,
+                fontWeight: isSelected ? FontWeight.w600 : FontWeight.w500,
               ),
             ),
           ],

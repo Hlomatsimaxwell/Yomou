@@ -329,11 +329,14 @@ final genreTagsProvider = FutureProvider<List<String>>((ref) async {
     ),
   );
 
+  final nsfwTags = const {'adult', 'hentai', 'smut', 'r18', 'nsfw', 'porn', 'ecchi', 'mature'};
   final seen = <String>{};
   final tags = <String>[];
   for (final tag in perSource.expand((list) => list)) {
     final trimmed = tag.trim();
-    if (trimmed.isNotEmpty && seen.add(trimmed.toLowerCase())) {
+    if (trimmed.isEmpty) continue;
+    if (nsfwTags.contains(trimmed.toLowerCase())) continue;
+    if (seen.add(trimmed.toLowerCase())) {
       tags.add(trimmed);
     }
   }
