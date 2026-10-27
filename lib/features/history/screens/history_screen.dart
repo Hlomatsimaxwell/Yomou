@@ -1411,14 +1411,35 @@ class _HistoryScreenState extends ConsumerState<HistoryScreen> {
   Widget _buildSelectionBar(BuildContext context) {
     final dark = Theme.of(context).brightness == Brightness.dark;
     final fg = dark ? Colors.white : const Color(0xFF1C1B1F);
+    final l = AppLocalizations.of(context);
+    // Mirror Kotatsu-Redo's showAsAction="ifRoom|withText": show icon + text
+    // labels when there's enough width, fall back to icons only on narrow
+    // screens (phones).
+    final showLabels = MediaQuery.of(context).size.width > 600;
 
-    Widget navAction(Widget icon, VoidCallback onTap) {
+    Widget navAction(Widget icon, VoidCallback onTap, {String? label}) {
       return Center(
         child: AppPress(
           onTap: onTap,
           child: Padding(
             padding: const EdgeInsets.all(8),
-            child: icon,
+            child: showLabels && label != null
+                ? Column(
+                    mainAxisSize: MainAxisSize.min,
+                    children: [
+                      icon,
+                      const SizedBox(height: 4),
+                      Text(
+                        label,
+                        style: TextStyle(
+                          color: fg,
+                          fontSize: 11,
+                          fontWeight: FontWeight.w500,
+                        ),
+                      ),
+                    ],
+                  )
+                : icon,
           ),
         ),
       );
@@ -1428,9 +1449,7 @@ class _HistoryScreenState extends ConsumerState<HistoryScreen> {
       showBack: false,
       leading: navAction(Icon(MdiIcons.close, color: fg, size: 22), _exitSelection),
       titleWidget: Text(
-        AppLocalizations.of(
-          context,
-        ).historySelectedCount(_selectedMangaIds.length),
+        l.historySelectedCount(_selectedMangaIds.length),
         style: TextStyle(color: fg, fontSize: 17, fontWeight: FontWeight.w600),
       ),
       actions: [
@@ -1441,8 +1460,10 @@ class _HistoryScreenState extends ConsumerState<HistoryScreen> {
             size: 22,
           ),
           _toggleSelectAll,
+          label: l.selectAll,
         ),
-        navAction(Icon(MdiIcons.deleteOutline, color: fg, size: 22), _deleteSelected),
+        navAction(Icon(MdiIcons.deleteOutline, color: fg, size: 22), _deleteSelected,
+            label: l.delete),
         navAction(Icon(MdiIcons.dotsVertical, color: fg, size: 22), _showSelectionActions),
       ],
     );
