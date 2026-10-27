@@ -595,6 +595,7 @@ class _FavoritesScreenState extends ConsumerState<FavoritesScreen> {
               physics: const AlwaysScrollableScrollPhysics(),
               slivers: [
                 if (ref.watch(appearanceSettingsProvider).showQuickFilters) ...[
+                  const SliverToBoxAdapter(child: SizedBox(height: 12)),
                   SliverToBoxAdapter(child: _buildFilterChips()),
                   const SliverToBoxAdapter(child: SizedBox(height: 8)),
                 ],

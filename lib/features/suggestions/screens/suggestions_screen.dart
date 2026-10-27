@@ -713,7 +713,7 @@ class _SuggestionsScreenState extends ConsumerState<SuggestionsScreen> {
     final dark = Theme.of(context).brightness == Brightness.dark;
     final primary = Theme.of(context).colorScheme.primary;
     return SizedBox(
-      height: 38,
+      height: 34,
       child: ListView.builder(
         scrollDirection: Axis.horizontal,
         physics: const BouncingScrollPhysics(),
@@ -740,12 +740,12 @@ class _SuggestionsScreenState extends ConsumerState<SuggestionsScreen> {
               },
               child: Container(
                 padding: const EdgeInsets.symmetric(
-                  horizontal: 14,
-                  vertical: 8,
+                  horizontal: 12,
+                  vertical: 6,
                 ),
                 decoration: BoxDecoration(
                   color: bg,
-                  borderRadius: BorderRadius.circular(12),
+                  borderRadius: BorderRadius.circular(20),
                   border: Border.all(
                     color: isSelected
                         ? (dark ? Colors.white : primary)
@@ -756,7 +756,7 @@ class _SuggestionsScreenState extends ConsumerState<SuggestionsScreen> {
                   mainAxisSize: MainAxisSize.min,
                   children: [
                     Icon(MdiIcons.tagOutline, size: 16, color: fg),
-                    const SizedBox(width: 6),
+                    const SizedBox(width: 4),
                     Text(
                       tag,
                       style: TextStyle(

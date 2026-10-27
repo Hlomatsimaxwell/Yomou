@@ -100,7 +100,7 @@ class TabHeader extends StatelessWidget {
         Padding(
           // 14 stays the header's own gap under the bar; the inset goes above
           // it rather than joining it, so the number still means what it said.
-          padding: EdgeInsets.fromLTRB(20, 14 + topInset, 20, 14),
+          padding: EdgeInsets.fromLTRB(20, 8 + topInset, 20, 14),
           child: Row(
             children: [
               Expanded(
