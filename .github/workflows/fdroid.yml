@@ -17,7 +17,7 @@ permissions:
   contents: write
 
 env:
-  FDROID_REPO: Hlomatsimaxwell/fdroid-repo
+  FDROID_REPO: Hlomatsimaxwell/yomou-fdroid-repo
   FLUTTER_VERSION: '3.47.5'
 
 jobs:

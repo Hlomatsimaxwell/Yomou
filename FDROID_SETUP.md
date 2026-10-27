@@ -5,7 +5,7 @@ Yomou publishes to a personal F-Droid repository via the
 manual dispatch. Users add the repo URL in their F-Droid client:
 
 ```
-https://raw.githubusercontent.com/Hlomatsimaxwell/fdroid-repo/main/repo/
+https://raw.githubusercontent.com/Hlomatsimaxwell/yomou-fdroid-repo/main/repo/
 ```
 
 ## One-time setup
