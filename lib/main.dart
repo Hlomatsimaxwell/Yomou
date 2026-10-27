@@ -847,7 +847,7 @@ class _HomeScreenState extends ConsumerState<HomeScreen>
           ),
         ],
       ),
-      child: _buildNavRowIcons(updatesCount, accent, enabledTabs),
+      child: _buildNavRow(updatesCount, accent, settings, enabledTabs),
     );
     if (frosted) {
       return ClipRRect(
@@ -895,25 +895,6 @@ class _HomeScreenState extends ConsumerState<HomeScreen>
     for (var i = 0; i < enabledTabs.length; i++) {
       if (i > 0) children.add(const SizedBox(width: 4));
       children.add(_buildNavItem(enabledTabs[i], updatesCount, accent, settings));
-    }
-    return Row(
-      mainAxisAlignment: MainAxisAlignment.center,
-      mainAxisSize: MainAxisSize.min,
-      children: children,
-    );
-  }
-
-  /// Icon-only nav row used by the floating pill — no text labels, matching
-  /// Kotatsu-Redo's floating nav bar.
-  Widget _buildNavRowIcons(
-    int updatesCount,
-    Color accent,
-    List<int> enabledTabs,
-  ) {
-    final children = <Widget>[];
-    for (var i = 0; i < enabledTabs.length; i++) {
-      if (i > 0) children.add(const SizedBox(width: 4));
-      children.add(_buildNavItemIcon(enabledTabs[i], updatesCount, accent));
     }
     return Row(
       mainAxisAlignment: MainAxisAlignment.center,
@@ -1284,63 +1265,6 @@ class _HomeScreenState extends ConsumerState<HomeScreen>
                   ),
               ],
             ),
-          ),
-        ),
-      ),
-    );
-  }
-
-  /// Icon-only nav item used by the floating pill. No label, no label animation
-  /// — just the active/inactive glyph like Kotatsu-Redo.
-  Widget _buildNavItemIcon(
-    int index,
-    int updatesCount,
-    Color accent,
-  ) {
-    final active = _currentIndex == index;
-    final dark = Theme.of(context).brightness == Brightness.dark;
-    final color = active
-        ? accent
-        : dark
-        ? const Color(0xFF8E8E93)
-        : const Color(0xFF49454F);
-    final (line, fill) = _navIcons(index);
-
-    return SizedBox(
-      height: kBottomBarHeight - 16,
-      child: InkWell(
-        onTap: () => _onTabTapped(index),
-        borderRadius: BorderRadius.circular(20),
-        child: Center(
-          child: AnimatedContainer(
-            duration: const Duration(milliseconds: 340),
-            curve: Curves.easeOutBack,
-            decoration: BoxDecoration(
-              color: active
-                  ? accent.withValues(
-                      alpha: Theme.of(context).brightness == Brightness.dark
-                          ? 0.26
-                          : 0.16,
-                    )
-                  : Colors.transparent,
-              borderRadius: BorderRadius.circular(20),
-            ),
-            padding: EdgeInsets.symmetric(
-              horizontal: active ? 14 : 6,
-              vertical: active ? 8 : 4,
-            ),
-            child: index == 4
-                ? _buildUpdatesIcon(
-                    updatesCount,
-                    active ? fill : line,
-                    color,
-                    accent,
-                  )
-                : Icon(
-                    active ? fill : line,
-                    size: 22,
-                    color: color,
-                  ),
           ),
         ),
       ),
