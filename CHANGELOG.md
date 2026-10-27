@@ -5,6 +5,25 @@ All notable changes to Yomou are documented here.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [1.1.8] - 2026-10-27
+
+### Added
+- **New sources** — DatgarScanlation, InManga, InfraFandub and the Spanish family (AnzMangasHd, ApollComics, AsiaLotuss), plus search support for InfraFandub and DatgarScanlation.
+- **Long-press selection menus on every main tab** — History, Favorites, Suggestions and Explore now open a Kotatsu-style action bar matching the reference: full-bleed toolbar under the status bar, icon + label that appear only when there is room (ifRoom|withText), right-aligned actions with the overflow (three-dot) menu on phones and everything promoted into the bar on wide windows, all-caps tracked labels, and theme-derived colors (the theme's primary over the surface, title at full strength, actions at medium emphasis). The floating nav pill slides away for the whole selection, as Kotatsu does.
+- **Favorites pinned mangas** — pin/unpin from the selection menu, pinned titles sort to the top and wear a theme-aware pin badge on their cover.
+- **Clear updates feed** — the Updates three-dot menu gains "Clear updates" with a dialog (clear all update history, optionally clear new-chapters counters), ported from Kotatsu-Redo's clear-feed action.
+- **Three-dot menus everywhere** — Favorites (List options, Incognito mode, Settings), Explore (+ Source presets ahead of Manage sources), Updates (Refresh, Clear updates, Incognito mode, Settings).
+- **Source presets entry point on Explore** — jumps straight to the Manage presets screen.
+- **Mark as completed** in History/Favorites selection (marks every chapter of the chosen manga read).
+
+### Changed
+- **Source sort order defaults to Name** on a fresh install.
+- **Suggestions genre chips** adopt the History/Favorites chip style; Adult/NSFW genre tags are no longer offered as genre chips.
+- **Fixed (wide) headers** sit closer to the status bar.
+
+### Fixed
+- **Mark as completed** now fetches the series details/chapters when the local row has no chapter count, so it works on a fresh install and in incognito.
+
 ## [1.1.7] - 2026-10-24
 
 ### Added
