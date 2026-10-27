@@ -1632,6 +1632,7 @@ class _HistoryScreenState extends ConsumerState<HistoryScreen> {
           final details = await SourceCache.mangaDetails(
             sourceId: source.id,
             mangaId: mangaId,
+            forceRefresh: true,
             fetch: () => source.getMangaDetails(mangaId),
           );
           if (details != null && details.totalChapters > 0) {
