@@ -1310,7 +1310,7 @@ class _HomeScreenState extends ConsumerState<HomeScreen>
               borderRadius: BorderRadius.circular(20),
             ),
             padding: EdgeInsets.symmetric(
-              horizontal: active ? 14 : 6,
+              horizontal: active ? 14 : 12,
               vertical: active ? 8 : 4,
             ),
             child: Row(
