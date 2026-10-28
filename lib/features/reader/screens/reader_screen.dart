@@ -459,7 +459,10 @@ class _ReaderScreenState extends ConsumerState<ReaderScreen>
       _contrast = contrast;
       _sepia = sepia;
       _warm = warm;
-      _rotateScreen = s.orientation == kOrientLandscape;
+      // The toggle persists per title. Whether the page is locked now is read
+      // from that flag, and the actual orientation it locks to follows the
+      // position the reader opened in (see _applyOrientation below).
+      _rotateScreen = prefs.getBool(_prefKey('reader_rotate_screen')) ?? false;
     });
 
     if (_useTwoPagesLayout) {
@@ -470,7 +473,11 @@ class _ReaderScreenState extends ConsumerState<ReaderScreen>
     // thing that locks orientation and the rest of the app has to get its own
     // policy back on the way out.
     _orientationBeforeReader = DeviceOrientation.values;
-    _applyOrientation(s.orientation);
+    _applyOrientation(_rotateScreen
+        ? (MediaQuery.of(context).orientation == Orientation.landscape
+            ? kOrientLandscape
+            : kOrientPortrait)
+        : s.orientation);
     _applyMemoryProfile(s.reduceMemory);
     _armVolumeKeys(s.volumeButtons);
     _applyKeepScreenOn();
@@ -1160,9 +1167,15 @@ class _ReaderScreenState extends ConsumerState<ReaderScreen>
   }
 
   void _toggleRotateScreen(bool value) {
-    // Still a per-title choice: flipping orientation inside a chapter is
-    // something people do for one title, so it keeps overriding the global.
-    final orientation = value ? kOrientLandscape : kOrientDefault;
+    // Locks to the orientation the reader is actually in at the moment the
+    // switch is thrown — landscape stays landscape, portrait stays portrait —
+    // rather than pretending "lock" means "force landscape". Off returns to
+    // the normal automatic behaviour, which follows the device.
+    final isLandscape =
+        MediaQuery.of(context).orientation == Orientation.landscape;
+    final orientation = value
+        ? (isLandscape ? kOrientLandscape : kOrientPortrait)
+        : kOrientAutomatic;
     setState(() => _rotateScreen = value);
     _applyOrientation(orientation);
     _saveBool(_prefKey('reader_rotate_screen'), value);
