@@ -227,6 +227,13 @@ class AppearanceSettingsScreen extends ConsumerWidget {
           value: settings.hapticsEnabled,
           onChanged: (_) => notifier.toggleBool('hapticsEnabled'),
         ),
+        SwitchListTile(
+          secondary: const Icon(Icons.nights_stay_outlined),
+          title: const Text('Warmer night reading'),
+          subtitle: const Text('Adds warmth automatically in nighttime reading'),
+          value: settings.readerWarmNight,
+          onChanged: (_) => notifier.setReaderWarmNight(!settings.readerWarmNight),
+        ),
 
         // Manga List Section
         M3SectionHeader(title: l.appearanceSectionMangaList, bleed: 8),

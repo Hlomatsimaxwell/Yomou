@@ -171,6 +171,7 @@ class AppearanceSettings {
     required this.hapticsEnabled,
     required this.amoledBlack,
     required this.textScale,
+    required this.readerWarmNight,
   });
 
   // All requested defaults from spec
@@ -213,6 +214,7 @@ class AppearanceSettings {
         hapticsEnabled: true,
         amoledBlack: false,
         textScale: 1.0,
+        readerWarmNight: false,
       );
 
   final String colorScheme;
@@ -252,6 +254,7 @@ class AppearanceSettings {
   /// an OLED panel draws with the pixels off. Off by default: on an LCD the
   /// setting buys nothing and flattens the cards against the background.
   final bool amoledBlack;
+  final bool readerWarmNight;
   final double textScale;
 
   AppearanceSettings copyWith({
@@ -282,6 +285,7 @@ class AppearanceSettings {
     bool? hapticsEnabled,
     bool? amoledBlack,
     double? textScale,
+    bool? readerWarmNight,
   }) =>
       AppearanceSettings(
         colorScheme: colorScheme ?? this.colorScheme,
@@ -317,6 +321,7 @@ class AppearanceSettings {
         hapticsEnabled: hapticsEnabled ?? this.hapticsEnabled,
         amoledBlack: amoledBlack ?? this.amoledBlack,
         textScale: textScale ?? this.textScale,
+        readerWarmNight: readerWarmNight ?? this.readerWarmNight,
       );
 }
 
@@ -381,6 +386,7 @@ class _AppearancePersistence {
   static const _reduceMotion = '${_prefix}reduceMotion';
   static const _haptics = '${_prefix}hapticsEnabled';
   static const _amoledBlack = '${_prefix}amoledBlack';
+  static const _readerWarmNight = '${_prefix}readerWarmNight';
   static const _textScale = '${_prefix}textScale';
 
   static Future<AppearanceSettings> load() async {
@@ -417,6 +423,7 @@ class _AppearancePersistence {
       reduceMotion: p.getBool(_reduceMotion) ?? false,
       hapticsEnabled: p.getBool(_haptics) ?? true,
       amoledBlack: p.getBool(_amoledBlack) ?? false,
+      readerWarmNight: p.getBool(_readerWarmNight) ?? false,
       textScale: p.getDouble(_textScale) ?? 1.0,
     );
   }
@@ -449,6 +456,7 @@ class _AppearancePersistence {
     await p.setBool(_reduceMotion, s.reduceMotion);
     await p.setBool(_haptics, s.hapticsEnabled);
     await p.setBool(_amoledBlack, s.amoledBlack);
+    await p.setBool(_readerWarmNight, s.readerWarmNight);
     await p.setDouble(_textScale, s.textScale);
   }
 
@@ -558,6 +566,9 @@ class AppearanceSettingsNotifier extends StateNotifier<AppearanceSettings> {
     set((s) => s.copyWith(screenshotPolicy: policy));
     await applyScreenshotPolicy(block: policy == 'Block');
   }
+
+  Future<void> setReaderWarmNight(bool value) async =>
+      set((s) => s.copyWith(readerWarmNight: value));
 
   Future<void> setTextScale(double value) async =>
       set((s) => s.copyWith(textScale: value));

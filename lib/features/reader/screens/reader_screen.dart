@@ -418,6 +418,7 @@ class _ReaderScreenState extends ConsumerState<ReaderScreen>
     // thing that mutates per-title keys while it is open.
     final ctx = await resolveReaderContext(widget.mangaId);
     final s = ctx.settings;
+    final readerWarmNight = ref.read(appearanceSettingsProvider).readerWarmNight;
     // Contrast and sepia have never had a global, so they stay per-title.
     final prefs = await SharedPreferences.getInstance();
     final contrast = prefs.getDouble(_prefKey('reader_contrast')) ?? 100;
@@ -425,8 +426,7 @@ class _ReaderScreenState extends ConsumerState<ReaderScreen>
     final brightness = prefs.getDouble(_prefKey('reader_brightness')) ?? 100;
     final savedWarm = prefs.getDouble(_prefKey('reader_warm'));
     final isNight = DateTime.now().hour >= 19 || DateTime.now().hour < 6;
-    final isDark = Theme.of(context).brightness == Brightness.dark;
-    final warm = savedWarm ?? (isNight || isDark ? 35.0 : 0.0);
+    final warm = savedWarm ?? (readerWarmNight && isNight ? 35.0 : 0.0);
 
     if (!mounted) return;
     setState(() {
