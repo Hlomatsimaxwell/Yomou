@@ -1,6 +1,7 @@
 import 'dart:async';
 
 import 'package:flutter/material.dart';
+import 'package:shared_preferences/shared_preferences.dart';
 import 'package:flutter_material_design_icons/flutter_material_design_icons.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:yomou/core/database/source_cache.dart';
@@ -68,6 +69,7 @@ class _AlternativesScreenState extends ConsumerState<AlternativesScreen> {
   bool _sameLanguage = false;
   bool _sameType = false;
   final Set<String> _selectedSources = <String>{};
+  String? _preferredSourceId;
 
   @override
   void initState() {
@@ -76,6 +78,7 @@ class _AlternativesScreenState extends ConsumerState<AlternativesScreen> {
     _searchController = TextEditingController(text: _activeQuery);
     _searchController.addListener(_onTextChanged);
     _searchFocus.addListener(_onFocusChanged);
+    _loadPreferredSource();
   }
 
   void _onTextChanged() {
@@ -84,6 +87,23 @@ class _AlternativesScreenState extends ConsumerState<AlternativesScreen> {
 
   void _onFocusChanged() {
     if (mounted) setState(() {});
+  }
+
+  Future<void> _loadPreferredSource() async {
+    final prefs = await SharedPreferences.getInstance();
+    if (!mounted) return;
+    setState(() => _preferredSourceId = prefs.getString('alts.preferred.${widget.mangaId}'));
+  }
+
+  Future<void> _togglePreferredSource(String sourceId) async {
+    final prefs = await SharedPreferences.getInstance();
+    if (_preferredSourceId == sourceId) {
+      await prefs.remove('alts.preferred.${widget.mangaId}');
+      setState(() => _preferredSourceId = null);
+    } else {
+      await prefs.setString('alts.preferred.${widget.mangaId}', sourceId);
+      setState(() => _preferredSourceId = sourceId);
+    }
   }
 
   @override
@@ -603,7 +623,33 @@ class _AlternativesScreenState extends ConsumerState<AlternativesScreen> {
             ),
           ),
           const SizedBox(width: 8),
-          _ReplaceButton(dark: dark, onTap: () => _showMigrationDialog(l, row)),
+          Column(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              _ReplaceButton(dark: dark, onTap: () => _showMigrationDialog(l, row)),
+              const SizedBox(height: 6),
+              IconButton(
+                tooltip: _preferredSourceId == hit.manga.sourceId
+                    ? 'Preferred source'
+                    : 'Pin as preferred',
+                visualDensity: VisualDensity.compact,
+                constraints: const BoxConstraints.tightFor(width: 32, height: 32),
+                iconSize: 18,
+                icon: Icon(
+                  _preferredSourceId == hit.manga.sourceId
+                      ? MdiIcons.pin
+                      : MdiIcons.pinOutline,
+                  color: _preferredSourceId == hit.manga.sourceId
+                      ? const Color(0xFF7C4DFF)
+                      : dark
+                          ? Colors.white54
+                          : Colors.black45,
+                ),
+                onPressed: () =>
+                    _togglePreferredSource(hit.manga.sourceId),
+              ),
+            ],
+          ),
         ],
       ),
     );
