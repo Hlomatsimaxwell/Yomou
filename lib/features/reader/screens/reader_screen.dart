@@ -434,10 +434,10 @@ class _ReaderScreenState extends ConsumerState<ReaderScreen>
     if (!mounted) return;
     setState(() {
       _readingMode = ReadingMode.values.firstWhere(
-        (m) => m.name == s.readingMode,
+        (m) => m.name == (prefs.getString(_prefKey('reader_mode')) ?? s.readingMode),
         orElse: () => ReadingMode.webtoon,
       );
-      _useTwoPagesLayout = s.twoPages;
+    _useTwoPagesLayout = prefs.getBool(_prefKey('reader_two_pages')) ?? s.twoPages;
       _scaleMode = s.scaleMode;
       _fullscreen = s.fullscreen;
       _flashOnPageChange = s.flashOnPageChange;
