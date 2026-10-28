@@ -347,6 +347,8 @@ class _HomeScreenState extends ConsumerState<HomeScreen>
   static const _lastUsedTabKey = 'appearance.lastUsedTab';
 
   int _currentIndex = 0;
+  bool _initialReady = false;
+  Future<int>? _initialTabIndex;
   bool _isContinuing = false;
   bool _wasBackgrounded = false;
 
@@ -380,7 +382,12 @@ class _HomeScreenState extends ConsumerState<HomeScreen>
   void initState() {
     super.initState();
     WidgetsBinding.instance.addObserver(this);
-    WidgetsBinding.instance.addPostFrameCallback((_) => _bootstrap());
+    // Resolve the first tab before the first real frame so the UI does not
+    // render tab 0 and then jump to "Last used" once prefs are loaded.
+    _initialTabIndex = _resolveInitialTabIndex();
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      if (mounted) _bootstrap();
+    });
   }
 
   @override
@@ -430,10 +437,7 @@ class _HomeScreenState extends ConsumerState<HomeScreen>
     }
   }
 
-  // Resolves the starting tab from the "Default tab" appearance setting.
-  // Reads prefs directly (rather than the provider) so this runs even before
-  // the async settings load completes.
-  Future<void> _initTab() async {
+  Future<int> _resolveInitialTabIndex() async {
     final prefs = await SharedPreferences.getInstance();
     final settings = ref.read(appearanceSettingsProvider);
     final enabled = _enabledTabIndices(settings);
@@ -447,7 +451,7 @@ class _HomeScreenState extends ConsumerState<HomeScreen>
       if (idx < 0) idx = 0;
     }
     if (!enabled.contains(idx)) idx = enabled.first;
-    if (mounted && idx != _currentIndex) setState(() => _currentIndex = idx);
+    return idx;
   }
 
   Future<void> _persistLastUsed(int index) async {
@@ -488,7 +492,6 @@ class _HomeScreenState extends ConsumerState<HomeScreen>
   /// flips the stored flag.
   Future<void> _bootstrap() async {
     final firstRun = !(await isWelcomeCompleted());
-    _initTab();
     await _maybeShowWelcome();
     final version = (await PackageInfo.fromPlatform()).version;
     if (firstRun) {
@@ -564,6 +567,33 @@ class _HomeScreenState extends ConsumerState<HomeScreen>
     // DB/search layers never write during an incognito session.
     ref.watch(incognitoProvider);
     final selectionActive = ref.watch(selectionActiveProvider);
+
+    // Resolve the initial tab asynchronously before the first fully built home
+    // so the UI does not flash tab 0 (and refetch its content) when the saved
+    // "last used" tab differs.
+    if (!_initialReady && _initialTabIndex != null) {
+      return FutureBuilder<int>(
+        future: _initialTabIndex,
+        builder: (context, snapshot) {
+          if (snapshot.hasData) {
+            if (!_initialReady && mounted) {
+              _currentIndex = snapshot.data!;
+              WidgetsBinding.instance.addPostFrameCallback((_) {
+                if (mounted && !_initialReady) {
+                  setState(() => _initialReady = true);
+                }
+              });
+            }
+          }
+          return Scaffold(
+            backgroundColor: Theme.of(context).scaffoldBackgroundColor,
+            body: Center(
+              child: CircularProgressIndicator(color: accent),
+            ),
+          );
+        },
+      );
+    }
 
     final enabledTabs = _enabledTabIndices(settings);
     // If the current tab got disabled, jump to the first enabled one.
