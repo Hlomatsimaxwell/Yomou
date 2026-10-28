@@ -1396,6 +1396,11 @@ class _HomeScreenState extends ConsumerState<HomeScreen>
   }
 
   Widget _buildContinueFab(Color accent) {
+    // When the bar is docked (floating nav off) the button is the only
+    // affordance, so name it; the pill beside the floating bar leaves it
+    // as an icon.
+    final extended = !ref.read(appearanceSettingsProvider).useFloatingNavBar;
+    if (extended) return _buildExtendedContinueFab(accent);
     final dark = Theme.of(context).brightness == Brightness.dark;
     final frosted = ref.watch(appearanceSettingsProvider).useFrostedGlass;
     // Pill's frosted recipe, gelled with the app accent: reads like the pill's
@@ -1408,28 +1413,49 @@ class _HomeScreenState extends ConsumerState<HomeScreen>
     final gelSolid =
         Color.alphaBlend(tint, dark ? amoled(context, 0xFF1C1C1E) : Colors.white);
 
+    final innerChild = _isContinuing
+        ? const SizedBox(
+            width: 24,
+            height: 24,
+            child: CircularProgressIndicator(
+              color: Colors.white,
+              strokeWidth: 2.5,
+            ),
+          )
+        : Icon(
+            // Kotatsu-Redo's ic_read -- the Material local_library glyph,
+            // a reader's head over the open book, which is what the
+            // reference's Continue FAB and rail button both carry.
+            Icons.local_library,
+            color: accent,
+            size: 26,
+          );
+
     final inner = Container(
-      width: 60,
-      height: 60,
+      width: extended ? null : 60,
+      height: extended ? 44 : 60,
+      padding: extended
+          ? const EdgeInsets.symmetric(horizontal: 14)
+          : EdgeInsets.zero,
       color: _isContinuing ? amoled(context, 0xFF2A2A2E) : gel,
       child: Center(
-        child: _isContinuing
-            ? const SizedBox(
-                width: 24,
-                height: 24,
-                child: CircularProgressIndicator(
-                  color: Colors.white,
-                  strokeWidth: 2.5,
-                ),
+        child: extended
+            ? Row(
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  innerChild,
+                  const SizedBox(width: 8),
+                  Text(
+                    AppLocalizations.of(context).continueAction,
+                    style: TextStyle(
+                      color: accent,
+                      fontSize: 14,
+                      fontWeight: FontWeight.w600,
+                    ),
+                  ),
+                ],
               )
-            : Icon(
-                // Kotatsu-Redo's ic_read -- the Material local_library glyph,
-                // a reader's head over the open book, which is what the
-                // reference's Continue FAB and rail button both carry.
-                Icons.local_library,
-                color: accent,
-                size: 30,
-              ),
+            : innerChild,
       ),
     );
 
@@ -1441,8 +1467,10 @@ class _HomeScreenState extends ConsumerState<HomeScreen>
         width: 60,
         height: 60,
         decoration: BoxDecoration(
-          shape: BoxShape.circle,
-          color: _isContinuing ? amoled(context, 0xFF2A2A2E) : Colors.transparent,
+          borderRadius: BorderRadius.circular(extended ? 24 : 30),
+          color: _isContinuing
+              ? amoled(context, 0xFF2A2A2E)
+              : Colors.transparent,
           boxShadow: [
             BoxShadow(
               color: Colors.black.withValues(alpha: 0.35),
@@ -1451,39 +1479,77 @@ class _HomeScreenState extends ConsumerState<HomeScreen>
             ),
           ],
         ),
-        child: ClipOval(
+        child: ClipRRect(
+          borderRadius: BorderRadius.circular(extended ? 24 : 30),
           child: frosted
               ? BackdropFilter(
                   filter: ImageFilter.blur(sigmaX: 16, sigmaY: 16),
                   child: inner,
                 )
               : Container(
-                  width: 60,
-                  height: 60,
+                  width: extended ? null : 60,
+                  height: extended ? 44 : 60,
                   color: _isContinuing
                       ? amoled(context, 0xFF2A2A2E)
                       : gelSolid,
-                  child: Center(
-                    child: _isContinuing
-                        ? const SizedBox(
-                            width: 24,
-                            height: 24,
-                            child: CircularProgressIndicator(
-                              color: Colors.white,
-                              strokeWidth: 2.5,
-                            ),
-                          )
-                        : Icon(
-                            // Kotatsu-Redo's ic_read for the non-frosted
-                            // branch too: both branches must carry the
-                            // reference glyph.
-                            Icons.local_library,
-                            color: accent,
-                            size: 30,
-                          ),
-                  ),
+                  child: inner.child,
                 ),
         ),
+      ),
+    );
+  }
+
+  Widget _buildExtendedContinueFab(Color accent) {
+    final dark = Theme.of(context).brightness == Brightness.dark;
+    final frosted = ref.watch(appearanceSettingsProvider).useFrostedGlass;
+    final glass = dark
+        ? amoled(context, 0x661C1C1E)
+        : Colors.white.withValues(alpha: 0.62);
+    final tint = accent.withValues(alpha: dark ? 0.45 : 0.32);
+    final gel = Color.alphaBlend(tint, glass);
+    final gelSolid =
+        Color.alphaBlend(tint, dark ? amoled(context, 0xFF1C1C1E) : Colors.white);
+    final inner = Container(
+      padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 10),
+      color: _isContinuing ? amoled(context, 0xFF2A2A2E) : gel,
+      child: _isContinuing
+          ? const SizedBox(
+              width: 24,
+              height: 24,
+              child: CircularProgressIndicator(
+                color: Colors.white,
+                strokeWidth: 2.5,
+              ),
+            )
+          : Row(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                Icon(Icons.local_library, color: accent, size: 22),
+                const SizedBox(width: 8),
+                Text(
+                  AppLocalizations.of(context).continueAction,
+                  style: TextStyle(
+                    color: accent,
+                    fontSize: 14,
+                    fontWeight: FontWeight.w600,
+                  ),
+                ),
+              ],
+            ),
+    );
+    return Material(
+      elevation: 8,
+      borderRadius: BorderRadius.circular(24),
+      color: _isContinuing ? amoled(context, 0xFF2A2A2E) : gelSolid,
+      clipBehavior: Clip.antiAlias,
+      child: InkWell(
+        onTap: _isContinuing ? null : _continueReading,
+        child: frosted
+            ? BackdropFilter(
+                filter: ImageFilter.blur(sigmaX: 16, sigmaY: 16),
+                child: inner,
+              )
+            : inner,
       ),
     );
   }
