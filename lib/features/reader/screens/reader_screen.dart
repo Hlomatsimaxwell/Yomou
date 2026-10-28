@@ -423,7 +423,10 @@ class _ReaderScreenState extends ConsumerState<ReaderScreen>
     final contrast = prefs.getDouble(_prefKey('reader_contrast')) ?? 100;
     final sepia = prefs.getDouble(_prefKey('reader_sepia')) ?? 0;
     final brightness = prefs.getDouble(_prefKey('reader_brightness')) ?? 100;
-    final warm = prefs.getDouble(_prefKey('reader_warm')) ?? 0;
+    final savedWarm = prefs.getDouble(_prefKey('reader_warm'));
+    final isNight = DateTime.now().hour >= 19 || DateTime.now().hour < 6;
+    final isDark = Theme.of(context).brightness == Brightness.dark;
+    final warm = savedWarm ?? (isNight || isDark ? 35.0 : 0.0);
 
     if (!mounted) return;
     setState(() {
