@@ -885,6 +885,7 @@ class _ReaderScreenState extends ConsumerState<ReaderScreen>
   Widget _buildPrevChapterButton(Color iconColor) {
     return IconButton(
       tooltip: AppLocalizations.of(context).readerPreviousChapter,
+      padding: EdgeInsets.zero,
       icon: Icon(MdiIcons.skipPrevious, color: iconColor, size: 28),
       onPressed: _currentChapterIndex > 0
           ? () => _changeChapterExplicitly(_currentChapterIndex - 1)
@@ -895,6 +896,7 @@ class _ReaderScreenState extends ConsumerState<ReaderScreen>
   Widget _buildNextChapterButton(Color iconColor) {
     return IconButton(
       tooltip: AppLocalizations.of(context).readerNextChapter,
+      padding: EdgeInsets.zero,
       icon: Icon(MdiIcons.skipNext, color: iconColor, size: 28),
       onPressed: _currentChapterIndex < widget.allChapters.length - 1
           ? () => _changeChapterExplicitly(_currentChapterIndex + 1)
@@ -909,7 +911,7 @@ class _ReaderScreenState extends ConsumerState<ReaderScreen>
   /// crowd the other out.
   Widget _buildReaderProgressSlot({bool flexible = false, int flex = 2}) {
     final track = Padding(
-      padding: const EdgeInsets.symmetric(horizontal: 2),
+      padding: const EdgeInsets.symmetric(horizontal: 0),
       child: _buildProgressTrack(),
     );
     return flexible ? Flexible(flex: flex, child: track) : Expanded(child: track);
