@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:url_launcher/url_launcher.dart';
 import 'package:flutter_material_design_icons/flutter_material_design_icons.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:package_info_plus/package_info_plus.dart';
@@ -467,6 +468,33 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
                     ),
                   ),
                 ),
+              const SizedBox(height: 10),
+              SizedBox(
+                width: double.infinity,
+                child: TextButton.icon(
+                  icon: const Icon(Icons.bug_report_outlined),
+                  label: const Text('Report a bug'),
+                  onPressed: () async {
+                    final version = info?.version ?? '';
+                    final build = info?.buildNumber ?? '';
+                    final body = Uri.encodeComponent(
+                      'Version: $version+$build\n'
+                      'Platform: ${Theme.of(dialogContext).platform.name}\n'
+                      '\nDescribe the issue:\n',
+                    );
+                    final uri = Uri.parse(
+                      'https://github.com/Hlomatsimaxwell/Yomou/issues/new'
+                      '?title=Bug+report&body=$body',
+                    );
+                    if (await canLaunchUrl(uri)) {
+                      await launchUrl(
+                        uri,
+                        mode: LaunchMode.externalApplication,
+                      );
+                    }
+                  },
+                ),
+              ),
             ],
           ),
           actions: [
