@@ -777,7 +777,14 @@ class _ReaderScreenState extends ConsumerState<ReaderScreen>
   /// off-screen.
   double _chromeSideInset(BuildContext context) {
     if (_mergeChromeInLandscape) return 16;
-    final inset = (MediaQuery.sizeOf(context).width - kReaderChromeMaxWidth) / 2;
+    final width = MediaQuery.sizeOf(context).width;
+    // Scale with the device rather than being pinned to a fixed 480px cap:
+    // on larger screens (and in Split-screen/desktop) the caps were much
+    // smaller than the window, so the page slider had almost no room. Aim
+    // for a bar that fills ~88% of the width, falling back to a 16px gutter
+    // once the screen is too narrow for that.
+    final cap = (width * 0.88).clamp(320.0, width - 24);
+    final inset = (width - cap) / 2;
     return inset < 16 ? 16 : inset;
   }
 
