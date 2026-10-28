@@ -317,6 +317,7 @@ class _ReaderScreenState extends ConsumerState<ReaderScreen>
   double _brightness = 100;
   double _contrast = 100;
   double _sepia = 0;
+  double _warm = 0;
 
   // Chapter downloads.
   final Set<String> _downloadedChapters = {};
@@ -422,6 +423,7 @@ class _ReaderScreenState extends ConsumerState<ReaderScreen>
     final contrast = prefs.getDouble(_prefKey('reader_contrast')) ?? 100;
     final sepia = prefs.getDouble(_prefKey('reader_sepia')) ?? 0;
     final brightness = prefs.getDouble(_prefKey('reader_brightness')) ?? 100;
+    final warm = prefs.getDouble(_prefKey('reader_warm')) ?? 0;
 
     if (!mounted) return;
     setState(() {
@@ -450,6 +452,7 @@ class _ReaderScreenState extends ConsumerState<ReaderScreen>
       _brightness = brightness;
       _contrast = contrast;
       _sepia = sepia;
+      _warm = warm;
       _rotateScreen = s.orientation == kOrientLandscape;
     });
 
@@ -632,6 +635,7 @@ class _ReaderScreenState extends ConsumerState<ReaderScreen>
     await prefs.setDouble(_prefKey('reader_brightness'), _brightness);
     await prefs.setDouble(_prefKey('reader_contrast'), _contrast);
     await prefs.setDouble(_prefKey('reader_sepia'), _sepia);
+    await prefs.setDouble(_prefKey('reader_warm'), _warm);
   }
 
   void _recreatePageController() {
@@ -1188,6 +1192,11 @@ class _ReaderScreenState extends ConsumerState<ReaderScreen>
                   _sepia,
                   (v) => setDialogState(() => _sepia = v),
                 ),
+                _buildFilterSlider(
+                  l.filterWarmth,
+                  _warm,
+                  (v) => setDialogState(() => _warm = v),
+                ),
               ],
             ),
             actions: [
@@ -1197,6 +1206,7 @@ class _ReaderScreenState extends ConsumerState<ReaderScreen>
                     _brightness = 100;
                     _contrast = 100;
                     _sepia = 0;
+                    _warm = 0;
                   });
                   if (mounted) setState(() {});
                   _saveColorCorrection();
@@ -3615,6 +3625,7 @@ class _ReaderScreenState extends ConsumerState<ReaderScreen>
     final contrast = _contrast / 100;
     final brightness = (_brightness - 100) * 255 / 100;
     final s = _sepia / 100;
+    final ws = _warm / 100;
 
     const sepia = [
       [0.393, 0.769, 0.189, 0.0, 0.0],
@@ -3628,22 +3639,34 @@ class _ReaderScreenState extends ConsumerState<ReaderScreen>
       return identity * (1 - s) + sepia[row][col] * s;
     }
 
+    double warmGain(int row) {
+      switch (row) {
+        case 0:
+          return 1 + ws * 0.18;
+        case 1:
+          return 1 + ws * 0.05;
+        case 2:
+          return 1 - ws * 0.16;
+      }
+      return 1;
+    }
+
     return [
-      m(0, 0) * contrast,
-      m(0, 1) * contrast,
-      m(0, 2) * contrast,
+      m(0, 0) * contrast * warmGain(0),
+      m(0, 1) * contrast * warmGain(0),
+      m(0, 2) * contrast * warmGain(0),
+      0,
+      brightness + ws * 8,
+      m(1, 0) * contrast * warmGain(1),
+      m(1, 1) * contrast * warmGain(1),
+      m(1, 2) * contrast * warmGain(1),
       0,
       brightness,
-      m(1, 0) * contrast,
-      m(1, 1) * contrast,
-      m(1, 2) * contrast,
+      m(2, 0) * contrast * warmGain(2),
+      m(2, 1) * contrast * warmGain(2),
+      m(2, 2) * contrast * warmGain(2),
       0,
-      brightness,
-      m(2, 0) * contrast,
-      m(2, 1) * contrast,
-      m(2, 2) * contrast,
-      0,
-      brightness,
+      brightness - ws * 12,
       0,
       0,
       0,
@@ -3653,7 +3676,7 @@ class _ReaderScreenState extends ConsumerState<ReaderScreen>
   }
 
   Widget _applyColorFilter(Widget child) {
-    if (_brightness == 100 && _contrast == 100 && _sepia == 0) {
+    if (_brightness == 100 && _contrast == 100 && _sepia == 0 && _warm == 0) {
       return child;
     }
     return ColorFiltered(

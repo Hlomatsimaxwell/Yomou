@@ -2492,6 +2492,12 @@ abstract class AppLocalizations {
   /// **'Sepia'**
   String get filterSepia;
 
+  /// No description provided for @filterWarmth.
+  ///
+  /// In en, this message translates to:
+  /// **'Warmth'**
+  String get filterWarmth;
+
   /// No description provided for @reset.
   ///
   /// In en, this message translates to:

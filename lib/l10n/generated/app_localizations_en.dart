@@ -1333,6 +1333,9 @@ class AppLocalizationsEn extends AppLocalizations {
   String get filterSepia => 'Sepia';
 
   @override
+  String get filterWarmth => 'Warmth';
+
+  @override
   String get reset => 'Reset';
 
   @override

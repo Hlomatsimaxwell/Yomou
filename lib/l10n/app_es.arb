@@ -406,6 +406,7 @@
   "filterBrightness": "Brillo",
   "filterContrast": "Contraste",
   "filterSepia": "Sepia",
+  "filterWarmth": "Cálido",
   "reset": "Restablecer",
   "done": "Hecho",
   "readerPageSavedTo": "Página guardada en {path}",

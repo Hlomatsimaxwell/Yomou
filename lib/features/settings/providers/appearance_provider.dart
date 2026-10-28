@@ -170,6 +170,7 @@ class AppearanceSettings {
     required this.reduceMotion,
     required this.hapticsEnabled,
     required this.amoledBlack,
+    required this.textScale,
   });
 
   // All requested defaults from spec
@@ -211,6 +212,7 @@ class AppearanceSettings {
         reduceMotion: false,
         hapticsEnabled: true,
         amoledBlack: false,
+        textScale: 1.0,
       );
 
   final String colorScheme;
@@ -250,6 +252,7 @@ class AppearanceSettings {
   /// an OLED panel draws with the pixels off. Off by default: on an LCD the
   /// setting buys nothing and flattens the cards against the background.
   final bool amoledBlack;
+  final double textScale;
 
   AppearanceSettings copyWith({
     String? colorScheme,
@@ -278,6 +281,7 @@ class AppearanceSettings {
     bool? reduceMotion,
     bool? hapticsEnabled,
     bool? amoledBlack,
+    double? textScale,
   }) =>
       AppearanceSettings(
         colorScheme: colorScheme ?? this.colorScheme,
@@ -312,6 +316,7 @@ class AppearanceSettings {
         reduceMotion: reduceMotion ?? this.reduceMotion,
         hapticsEnabled: hapticsEnabled ?? this.hapticsEnabled,
         amoledBlack: amoledBlack ?? this.amoledBlack,
+        textScale: textScale ?? this.textScale,
       );
 }
 
@@ -376,6 +381,7 @@ class _AppearancePersistence {
   static const _reduceMotion = '${_prefix}reduceMotion';
   static const _haptics = '${_prefix}hapticsEnabled';
   static const _amoledBlack = '${_prefix}amoledBlack';
+  static const _textScale = '${_prefix}textScale';
 
   static Future<AppearanceSettings> load() async {
     final p = await SharedPreferences.getInstance();
@@ -411,6 +417,7 @@ class _AppearancePersistence {
       reduceMotion: p.getBool(_reduceMotion) ?? false,
       hapticsEnabled: p.getBool(_haptics) ?? true,
       amoledBlack: p.getBool(_amoledBlack) ?? false,
+      textScale: p.getDouble(_textScale) ?? 1.0,
     );
   }
 
@@ -442,6 +449,7 @@ class _AppearancePersistence {
     await p.setBool(_reduceMotion, s.reduceMotion);
     await p.setBool(_haptics, s.hapticsEnabled);
     await p.setBool(_amoledBlack, s.amoledBlack);
+    await p.setDouble(_textScale, s.textScale);
   }
 
   static Map<String, bool>? _decodeMap(String? json) {
@@ -550,6 +558,9 @@ class AppearanceSettingsNotifier extends StateNotifier<AppearanceSettings> {
     set((s) => s.copyWith(screenshotPolicy: policy));
     await applyScreenshotPolicy(block: policy == 'Block');
   }
+
+  Future<void> setTextScale(double value) async =>
+      set((s) => s.copyWith(textScale: value));
 }
 
 final appearanceSettingsProvider =

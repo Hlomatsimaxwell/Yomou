@@ -292,6 +292,13 @@ class YomouApp extends ConsumerWidget {
         // Match the app's current brightness. (An enclosing region supersedes
         // an AppBar's navigation-bar properties, so this wins app-wide.)
         final dark = Theme.of(context).brightness == Brightness.dark;
+        final textScaler = TextScaler.linear(
+          ref.watch(appearanceSettingsProvider).textScale,
+        );
+        final scaledChild = MediaQuery(
+          data: MediaQuery.of(context).copyWith(textScaler: textScaler),
+          child: child!,
+        );
         return AnnotatedRegion<SystemUiOverlayStyle>(
           value: SystemUiOverlayStyle(
             systemNavigationBarColor: Colors.transparent,
@@ -301,7 +308,7 @@ class YomouApp extends ConsumerWidget {
           ),
           child: Stack(
             children: [
-              child!,
+              scaledChild,
               // Sits above every route so the PIN lock covers the whole app
               // (reader, detail views, settings) whenever it's active.
               Consumer(
