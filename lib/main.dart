@@ -497,9 +497,10 @@ class _HomeScreenState extends ConsumerState<HomeScreen>
     if (firstRun) {
       await _enableNotificationsOnFirstRun();
       await markVersionSeen(version);
-      return;
+    } else {
+      await _maybeShowWhatsNew(version);
     }
-    await _maybeShowWhatsNew(version);
+    unawaited(_refreshUpdatesBadge());
   }
 
   /// New-chapter notifications default to on, so ask for the OS permission
@@ -1587,6 +1588,21 @@ class _HomeScreenState extends ConsumerState<HomeScreen>
             : inner,
       ),
     );
+  }
+
+  Future<void> _refreshUpdatesBadge() async {
+    try {
+      final updates = await ref.read(updatesProvider.future);
+      final total = updates.fold<int>(
+        0,
+        (sum, u) => sum + (u.hasUnseenUpdate ? u.newCount : 0),
+      );
+      final prefs = await SharedPreferences.getInstance();
+      await prefs.setInt(kUpdatesBadgePrefKey, total);
+      if (mounted) ref.invalidate(updatesBadgeProvider);
+    } catch (_) {
+      // First-boot or network hiccup — keep persisted value.
+    }
   }
 
   Future<void> _continueReading() async {
