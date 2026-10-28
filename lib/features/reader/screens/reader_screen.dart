@@ -2567,6 +2567,43 @@ class _ReaderScreenState extends ConsumerState<ReaderScreen>
                         ),
                         onTap: _showColorCorrectionDialog,
                       ),
+                      SwitchListTile(
+                        contentPadding: const EdgeInsets.symmetric(
+                          horizontal: 4,
+                          vertical: 2,
+                        ),
+                        secondary: Icon(
+                          Icons.nights_stay_outlined,
+                          color: dark ? Colors.white : const Color(0xFF1C1B1F),
+                          size: 22,
+                        ),
+                        title: Text(
+                          'Warmer night reading',
+                          style: TextStyle(
+                            color: dark
+                                ? Colors.white
+                                : const Color(0xFF1C1B1F),
+                            fontSize: 15,
+                          ),
+                        ),
+                        subtitle: Text(
+                          'Adds warmth automatically (toggle to apply now)',
+                          style: TextStyle(
+                            color: dark ? Colors.white70 : Colors.black54,
+                            fontSize: 12,
+                          ),
+                        ),
+                        value: ref.watch(appearanceSettingsProvider).readerWarmNight,
+                        onChanged: (v) {
+                          ref
+                              .read(appearanceSettingsProvider.notifier)
+                              .setReaderWarmNight(v);
+                          setState(() {
+                            _warm = v ? 35.0 : 0.0;
+                          });
+                          _saveColorCorrection();
+                        },
+                      ),
                       ListTile(
                         contentPadding: const EdgeInsets.symmetric(
                           horizontal: 4,

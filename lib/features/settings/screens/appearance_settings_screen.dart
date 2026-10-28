@@ -207,6 +207,13 @@ class AppearanceSettingsScreen extends ConsumerWidget {
         // in motion, whether it moves at all, and whether it taps back.
         M3SectionHeader(title: l.appearanceSectionEffects, bleed: 8),
         SwitchListTile(
+          secondary: const Icon(Icons.nights_stay_outlined),
+          title: const Text('Warmer night reading'),
+          subtitle: const Text('Adds warmth automatically in nighttime reading'),
+          value: settings.readerWarmNight,
+          onChanged: (_) => notifier.setReaderWarmNight(!settings.readerWarmNight),
+        ),
+        SwitchListTile(
           secondary: const KotatsuIcon('ic_blur'),
           title: Text(l.appearanceFrostedGlass),
           subtitle: Text(l.appearanceFrostedGlassSubtitle),
@@ -226,13 +233,6 @@ class AppearanceSettingsScreen extends ConsumerWidget {
           subtitle: Text(l.appearanceHapticsSubtitle),
           value: settings.hapticsEnabled,
           onChanged: (_) => notifier.toggleBool('hapticsEnabled'),
-        ),
-        SwitchListTile(
-          secondary: const Icon(Icons.nights_stay_outlined),
-          title: const Text('Warmer night reading'),
-          subtitle: const Text('Adds warmth automatically in nighttime reading'),
-          value: settings.readerWarmNight,
-          onChanged: (_) => notifier.setReaderWarmNight(!settings.readerWarmNight),
         ),
 
         // Manga List Section
