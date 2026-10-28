@@ -4562,6 +4562,7 @@ class _ReaderProgressTrackState extends State<_ReaderProgressTrack> {
         valueIndicatorTextStyle: SliderTheme.of(
           context,
         ).valueIndicatorTextStyle?.copyWith(color: cs.onPrimary),
+        padding: EdgeInsets.zero,
       ),
       child: slider,
     );
