@@ -126,6 +126,9 @@ class _ReaderScreenState extends ConsumerState<ReaderScreen>
     with WidgetsBindingObserver, SingleTickerProviderStateMixin {
   final ScrollController _scrollController = ScrollController();
   PageController _pageController = PageController();
+  Orientation? _lastReaderOrientation;
+  int _savedHorizontalPage = 0;
+  double _savedScrollOffset = 0;
   final List<String> _pages = [];
   final List<int> _loadedChapterIndices = [];
 
@@ -3197,6 +3200,44 @@ class _ReaderScreenState extends ConsumerState<ReaderScreen>
 
   // Persist progress when the app is backgrounded or about to be killed, so a
   // force-stop / OOM right after leaving the reader doesn't lose the position.
+  @override
+  void didChangeMetrics() {
+    super.didChangeMetrics();
+    if (!mounted || _pages.isEmpty) return;
+    final now = MediaQuery.orientationOf(context);
+    if (_lastReaderOrientation == null) {
+      _lastReaderOrientation = now;
+      return;
+    }
+    if (now == _lastReaderOrientation) return;
+    _lastReaderOrientation = now;
+    if (_isHorizontal && _pageController.hasClients) {
+      _savedHorizontalPage = (_pageController.page ?? _currentPageIndex)
+          .round()
+          .clamp(0, _pages.length - 1);
+    } else if (!_isHorizontal && _scrollController.hasClients) {
+      _savedScrollOffset = _scrollController.offset;
+    }
+
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      if (!mounted || _pages.isEmpty) return;
+      if (_isHorizontal) {
+        if (_pageController.hasClients) {
+          _pageController.jumpToPage(
+            _savedHorizontalPage.clamp(0, _pages.length - 1),
+          );
+        }
+      } else {
+        if (_scrollController.hasClients) {
+          final max = _scrollController.position.maxScrollExtent;
+          _scrollController.jumpTo(
+            _savedScrollOffset.clamp(0.0, max),
+          );
+        }
+      }
+    });
+  }
+
   @override
   void didChangeAppLifecycleState(AppLifecycleState state) {
     if (state == AppLifecycleState.paused ||
