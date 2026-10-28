@@ -212,7 +212,14 @@ class _AlternativesScreenState extends ConsumerState<AlternativesScreen> {
           return (x - originalTotal).abs().compareTo((y - originalTotal).abs());
         });
       case _AltSort.priority:
-        break;
+        list.sort((a, b) {
+          final ap = a.hit.manga.sourceId == _preferredSourceId;
+          final bp = b.hit.manga.sourceId == _preferredSourceId;
+          if (ap != bp) return ap ? -1 : 1;
+          if (a.alt.id == widget.currentSourceId) return -1;
+          if (b.alt.id == widget.currentSourceId) return 1;
+          return a.alt.id.compareTo(b.alt.id);
+        });
     }
     return list;
   }
