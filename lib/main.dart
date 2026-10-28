@@ -293,7 +293,7 @@ class YomouApp extends ConsumerWidget {
         // an AppBar's navigation-bar properties, so this wins app-wide.)
         final dark = Theme.of(context).brightness == Brightness.dark;
         final textScaler = TextScaler.linear(
-          ref.watch(appearanceSettingsProvider).textScale,
+          ref.watch(appearanceSettingsProvider).textScale.clamp(0.85, 1.45),
         );
         final scaledChild = MediaQuery(
           data: MediaQuery.of(context).copyWith(textScaler: textScaler),
@@ -1290,7 +1290,11 @@ class _HomeScreenState extends ConsumerState<HomeScreen>
 
     final (line, fill) = _navIcons(index);
 
-    return SizedBox(
+    return Semantics(
+      selected: active,
+      button: true,
+      label: _navLabel(context, index),
+      child: SizedBox(
       height: kBottomBarHeight - 16,
       child: InkWell(
         onTap: () => _onTabTapped(index),
@@ -1391,6 +1395,7 @@ class _HomeScreenState extends ConsumerState<HomeScreen>
             ),
           ),
         ),
+      ),
       ),
     );
   }
