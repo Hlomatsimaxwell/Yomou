@@ -870,16 +870,131 @@ class _HomeScreenState extends ConsumerState<HomeScreen>
     AppearanceSettings settings,
     List<int> enabledTabs,
   ) {
+    // The reference's solid nav is Material's own BottomNavigationView kept
+    // alive when the floating setting is off (FloatingBottomNavigationView
+    // setUseLegacyNavigation): a full-width, evenly divided bar with the
+    // icon stacked over the label and the indicator pill wrapping the
+    // active item's icon only. Its surface is the theme's surfaceContainer,
+    // not a fixed near-black, so scheme choices and the AMOLED flattening
+    // both reach the bar.
+    final cs = Theme.of(context).colorScheme;
+    final dark = Theme.of(context).brightness == Brightness.dark;
     return Align(
       alignment: Alignment.bottomCenter,
       child: Container(
         width: double.infinity,
         height: kBottomBarHeight + MediaQuery.paddingOf(context).bottom,
         padding: EdgeInsets.only(bottom: MediaQuery.paddingOf(context).bottom),
-          color: Theme.of(context).brightness == Brightness.dark
-              ? amoled(context, 0xFF1C1C1E)
-              : Colors.white,
-        child: _buildNavRow(updatesCount, accent, settings, enabledTabs),
+        color: dark ? cs.surfaceContainer : Colors.white,
+        child: Row(
+          // Material's menu view divides the width evenly between items, so
+          // the bar reads as a docked bar; the floating pill's tight centre
+          // cluster belongs to the pill only.
+          children: [
+            for (var i = 0; i < enabledTabs.length; i++)
+              Expanded(
+                child: _buildSolidNavItem(
+                  enabledTabs[i],
+                  updatesCount,
+                  accent,
+                  settings,
+                  showLabels: settings.showNavLabels,
+                ),
+              ),
+          ],
+        ),
+      ),
+    );
+  }
+
+  // One evenly divided solid-bar item: the icon in an indicator pill on top
+  // and -- when labels are on -- the tab's name beneath it. Unlike the
+  // floating pill's item, the label never rides beside the icon and never
+  // only on the active item: Material's stacked layout shows every label, and
+  // the pill keeps a fixed size wrapped around the icon regardless of text.
+  Widget _buildSolidNavItem(
+    int index,
+    int updatesCount,
+    Color accent,
+    AppearanceSettings settings, {
+    required bool showLabels,
+  }) {
+    final active = _currentIndex == index;
+    final dark = Theme.of(context).brightness == Brightness.dark;
+    final cs = Theme.of(context).colorScheme;
+    final color = active
+        ? accent
+        : dark
+        ? const Color(0xFF8E8E93)
+        : const Color(0xFF49454F);
+    final labelColor = active
+        ? cs.onSurface
+        : dark
+        ? const Color(0xFF8E8E93)
+        : const Color(0xFF49454F);
+    final (line, fill) = _navIcons(index);
+    final surface = cs.surfaceContainer;
+
+    return Semantics(
+      container: true,
+      selected: active,
+      button: true,
+      label: _navLabel(context, index),
+      child: Material(
+        type: MaterialType.transparency,
+        child: InkWell(
+          onTap: () => _onTabTapped(index),
+          child: Column(
+            mainAxisAlignment: MainAxisAlignment.center,
+            children: [
+              // The indicator pill: fixed 64x32 wrapped around the icon,
+              // exactly Material's active_indicator width, so switching tabs
+              // slides the pill between items instead of growing it.
+              AnimatedContainer(
+                duration: const Duration(milliseconds: 240),
+                curve: Curves.easeOutCubic,
+                width: 64,
+                height: 32,
+                decoration: BoxDecoration(
+                  color: active
+                      ? Color.alphaBlend(
+                          accent.withValues(
+                            alpha: dark ? 0.26 : 0.16,
+                          ),
+                          surface,
+                        )
+                      : Colors.transparent,
+                  borderRadius: BorderRadius.circular(16),
+                ),
+                alignment: Alignment.center,
+                child: index == 4
+                    ? _buildUpdatesIcon(
+                        updatesCount,
+                        active ? fill : line,
+                        color,
+                        accent,
+                      )
+                    : Icon(active ? fill : line, size: 22, color: color),
+              ),
+              if (showLabels) ...[
+                const SizedBox(height: 4),
+                Text(
+                  _navLabel(context, index),
+                  maxLines: 1,
+                  overflow: TextOverflow.ellipsis,
+                  style: TextStyle(
+                    fontFamily: null,
+                  ).copyWith(
+                    fontSize: 12,
+                    height: 1.0,
+                    fontWeight: active ? FontWeight.w600 : FontWeight.w400,
+                    color: labelColor,
+                  ),
+                ),
+              ],
+            ],
+          ),
+        ),
       ),
     );
   }
