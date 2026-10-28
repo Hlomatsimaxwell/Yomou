@@ -578,12 +578,19 @@ class _AlternativesScreenState extends ConsumerState<AlternativesScreen> {
     final hit = row.hit;
     final total = hit.totalChapters;
 
+    final preferred = _preferredSourceId == hit.manga.sourceId;
+
     return Container(
       padding: const EdgeInsets.all(12),
       decoration: BoxDecoration(
         color: dark ? amoled(context, 0xFF232326) : _cardLightBg,
         borderRadius: BorderRadius.circular(14),
-        border: Border.all(color: dark ? Colors.white12 : const Color(0xFFE0E0E0)),
+        border: Border.all(
+          color: preferred
+              ? const Color(0xFF7C4DFF)
+              : dark ? Colors.white12 : const Color(0xFFE0E0E0),
+          width: preferred ? 2 : 1,
+        ),
       ),
       child: Row(
         crossAxisAlignment: CrossAxisAlignment.start,
@@ -625,7 +632,34 @@ class _AlternativesScreenState extends ConsumerState<AlternativesScreen> {
                     dark: dark,
                   ),
                 const SizedBox(height: 10),
-                _SourcePill(alt: row.alt, dark: dark),
+                Wrap(
+                  spacing: 6,
+                  runSpacing: 6,
+                  children: [
+                    _SourcePill(alt: row.alt, dark: dark),
+                    if (preferred)
+                      Container(
+                        padding: const EdgeInsets.symmetric(
+                          horizontal: 6,
+                          vertical: 3,
+                        ),
+                        decoration: BoxDecoration(
+                          color: const Color(0xFF7C4DFF).withValues(alpha: 0.16),
+                          borderRadius: BorderRadius.circular(10),
+                        ),
+                        child: Text(
+                          'PREFERRED',
+                          style: TextStyle(
+                            color: dark
+                                ? Colors.white
+                                : const Color(0xFF7C4DFF),
+                            fontSize: 10,
+                            fontWeight: FontWeight.w700,
+                          ),
+                        ),
+                      ),
+                  ],
+                ),
               ],
             ),
           ),
