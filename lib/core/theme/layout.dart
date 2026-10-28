@@ -34,7 +34,7 @@ const double kBottomChromeClearance = 24;
 
 /// Cap on the floating pill's width so spacing stays tight and consistent on
 /// wide screens (and on all tabs, with or without the Continue FAB beside it).
-const double kFloatingPillMaxWidth = 300;
+const double kFloatingPillMaxWidth = 380;
 
 /// Least strip of scrim a modal sheet must leave above itself.
 ///
