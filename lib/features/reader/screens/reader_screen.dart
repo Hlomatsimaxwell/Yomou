@@ -783,7 +783,7 @@ class _ReaderScreenState extends ConsumerState<ReaderScreen>
     // smaller than the window, so the page slider had almost no room. Aim
     // for a bar that fills ~88% of the width, falling back to a 16px gutter
     // once the screen is too narrow for that.
-    final cap = (width * 0.88).clamp(320.0, width - 24);
+    final cap = (width * 0.95).clamp(320.0, width - 24);
     final inset = (width - cap) / 2;
     return inset < 16 ? 16 : inset;
   }
