@@ -2626,6 +2626,70 @@ class _ReaderScreenState extends ConsumerState<ReaderScreen>
                           vertical: 2,
                         ),
                         leading: Icon(
+                          MdiIcons.checkCircleOutline,
+                          color: dark ? Colors.white : const Color(0xFF1C1B1F),
+                          size: 22,
+                        ),
+                        title: Text(
+                          'Mark current chapter as read',
+                          style: TextStyle(
+                            color: dark
+                                ? Colors.white
+                                : const Color(0xFF1C1B1F),
+                            fontSize: 15,
+                          ),
+                        ),
+                        onTap: () async {
+                          Navigator.pop(context);
+                          await _saveCascadingReadProgress();
+                          if (mounted) {
+                            ScaffoldMessenger.of(context).showSnackBar(
+                              const SnackBar(
+                                content: Text('Marked chapter as read'),
+                                duration: Duration(seconds: 2),
+                              ),
+                            );
+                          }
+                        },
+                      ),
+                      ListTile(
+                        contentPadding: const EdgeInsets.symmetric(
+                          horizontal: 4,
+                          vertical: 2,
+                        ),
+                        leading: Icon(
+                          MdiIcons.playlistCheck,
+                          color: dark ? Colors.white : const Color(0xFF1C1B1F),
+                          size: 22,
+                        ),
+                        title: Text(
+                          'Mark up to here as read',
+                          style: TextStyle(
+                            color: dark
+                                ? Colors.white
+                                : const Color(0xFF1C1B1F),
+                            fontSize: 15,
+                          ),
+                        ),
+                        onTap: () async {
+                          Navigator.pop(context);
+                          await _saveCascadingReadProgress();
+                          if (mounted) {
+                            ScaffoldMessenger.of(context).showSnackBar(
+                              const SnackBar(
+                                content: Text('Marked chapters up to here as read'),
+                                duration: Duration(seconds: 2),
+                              ),
+                            );
+                          }
+                        },
+                      ),
+                      ListTile(
+                        contentPadding: const EdgeInsets.symmetric(
+                          horizontal: 4,
+                          vertical: 2,
+                        ),
+                        leading: Icon(
                           MdiIcons.cogOutline,
                           color: dark ? Colors.white : const Color(0xFF1C1B1F),
                           size: 22,
