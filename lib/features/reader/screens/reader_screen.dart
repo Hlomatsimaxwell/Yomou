@@ -4016,7 +4016,9 @@ class _ReaderScreenState extends ConsumerState<ReaderScreen>
       case kBgLight:
         return const Color(0xFFF2F2F7);
       case kBgDark:
-        return const Color(0xFF1C1C1E);
+        return ref.read(appearanceSettingsProvider).amoledBlack
+            ? Colors.black
+            : const Color(0xFF1C1C1E);
       case kBgBlack:
       case kBgDefault:
       default:
