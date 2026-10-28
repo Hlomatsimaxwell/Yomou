@@ -909,7 +909,7 @@ class _ReaderScreenState extends ConsumerState<ReaderScreen>
   /// crowd the other out.
   Widget _buildReaderProgressSlot({bool flexible = false, int flex = 2}) {
     final track = Padding(
-      padding: const EdgeInsets.symmetric(horizontal: 8),
+      padding: const EdgeInsets.symmetric(horizontal: 2),
       child: _buildProgressTrack(),
     );
     return flexible ? Flexible(flex: flex, child: track) : Expanded(child: track);
