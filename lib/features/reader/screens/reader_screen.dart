@@ -1295,6 +1295,33 @@ class _ReaderScreenState extends ConsumerState<ReaderScreen>
     );
   }
 
+  Future<void> _pinCurrentBookmark() async {
+    if (_pages.isEmpty) return;
+    if (_currentChapterIndex < 0 || _currentChapterIndex >= widget.allChapters.length) {
+      return;
+    }
+    final chapter = widget.allChapters[_currentChapterIndex];
+    final page = _pages[_currentPageIndex.clamp(0, _pages.length - 1)];
+    await DatabaseHelper.instance.addBookmark(
+      mangaId: widget.mangaId,
+      chapterId: chapter.id,
+      chapterTitle: chapter.title,
+      pageIndex: _currentPageIndex,
+      pageUrl: page,
+    );
+    setState(() {
+      _bookmarkedKeys.add(_bookmarkKey(chapter.id, _currentPageIndex));
+    });
+    if (mounted) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(
+          content: Text('Bookmark pinned to this page'),
+          duration: Duration(seconds: 2),
+        ),
+      );
+    }
+  }
+
   Future<void> _saveCurrentPage() async {
     if (_pages.isEmpty) return;
     final pageIndex = _currentPageIndex.clamp(0, _pages.length - 1);
@@ -2582,6 +2609,30 @@ class _ReaderScreenState extends ConsumerState<ReaderScreen>
                           ),
                         ),
                         onTap: _showColorCorrectionDialog,
+                      ),
+                      ListTile(
+                        contentPadding: const EdgeInsets.symmetric(
+                          horizontal: 4,
+                          vertical: 2,
+                        ),
+                        leading: Icon(
+                          MdiIcons.bookmarkPlusOutline,
+                          color: dark ? Colors.white : const Color(0xFF1C1B1F),
+                          size: 22,
+                        ),
+                        title: Text(
+                          'Pin this page (bookmark)',
+                          style: TextStyle(
+                            color: dark
+                                ? Colors.white
+                                : const Color(0xFF1C1B1F),
+                            fontSize: 15,
+                          ),
+                        ),
+                        onTap: () async {
+                          Navigator.pop(context);
+                          await _pinCurrentBookmark();
+                        },
                       ),
                       SwitchListTile(
                         contentPadding: const EdgeInsets.symmetric(
