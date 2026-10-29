@@ -389,7 +389,10 @@ class _MangaGridScreenState extends ConsumerState<MangaGridScreen> {
     WidgetsBinding.instance.addPostFrameCallback((_) {
       if (!mounted || _isLoading || _isLoadingMore || !_hasMore) return;
       if (!_scrollController.hasClients) return;
-      if (_scrollController.position.maxScrollExtent <= 0) _loadMore();
+      final position = _scrollController.position;
+      // Less than a screenful left to scroll: fetch the next page now rather
+      // than waiting for a drag that may be only a few pixels deep.
+      if (position.maxScrollExtent <= position.viewportDimension) _loadMore();
     });
   }
 

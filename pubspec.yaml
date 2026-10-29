@@ -2,7 +2,7 @@ name: yomou
 description: "Yomou - a Kotatsu-style manga reader."
 publish_to: 'none'
 
-version: 1.1.8+303
+version: 1.1.8+305
 license: Apache-2.0
 
 environment:
