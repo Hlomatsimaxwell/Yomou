@@ -14,7 +14,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - **A new source no longer arrives switched on** — a source the app has never seen keeps the default it ships with, so a bundled catalogue cannot quietly turn itself on after an update.
 
 ### Fixed
-- **Source listings scroll past the first page** — pagination now continues whenever a page returned any results, instead of assuming a full page of 20. Sites whose archive serves 12 cards per page (the bundled Madara catalogue) were stuck on those 12 no matter what was searched.
+- **Source listings scroll past the first page** — pagination now keeps fetching while the listing still fits the window, and continues whenever a page returned any results instead of assuming a full page of 20. Sites whose archive serves 12 cards per page (the bundled Madara catalogue) were stuck on those 12 on a wide screen, where there was nothing to scroll and the next page was never requested.
 - **Bundled sources wear their own logo** — icon discovery now scrapes the source's homepage rather than the CDN that hosts the bundled icon file, so a Madara source no longer shows jsDelivr's badge instead of its favicon.
 
 ## [1.1.8] - 2026-10-27

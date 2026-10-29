@@ -196,6 +196,7 @@ class _SourceSearchResultsScreenState
         _hasMore = results.isNotEmpty;
         _isInitialLoading = false;
       });
+      _fillViewport();
     } catch (e) {
       if (!mounted) return;
       setState(() {
@@ -229,10 +230,22 @@ class _SourceSearchResultsScreenState
         }
         _isLoadingMore = false;
       });
+      _fillViewport();
     } catch (e) {
       if (!mounted) return;
       setState(() => _isLoadingMore = false);
     }
+  }
+
+  /// Fetches the next page while the results still fit the window, so a short
+  /// page (12 cards) is not mistaken for the whole catalogue on a wide screen
+  /// where there is nothing to scroll.
+  void _fillViewport() {
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      if (!mounted || _isInitialLoading || _isLoadingMore || !_hasMore) return;
+      if (!_scrollController.hasClients) return;
+      if (_scrollController.position.maxScrollExtent <= 0) _loadMore();
+    });
   }
 
   void _onScroll() {

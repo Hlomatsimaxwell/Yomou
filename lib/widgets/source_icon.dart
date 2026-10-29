@@ -213,8 +213,11 @@ class _SourceIconState extends State<SourceIcon> {
         // request away.
         if (parsed != null && parsed.host.isNotEmpty)
           'Referer': '${parsed.scheme}://${parsed.host}/',
-        'Accept':
-            'image/avif,image/webp,image/png,image/svg+xml,image/*,*/*;q=0.8',
+        // Formats the plate can actually decode. WebP/AVIF are deliberately
+        // absent: Cloudflare (and similar CDNs) then serve the site's original
+        // PNG/JPEG instead of a re-encoded lossless WebP, which older Android
+        // decoders (Waydroid, some Huawei builds) reject outright.
+        'Accept': 'image/png,image/jpeg,image/gif,image/svg+xml,image/*;q=0.8',
       };
       return (SourceIcon.debugImageLoader ?? SourceIcon.defaultLoader)(
         // The loader is stateful about its URL, and a walk replaces a failed

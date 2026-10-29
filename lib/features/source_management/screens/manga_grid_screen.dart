@@ -260,10 +260,12 @@ class _MangaGridScreenState extends ConsumerState<MangaGridScreen> {
         _mangaList = manga;
         _isLoading = false;
         _searchMode = searching;
+        _hasMore = manga.isNotEmpty;
         _seenIds
           ..clear()
           ..addAll(manga.map((m) => m.id));
       });
+      _fillViewport();
     } on CaptchaRequiredException catch (e) {
       if (!mounted || queryAtLoad != _searchQuery.trim()) return;
       setState(() {
@@ -377,6 +379,20 @@ class _MangaGridScreenState extends ConsumerState<MangaGridScreen> {
     }
   }
 
+  /// Keeps asking for the next page while the grid still fits the window.
+  ///
+  /// A short first page (the bundled Madara archives serve 12 cards) leaves
+  /// nothing to scroll on a wide window, so [_onScroll] never fires and the
+  /// source looks capped at 12 results. Fetching until the grid overflows
+  /// restores ordinary "scroll for more" behaviour on every screen size.
+  void _fillViewport() {
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      if (!mounted || _isLoading || _isLoadingMore || !_hasMore) return;
+      if (!_scrollController.hasClients) return;
+      if (_scrollController.position.maxScrollExtent <= 0) _loadMore();
+    });
+  }
+
   Future<void> _loadMore() async {
     if (_isLoadingMore || !_hasMore || _isLoading) return;
     final next = _page + 1;
@@ -408,9 +424,11 @@ class _MangaGridScreenState extends ConsumerState<MangaGridScreen> {
         _page = next;
         _mangaList = [..._mangaList, ...fresh];
         _isLoadingMore = false;
-        // An empty page means we hit the end of the catalog.
-        if (manga.isEmpty) _hasMore = false;
+        // An empty page, or one that only repeated titles already on screen,
+        // means we hit the end of the catalog.
+        if (manga.isEmpty || fresh.isEmpty) _hasMore = false;
       });
+      _fillViewport();
     } catch (_) {
       if (!mounted) return;
       // Stop paginating quietly (the existing content stays usable).
