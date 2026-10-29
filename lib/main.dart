@@ -910,36 +910,43 @@ class _HomeScreenState extends ConsumerState<HomeScreen>
   ) {
     // The reference's solid nav is Material's own BottomNavigationView kept
     // alive when the floating setting is off (FloatingBottomNavigationView
-    // setUseLegacyNavigation): a full-width, evenly divided bar with the
-    // icon stacked over the label and the indicator pill wrapping the
-    // active item's icon only. Its surface is the theme's surfaceContainer,
-    // not a fixed near-black, so scheme choices and the AMOLED flattening
-    // both reach the bar.
+    // setUseLegacyNavigation). Its Expressive style (material 1.14.0) is what
+    // this reproduces: a full-width, evenly divided bar, 64dp tall, painted
+    // colorSurfaceContainer and lifted by a level-2 (3dp) elevation shadow.
+    // The gesture inset is part of that surface too -- the legacy view pads
+    // itself by the system bar height rather than letting the content show
+    // through -- so the bar keeps its colour all the way to the screen edge.
     final cs = Theme.of(context).colorScheme;
-    final dark = Theme.of(context).brightness == Brightness.dark;
+    final inset = MediaQuery.paddingOf(context).bottom;
     return Align(
       alignment: Alignment.bottomCenter,
-      child: Container(
-        width: double.infinity,
-        height: kBottomBarHeight + MediaQuery.paddingOf(context).bottom,
-        padding: EdgeInsets.only(bottom: MediaQuery.paddingOf(context).bottom),
-        color: dark ? cs.surfaceContainer : Colors.white,
-        child: Row(
-          // Material's menu view divides the width evenly between items, so
-          // the bar reads as a docked bar; the floating pill's tight centre
-          // cluster belongs to the pill only.
-          children: [
-            for (var i = 0; i < enabledTabs.length; i++)
-              Expanded(
-                child: _buildSolidNavItem(
-                  enabledTabs[i],
-                  updatesCount,
-                  accent,
-                  settings,
-                  showLabels: settings.showNavLabels,
+      child: Material(
+        color: cs.surfaceContainer,
+        elevation: 3,
+        // Flutter's Material tints elevated surfaces by default; Material 3
+        // (and the reference) paint the container tone flat instead.
+        surfaceTintColor: Colors.transparent,
+        child: Container(
+          width: double.infinity,
+          height: kBottomBarHeight + inset,
+          padding: EdgeInsets.only(bottom: inset),
+          child: Row(
+            // Material's menu view divides the width evenly between items, so
+            // the bar reads as a docked bar; the floating pill's tight centre
+            // cluster belongs to the pill only.
+            children: [
+              for (var i = 0; i < enabledTabs.length; i++)
+                Expanded(
+                  child: _buildSolidNavItem(
+                    enabledTabs[i],
+                    updatesCount,
+                    accent,
+                    settings,
+                    showLabels: settings.showNavLabels,
+                  ),
                 ),
-              ),
-          ],
+            ],
+          ),
         ),
       ),
     );
@@ -950,6 +957,12 @@ class _HomeScreenState extends ConsumerState<HomeScreen>
   // floating pill's item, the label never rides beside the icon and never
   // only on the active item: Material's stacked layout shows every label, and
   // the pill keeps a fixed size wrapped around the icon regardless of text.
+  //
+  // The colours are the Expressive bottom-nav tokens rather than the app
+  // accent: a selected item wears onSecondaryContainer on a secondaryContainer
+  // pill with a secondary label, and an unselected one is onSurfaceVariant
+  // throughout. That is why the selected icon reads light-on-slate instead of
+  // accent-tinted.
   Widget _buildSolidNavItem(
     int index,
     int updatesCount,
@@ -958,20 +971,10 @@ class _HomeScreenState extends ConsumerState<HomeScreen>
     required bool showLabels,
   }) {
     final active = _currentIndex == index;
-    final dark = Theme.of(context).brightness == Brightness.dark;
     final cs = Theme.of(context).colorScheme;
-    final color = active
-        ? accent
-        : dark
-        ? const Color(0xFF8E8E93)
-        : const Color(0xFF49454F);
-    final labelColor = active
-        ? cs.onSurface
-        : dark
-        ? const Color(0xFF8E8E93)
-        : const Color(0xFF49454F);
+    final color = active ? cs.onSecondaryContainer : cs.onSurfaceVariant;
+    final labelColor = active ? cs.secondary : cs.onSurfaceVariant;
     final (line, fill) = _navIcons(index);
-    final surface = cs.surfaceContainer;
 
     return Semantics(
       container: true,
@@ -985,23 +988,18 @@ class _HomeScreenState extends ConsumerState<HomeScreen>
           child: Column(
             mainAxisAlignment: MainAxisAlignment.center,
             children: [
-              // The indicator pill: fixed 64x32 wrapped around the icon,
-              // exactly Material's active_indicator width, so switching tabs
-              // slides the pill between items instead of growing it.
+              // The active indicator: Material 3 Expressive's vertical spec is
+              // 56x32 (not the 64x32 horizontal one) in colorSecondaryContainer,
+              // fully rounded, with 4dp of margin either side. A fixed size
+              // means the pill never grows with the label and switching tabs
+              // just moves it.
               AnimatedContainer(
                 duration: const Duration(milliseconds: 240),
                 curve: Curves.easeOutCubic,
-                width: 64,
+                width: 56,
                 height: 32,
                 decoration: BoxDecoration(
-                  color: active
-                      ? Color.alphaBlend(
-                          accent.withValues(
-                            alpha: dark ? 0.26 : 0.16,
-                          ),
-                          surface,
-                        )
-                      : Colors.transparent,
+                  color: active ? cs.secondaryContainer : Colors.transparent,
                   borderRadius: BorderRadius.circular(16),
                 ),
                 alignment: Alignment.center,
@@ -1011,8 +1009,9 @@ class _HomeScreenState extends ConsumerState<HomeScreen>
                         active ? fill : line,
                         color,
                         accent,
+                        size: 24,
                       )
-                    : Icon(active ? fill : line, size: 22, color: color),
+                    : Icon(active ? fill : line, size: 24, color: color),
               ),
               if (showLabels) ...[
                 const SizedBox(height: 4),
@@ -1021,11 +1020,13 @@ class _HomeScreenState extends ConsumerState<HomeScreen>
                   maxLines: 1,
                   overflow: TextOverflow.ellipsis,
                   style: TextStyle(
-                    fontFamily: null,
-                  ).copyWith(
+                    // Material's LabelMedium: 12sp at 0.5 letter spacing with
+                    // a 16dp line box, medium weight in both states (the
+                    // Expressive style disables the active-state bolding).
                     fontSize: 12,
-                    height: 1.0,
-                    fontWeight: active ? FontWeight.w600 : FontWeight.w400,
+                    height: 16 / 12,
+                    letterSpacing: 0.5,
+                    fontWeight: FontWeight.w500,
                     color: labelColor,
                   ),
                 ),
