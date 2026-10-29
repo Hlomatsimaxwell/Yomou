@@ -33,6 +33,8 @@ import '../sources/flame_source.dart';
 import '../sources/mangabat_source.dart';
 import '../sources/mangafire_source.dart';
 import '../sources/manhuaplus_source.dart';
+import '../sources/madara_source.dart';
+import '../sources/catalog/madara_catalog.g.dart';
 
 // 1. THE SOURCE REGISTRY
 //
@@ -112,6 +114,12 @@ MangaSource? _mangaBallByName(String name) {
 }
 
 MangaSource getSourceByName(String name) {
+  // Bundled catalog sites (see lib/data/sources/catalog/). They are generic
+  // Madara configs, so a lookup by display name is all the registry needs.
+  final catalogConfig = catalogMadaraByName[name];
+  if (catalogConfig != null) {
+    return _shared(catalogConfig.id, () => MadaraSource(catalogConfig));
+  }
   switch (name) {
     case 'MangaDex': // <--- 2. ADD THIS CASE
       return _shared('mangadex', MangaDexSource.new);
@@ -1037,6 +1045,10 @@ class SourcesNotifier extends StateNotifier<List<Map<String, dynamic>>> {
       'iconUrl': 'https://infrafandub.com/favicon.ico',
       'isPinned': false,
     },
+    // Bundled Madara catalog (see lib/data/sources/catalog/). These arrive
+    // disabled so 90+ extra sites do not join global search or the updates
+    // refresh until the reader turns one on.
+    ...catalogSourceRows,
   ];
 
   Future<void> _loadFromPrefs() async {
@@ -1061,7 +1073,9 @@ class SourcesNotifier extends StateNotifier<List<Map<String, dynamic>>> {
         source['name'] as String: {
           ...source,
           'isPinned': pinnedMap[source['name']] ?? false,
-          'isEnabled': enabledMap[source['name']] ?? true,
+          // A source the reader has never seen keeps the registry's own
+          // default, so the disabled-by-default catalog stays disabled.
+          'isEnabled': enabledMap[source['name']] ?? isSourceEnabled(source),
         },
     };
 

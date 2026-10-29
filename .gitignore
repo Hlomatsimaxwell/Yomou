@@ -50,3 +50,6 @@ app.*.map.json
 # opencode workspace state (DB backups, run history, temp notes)
 .opencode/
 android/build/
+
+# Local-only data (source catalogs, probes) - not shipped
+.data/

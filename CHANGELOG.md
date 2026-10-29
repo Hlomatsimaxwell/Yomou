@@ -5,6 +5,14 @@ All notable changes to Yomou are documented here.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [Unreleased]
+
+### Added
+- **92 more sources, bundled** — a config-driven Madara engine now ships a validated catalogue of Madara sites (English, Spanish, Portuguese, Turkish, Arabic, Thai, Vietnamese and more) as ordinary sources. Each one was checked end to end before it was bundled: listing, series page, chapter list and reader all answered. They arrive **disabled**, so nothing joins global search or the updates refresh until you switch one on in Manage sources.
+
+### Changed
+- **A new source no longer arrives switched on** — a source the app has never seen keeps the default it ships with, so a bundled catalogue cannot quietly turn itself on after an update.
+
 ## [1.1.8] - 2026-10-27
 
 ### Added
