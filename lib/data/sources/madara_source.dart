@@ -59,7 +59,12 @@ class MadaraSource extends DioSource implements MangaSource {
   String _pageUrl(String path, int page) {
     if (path.contains('{page}')) return path.replaceAll('{page}', '$page');
     if (page <= 1) return path;
-    return '$path${path.contains('?') ? '&' : '?'}page=$page';
+    // WordPress paginates search and taxonomy results with `paged`, while
+    // archive pages take `page`. Using `page` on a search silently returns
+    // page one again, which looks like "the source only has 12 results".
+    final searchLike = path.contains('?s=') || path.contains('genre[]=');
+    return '$path${path.contains('?') ? '&' : '?'}'
+        '${searchLike ? 'paged' : 'page'}=$page';
   }
 
   String _fromPath(String href) {

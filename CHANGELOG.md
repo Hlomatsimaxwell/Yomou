@@ -15,6 +15,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Fixed
 - **Source listings scroll past the first page** — pagination now keeps fetching while the listing still fits the window, and continues whenever a page returned any results instead of assuming a full page of 20. Sites whose archive serves 12 cards per page (the bundled Madara catalogue) were stuck on those 12 on a wide screen, where there was nothing to scroll and the next page was never requested.
+- **Search results continue past the first page** — WordPress paginates search with `paged`, not `page`; the catalogue's sites were asking for a second page in a way the site ignored, so search always showed page one again. Search and tag listings now use the right parameter.
 - **Bundled sources wear their own logo** — icon discovery now scrapes the source's homepage rather than the CDN that hosts the bundled icon file, so a Madara source no longer shows jsDelivr's badge instead of its favicon.
 
 ## [1.1.8] - 2026-10-27
