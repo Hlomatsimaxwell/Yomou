@@ -254,10 +254,9 @@ class MadaraSource extends DioSource implements MangaSource {
       final coverEl =
           document.querySelector('.summary_image img') ??
           document.querySelector(config.mangaCoverSelector);
+      final attrCover = (coverEl?.attributes[config.coverAttr] ?? '').trim();
       final cover =
-          coverEl?.attributes[config.coverAttr] ??
-          coverEl?.attributes['src'] ??
-          '';
+          attrCover.isNotEmpty ? attrCover : (coverEl?.attributes['src'] ?? '').trim();
       final description =
           document
               .querySelector(config.detailDescriptionSelector)
