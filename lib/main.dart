@@ -1584,11 +1584,12 @@ class _HomeScreenState extends ConsumerState<HomeScreen>
                 Text(
                   AppLocalizations.of(context).continueAction,
                   style: TextStyle(
-                    // Material's LabelLarge.
+                    // Material's LabelLarge, at the weight the reference's
+                    // shadowed nav label actually renders (Google Sans Bold).
                     fontSize: 14,
                     height: 20 / 14,
                     letterSpacing: 0.1,
-                    fontWeight: FontWeight.w500,
+                    fontWeight: FontWeight.w600,
                     color: contentColor,
                   ),
                 ),
