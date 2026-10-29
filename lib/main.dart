@@ -723,7 +723,9 @@ class _HomeScreenState extends ConsumerState<HomeScreen>
                       _buildSolidNav(
                         context, updatesCount, accent, settings, enabledTabs),
                       Positioned(
-                        right: 20,
+                        // The reference anchors its continue FAB to the nav's
+                        // top end with a 16dp horizontal margin.
+                        right: 16,
                         bottom: bottomBarTopEdge(context) + 12,
                         child: showFab
                             ? KeyedSubtree(
@@ -1437,7 +1439,7 @@ class _HomeScreenState extends ConsumerState<HomeScreen>
     // affordance, so name it; the pill beside the floating bar leaves it
     // as an icon.
     final extended = !ref.read(appearanceSettingsProvider).useFloatingNavBar;
-    if (extended) return _buildExtendedContinueFab(accent);
+    if (extended) return _buildExtendedContinueFab();
     final dark = Theme.of(context).brightness == Brightness.dark;
     final frosted = ref.watch(appearanceSettingsProvider).useFrostedGlass;
     // Pill's frosted recipe, gelled with the app accent: reads like the pill's
@@ -1536,57 +1538,64 @@ class _HomeScreenState extends ConsumerState<HomeScreen>
     );
   }
 
-  Widget _buildExtendedContinueFab(Color accent) {
-    final dark = Theme.of(context).brightness == Brightness.dark;
-    final frosted = ref.watch(appearanceSettingsProvider).useFrostedGlass;
-    final glass = dark
-        ? amoled(context, 0x661C1C1E)
-        : Colors.white.withValues(alpha: 0.62);
-    final tint = accent.withValues(alpha: dark ? 0.45 : 0.32);
-    final gel = Color.alphaBlend(tint, glass);
-    final gelSolid =
-        Color.alphaBlend(tint, dark ? amoled(context, 0xFF1C1C1E) : Colors.white);
-    final inner = Container(
-      padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 10),
-      color: _isContinuing ? amoled(context, 0xFF2A2A2E) : gel,
-      child: _isContinuing
-          ? const SizedBox(
-              width: 24,
-              height: 24,
-              child: CircularProgressIndicator(
-                color: Colors.white,
-                strokeWidth: 2.5,
-              ),
-            )
-          : Row(
+  // The docked-bar Continue button: Material 3's ExtendedFloatingActionButton
+  // in the Primary colour mapping, which is what the reference uses for its
+  // own continue FAB (Widget.Kotatsu.ExtendedFab.Continue parent
+  // Widget.Material3.ExtendedFloatingActionButton.Primary). That means
+  // colorPrimaryContainer / colorOnPrimaryContainer -- a solid tone, not the
+  // accent gel the floating pill's round button wears -- at the small size:
+  // 56dp tall, 16dp corner, 24dp icon, LabelLarge label, 16dp side padding,
+  // 8dp icon-to-label gap and level-3 (6dp) elevation.
+  Widget _buildExtendedContinueFab() {
+    final cs = Theme.of(context).colorScheme;
+    final contentColor = cs.onPrimaryContainer;
+    return Material(
+      elevation: 6,
+      borderRadius: BorderRadius.circular(16),
+      color: cs.primaryContainer,
+      clipBehavior: Clip.antiAlias,
+      child: InkWell(
+        onTap: _isContinuing ? null : _continueReading,
+        child: SizedBox(
+          height: 56,
+          child: Padding(
+            padding: const EdgeInsets.symmetric(horizontal: 16),
+            child: Row(
               mainAxisSize: MainAxisSize.min,
               children: [
-                Icon(Icons.local_library, color: accent, size: 22),
+                if (_isContinuing)
+                  SizedBox(
+                    width: 24,
+                    height: 24,
+                    child: CircularProgressIndicator(
+                      color: contentColor,
+                      strokeWidth: 2.5,
+                    ),
+                  )
+                else
+                  Icon(
+                    // Kotatsu-Redo's ic_read -- the Material local_library
+                    // glyph, a reader's head over the open book.
+                    Icons.local_library,
+                    color: contentColor,
+                    size: 24,
+                  ),
                 const SizedBox(width: 8),
                 Text(
                   AppLocalizations.of(context).continueAction,
                   style: TextStyle(
-                    color: accent,
+                    // Material's LabelLarge.
                     fontSize: 14,
-                    fontWeight: FontWeight.w600,
+                    height: 20 / 14,
+                    letterSpacing: 0.1,
+                    fontWeight: FontWeight.w500,
+                    color: contentColor,
                   ),
                 ),
               ],
             ),
-    );
-    return Material(
-      elevation: 8,
-      borderRadius: BorderRadius.circular(24),
-      color: _isContinuing ? amoled(context, 0xFF2A2A2E) : gelSolid,
-      clipBehavior: Clip.antiAlias,
-      child: InkWell(
-        onTap: _isContinuing ? null : _continueReading,
-        child: frosted
-            ? BackdropFilter(
-                filter: ImageFilter.blur(sigmaX: 16, sigmaY: 16),
-                child: inner,
-              )
-            : inner,
+          ),
+        ),
       ),
     );
   }
