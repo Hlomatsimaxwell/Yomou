@@ -44,6 +44,9 @@ List<Map<String, dynamic>> get catalogSourceRows => [
       'name': (raw as Map)['name'] as String,
       'language': raw['language'] as String,
       'iconUrl': raw['iconUrl'] as String? ?? '',
+      // The site itself, not the CDN its icon happens to live on: [SourceIcon]
+      // scrapes this origin for the real logo.
+      'siteUrl': raw['baseUrl'] as String,
       'isPinned': false,
       'isEnabled': false,
       if (raw['nsfw'] == true) 'nsfw': true,

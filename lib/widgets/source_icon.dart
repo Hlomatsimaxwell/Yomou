@@ -30,12 +30,20 @@ class SourceIcon extends StatefulWidget {
     super.key,
     required this.name,
     this.iconUrl = '',
+    this.siteUrl = '',
     this.size = 56,
     this.assetPath = '',
   });
 
   final String name;
   final String iconUrl;
+
+  /// The source's own website, whose homepage is scraped for the real logo.
+  /// When empty, discovery falls back to [iconUrl]'s origin — correct for a
+  /// source that hosts its icon itself, wrong for one whose icon lives on a
+  /// CDN (the catalog's `cdn.jsdelivr.net` icons would otherwise make the
+  /// CDN's favicon the source's logo).
+  final String siteUrl;
   final double size;
 
   /// Bundled artwork, used when [iconUrl] cannot be decoded by Flutter (a
@@ -129,6 +137,7 @@ class _SourceIconState extends State<SourceIcon> {
   void didUpdateWidget(covariant SourceIcon oldWidget) {
     super.didUpdateWidget(oldWidget);
     if (oldWidget.iconUrl != widget.iconUrl ||
+        oldWidget.siteUrl != widget.siteUrl ||
         oldWidget.name != widget.name ||
         oldWidget.assetPath != widget.assetPath) {
       // A different source behind the same plate: resolve it instead.
@@ -138,7 +147,10 @@ class _SourceIconState extends State<SourceIcon> {
   }
 
   void _discover() {
-    final chain = FaviconResolver.candidates(widget.iconUrl);
+    final chain = FaviconResolver.candidates(
+      widget.iconUrl,
+      siteUrl: widget.siteUrl,
+    );
     chain?.then((candidates) {
       if (!mounted) return;
       setState(() => _recovered = candidates);
@@ -275,7 +287,9 @@ class _SourceIconState extends State<SourceIcon> {
       ),
       child: ClipRRect(
         borderRadius: BorderRadius.circular(radius),
-        child: (widget.iconUrl.isNotEmpty || bundled.isNotEmpty)
+        child: (widget.iconUrl.isNotEmpty ||
+                widget.siteUrl.isNotEmpty ||
+                bundled.isNotEmpty)
             ? logo()
             : fallback(),
       ),

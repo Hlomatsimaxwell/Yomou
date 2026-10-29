@@ -766,6 +766,7 @@ class _FavoritesScreenState extends ConsumerState<FavoritesScreen> {
               leading: SourceIcon(
                 name: source.name,
                 iconUrl: source.iconUrl,
+                siteUrl: source.websiteUrl,
                 size: 14,
               ),
               label: source.name,

@@ -40,8 +40,6 @@ class SourceSearchResultsScreen extends ConsumerStatefulWidget {
 
 class _SourceSearchResultsScreenState
     extends ConsumerState<SourceSearchResultsScreen> {
-  static const int _pageSize = 20;
-
   late final MangaSource _source = widget.source;
   String _filterQuery = '';
   List<String> _genres = [];
@@ -192,7 +190,10 @@ class _SourceSearchResultsScreenState
       if (!mounted) return;
       setState(() {
         _mangaList.addAll(results);
-        _hasMore = results.length >= _pageSize;
+        // Any page with results may have a next one. A site that serves a
+        // short page (MangaRead's archive holds 12 cards) is still paginated;
+        // the duplicate-id check in [_loadMore] is what detects the real end.
+        _hasMore = results.isNotEmpty;
         _isInitialLoading = false;
       });
     } catch (e) {
@@ -224,7 +225,7 @@ class _SourceSearchResultsScreenState
           _hasMore = false;
         } else {
           _mangaList.addAll(fresh);
-          _hasMore = results.length >= _pageSize;
+          _hasMore = results.isNotEmpty;
         }
         _isLoadingMore = false;
       });

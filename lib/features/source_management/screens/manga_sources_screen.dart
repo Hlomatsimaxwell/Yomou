@@ -209,6 +209,7 @@ class _ManageSourcesScreenState extends ConsumerState<ManageSourcesScreen> {
             child: SourceIcon(
               name: sourceName,
               iconUrl: source['iconUrl'] as String? ?? '',
+              siteUrl: source['siteUrl'] as String? ?? '',
             ),
           ),
         ),

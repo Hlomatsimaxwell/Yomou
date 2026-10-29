@@ -1142,7 +1142,12 @@ class _SourcePill extends StatelessWidget {
         children: [
           // Same universal plate as the sources list, downsized for an inline
           // chip (still a rounded square with the letter fallback).
-          SourceIcon(name: alt.name, iconUrl: iconUrl, size: 14),
+          SourceIcon(
+            name: alt.name,
+            iconUrl: iconUrl,
+            siteUrl: alt.source.websiteUrl,
+            size: 14,
+          ),
           const SizedBox(width: 6),
           Flexible(
             child: Text(

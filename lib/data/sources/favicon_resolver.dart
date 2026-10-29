@@ -92,21 +92,19 @@ class FaviconResolver {
     }
   }();
 
-  /// Discovers the logos of the site pointed at by [iconUrl], ordered how a
-  /// consumer should try them. Returns null only when [iconUrl] has no usable
-  /// http(s) host at all — then there is no homepage to scrape and the
-  /// declared URL is all there ever was.
-  static Future<List<String>>? candidates(String iconUrl) {
+  /// Discovers the logos of the site pointed at by [siteUrl], falling back to
+  /// [iconUrl]'s origin when no site URL is given. Ordered how a consumer
+  /// should try them. Returns null only when neither URL has a usable http(s)
+  /// host at all — then there is no homepage to scrape and the declared URL is
+  /// all there ever was.
+  ///
+  /// [siteUrl] matters for catalog sources: their [iconUrl] points at a CDN
+  /// (e.g. `cdn.jsdelivr.net` for the Mihon extension index), and scraping the
+  /// CDN's homepage discovers the CDN's own favicon rather than the site's.
+  static Future<List<String>>? candidates(String iconUrl, {String? siteUrl}) {
     if (_underTest) return debugOverride?.call(iconUrl);
-    final uri = Uri.tryParse(iconUrl);
-    final host = uri?.host;
-    final scheme = uri?.scheme ?? '';
-    if (host == null ||
-        host.isEmpty ||
-        scheme != 'https' && scheme != 'http') {
-      return null;
-    }
-    final origin = '$scheme://$host';
+    final origin = _originOf(siteUrl) ?? _originOf(iconUrl);
+    if (origin == null) return null;
     final inFlight = _inFlight[origin];
     if (inFlight != null) return inFlight;
     final cached = _cache[origin];
@@ -114,6 +112,21 @@ class FaviconResolver {
     final future = _load(origin).whenComplete(() => _inFlight.remove(origin));
     _inFlight[origin] = future;
     return future;
+  }
+
+  /// The `scheme://host` of a homepage or asset URL, or null when it is not an
+  /// absolute http(s) URL.
+  static String? _originOf(String? url) {
+    if (url == null || url.isEmpty) return null;
+    final uri = Uri.tryParse(url);
+    final host = uri?.host;
+    final scheme = uri?.scheme ?? '';
+    if (host == null ||
+        host.isEmpty ||
+        scheme != 'https' && scheme != 'http') {
+      return null;
+    }
+    return '$scheme://$host';
   }
 
   /// Disk first, network second: a fresh enough persisted entry answers the

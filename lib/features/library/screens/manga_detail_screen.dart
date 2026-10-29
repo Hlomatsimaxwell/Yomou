@@ -4430,7 +4430,12 @@ class _MangaDetailScreenState extends ConsumerState<MangaDetailScreen> {
   Widget _buildSourceIcon() {
     final name = _sourceName ?? '';
     final source = getSourceBySourceId(widget.sourceId ?? '');
-    return SourceIcon(name: name, iconUrl: source?.iconUrl ?? '', size: 20);
+    return SourceIcon(
+      name: name,
+      iconUrl: source?.iconUrl ?? '',
+      siteUrl: source?.websiteUrl ?? '',
+      size: 20,
+    );
   }
 
   /// Human-readable byte counts for the "On Device" row.

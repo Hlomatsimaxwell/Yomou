@@ -616,6 +616,7 @@ class _MangaGridScreenState extends ConsumerState<MangaGridScreen> {
                       SourceIcon(
                         name: widget.sourceName,
                         iconUrl: getSourceByName(widget.sourceName).iconUrl,
+                        siteUrl: getSourceByName(widget.sourceName).websiteUrl,
                         size: 40,
                       ),
                       const SizedBox(width: 12),

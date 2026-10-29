@@ -1966,6 +1966,7 @@ class _HistoryScreenState extends ConsumerState<HistoryScreen> {
               leading: SourceIcon(
                 name: source.name,
                 iconUrl: source.iconUrl,
+                siteUrl: source.websiteUrl,
                 size: 14,
               ),
               label: source.name,

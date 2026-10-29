@@ -698,6 +698,7 @@ class _ExploreScreenState extends ConsumerState<ExploreScreen> {
           final name = source['name'] as String;
           final language = source['language'] as String? ?? '';
           final iconUrl = source['iconUrl'] as String? ?? '';
+          final siteUrl = source['siteUrl'] as String? ?? '';
 
           return InkWell(
             borderRadius: BorderRadius.circular(14),
@@ -718,7 +719,11 @@ class _ExploreScreenState extends ConsumerState<ExploreScreen> {
               padding: const EdgeInsets.symmetric(vertical: 4),
               child: Row(
                 children: [
-                  SourceIcon(name: name, iconUrl: iconUrl),
+                  SourceIcon(
+                    name: name,
+                    iconUrl: iconUrl,
+                    siteUrl: siteUrl,
+                  ),
                   const SizedBox(width: 16),
                   Expanded(
                     child: Column(
@@ -804,6 +809,7 @@ class _ExploreScreenState extends ConsumerState<ExploreScreen> {
               final isPinned = source['isPinned'] == true;
               final isSelected = _selectedSourceNames.contains(name);
               final iconUrl = source['iconUrl'] as String? ?? '';
+              final siteUrl = source['siteUrl'] as String? ?? '';
               // Inset with the plate rather than fixed, so the pin keeps its
               // place on the corner as the plate grows.
               final pinInset = (layout.iconSize * 0.07).roundToDouble();
@@ -834,6 +840,7 @@ class _ExploreScreenState extends ConsumerState<ExploreScreen> {
                         SourceIcon(
                           name: name,
                           iconUrl: iconUrl,
+                          siteUrl: siteUrl,
                           size: layout.iconSize,
                         ),
                         if (isPinned)
