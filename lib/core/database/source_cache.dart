@@ -65,7 +65,7 @@ class SourceCache {
     required Future<List<Manga>> Function() fetch,
   }) async {
     return _run<List<Manga>>(
-      key: '$sourceId/list/$kind/$arg/$page',
+      key: '$sourceId/list/v2/$kind/$arg/$page',
       maxAge: kind == 'popular' ? _maxAgePopular : _maxAgeSearch,
       forceRefresh: forceRefresh,
       decode: (json) {
