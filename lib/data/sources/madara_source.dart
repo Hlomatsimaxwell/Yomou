@@ -1,7 +1,6 @@
 import 'dart:convert';
 import 'package:html/parser.dart' as parser;
 import 'package:html/dom.dart' as dom;
-import 'package:yomou/core/diagnostics/diag_log.dart';
 import '../models/manga_source.dart';
 import '../models/manga_filter.dart';
 import '../models/manga.dart';
@@ -167,12 +166,9 @@ class MadaraSource extends DioSource implements MangaSource {
     try {
       final path = _pageUrl(config.popularPath, page);
       final html = await grabText('$baseUrl/$path');
-      final out = _parseMangaGrid(html);
-      diagSoon('$id popular page=$page path=$path html=${html.length} cards=${out.length}');
-      return out;
+      return _parseMangaGrid(html);
     } catch (e) {
       if (e is CaptchaRequiredException) rethrow;
-      diagSoon('$id popular page=$page err=$e');
       return [];
     }
   }

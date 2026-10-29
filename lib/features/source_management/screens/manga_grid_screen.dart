@@ -4,7 +4,6 @@ import 'dart:math';
 import 'dart:convert';
 import 'package:shared_preferences/shared_preferences.dart';
 import 'package:yomou/core/theme/amoled.dart';
-import 'package:yomou/core/diagnostics/diag_log.dart';
 import 'package:yomou/widgets/cached_manga_image.dart';
 import 'package:yomou/widgets/manga_hero.dart';
 import 'package:flutter/material.dart';
@@ -428,11 +427,6 @@ class _MangaGridScreenState extends ConsumerState<MangaGridScreen> {
       for (final m in manga) {
         if (_seenIds.add(m.id)) fresh.add(m);
       }
-      diagSoon(
-        'LOADMORE ${widget.sourceName}: page=$next '
-        'got=${manga.length} fresh=${fresh.length} seen=${_seenIds.length}',
-      );
-
       setState(() {
         _page = next;
         _mangaList = [..._mangaList, ...fresh];
