@@ -50,6 +50,21 @@ def main():
     validation = json.load(open(DATA / "madara_validation.json"))
     catalog = {c["host"]: c for c in json.load(open(DATA / "sources_catalog.json"))}
 
+    # The extension index declares each site's home URL, which is the host the
+    # extension itself talks to. Keeping it verbatim matters: the catalogue's
+    # deduped keys drop `www.`, but the site may canonicalise to it, and a
+    # base URL on the wrong host makes every relative link resolve wrong.
+    declared = {}
+    for ext in json.load(open(DATA / "engines.json")):
+        if ext.get("theme") != "madara":
+            continue
+        for source in ext.get("sources", []):
+            url = (source.get("homeUrl") or "").rstrip("/")
+            if not url:
+                continue
+            bare = url.split("//", 1)[-1].split("/", 1)[0].lower()
+            declared.setdefault(bare.removeprefix("www."), url)
+
     entries, seen_names = [], set()
     for row in validation:
         if row["verdict"] != "ok":
@@ -69,10 +84,15 @@ def main():
         entries.append({
             "id": re.sub(r"-", "_", host),
             "name": name,
-            "baseUrl": f"https://{host}",
+            "baseUrl": declared.get(host, f"https://{host}"),
             "iconUrl": cat.get("icon") or "",
             "language": f"Manga, {language}",
             "nsfw": bool(cat.get("nsfw")),
+            # The archive path differs per site: stock Madara serves /manga/,
+            # some rename the post type (/comic/, /series/) and some point the
+            # homepage at the archive. The sweep recorded which one rendered
+            # cards, so Explore's listing is not an empty page.
+            "popularPath": row.get("listingPath") or "?m_orderby=views",
         })
 
     entries.sort(key=lambda e: e["name"].lower())
@@ -109,6 +129,12 @@ final Map<String, MadaraSiteConfig> catalogMadaraByName = {{
   for (final config in catalogMadaraConfigs) config.name: config,
 }};
 
+/// The same sites keyed by id, which is what a stored manga row carries as its
+/// `sourceId`.
+final Map<String, MadaraSiteConfig> catalogMadaraById = {{
+  for (final config in catalogMadaraConfigs) config.id: config,
+}};
+
 /// Source-list rows for the catalog. Disabled by default: 90+ extra sources
 /// would otherwise join every global search fan-out and updates refresh before
 /// the reader has asked for any of them.
@@ -130,6 +156,7 @@ MadaraSiteConfig _configFrom(Map<String, dynamic> raw) => MadaraSiteConfig(
   baseUrl: raw['baseUrl'] as String,
   language: raw['language'] as String,
   iconUrl: raw['iconUrl'] as String? ?? '',
+  popularPath: raw['popularPath'] as String? ?? '?m_orderby=views',
   // Madara lazy-loads both covers and reader pages, so the real URL lives in
   // data-src; the engine falls back to src for sites that do not.
   coverAttr: 'data-src',

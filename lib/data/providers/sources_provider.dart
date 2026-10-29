@@ -239,6 +239,10 @@ MangaSource getSourceByName(String name) {
 
 // Lookup a source by its id (used to resolve which source a manga came from)
 MangaSource? getSourceBySourceId(String sourceId) {
+  final catalogConfig = catalogMadaraById[sourceId];
+  if (catalogConfig != null) {
+    return _shared(catalogConfig.id, () => MadaraSource(catalogConfig));
+  }
   if (sourceId.startsWith('mangaball-')) {
     // The map is keyed by code and holds the language name, so the code is
     // compared against the key. Matching the value instead never resolves,

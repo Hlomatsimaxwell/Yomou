@@ -63,7 +63,16 @@ class MadaraSource extends DioSource implements MangaSource {
   }
 
   String _fromPath(String href) {
-    var path = href.replaceFirst(baseUrl, '');
+    var path = href.trim();
+    // Sites routinely link themselves as an absolute URL on another host --
+    // `www.` when the configured base has none, http vs https, or a mirror --
+    // so strip any scheme + host rather than only the configured base.
+    final uri = Uri.tryParse(path);
+    if (uri != null && uri.hasScheme && uri.host.isNotEmpty) {
+      path = uri.path;
+    } else {
+      path = path.replaceFirst(baseUrl, '');
+    }
     final query = path.indexOf('?');
     if (query != -1) path = path.substring(0, query);
     return path.replaceAll(RegExp(r'^/+'), '').replaceAll(RegExp(r'/$'), '');
@@ -76,7 +85,10 @@ class MadaraSource extends DioSource implements MangaSource {
     final document = parser.parse(html);
     final cards = document.querySelectorAll(config.mangaCardSelector);
     if (cards.isEmpty) {
-      for (final fallback in const ['.page-item-detail', '.c-tabs-item__content']) {
+      for (final fallback in const [
+        '.page-item-detail',
+        '.c-tabs-item__content',
+      ]) {
         final extra = document.querySelectorAll(fallback);
         if (extra.isNotEmpty) {
           return _parseCards(extra);
@@ -97,9 +109,8 @@ class MadaraSource extends DioSource implements MangaSource {
       final id = _fromPath(href);
       if (id.isEmpty || !id.contains('/')) continue;
       final img = card.querySelector(config.mangaCoverSelector);
-      final cover = img?.attributes[config.coverAttr] ??
-          img?.attributes['src'] ??
-          '';
+      final cover =
+          img?.attributes[config.coverAttr] ?? img?.attributes['src'] ?? '';
       final title = link?.text.trim() ?? '';
       mangas.add(
         Manga(
@@ -204,14 +215,19 @@ class MadaraSource extends DioSource implements MangaSource {
       // Prefer the summary cover: on many Madara pages the first <img> in the
       // document is the site logo in the header, which the card selector
       // (`img`) would otherwise hand back as the cover.
-      final coverEl = document.querySelector('.summary_image img') ??
+      final coverEl =
+          document.querySelector('.summary_image img') ??
           document.querySelector(config.mangaCoverSelector);
-      final cover = coverEl?.attributes[config.coverAttr] ??
+      final cover =
+          coverEl?.attributes[config.coverAttr] ??
           coverEl?.attributes['src'] ??
           '';
       final description =
-          document.querySelector(config.detailDescriptionSelector)?.text.trim() ??
-              '';
+          document
+              .querySelector(config.detailDescriptionSelector)
+              ?.text
+              .trim() ??
+          '';
       final author = document
           .querySelectorAll(config.detailAuthorsSelector)
           .map((a) => a.text.trim())
@@ -225,15 +241,17 @@ class MadaraSource extends DioSource implements MangaSource {
       }
 
       var statusRaw =
-          document.querySelector(config.detailStatusSelector)?.text.trim() ?? '';
+          document.querySelector(config.detailStatusSelector)?.text.trim() ??
+          '';
       // Some sites list "Release" before "Status" under `.post-status`, so the
       // configured selector lands on the release year. Prefer the row whose
       // heading actually says "Status" when the site labels its rows.
-      for (final item
-          in document.querySelectorAll('.post-status .post-content_item')) {
+      for (final item in document.querySelectorAll(
+        '.post-status .post-content_item',
+      )) {
         final heading =
             item.querySelector('.summary-heading')?.text.trim().toLowerCase() ??
-                '';
+            '';
         if (heading.contains('status')) {
           statusRaw =
               item.querySelector('.summary-content')?.text.trim() ?? statusRaw;
@@ -280,7 +298,19 @@ class MadaraSource extends DioSource implements MangaSource {
       if (html.isEmpty) return [];
 
       final document = parser.parse(html);
-      final items = document.querySelectorAll(config.chapterListSelector);
+      var items = document.querySelectorAll(config.chapterListSelector);
+      if (items.isEmpty) {
+        // Madara's "load chapters with AJAX" mode ships an empty
+        // `#manga-chapters-holder` and fills it from
+        // `{mangaUrl}/ajax/chapters/?t=1`. Sites with long chapter lists use it
+        // so the series page stays small.
+        final ajax = await postText('$baseUrl/$mangaId/ajax/chapters/?t=1');
+        if (ajax.isNotEmpty) {
+          items = parser
+              .parse(ajax)
+              .querySelectorAll(config.chapterListSelector);
+        }
+      }
       final chapters = <Chapter>[];
 
       for (final item in items) {
@@ -312,10 +342,19 @@ class MadaraSource extends DioSource implements MangaSource {
   }
 
   String _chapterNumber(String id, String title) {
-    final titleRe = RegExp(r'(?:chapter|cap[ií]tulo|cap)\s*(\d+(?:[.\-]\d+)*)', caseSensitive: false);
+    final titleRe = RegExp(
+      r'(?:chapter|cap[ií]tulo|cap)\s*(\d+(?:[.\-]\d+)*)',
+      caseSensitive: false,
+    );
     final titleMatch = titleRe.firstMatch(title);
     if (titleMatch != null) return titleMatch.group(1)!;
-    final pathRe = RegExp(r'[-_/](?:ch(?:apter)?|cap(?:itulo)?)[-_. ]?(\d+(?:[.\-]\d+)*)', caseSensitive: false);
+    // Plenty of Madara sites title a chapter with nothing but its number.
+    final bareNumber = RegExp(r'^\s*(\d+(?:[.\-]\d+)*)\s*$').firstMatch(title);
+    if (bareNumber != null) return bareNumber.group(1)!;
+    final pathRe = RegExp(
+      r'[-_/](?:ch(?:apter)?|cap(?:itulo)?)[-_. ]?(\d+(?:[.\-]\d+)*)',
+      caseSensitive: false,
+    );
     final pathMatch = pathRe.firstMatch(id);
     if (pathMatch != null) return pathMatch.group(1)!;
     return '';
@@ -393,13 +432,13 @@ class InlineDomPageExtractor implements MadaraPageUrlExtractor {
     final images = document.querySelectorAll(config.readerImageSelector);
     final pages = <String>[];
     for (final img in images) {
-      final src = img.attributes[config.readerImageAttr] ??
-          img.attributes['src'] ??
-          '';
+      final src =
+          img.attributes[config.readerImageAttr] ?? img.attributes['src'] ?? '';
       if (src.isEmpty) continue;
       var url = src.trim();
       if (url.startsWith('//')) url = 'https:$url';
-      if (appendStyleList) url = url.contains('?') ? '$url&style=list' : '$url?style=list';
+      if (appendStyleList)
+        url = url.contains('?') ? '$url&style=list' : '$url?style=list';
       if (!pages.contains(url)) pages.add(url);
     }
     return pages;
@@ -437,7 +476,10 @@ class MadaraAjaxRestPageExtractor implements MadaraPageUrlExtractor {
     }
     final images = data['images'];
     if (images is List) {
-      return images.map((i) => i.toString()).where((i) => i.isNotEmpty).toList();
+      return images
+          .map((i) => i.toString())
+          .where((i) => i.isNotEmpty)
+          .toList();
     }
     if (images is Map) {
       final values = <String>[];
