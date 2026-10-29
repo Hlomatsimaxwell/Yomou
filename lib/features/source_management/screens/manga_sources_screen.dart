@@ -245,7 +245,24 @@ class _ManageSourcesScreenState extends ConsumerState<ManageSourcesScreen> {
             fontSize: 12,
           ),
         ),
-        trailing: IosMenuButton<String>(
+        trailing: Row(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            Switch.adaptive(
+              value: isEnabled,
+              onChanged: (next) {
+                if (!next && isActive) {
+                  showIosToast(
+                    context,
+                    message: l.cannotDisableActiveSource,
+                    duration: const Duration(seconds: 2),
+                  );
+                  return;
+                }
+                ref.read(sourcesProvider.notifier).toggleEnabled(sourceName);
+              },
+            ),
+            IosMenuButton<String>(
           items: [
             IosMenuItem(
               value: 'top',
@@ -258,13 +275,6 @@ class _ManageSourcesScreenState extends ConsumerState<ManageSourcesScreen> {
               icon: isPinned
                   ? MdiIcons.checkboxBlank
                   : MdiIcons.checkboxBlankOutline,
-            ),
-            IosMenuItem(
-              value: 'enabled',
-              label: isEnabled ? l.disableSource : l.enableSource,
-              icon: isEnabled
-                  ? MdiIcons.pauseCircleOutline
-                  : MdiIcons.playCircleOutline,
             ),
             IosMenuItem(
               value: 'shortcut',
@@ -282,16 +292,6 @@ class _ManageSourcesScreenState extends ConsumerState<ManageSourcesScreen> {
               ref.read(sourcesProvider.notifier).moveToTop(sourceName);
             } else if (value == 'pin') {
               ref.read(sourcesProvider.notifier).togglePin(sourceName);
-            } else if (value == 'enabled') {
-              if (isEnabled && isActive) {
-                showIosToast(
-                  context,
-                  message: l.cannotDisableActiveSource,
-                  duration: const Duration(seconds: 2),
-                );
-              } else {
-                ref.read(sourcesProvider.notifier).toggleEnabled(sourceName);
-              }
             } else if (value == 'settings') {
               final src = getSourceByName(sourceName);
               Navigator.push(
@@ -306,6 +306,8 @@ class _ManageSourcesScreenState extends ConsumerState<ManageSourcesScreen> {
             }
           },
         ),
+            ],
+          ),
       );
     }
 
