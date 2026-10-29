@@ -143,8 +143,9 @@ class MadaraSource extends DioSource implements MangaSource {
       final id = _fromPath(href);
       if (id.isEmpty || !id.contains('/')) continue;
       final img = card.querySelector(config.mangaCoverSelector);
+      final attrCover = (img?.attributes[config.coverAttr] ?? '').trim();
       final cover =
-          img?.attributes[config.coverAttr] ?? img?.attributes['src'] ?? '';
+          attrCover.isNotEmpty ? attrCover : (img?.attributes['src'] ?? '').trim();
       var title = link?.text.trim() ?? '';
       if (title.isEmpty) title = (link?.attributes['title'] ?? '').trim();
       mangas.add(
