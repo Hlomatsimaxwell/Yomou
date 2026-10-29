@@ -27,6 +27,7 @@ SKIP_HOSTS = {
     "asialotuss.com",
     "arenascan.com",
     "datgarscanlation.blogspot.com",
+    "cat-300.com",  # covers 404 and detail AJAX failing on-device
 }
 
 LANG_NAMES = {
