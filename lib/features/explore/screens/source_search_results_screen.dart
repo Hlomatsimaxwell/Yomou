@@ -247,7 +247,7 @@ class _SourceSearchResultsScreenState
       final position = _scrollController.position;
       // Less than a screenful left to scroll: fetch the next page now rather
       // than waiting for a drag that may be only a few pixels deep.
-      if (position.maxScrollExtent <= position.viewportDimension) _loadMore();
+      if (position.maxScrollExtent < position.viewportDimension * 2) _loadMore();
     });
   }
 

@@ -390,15 +390,19 @@ class _MangaGridScreenState extends ConsumerState<MangaGridScreen> {
       if (!mounted || _isLoading || _isLoadingMore || !_hasMore) return;
       if (!_scrollController.hasClients) return;
       final position = _scrollController.position;
-      // Less than a screenful left to scroll: fetch the next page now rather
-      // than waiting for a drag that may be only a few pixels deep.
-      if (position.maxScrollExtent <= position.viewportDimension) _loadMore();
+
+      // Keep fetching while the listing still fits comfortably on screen, so a
+      // narrow first page does not leave the source looking capped. A page that
+      // already exceeds a single screen's worth of scrolling means there is
+      // enough to engage with, and further pages load on scroll.
+      if (position.maxScrollExtent < position.viewportDimension * 2) _loadMore();
     });
   }
 
   Future<void> _loadMore() async {
     if (_isLoadingMore || !_hasMore || _isLoading) return;
     final next = _page + 1;
+
     setState(() => _isLoadingMore = true);
     try {
       final source = getSourceByName(widget.sourceName);
@@ -423,6 +427,7 @@ class _MangaGridScreenState extends ConsumerState<MangaGridScreen> {
       for (final m in manga) {
         if (_seenIds.add(m.id)) fresh.add(m);
       }
+
       setState(() {
         _page = next;
         _mangaList = [..._mangaList, ...fresh];
