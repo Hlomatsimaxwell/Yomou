@@ -1,5 +1,6 @@
 import 'dart:convert';
 import 'package:html/parser.dart' as parser;
+import 'package:html/dom.dart' as dom;
 import '../models/manga_source.dart';
 import '../models/manga_filter.dart';
 import '../models/manga.dart';
@@ -106,17 +107,41 @@ class MadaraSource extends DioSource implements MangaSource {
   List<Manga> _parseCards(List<dynamic> cards) {
     final mangas = <Manga>[];
     for (final card in cards) {
-      final link =
-          card.querySelector(config.mangaTitleSelector) ??
-          card.querySelector('.post-title a') ??
-          card.querySelector('a[href*="/manga/"]');
+      final candidates = <dom.Element>[];
+      candidates.addAll(card.querySelectorAll(config.mangaTitleSelector));
+      candidates.addAll(card.querySelectorAll('.post-title a'));
+      candidates.addAll(card.querySelectorAll('h3 a, h4 a, h5 a'));
+      candidates.addAll(
+        card.querySelectorAll(
+          'a[href*="/manga/"], a[href*="/comic/"], a[href*="/series/"], a[href*="/manhwa/"]',
+        ),
+      );
+      dom.Element? link;
+      for (final a in candidates) {
+        final href = a.attributes['href'] ?? '';
+        if (href.isEmpty) continue;
+        if (href.contains('/tag/') ||
+            href.contains('/category/') ||
+            href.contains('/genre/') ||
+            href.contains('/manga-tag/') ||
+            href.contains('/comic-tag/')) {
+          continue;
+        }
+        final text = a.text.trim();
+        final attrTitle = (a.attributes['title'] ?? '').trim();
+        if (text.isEmpty && attrTitle.isEmpty) continue;
+        if (link == null || text.length > link.text.trim().length) {
+          link = a;
+        }
+      }
       final href = link?.attributes['href'] ?? '';
       final id = _fromPath(href);
       if (id.isEmpty || !id.contains('/')) continue;
       final img = card.querySelector(config.mangaCoverSelector);
       final cover =
           img?.attributes[config.coverAttr] ?? img?.attributes['src'] ?? '';
-      final title = link?.text.trim() ?? '';
+      var title = link?.text.trim() ?? '';
+      if (title.isEmpty) title = (link?.attributes['title'] ?? '').trim();
       mangas.add(
         Manga(
           id: id,
