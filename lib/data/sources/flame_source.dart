@@ -117,7 +117,6 @@ class FlameScansSource extends DioSource implements MangaSource {
   @override
   Future<List<Manga>> getPopularManga({int page = 1}) async {
     try {
-      if (page > 1) return [];
       final rows = await _getCatalog();
       if (rows == null) return [];
       final list = _fromSeriesJson(rows);
@@ -127,7 +126,10 @@ class FlameScansSource extends DioSource implements MangaSource {
         final bId = int.tryParse(b.id) ?? 0;
         return bId.compareTo(aId);
       });
-      return list.take(60).toList();
+      final start = (page - 1) * _pageSize;
+      if (start >= list.length) return [];
+      final end = start + _pageSize;
+      return list.sublist(start, end.clamp(0, list.length));
     } catch (_) {
       return [];
     }
