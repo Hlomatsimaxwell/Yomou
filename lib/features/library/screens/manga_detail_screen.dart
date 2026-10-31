@@ -4263,8 +4263,43 @@ class _MangaDetailScreenState extends ConsumerState<MangaDetailScreen> {
   String _currentLanguageCode() {
     final fromDetails = _details?.language ?? '';
     if (fromDetails.isNotEmpty) return fromDetails;
-    final source = getSourceBySourceId(widget.sourceId ?? '');
-    return source?.languageCode ?? 'en';
+
+    final source = _source ?? getSourceBySourceId(widget.sourceId ?? '');
+    final sc = source?.languageCode ?? '';
+
+    // If the source explicitly declares a non-English language, trust it
+    if (sc.isNotEmpty) {
+      final lower = sc.toLowerCase();
+      if (lower != 'en') return lower;
+    }
+
+    // Heuristic fallback for common Portuguese sources
+    final name = (source?.name ?? _sourceName ?? '').toLowerCase();
+    final base = (source?.baseUrl ?? '').toLowerCase();
+    if (name.contains('portugu') ||
+        name.contains('brasil') ||
+        base.contains('.com.br') ||
+        base.contains('pt-br')) {
+      return 'pt-br';
+    }
+    if (name.contains('españ') || name.contains('espan') || base.contains('.es')) {
+      return 'es';
+    }
+    if (name.contains('fr') || base.contains('.fr')) {
+      return 'fr';
+    }
+    if (name.contains('indones') || base.contains('.id')) {
+      return 'id';
+    }
+    if (name.contains('vietnam') || base.contains('.vn')) {
+      return 'vi';
+    }
+    if (name.contains('thai') || base.contains('.th')) {
+      return 'th';
+    }
+
+    if (sc.isNotEmpty) return sc.toLowerCase();
+    return 'en';
   }
 
   // Every translation of this work, with the current one guaranteed present so
