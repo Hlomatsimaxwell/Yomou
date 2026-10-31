@@ -4258,34 +4258,100 @@ class _MangaDetailScreenState extends ConsumerState<MangaDetailScreen> {
     );
   }
 
-  // The language of the translation currently open: reported by the details
-  // lookup, else the source's own catalogue language.
-  String _currentLanguageCode() {
+  // Whether we have a concrete language to show (not just the default 'en')
+  bool _isLanguageKnown() {
     final fromDetails = _details?.language ?? '';
-    if (fromDetails.isNotEmpty) return fromDetails;
+    if (fromDetails.isNotEmpty) return true;
 
     final source = _source ?? getSourceBySourceId(widget.sourceId ?? '');
-    final sc = source?.languageCode ?? '';
+    if (source == null) return false;
 
-    // If the source explicitly declares a non-English language, trust it
-    if (sc.isNotEmpty) {
-      final lower = sc.toLowerCase();
-      if (lower != 'en') return lower;
+    final sc = (source.languageCode).toLowerCase();
+    if (sc.isNotEmpty && sc != 'en') return true;
+
+    final name = (source.name).toLowerCase();
+    final base = (source.baseUrl).toLowerCase();
+
+    // Strong heuristics for non-English sources
+    if (name.contains('portugu') ||
+        name.contains('brasil') ||
+        name.contains('mangabr') ||
+        base.contains('.com.br') ||
+        base.contains('pt-br')) {
+      return true;
     }
 
-    // Heuristic fallback for common Portuguese sources
+    if (name.contains('españ') ||
+        name.contains('espan') ||
+        name.contains('mangaes') ||
+        base.contains('.es')) {
+      return true;
+    }
+
+    if (name.contains('français') || base.contains('.fr')) {
+      return true;
+    }
+    if (name.contains('indones') || base.contains('.id')) {
+      return true;
+    }
+    if (name.contains('vietnam') || base.contains('.vn')) {
+      return true;
+    }
+    if (name.contains('thai') || base.contains('.th')) {
+      return true;
+    }
+    if (name.contains('russ') || base.contains('.ru')) {
+      return true;
+    }
+    if (name.contains('turk') || base.contains('.tr')) {
+      return true;
+    }
+    if (name.contains('japon') || name.contains('raw')) {
+      return true;
+    }
+    if (name.contains('korean') || name.contains('korea') || base.contains('.kr')) {
+      return true;
+    }
+    if (name.contains('chinese') || name.contains('china') || base.contains('.cn')) {
+      return true;
+    }
+
+    // Multi-language aggregators - let the translations picker decide if it exists
+    if (name.contains('multi') ||
+        name.contains('aggregate') ||
+        name.contains('mangadex')) {
+      return (_details?.translations.isNotEmpty ?? false);
+    }
+
+    return false;
+  }
+
+  // The language of the translation currently open: reported by the details
+  // lookup, else the source's own catalogue language or heuristic.
+  String _currentLanguageCode() {
+    final fromDetails = _details?.language ?? '';
+    if (fromDetails.isNotEmpty) return fromDetails.toLowerCase();
+
+    final source = _source ?? getSourceBySourceId(widget.sourceId ?? '');
+    final sc = (source?.languageCode ?? '').toLowerCase();
+    if (sc.isNotEmpty && sc != 'en') return sc;
+
     final name = (source?.name ?? _sourceName ?? '').toLowerCase();
     final base = (source?.baseUrl ?? '').toLowerCase();
     if (name.contains('portugu') ||
         name.contains('brasil') ||
+        name.contains('mangabr') ||
         base.contains('.com.br') ||
         base.contains('pt-br')) {
       return 'pt-br';
     }
-    if (name.contains('españ') || name.contains('espan') || base.contains('.es')) {
+    if (name.contains('españ') ||
+        name.contains('espan') ||
+        name.contains('mangaes') ||
+        base.contains('.es')) {
       return 'es';
     }
-    if (name.contains('fr') || base.contains('.fr')) {
+    if (name.contains('français') || base.contains('.fr')) {
       return 'fr';
     }
     if (name.contains('indones') || base.contains('.id')) {
@@ -4297,9 +4363,23 @@ class _MangaDetailScreenState extends ConsumerState<MangaDetailScreen> {
     if (name.contains('thai') || base.contains('.th')) {
       return 'th';
     }
+    if (name.contains('russ') || base.contains('.ru')) {
+      return 'ru';
+    }
+    if (name.contains('turk') || base.contains('.tr')) {
+      return 'tr';
+    }
+    if (name.contains('japon') || name.contains('raw')) {
+      return 'ja';
+    }
+    if (name.contains('korean') || name.contains('korea') || base.contains('.kr')) {
+      return 'ko';
+    }
+    if (name.contains('chinese') || name.contains('china') || base.contains('.cn')) {
+      return 'zh';
+    }
 
-    if (sc.isNotEmpty) return sc.toLowerCase();
-    return 'en';
+    return sc.isNotEmpty ? sc.toLowerCase() : 'en';
   }
 
   // Every translation of this work, with the current one guaranteed present so
@@ -4326,24 +4406,36 @@ class _MangaDetailScreenState extends ConsumerState<MangaDetailScreen> {
   // distinct manga, so reading progress is tracked separately per language.
   Widget _buildTranslationRow() {
     final l = AppLocalizations.of(context);
-    final reported = _details?.language.isNotEmpty ?? false;
     final current = _currentLanguageCode();
     final all = _translationsFor(current);
     final tappable = all.length > 1;
-    // Show the language row when we know the language from details,
-    // from translations, or from the source itself.
-    if (!reported && !tappable && _source == null) return const SizedBox.shrink();
-    // The language's own flag, the way the reference marks the row: the value
-    // is a language, and its country colours say it faster than the word
-    // does. A code with no flag falls back to the generic icon.
+
+    // If it's a multi-translation picker (e.g. MangaDex), always show it
+    if (tappable) {
+      final flag = MangaLanguage.flagEmoji(current);
+      return _buildCardRow(
+        l.detailTranslation,
+        MangaLanguage.label(current),
+        leading: flag == null
+            ? null
+            : Text(flag, style: const TextStyle(fontSize: 15)),
+        icon: flag == null ? MdiIcons.flagOutline : null,
+        onTap: () => _showTranslationPicker(all, current),
+      );
+    }
+
+    // Otherwise, only show if we have concrete evidence of the language
+    if (!_isLanguageKnown()) return const SizedBox.shrink();
+
     final flag = MangaLanguage.flagEmoji(current);
     return _buildCardRow(
       l.detailTranslation,
       MangaLanguage.label(current),
-      leading:
-          flag == null ? null : Text(flag, style: const TextStyle(fontSize: 15)),
+      leading: flag == null
+            ? null
+            : Text(flag, style: const TextStyle(fontSize: 15)),
       icon: flag == null ? MdiIcons.flagOutline : null,
-      onTap: tappable ? () => _showTranslationPicker(all, current) : null,
+      onTap: null,
     );
   }
 
