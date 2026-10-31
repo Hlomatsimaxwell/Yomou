@@ -31,6 +31,7 @@ import 'package:yomou/features/settings/providers/appearance_provider.dart';
 import 'package:yomou/features/source_management/screens/manga_filter_sheet.dart';
 import 'package:yomou/features/source_management/widgets/manga_preview_pane.dart';
 import 'package:yomou/features/source_management/screens/source_settings_screen.dart';
+import 'package:yomou/features/settings/providers/appearance_provider.dart';
 import 'package:yomou/l10n/generated/app_localizations.dart';
 import 'package:yomou/widgets/source_icon.dart';
 
@@ -794,6 +795,14 @@ class _MangaGridScreenState extends ConsumerState<MangaGridScreen> {
   Widget _buildFilterPane(BuildContext context, bool dark) {
     final source = getSourceByName(widget.sourceName);
     final preview = _previewManga;
+    final showPreviewPane = ref.watch(appearanceSettingsProvider).showSourcePreviewPane;
+    if (!showPreviewPane && preview != null) {
+      WidgetsBinding.instance.addPostFrameCallback((_) {
+        if (mounted && _previewManga != null) {
+          setState(() => _previewManga = null);
+        }
+      });
+    }
     final width =
         (MediaQuery.sizeOf(context).width * _kPaneWidthFraction).clamp(
       _kPaneWidthMin,
@@ -855,7 +864,7 @@ class _MangaGridScreenState extends ConsumerState<MangaGridScreen> {
                     onClose: () => setState(() => _filterPaneOpen = false),
                   ),
                 ),
-              if (preview != null)
+              if (preview != null && ref.watch(appearanceSettingsProvider).showSourcePreviewPane)
                 // Opaque, and it has to be. The preview is a sheet stacked on
                 // top of the filter rather than a replacement for it, and a
                 // transparent one would let the filter's pills and labels read
@@ -906,7 +915,8 @@ class _MangaGridScreenState extends ConsumerState<MangaGridScreen> {
   /// through the stack. Anywhere narrower there is no room for a pane beside
   /// the grid, so the cover opens the screen directly as it always has.
   void _onMangaTap(Manga item) {
-    if (usesWideLayout(context)) {
+    final showPreviewPane = ref.read(appearanceSettingsProvider).showSourcePreviewPane;
+    if (usesWideLayout(context) && showPreviewPane) {
       _selectPreview(item);
       return;
     }
@@ -941,6 +951,8 @@ class _MangaGridScreenState extends ConsumerState<MangaGridScreen> {
   Future<void> _showGridMenu() async {
     final l = _l;
     final source = getSourceByName(widget.sourceName);
+    final settings = ref.read(appearanceSettingsProvider);
+    final showPreview = settings.showSourcePreviewPane;
     await showIosMenuPanel<void>(
       context,
       children: [
@@ -958,6 +970,19 @@ class _MangaGridScreenState extends ConsumerState<MangaGridScreen> {
           onTap: () {
             Navigator.pop(context);
             _showListOptionsSheet();
+          },
+        ),
+        IosMenuRow(
+          icon: showPreview ? MdiIcons.eyeOffOutline : MdiIcons.eyeOutline,
+          label: showPreview ? 'Disable preview pane' : 'Enable preview pane',
+          onTap: () {
+            Navigator.pop(context);
+            ref
+                .read(appearanceSettingsProvider.notifier)
+                .setShowSourcePreviewPane(!showPreview);
+            if (showPreview && _previewManga != null) {
+              setState(() => _previewManga = null);
+            }
           },
         ),
         IosMenuRow(

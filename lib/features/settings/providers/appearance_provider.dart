@@ -172,6 +172,7 @@ class AppearanceSettings {
     required this.amoledBlack,
     required this.textScale,
     required this.readerWarmNight,
+    required this.showSourcePreviewPane,
   });
 
   // All requested defaults from spec
@@ -215,6 +216,7 @@ class AppearanceSettings {
         amoledBlack: false,
         textScale: 1.0,
         readerWarmNight: false,
+        showSourcePreviewPane: true,
       );
 
   final String colorScheme;
@@ -257,6 +259,9 @@ class AppearanceSettings {
   final bool readerWarmNight;
   final double textScale;
 
+  /// Show the preview pane in the source grid on wide layouts.
+  final bool showSourcePreviewPane;
+
   AppearanceSettings copyWith({
     String? colorScheme,
     ThemeMode? themeMode,
@@ -286,6 +291,7 @@ class AppearanceSettings {
     bool? amoledBlack,
     double? textScale,
     bool? readerWarmNight,
+    bool? showSourcePreviewPane,
   }) =>
       AppearanceSettings(
         colorScheme: colorScheme ?? this.colorScheme,
@@ -322,6 +328,7 @@ class AppearanceSettings {
         amoledBlack: amoledBlack ?? this.amoledBlack,
         textScale: textScale ?? this.textScale,
         readerWarmNight: readerWarmNight ?? this.readerWarmNight,
+        showSourcePreviewPane: showSourcePreviewPane ?? this.showSourcePreviewPane,
       );
 }
 
@@ -388,6 +395,7 @@ class _AppearancePersistence {
   static const _amoledBlack = '${_prefix}amoledBlack';
   static const _readerWarmNight = '${_prefix}readerWarmNight';
   static const _textScale = '${_prefix}textScale';
+  static const _showSourcePreviewPane = '${_prefix}showSourcePreviewPane';
 
   static Future<AppearanceSettings> load() async {
     final p = await SharedPreferences.getInstance();
@@ -425,6 +433,7 @@ class _AppearancePersistence {
       amoledBlack: p.getBool(_amoledBlack) ?? false,
       readerWarmNight: p.getBool(_readerWarmNight) ?? false,
       textScale: p.getDouble(_textScale) ?? 1.0,
+      showSourcePreviewPane: p.getBool(_showSourcePreviewPane) ?? true,
     );
   }
 
@@ -458,6 +467,7 @@ class _AppearancePersistence {
     await p.setBool(_amoledBlack, s.amoledBlack);
     await p.setBool(_readerWarmNight, s.readerWarmNight);
     await p.setDouble(_textScale, s.textScale);
+    await p.setBool(_showSourcePreviewPane, s.showSourcePreviewPane);
   }
 
   static Map<String, bool>? _decodeMap(String? json) {
@@ -572,6 +582,9 @@ class AppearanceSettingsNotifier extends StateNotifier<AppearanceSettings> {
 
   Future<void> setTextScale(double value) async =>
       set((s) => s.copyWith(textScale: value));
+
+  Future<void> setShowSourcePreviewPane(bool value) async =>
+      set((s) => s.copyWith(showSourcePreviewPane: value));
 }
 
 final appearanceSettingsProvider =
