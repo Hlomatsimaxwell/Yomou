@@ -195,9 +195,6 @@ abstract class DioSource {
   }
 
   /// Merges `Set-Cookie` values into this source's stored cookies.
-  ///
-  /// Already-stored values win, so a Cloudflare clearance earned earlier
-  /// survives a response that only sets the application's session cookies.
   Future<void> _storeSetCookies(Map<String, List<String>> headers) async {
     final setCookies = headers['set-cookie'];
     if (setCookies == null || setCookies.isEmpty) return;
@@ -211,7 +208,7 @@ abstract class DioSource {
       final name = pair.substring(0, eq).trim();
       final value = pair.substring(eq + 1).trim();
       if (name.isEmpty || value.isEmpty) return;
-      jar.putIfAbsent(name, () => value);
+      jar[name] = value;
     }
 
     for (final part in (cfg.cookies ?? '').split(';')) {

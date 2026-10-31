@@ -243,9 +243,6 @@ class _CaptchaSolverScreenState extends State<CaptchaSolverScreen> {
   }
 
   /// Stores the cookies the browser ended up with, then closes.
-  ///
-  /// Only ever reached from Continue, so the stored session is always the one
-  /// the user looked at and accepted.
   Future<void> _finish() async {
     if (_saving) return;
     diagSoon(
@@ -256,13 +253,15 @@ class _CaptchaSolverScreenState extends State<CaptchaSolverScreen> {
     _poll?.cancel();
 
     try {
-      final list = await CookieManager.instance().getCookies(
-        url: WebUri(widget.url),
-      );
-      // Store every cookie the browser ended up with, not just the Cloudflare
-      // ones: `cf_clearance` gets us past the challenge, but the site also
-      // needs its own session cookie for the CSRF-protected API to accept the
-      // requests that follow.
+      final uri = WebUri(widget.url);
+      var list = await CookieManager.instance().getCookies(url: uri);
+      // Also try base domain and host variants to be sure
+      try {
+        final host = uri.host;
+        final base = host.split('.').length > 2 ? host.substring(host.indexOf('.') + 1) : host;
+        final alt1 = await CookieManager.instance().getCookies(url: WebUri('https://$base/'));
+        list = {...{for (var c in list) c.name: c}, ...{for (var c in alt1) c.name: c}}.values.toList();
+      } catch (_) {}
       final keep = list
           .where((c) => c.name.isNotEmpty && c.value.isNotEmpty)
           .map((c) => '${c.name}=${c.value}')
@@ -278,7 +277,6 @@ class _CaptchaSolverScreenState extends State<CaptchaSolverScreen> {
       debugPrint('captcha: storing cookies failed: $e');
     }
 
-    // The retry that follows needs to be allowed to reach the network again.
     WebViewFetcher.instance.clearChallengeLatch();
     if (mounted) Navigator.of(context).pop(true);
   }
