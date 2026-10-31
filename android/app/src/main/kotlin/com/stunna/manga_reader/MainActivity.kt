@@ -251,6 +251,29 @@ class MainActivity : FlutterActivity() {
         }
         MethodChannel(
             flutterEngine.dartExecutor.binaryMessenger,
+            "com.hlomatsi.yomou/widget"
+        ).setMethodCallHandler { call, result ->
+            when (call.method) {
+                "updateWidget" -> {
+                    try {
+                        val manager = android.appwidget.AppWidgetManager.getInstance(this)
+                        val component = android.content.ComponentName(this, MangaDeckWidgetReceiver::class.java)
+                        val ids = manager.getAppWidgetIds(component)
+                        val intent = Intent(this, MangaDeckWidgetReceiver::class.java).apply {
+                            action = android.appwidget.AppWidgetManager.ACTION_APPWIDGET_UPDATE
+                            putExtra(android.appwidget.AppWidgetManager.EXTRA_APPWIDGET_IDS, ids)
+                        }
+                        sendBroadcast(intent)
+                        result.success(true)
+                    } catch (e: Exception) {
+                        result.error("widget", e.message, null)
+                    }
+                }
+                else -> result.notImplemented()
+            }
+        }
+        MethodChannel(
+            flutterEngine.dartExecutor.binaryMessenger,
             "com.hlomatsi.yomou/share"
         ).setMethodCallHandler { call, result ->
             when (call.method) {

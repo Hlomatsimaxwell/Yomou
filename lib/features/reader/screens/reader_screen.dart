@@ -45,6 +45,7 @@ import '../services/chapter_downloader.dart';
 import '../services/download_job.dart';
 import '../services/download_requests.dart';
 import '../services/download_scheduler.dart';
+import '../../../services/widget_service.dart';
 
 // Reading modes (Kotatsu-style).
 enum ReadingMode { standard, rightToLeft, vertical, webtoon }
@@ -3408,6 +3409,16 @@ class _ReaderScreenState extends ConsumerState<ReaderScreen>
       lastReadChapter: position,
       lastReadPage: _pages.isEmpty ? 0 : _currentPageIndex,
     );
+
+    // Update home screen widget with recent manga
+    try {
+      final history = await DatabaseHelper.instance.getHistory();
+      final recent = history.take(4).map((m) => {
+            'id': (m['mangaId'] ?? '') as String,
+            'coverPath': (m['coverUrl'] ?? '') as String,
+          }).toList();
+      await WidgetService.updateMangaDeck(recent);
+    } catch (_) {}
 
     bumpHistoryRevision(ref);
     _isSaving = false;

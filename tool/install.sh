@@ -2,10 +2,8 @@
 #
 # Build and install the release APK on the connected device.
 #
-# Uses a single-ABI build (--target-platform, not --split-per-abi) so the APK's
-# versionCode is the plain build number from pubspec.yaml. --split-per-abi adds
-# an ABI offset (armeabi +1000, arm64 +2000, x86_64 +4000), which is why a
-# "+18" build reports as 2018 on the phone.
+# By default builds a universal APK for all supported ABIs (arm64, armeabi-v7a,
+# x86_64) so it works on both physical devices and emulators without rebuilding.
 set -euo pipefail
 
 ROOT="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
@@ -15,21 +13,20 @@ PKG="com.hlomatsi.yomou"
 
 BUMP=0
 FRESH=0
-ABI="android-arm64"
+ABI=""
+UNIVERSAL=1
 
 usage() {
   cat <<'EOF'
 Build and install the release APK on the connected device.
 
-  tool/install.sh            build + install the current version
+  tool/install.sh            build + install universal APK (all ABIs)
   tool/install.sh --bump     increment the +build in pubspec.yaml first
-  tool/install.sh --fresh    uninstall first (wipes app data) -- use once when
-                             switching off an old --split-per-abi build
-  tool/install.sh --abi NAME build for another ABI (default android-arm64)
+  tool/install.sh --fresh    uninstall first (wipes app data)
+  tool/install.sh --abi NAME build for a single ABI (e.g., android-arm64, android-x64)
+  tool/install.sh --split   build split per ABI (legacy behavior)
 
-A single-ABI build is used (--target-platform, not --split-per-abi) so the
-APK's versionCode is the plain build number from pubspec.yaml. --split-per-abi
-adds an ABI offset (arm64 +2000), which is why a "+18" build reports as 2018.
+Universal build is default for convenience across devices.
 EOF
 }
 
@@ -37,7 +34,8 @@ while [[ $# -gt 0 ]]; do
   case "$1" in
     -b|--bump) BUMP=1; shift ;;
     -f|--fresh) FRESH=1; shift ;;
-    --abi) ABI="${2:?--abi needs a value}"; shift 2 ;;
+    --abi) ABI="${2:?--abi needs a value}"; UNIVERSAL=0; shift 2 ;;
+    --split) UNIVERSAL=0; ABI=""; shift ;;
     -h|--help) usage; exit 0 ;;
     *) echo "unknown option: $1" >&2; usage >&2; exit 2 ;;
   esac
@@ -62,8 +60,26 @@ if [[ "$BUMP" == 1 ]]; then
   echo "Bumped to $version"
 fi
 
-echo "Building $name ($code) for $ABI ..."
-(cd "$ROOT" && flutter build apk --release --target-platform "$ABI")
+if [[ "$UNIVERSAL" == 1 ]]; then
+  echo "Building $name ($code) universal (all ABIs) ..."
+  (cd "$ROOT" && flutter build apk --release)
+else
+  if [[ -n "$ABI" ]]; then
+    echo "Building $name ($code) for $ABI ..."
+    (cd "$ROOT" && flutter build apk --release --target-platform "$ABI")
+  else
+    echo "Building $name ($code) split per ABI ..."
+    (cd "$ROOT" && flutter build apk --release --split-per-abi)
+    # With split-per-abi, pick arm64 if available (most common), else fallback
+    if [[ -f "$ROOT/build/app/outputs/flutter-apk/app-arm64-v8a-release.apk" ]]; then
+      APK="$ROOT/build/app/outputs/flutter-apk/app-arm64-v8a-release.apk"
+    elif [[ -f "$ROOT/build/app/outputs/flutter-apk/app-x86_64-release.apk" ]]; then
+      APK="$ROOT/build/app/outputs/flutter-apk/app-x86_64-release.apk"
+    elif [[ -f "$ROOT/build/app/outputs/flutter-apk/app-armeabi-v7a-release.apk" ]]; then
+      APK="$ROOT/build/app/outputs/flutter-apk/app-armeabi-v7a-release.apk"
+    fi
+  fi
+fi
 
 if [[ "$FRESH" == 1 ]]; then
   echo "Uninstalling $PKG (wipes app data) ..."
