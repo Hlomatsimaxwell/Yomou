@@ -63,9 +63,9 @@ MadaraSiteConfig _configFrom(Map<String, dynamic> raw) => MadaraSiteConfig(
   // Madara lazy-loads both covers and reader pages, so the real URL lives in
   // data-src; the engine falls back to src for sites that do not.
   coverAttr: 'data-src',
-  mangaCardSelector: '.page-item-detail, .c-tabs-item__content',
+  mangaCardSelector: '.page-item-detail, .c-tabs-item__content, .manga-item',
   // Madara sites disagree on whether the chapter list is nested in ul.main,
   // and some mark reader images with a class instead of the id.
-  chapterListSelector: 'ul.main li.wp-manga-chapter, li.wp-manga-chapter',
-  readerImageSelector: '.wp-manga-chapter-img, #reading-content img',
+  chapterListSelector: 'ul.main li.wp-manga-chapter, li.wp-manga-chapter, .wp-manga-chapter, .listing-chapters_wrap li',
+  readerImageSelector: '.wp-manga-chapter-img, #reading-content img, .reading-content img',
 );

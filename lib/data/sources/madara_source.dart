@@ -94,16 +94,59 @@ class MadaraSource extends DioSource implements MangaSource {
   List<Manga> _parseMangaGrid(String html) {
     if (html.isEmpty) return [];
     final document = parser.parse(html);
-    final cards = document.querySelectorAll(config.mangaCardSelector);
+    var cards = document.querySelectorAll(config.mangaCardSelector);
     if (cards.isEmpty) {
       for (final fallback in const [
         '.page-item-detail',
         '.c-tabs-item__content',
+        '.manga-item',
+        '.item-summary',
+        '.post-item',
+        '.bs',
+        '.tab-thumb',
+        '.row.c-tabs-item__content',
       ]) {
         final extra = document.querySelectorAll(fallback);
         if (extra.isNotEmpty) {
-          return _parseCards(extra);
+          cards = extra;
+          break;
         }
+      }
+    }
+    if (cards.isEmpty) {
+      // Try to find any links to manga/comic/series
+      final links = document.querySelectorAll(
+        'a[href*="/manga/"], a[href*="/comic/"], a[href*="/series/"], a[href*="/manhwa/"]',
+      );
+      if (links.isNotEmpty) {
+        final seen = <String>{};
+        final mangas = <Manga>[];
+        for (final link in links) {
+          final href = link.attributes['href'] ?? '';
+          final id = _fromPath(href);
+          if (id.isEmpty || !id.contains('/') || seen.contains(id)) continue;
+          if (href.contains('/chapter/') || href.contains('/capitulo/')) {
+            continue;
+          }
+          seen.add(id);
+          String title = link.text.trim();
+          if (title.isEmpty) title = (link.attributes['title'] ?? '').trim();
+          if (title.isEmpty) {
+            final img = link.querySelector('img');
+            title = (img?.attributes['alt'] ?? '').trim();
+          }
+          dom.Element? card = link.parent;
+          for (var i = 0; i < 4 && card != null; i++) {
+            if (card.querySelector('img') != null) break;
+            card = card.parent;
+          }
+          final img = card?.querySelector('img') ?? link.querySelector('img');
+          var cover = (img?.attributes['data-src'] ?? img?.attributes['data-lazy-src'] ?? img?.attributes['data-original'] ?? img?.attributes['src'] ?? '').trim();
+          if (title.isEmpty || title.length > 200) continue;
+          mangas.add(Manga(id: id, title: title, coverUrl: cover, sourceId: this.id));
+          if (mangas.length >= 100) break;
+        }
+        if (mangas.isNotEmpty) return mangas;
       }
     }
     return _parseCards(cards);
@@ -143,7 +186,10 @@ class MadaraSource extends DioSource implements MangaSource {
       final id = _fromPath(href);
       if (id.isEmpty || !id.contains('/')) continue;
       final img = card.querySelector(config.mangaCoverSelector);
-      final attrCover = (img?.attributes[config.coverAttr] ?? '').trim();
+      var attrCover = (img?.attributes[config.coverAttr] ?? '').trim();
+      if (attrCover.isEmpty) {
+        attrCover = (img?.attributes['data-src'] ?? img?.attributes['data-lazy-src'] ?? img?.attributes['data-original'] ?? img?.attributes['data-cfsrc'] ?? '').trim();
+      }
       final cover =
           attrCover.isNotEmpty ? attrCover : (img?.attributes['src'] ?? '').trim();
       var title = link?.text.trim() ?? '';
@@ -178,12 +224,29 @@ class MadaraSource extends DioSource implements MangaSource {
   Future<List<Manga>> searchByTitle(String query, {int page = 1}) async {
     try {
       if (query.isEmpty) return [];
+      // Try configured search path first
       final path = config.searchPath.replaceAll(
         '{query}',
         Uri.encodeQueryComponent(query),
       );
-      final html = await grabText('$baseUrl/${_pageUrl(path, page)}');
-      return _parseMangaGrid(html);
+      var html = await grabText('$baseUrl/${_pageUrl(path, page)}');
+      var results = _parseMangaGrid(html);
+      if (results.isNotEmpty) return results;
+      // Fallbacks for sites with different search patterns
+      final fallbacks = [
+        '?s={query}&post_type=wp-manga',
+        '?s={query}',
+        'search?q={query}',
+        'manga/?s={query}',
+      ];
+      for (final fb in fallbacks) {
+        if (fb == config.searchPath) continue;
+        final p = fb.replaceAll('{query}', Uri.encodeQueryComponent(query));
+        html = await grabText('$baseUrl/${_pageUrl(p, page)}');
+        results = _parseMangaGrid(html);
+        if (results.isNotEmpty) return results;
+      }
+      return [];
     } catch (e) {
       if (e is CaptchaRequiredException) rethrow;
       return [];
@@ -329,7 +392,7 @@ class MadaraSource extends DioSource implements MangaSource {
   @override
   Future<List<Chapter>> getChapters(String mangaId) async {
     try {
-      final html = await grabText('$baseUrl/$mangaId');
+      var html = await grabText('$baseUrl/$mangaId');
       if (html.isEmpty) return [];
 
       final document = parser.parse(html);
@@ -346,14 +409,32 @@ class MadaraSource extends DioSource implements MangaSource {
               .querySelectorAll(config.chapterListSelector);
         }
       }
+      if (items.isEmpty) {
+        items = document.querySelectorAll('li.wp-manga-chapter, .wp-manga-chapter, .listing-chapters_wrap li');
+      }
+      if (items.isEmpty) {
+        // Try again with different selectors
+        items = document.querySelectorAll('.chapter-list li a, .chapters a');
+      }
+      if (items.isEmpty && html.contains('ajax/chapters')) {
+        // Some themes use GET
+        final ajax2 = await grabText('$baseUrl/$mangaId/ajax/chapters/');
+        if (ajax2.isNotEmpty) {
+          items = parser.parse(ajax2).querySelectorAll('li.wp-manga-chapter, .wp-manga-chapter, a');
+        }
+      }
       final chapters = <Chapter>[];
 
       for (final item in items) {
-        final link = config.chapterLinkSelector.isEmpty
-            ? item
+        final link = config.chapterLinkSelector.isEmpty || item.localName == 'a'
+            ? (item.localName == 'a' ? item : item.querySelector(config.chapterLinkSelector))
             : item.querySelector(config.chapterLinkSelector);
         if (link == null) continue;
         final href = link.attributes['href'] ?? '';
+        if (href.isEmpty) continue;
+        if (!href.contains('/chapter/') && !href.contains('/capitulo/')) {
+          // Sometimes link might not have full path pattern
+        }
         final id = _fromPath(href);
         if (id.isEmpty) continue;
         final title = link.text.trim();
@@ -369,7 +450,15 @@ class MadaraSource extends DioSource implements MangaSource {
           ),
         );
       }
-      return chapters;
+      // Remove duplicates while preserving order
+      final seen = <String>{};
+      final unique = <Chapter>[];
+      for (final c in chapters) {
+        if (seen.contains(c.id)) continue;
+        seen.add(c.id);
+        unique.add(c);
+      }
+      return unique;
     } catch (e) {
       if (e is CaptchaRequiredException) rethrow;
       return [];
@@ -413,12 +502,30 @@ class MadaraSource extends DioSource implements MangaSource {
   Future<List<String>> getPageUrls(String chapterId) async {
     try {
       final url = '$baseUrl/$chapterId';
-      return await _buildExtractor().extract(
+      final pages = await _buildExtractor().extract(
         source: this,
         config: config,
         chapterId: chapterId,
         chapterUrl: url,
       );
+      if (pages.isNotEmpty) return pages;
+      // Fallback extractions
+      try {
+        final html = await grabText(url);
+        if (html.isNotEmpty) {
+          final doc = parser.parse(html);
+          final imgs = doc.querySelectorAll('img.wp-manga-chapter-img, .reading-content img, #readerarea img');
+          final fallbackPages = <String>[];
+          for (final img in imgs) {
+            var src = (img.attributes['data-src'] ?? img.attributes['data-lazy-src'] ?? img.attributes['src'] ?? '').trim();
+            if (src.isEmpty) continue;
+            if (src.startsWith('//')) src = 'https:$src';
+            if (!fallbackPages.contains(src)) fallbackPages.add(src);
+          }
+          if (fallbackPages.isNotEmpty) return fallbackPages;
+        }
+      } catch (_) {}
+      return [];
     } catch (_) {
       return [];
     }
