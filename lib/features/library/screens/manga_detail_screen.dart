@@ -4295,11 +4295,9 @@ class _MangaDetailScreenState extends ConsumerState<MangaDetailScreen> {
     final current = _currentLanguageCode();
     final all = _translationsFor(current);
     final tappable = all.length > 1;
-    // No row when the source reports no language and there is nothing to pick
-    // between: a guessed label is noise on a card meant to hold facts. More
-    // than one translation still earns the row -- it is how the picker is
-    // reached -- even when the current language itself is unreported.
-    if (!reported && !tappable) return const SizedBox.shrink();
+    // Show the language row when we know the language from details,
+    // from translations, or from the source itself.
+    if (!reported && !tappable && _source == null) return const SizedBox.shrink();
     // The language's own flag, the way the reference marks the row: the value
     // is a language, and its country colours say it faster than the word
     // does. A code with no flag falls back to the generic icon.
