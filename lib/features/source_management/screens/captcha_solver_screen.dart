@@ -254,18 +254,29 @@ class _CaptchaSolverScreenState extends State<CaptchaSolverScreen> {
 
     try {
       final uri = WebUri(widget.url);
-      var list = await CookieManager.instance().getCookies(url: uri);
-      // Also try base domain and host variants to be sure
+      final jar = <String, String>{};
+      Future<void> collect(WebUri u) async {
+        try {
+          final list = await CookieManager.instance().getCookies(url: u);
+          for (final c in list) {
+            if (c.name.isNotEmpty && c.value.isNotEmpty) {
+              jar[c.name] = c.value;
+            }
+          }
+        } catch (_) {}
+      }
+      await collect(uri);
       try {
         final host = uri.host;
-        final base = host.split('.').length > 2 ? host.substring(host.indexOf('.') + 1) : host;
-        final alt1 = await CookieManager.instance().getCookies(url: WebUri('https://$base/'));
-        list = {...{for (var c in list) c.name: c}, ...{for (var c in alt1) c.name: c}}.values.toList();
+        await collect(WebUri('https://${host}/'));
+        final parts = host.split('.');
+        if (parts.length >= 2) {
+          final base = parts.sublist(parts.length - 2).join('.');
+          await collect(WebUri('https://$base/'));
+          await collect(WebUri('https://www.$base/'));
+        }
       } catch (_) {}
-      final keep = list
-          .where((c) => c.name.isNotEmpty && c.value.isNotEmpty)
-          .map((c) => '${c.name}=${c.value}')
-          .join('; ');
+      final keep = jar.entries.map((e) => '${e.key}=${e.value}').join('; ');
       if (keep.isNotEmpty) {
         await SourceNetworkConfig.setCookies(widget.sourceId, value: keep);
       }
