@@ -254,6 +254,27 @@ class MainActivity : FlutterActivity() {
             "com.hlomatsi.yomou/widget"
         ).setMethodCallHandler { call, result ->
             when (call.method) {
+                "saveWidgetData" -> {
+                    try {
+                        val coverPaths = call.argument<List<String?>>("coverPaths")
+                        val mangaIds = call.argument<List<String?>>("mangaIds")
+                        android.util.Log.d("YomouWidget", "saveWidgetData called: $coverPaths")
+                        val prefs = getSharedPreferences("HomeWidgetPreferences", Context.MODE_PRIVATE)
+                        val editor = prefs.edit()
+                        for (i in 0..3) {
+                            val cp = coverPaths?.getOrNull(i)
+                            val mi = mangaIds?.getOrNull(i)
+                            if (!cp.isNullOrEmpty()) editor.putString("cover_path_$i", cp) else editor.remove("cover_path_$i")
+                            if (!mi.isNullOrEmpty()) editor.putString("manga_id_$i", mi) else editor.remove("manga_id_$i")
+                        }
+                        editor.apply()
+                        android.util.Log.d("YomouWidget", "saved to prefs")
+                        result.success(true)
+                    } catch (e: Exception) {
+                        android.util.Log.e("YomouWidget", "error: ${e.message}")
+                        result.error("widget", e.message, null)
+                    }
+                }
                 "updateWidget" -> {
                     try {
                         val manager = android.appwidget.AppWidgetManager.getInstance(this)
