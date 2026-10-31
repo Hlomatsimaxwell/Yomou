@@ -725,7 +725,7 @@ class _HomeScreenState extends ConsumerState<HomeScreen>
                       Positioned(
                         // The reference anchors its continue FAB to the nav's
                         // top end with a 16dp horizontal margin.
-                        right: 16,
+                        right: 16 + (MediaQuery.textScalerOf(context).scale(8)),
                         bottom: bottomBarTopEdge(context) + 12,
                         child: showFab
                             ? KeyedSubtree(
@@ -828,12 +828,11 @@ class _HomeScreenState extends ConsumerState<HomeScreen>
                     child: showFab
                         ? KeyedSubtree(
                             key: const ValueKey('continue-fab'),
-                            child: Row(
-                              mainAxisSize: MainAxisSize.min,
-                              children: [
-                                const SizedBox(width: 8),
-                                _buildContinueFab(accent),
-                              ],
+                            child: Padding(
+                              padding: EdgeInsets.only(
+                                left: 8 + (MediaQuery.textScalerOf(context).scale(4)),
+                              ),
+                              child: _buildContinueFab(accent),
                             ),
                           )
                         : const SizedBox(
