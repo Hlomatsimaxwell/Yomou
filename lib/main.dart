@@ -888,7 +888,7 @@ class _HomeScreenState extends ConsumerState<HomeScreen>
                             key: const ValueKey('continue-fab'),
                             child: Padding(
                               padding: EdgeInsets.only(
-                                left: 8 + (MediaQuery.textScalerOf(context).scale(12)),
+                                left: 8,
                               ),
                               child: _buildContinueFab(accent),
                             ),
