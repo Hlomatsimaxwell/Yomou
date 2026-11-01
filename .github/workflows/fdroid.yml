@@ -75,8 +75,8 @@ jobs:
           fi
           fdroid update -c
           # Use the app's own launcher icon as the repository's profile picture.
-          cp android/app/src/main/res/mipmap-xxxhdpi/ic_launcher.png fdroid/repo/icon.png
-          cp android/app/src/main/res/mipmap-xxxhdpi/ic_launcher.png fdroid/repo/index.png
+          cp ../android/app/src/main/res/mipmap-xxxhdpi/ic_launcher.png repo/icon.png
+          cp ../android/app/src/main/res/mipmap-xxxhdpi/ic_launcher.png repo/index.png
 
       - name: Upload fdroid state (save on first run)
         uses: actions/upload-artifact@v4
