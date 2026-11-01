@@ -502,19 +502,8 @@ class _HomeScreenState extends ConsumerState<HomeScreen>
       await _maybeShowWhatsNew(version);
     }
     unawaited(_refreshUpdatesBadge());
-    // Update home screen widget with recent reading history.
-    unawaited(_updateWidget());
-  }
-
-  Future<void> _updateWidget() async {
-    try {
-      final rows = await DatabaseHelper.instance.getHistory();
-      final recent = rows.take(4).map((m) => {
-            'id': (m['mangaId'] ?? '') as String,
-            'coverPath': (m['coverUrl'] ?? '') as String,
-          }).toList();
-      await WidgetService.updateMangaDeck(recent);
-    } catch (_) {}
+    // Reload the home screen widget with the latest reading history.
+    unawaited(WidgetService.refresh());
   }
 
   /// New-chapter notifications default to on, so ask for the OS permission

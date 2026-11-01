@@ -2,6 +2,6 @@
 <ImageView
     xmlns:android="http://schemas.android.com/apk/res/android"
     android:id="@+id/imageView_cover"
-    android:layout_width="75dp"
-    android:layout_height="105dp"
+    android:layout_width="@dimen/widget_cover_width"
+    android:layout_height="@dimen/widget_cover_height"
     android:scaleType="centerCrop" />

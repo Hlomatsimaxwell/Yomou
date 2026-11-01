@@ -3410,15 +3410,8 @@ class _ReaderScreenState extends ConsumerState<ReaderScreen>
       lastReadPage: _pages.isEmpty ? 0 : _currentPageIndex,
     );
 
-    // Update home screen widget with recent manga
-    try {
-      final history = await DatabaseHelper.instance.getHistory();
-      final recent = history.take(4).map((m) => {
-            'id': (m['mangaId'] ?? '') as String,
-            'coverPath': (m['coverUrl'] ?? '') as String,
-          }).toList();
-      await WidgetService.updateMangaDeck(recent);
-    } catch (_) {}
+    // Refresh the home screen widget with the latest reading history.
+    await WidgetService.refresh();
 
     bumpHistoryRevision(ref);
     _isSaving = false;
