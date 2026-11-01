@@ -729,7 +729,7 @@ class _ExploreScreenState extends ConsumerState<ExploreScreen> {
               },
               onLongPress: () => _enterSelection(name),
               child: Padding(
-                padding: const EdgeInsets.symmetric(vertical: 4),
+                padding: const EdgeInsets.symmetric(vertical: 4, horizontal: 8),
                 child: Row(
                   children: [
                     SourceIcon(
