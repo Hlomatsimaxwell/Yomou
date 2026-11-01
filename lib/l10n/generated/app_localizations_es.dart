@@ -150,7 +150,7 @@ class AppLocalizationsEs extends AppLocalizations {
 
   @override
   String settingsMangaSourcesSubtitle(Object enabled, Object total) {
-    return '$enabled de $total activas';
+    return '$enabled de $total';
   }
 
   @override

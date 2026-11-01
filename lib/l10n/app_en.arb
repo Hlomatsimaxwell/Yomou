@@ -57,7 +57,7 @@
   "settingsAppearance": "Appearance",
   "settingsAppearanceSubtitle": "Theme, List mode, Language",
   "settingsMangaSources": "Manga sources",
-  "settingsMangaSourcesSubtitle": "{enabled} of {total} on",
+  "settingsMangaSourcesSubtitle": "{enabled} of {total}",
   "sourcesSortingOrder": "Sorting order",
   "sourcesSortOrderManual": "Manual",
   "sourcesSortOrderName": "Name",

@@ -87,7 +87,9 @@ class _MangaSourcesSettingsScreenState
     final incognitoMode = ref.watch(incognitoModeProvider);
 
     final rows = ref.watch(sourcesProvider).toList();
-    final enabledCount = rows.where(isSourceEnabled).length;
+    final enabledCount = rows
+        .where((r) => isSourceEnabled(r) && !(enabled && isNsfwSource(r)))
+        .length;
     final totalCount = rows.length;
 
     return Scaffold(

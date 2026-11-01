@@ -45,7 +45,7 @@
   "settingsAppearance": "Apariencia",
   "settingsAppearanceSubtitle": "Tema, modo de lista, idioma",
   "settingsMangaSources": "Fuentes de manga",
-  "settingsMangaSourcesSubtitle": "{enabled} de {total} activas",
+  "settingsMangaSourcesSubtitle": "{enabled} de {total}",
   "sourcesSortingOrder": "Orden de clasificación",
   "sourcesSortOrderManual": "Manual",
   "sourcesSortOrderName": "Nombre",

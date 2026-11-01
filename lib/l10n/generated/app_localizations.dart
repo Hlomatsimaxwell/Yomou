@@ -371,7 +371,7 @@ abstract class AppLocalizations {
   /// No description provided for @settingsMangaSourcesSubtitle.
   ///
   /// In en, this message translates to:
-  /// **'{enabled} of {total} on'**
+  /// **'{enabled} of {total}'**
   String settingsMangaSourcesSubtitle(Object enabled, Object total);
 
   /// No description provided for @sourcesSortingOrder.

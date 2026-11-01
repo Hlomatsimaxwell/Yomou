@@ -21,6 +21,7 @@ import 'package:yomou/features/settings/screens/reader_settings_screen.dart';
 import 'package:yomou/features/settings/widgets/settings_surfaces.dart';
 import 'package:yomou/features/source_management/screens/manga_sources_screen.dart';
 import 'package:yomou/data/providers/sources_provider.dart';
+import 'package:yomou/features/settings/providers/cache_settings_provider.dart';
 import 'package:yomou/widgets/m3_components.dart';
 
 /// One row in the settings hub.
@@ -144,7 +145,10 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
   Widget build(BuildContext context) {
     final l = AppLocalizations.of(context);
     final sourceList = ref.watch(sourcesProvider).toList();
-    final enabledCount = sourceList.where(isSourceEnabled).length;
+    final disableNsfw = ref.watch(disableNsfwProvider);
+    final enabledCount = sourceList
+        .where((s) => isSourceEnabled(s) && !(disableNsfw && isNsfwSource(s)))
+        .length;
     final totalCount = sourceList.length;
 
     final categories = <_Category>[
