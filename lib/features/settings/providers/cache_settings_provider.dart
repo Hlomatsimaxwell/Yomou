@@ -277,7 +277,12 @@ class CacheSettingsNotifier extends StateNotifier<CacheSettings> {
 
   Future<void> setDisableNsfw(bool disable) async {
     await _ready;
-    state = state.copyWith(disableNsfw: disable);
+    state = state.copyWith(
+      disableNsfw: disable,
+      // NSFW sources stop being part of "all sources" once they are filtered
+      // out, so "Enable all manga sources" can no longer claim to be on.
+      enableAllSources: disable ? false : state.enableAllSources,
+    );
     await _persist();
   }
 
