@@ -700,74 +700,88 @@ class _ExploreScreenState extends ConsumerState<ExploreScreen> {
           final iconUrl = source['iconUrl'] as String? ?? '';
           final siteUrl = source['siteUrl'] as String? ?? '';
 
-          return InkWell(
-            borderRadius: BorderRadius.circular(14),
-            onTap: () {
-              if (_isSelecting) {
-                _toggleSelect(name);
-              } else {
-                Navigator.push(
-                  context,
-                  MaterialPageRoute(
-                    builder: (context) => MangaGridScreen(sourceName: name),
-                  ),
-                );
-              }
-            },
-            onLongPress: () => _enterSelection(name),
-            child: Padding(
-              padding: const EdgeInsets.symmetric(vertical: 4),
-              child: Row(
-                children: [
-                  SourceIcon(
-                    name: name,
-                    iconUrl: iconUrl,
-                    siteUrl: siteUrl,
-                  ),
-                  const SizedBox(width: 16),
-                  Expanded(
-                    child: Column(
-                      crossAxisAlignment: CrossAxisAlignment.start,
-                      children: [
-                        Text(
-                          name,
-                          maxLines: 1,
-                          overflow: TextOverflow.ellipsis,
-                          style: TextStyle(
-                            color: dark
-                                ? Colors.white
-                                : const Color(0xFF212121),
-                            fontSize: 15,
-                            fontWeight: FontWeight.w700,
-                          ),
-                        ),
-                        if (language.isNotEmpty) ...[
-                          const SizedBox(height: 3),
+          return DecoratedBox(
+            decoration: BoxDecoration(
+              color: _selectedSourceNames.contains(name)
+                  ? Theme.of(context).colorScheme.primary.withValues(alpha: 0.10)
+                  : null,
+              borderRadius: BorderRadius.circular(3),
+              border: _selectedSourceNames.contains(name)
+                  ? Border.all(
+                      color: Theme.of(context).colorScheme.primary,
+                      width: 1,
+                    )
+                  : null,
+            ),
+            child: InkWell(
+              borderRadius: BorderRadius.circular(14),
+              onTap: () {
+                if (_isSelecting) {
+                  _toggleSelect(name);
+                } else {
+                  Navigator.push(
+                    context,
+                    MaterialPageRoute(
+                      builder: (context) => MangaGridScreen(sourceName: name),
+                    ),
+                  );
+                }
+              },
+              onLongPress: () => _enterSelection(name),
+              child: Padding(
+                padding: const EdgeInsets.symmetric(vertical: 4),
+                child: Row(
+                  children: [
+                    SourceIcon(
+                      name: name,
+                      iconUrl: iconUrl,
+                      siteUrl: siteUrl,
+                    ),
+                    const SizedBox(width: 16),
+                    Expanded(
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
                           Text(
-                            language,
+                            name,
                             maxLines: 1,
                             overflow: TextOverflow.ellipsis,
                             style: TextStyle(
                               color: dark
-                                  ? Colors.white54
-                                  : const Color(0xFF9E9E9E),
-                              fontSize: 12,
+                                  ? Colors.white
+                                  : const Color(0xFF212121),
+                              fontSize: 15,
+                              fontWeight: FontWeight.w700,
                             ),
                           ),
+                          if (language.isNotEmpty) ...[
+                            const SizedBox(height: 3),
+                            Text(
+                              language,
+                              maxLines: 1,
+                              overflow: TextOverflow.ellipsis,
+                              style: TextStyle(
+                                color: dark
+                                    ? Colors.white54
+                                    : const Color(0xFF9E9E9E),
+                                fontSize: 12,
+                              ),
+                            ),
+                          ],
                         ],
-                      ],
+                      ),
                     ),
-                  ),
-                  Icon(
-                    _selectedSourceNames.contains(name)
-                        ? MdiIcons.checkCircle
-                        : MdiIcons.chevronRight,
-                    size: 20,
-                    color: _selectedSourceNames.contains(name)
-                        ? Theme.of(context).colorScheme.primary
-                        : (dark ? Colors.white30 : Colors.black26),
-                  ),
-                ],
+                    Icon(
+                      _selectedSourceNames.contains(name)
+                          ? MdiIcons.checkCircle
+                          : MdiIcons.chevronRight,
+                      size: 20,
+                      color: _selectedSourceNames.contains(name)
+                          ? Theme.of(context).colorScheme.primary
+                          : (dark ? Colors.white30 : Colors.black26),
+                    ),
+                  ],
+                ),
               ),
             ),
           );
