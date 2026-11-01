@@ -97,10 +97,24 @@ class MangaDeckListFactory(
             connection.readTimeout = 10000
             connection.connect()
             val input = connection.inputStream
-            BitmapFactory.decodeStream(input)
+            val original = BitmapFactory.decodeStream(input) ?: return null
+            // Apply rounded corners like Kotatsu-Redo
+            val radius = (12 * context.resources.displayMetrics.density)
+            roundBitmap(original, radius)
         } catch (e: Exception) {
             Log.e("MangaDeckFactory", "Download failed: ${e.message}")
             null
         }
+    }
+
+    private fun roundBitmap(source: Bitmap, radius: Float): Bitmap {
+        val result = Bitmap.createBitmap(source.width, source.height, Bitmap.Config.ARGB_8888)
+        val canvas = android.graphics.Canvas(result)
+        val paint = android.graphics.Paint(android.graphics.Paint.ANTI_ALIAS_FLAG)
+        val rect = android.graphics.RectF(0f, 0f, source.width.toFloat(), source.height.toFloat())
+        canvas.drawRoundRect(rect, radius, radius, paint)
+        paint.xfermode = android.graphics.PorterDuffXfermode(android.graphics.PorterDuff.Mode.SRC_IN)
+        canvas.drawBitmap(source, 0f, 0f, paint)
+        return result
     }
 }
