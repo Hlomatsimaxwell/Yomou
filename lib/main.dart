@@ -670,13 +670,12 @@ class _HomeScreenState extends ConsumerState<HomeScreen>
     // opposite ends of the display, and wastes the width the content wants.
     final useRail = usesWideLayout(context);
 
-    // Desktop layout keeps the Continue pill permanently in the rail (matches
-    // Kotatsu-Redo: native wide apps keep it reachable); on the phone it only
-    // surfaces on the History tab, where the latest chapter is most relevant.
+    // The Continue button is reachable from every tab now, not just History:
+    // resuming a manga is the app's primary action, so it should not require
+    // switching tabs first. Desktop keeps it in the rail; phone shows it
+    // beside the bar on every tab.
     final showFab =
-        settings.showFloatingContinueButton &&
-        enabledTabs.contains(0) &&
-        (useRail || _currentIndex == 0);
+        settings.showFloatingContinueButton && enabledTabs.contains(0);
     _visitedTabs.add(_currentIndex);
 
     // Shared by both layouts so the rail and the bar cannot drift into
@@ -758,7 +757,7 @@ class _HomeScreenState extends ConsumerState<HomeScreen>
               // edge-to-edge and scroll underneath the floating bar.
               Positioned.fill(child: content),
               // Bottom navigation overlay (floating or solid) + the conditional
-              // Continue FAB (History tab only, opt-in). The FAB sits beside the
+              // Continue FAB (opt-in, shown on every tab). The FAB sits beside the
               // floating pill in one bottom-centered row; with the solid bar it
               // stays docked above it. Everything hides together on scroll-down
               // unless pinNavUiOnScroll is on.
