@@ -3,9 +3,9 @@ package com.stunna.manga_reader
 import android.app.PendingIntent
 import android.appwidget.AppWidgetManager
 import android.appwidget.AppWidgetProvider
-import android.content.ComponentName
 import android.content.Context
 import android.content.Intent
+import android.graphics.Color
 import android.net.Uri
 import android.widget.RemoteViews
 
@@ -18,6 +18,12 @@ class MangaDeckWidgetReceiver : AppWidgetProvider() {
     ) {
         for (appWidgetId in appWidgetIds) {
             val views = RemoteViews(context.packageName, R.layout.widget_recent)
+
+            if (MangaDeckWidgetConfig(context, appWidgetId).hasBackground) {
+                views.setInt(R.id.widget_root, "setBackgroundResource", R.drawable.bg_appwidget_root)
+            } else {
+                views.setInt(R.id.widget_root, "setBackgroundColor", Color.TRANSPARENT)
+            }
 
             val adapter = Intent(context, MangaDeckWidgetService::class.java)
             adapter.putExtra(AppWidgetManager.EXTRA_APPWIDGET_ID, appWidgetId)
@@ -40,6 +46,22 @@ class MangaDeckWidgetReceiver : AppWidgetProvider() {
 
             appWidgetManager.updateAppWidget(appWidgetId, views)
             appWidgetManager.notifyAppWidgetViewDataChanged(appWidgetId, R.id.stackView)
+        }
+    }
+
+    override fun onDeleted(context: Context, appWidgetIds: IntArray) {
+        super.onDeleted(context, appWidgetIds)
+        for (appWidgetId in appWidgetIds) {
+            MangaDeckWidgetConfig(context, appWidgetId).clear()
+        }
+    }
+
+    override fun onRestored(context: Context, oldWidgetIds: IntArray, newWidgetIds: IntArray) {
+        super.onRestored(context, oldWidgetIds, newWidgetIds)
+        if (oldWidgetIds.size != newWidgetIds.size) return
+        for (i in oldWidgetIds.indices) {
+            MangaDeckWidgetConfig(context, newWidgetIds[i])
+                .copyFrom(MangaDeckWidgetConfig(context, oldWidgetIds[i]))
         }
     }
 }

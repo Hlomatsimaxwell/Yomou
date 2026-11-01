@@ -33,4 +33,10 @@
         <item name="android:windowLightStatusBar">true</item>
         <item name="android:windowLightNavigationBar">true</item>
     </style>
+    <!-- Setup screen shown when the Manga Deck widget is dropped. Platform
+         widgets only, so it opens instantly instead of booting Flutter. -->
+    <style name="WidgetConfigTheme" parent="@android:style/Theme.DeviceDefault.Light.NoActionBar">
+        <item name="android:colorAccent">#4C8DFF</item>
+        <item name="android:windowLightStatusBar">true</item>
+    </style>
 </resources>

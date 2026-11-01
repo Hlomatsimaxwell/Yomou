@@ -1,0 +1,7 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <style name="WidgetConfigTheme" parent="@android:style/Theme.DeviceDefault.NoActionBar">
+        <item name="android:colorAccent">#4C8DFF</item>
+        <item name="android:windowLightStatusBar">false</item>
+    </style>
+</resources>

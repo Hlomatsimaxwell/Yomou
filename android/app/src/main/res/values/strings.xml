@@ -3,4 +3,7 @@
     <string name="appwidget_recent_label">Recent</string>
     <string name="appwidget_recent_description">Your recently read manga</string>
     <string name="appwidget_recent_empty">Read manga to see covers here</string>
+    <string name="background">Background</string>
+    <string name="close">Close</string>
+    <string name="done">Done</string>
 </resources>
