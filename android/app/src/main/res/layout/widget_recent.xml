@@ -16,7 +16,7 @@
         android:layout_height="wrap_content"
         android:layout_gravity="center"
         android:gravity="center"
-        android:text="Read manga to see covers here"
+        android:text="@string/appwidget_recent_empty"
         android:textColor="#888888"
         android:textSize="12sp" />
 

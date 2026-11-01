@@ -65,7 +65,8 @@
              This is used by the Flutter tool to generate GeneratedPluginRegistrant.java -->
         <receiver
             android:name=".MangaDeckWidgetReceiver"
-            android:exported="true">
+            android:exported="true"
+            android:label="@string/appwidget_recent_label">
             <intent-filter>
                 <action android:name="android.appwidget.action.APPWIDGET_UPDATE" />
             </intent-filter>

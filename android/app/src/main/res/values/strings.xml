@@ -1,0 +1,6 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string name="appwidget_recent_label">Recent</string>
+    <string name="appwidget_recent_description">Your recently read manga</string>
+    <string name="appwidget_recent_empty">Read manga to see covers here</string>
+</resources>
