@@ -200,6 +200,45 @@ class AppearanceSettingsScreen extends ConsumerWidget {
           subtitle: Text(_languageLabel(l, settings.language)),
           onTap: () => _showLanguageSelector(context, ref, settings, notifier),
         ),
+        // Display size. Scales the whole interface rather than just text, the
+        // way Android's own Display size does, and reads out the percentage on
+        // the label's line like the grid-size slider below.
+        ListTile(
+          key: const ValueKey('displaySizeRow'),
+          leading: const Icon(Icons.format_size, size: 24),
+          title: Row(
+            mainAxisAlignment: MainAxisAlignment.spaceBetween,
+            children: [
+              Text(
+                l.appearanceDisplaySizeTitle,
+                style: const TextStyle(fontSize: 14),
+              ),
+              Text(
+                '${(settings.uiScale * 100).round()}%',
+                style: const TextStyle(fontSize: 12),
+              ),
+            ],
+          ),
+          subtitle: SizedBox(
+            height: 48,
+            child: SliderTheme(
+              data: SliderTheme.of(context).copyWith(
+                padding: const EdgeInsets.only(right: 16),
+              ),
+              child: Slider(
+                value: settings.uiScale,
+                // Symmetric around the default, so 100% sits in the middle of
+                // the track rather than three quarters along it: the app's own
+                // size is the resting point, and both directions are a move
+                // away from it. 5% steps keep the readout honest.
+                min: 0.75,
+                max: 1.25,
+                divisions: 10,
+                onChanged: (v) => notifier.setUiScale(v),
+              ),
+            ),
+          ),
+        ),
 
         // Effects Section
         //
@@ -244,6 +283,7 @@ class AppearanceSettingsScreen extends ConsumerWidget {
           onTap: () => _showListModeSelector(context, ref, settings, notifier),
         ),
         ListTile(
+          key: const ValueKey('gridSizeRow'),
           leading: const KotatsuIcon('ic_grid'),
           // Name and value share the label's line, at opposite ends, instead of
           // being spliced into one string: the percent is a reading of the

@@ -126,6 +126,7 @@
   "listModeList": "Lista",
   "appearanceGridSize": "Tamaño de cuadrícula: {percent}%",
   "appearanceGridSizeTitle": "Tamaño de cuadrícula",
+  "appearanceDisplaySizeTitle": "Tamaño de pantalla",
   "appearanceQuickFilters": "Mostrar filtros rápidos",
   "appearanceQuickFiltersSubtitle": "Permite filtrar las listas de manga por ciertos parámetros",
   "appearanceReadingProgress": "Mostrar indicadores de progreso de lectura",

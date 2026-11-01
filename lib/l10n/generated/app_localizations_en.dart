@@ -695,6 +695,9 @@ class AppLocalizationsEn extends AppLocalizations {
   String get appearanceGridSizeTitle => 'Grid size';
 
   @override
+  String get appearanceDisplaySizeTitle => 'Display size';
+
+  @override
   String get appearanceQuickFilters => 'Show quick filters';
 
   @override

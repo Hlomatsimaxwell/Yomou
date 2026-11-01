@@ -293,13 +293,10 @@ class YomouApp extends ConsumerWidget {
         // Match the app's current brightness. (An enclosing region supersedes
         // an AppBar's navigation-bar properties, so this wins app-wide.)
         final dark = Theme.of(context).brightness == Brightness.dark;
-        final textScaler = TextScaler.linear(
-          ref.watch(appearanceSettingsProvider).textScale.clamp(0.85, 1.45),
-        );
-        final scaledChild = MediaQuery(
-          data: MediaQuery.of(context).copyWith(textScaler: textScaler),
-          child: child!,
-        );
+        final uiScale = ref
+            .watch(appearanceSettingsProvider)
+            .uiScale
+            .clamp(0.75, 1.25);
         return AnnotatedRegion<SystemUiOverlayStyle>(
           value: SystemUiOverlayStyle(
             systemNavigationBarColor: Colors.transparent,
@@ -307,24 +304,83 @@ class YomouApp extends ConsumerWidget {
             systemNavigationBarIconBrightness:
                 dark ? Brightness.light : Brightness.dark,
           ),
-          child: Stack(
-            children: [
-              scaledChild,
-              // Sits above every route so the PIN lock covers the whole app
-              // (reader, detail views, settings) whenever it's active.
-              Consumer(
-                builder: (context, ref, _) {
-                  final lock = ref.watch(appLockProvider);
-                  return lock.locked
-                      ? const PinLockScreen()
-                      : const SizedBox.shrink();
-                },
-              ),
-            ],
+          child: _AppZoom(
+            scale: uiScale,
+            child: Stack(
+              children: [
+                // The OS font scale is deliberately not applied: the app has
+                // its own Display size setting, and honouring both would
+                // multiply the two.
+                MediaQuery(
+                  data: MediaQuery.of(context)
+                      .copyWith(textScaler: TextScaler.noScaling),
+                  child: child!,
+                ),
+                // Sits above every route so the PIN lock covers the whole app
+                // (reader, detail views, settings) whenever it's active.
+                Consumer(
+                  builder: (context, ref, _) {
+                    final lock = ref.watch(appLockProvider);
+                    return lock.locked
+                        ? const PinLockScreen()
+                        : const SizedBox.shrink();
+                  },
+                ),
+              ],
+            ),
           ),
         );
       },
       home: const HomeScreen(),
+    );
+  }
+}
+
+/// Emulates Android's "Display size" by laying the app out in a smaller
+/// logical viewport and painting it back up to the real one.
+///
+/// Flutter has no density override, so this is the honest way to zoom the whole
+/// tree: [MediaQuery] is rewritten to the smaller logical size, which is what
+/// the responsive breakpoints should see, and [FittedBox] scales the result to
+/// fill the window. FittedBox is used rather than a bare [Transform] because it
+/// keeps its own layout size at the full window, so taps in the outer strip
+/// still hit the widgets drawn there.
+class _AppZoom extends StatelessWidget {
+  const _AppZoom({required this.scale, required this.child});
+
+  final double scale;
+  final Widget child;
+
+  @override
+  Widget build(BuildContext context) {
+    if (scale == 1) return child;
+    return LayoutBuilder(
+      builder: (context, constraints) {
+        final size = constraints.biggest;
+        if (!size.isFinite) return child;
+        final zoomed = Size(size.width / scale, size.height / scale);
+        final mq = MediaQuery.of(context);
+        return FittedBox(
+          fit: BoxFit.fill,
+          alignment: Alignment.topLeft,
+          child: SizedBox(
+            width: zoomed.width,
+            height: zoomed.height,
+            child: MediaQuery(
+              data: mq.copyWith(
+                size: zoomed,
+                // The keyboard and system bars are outside the zoom, so the
+                // space they take has to be expressed in the zoomed units the
+                // tree is laid out in.
+                padding: mq.padding / scale,
+                viewPadding: mq.viewPadding / scale,
+                viewInsets: mq.viewInsets / scale,
+              ),
+              child: child,
+            ),
+          ),
+        );
+      },
     );
   }
 }

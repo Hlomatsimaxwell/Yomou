@@ -163,6 +163,19 @@ void main() {
     expect(tester.takeException(), isNull);
   });
 
+  /// The percentage the grid-size row reads out, scoped to that row: the
+  /// display-size row above it shows the same 100% at its default.
+  Finder gridValue(String text) => find.descendant(
+        of: find.byKey(const ValueKey('gridSizeRow')),
+        matching: find.text(text),
+      );
+
+  /// The grid-size row's slider, as opposed to the display-size one.
+  Finder gridSlider() => find.descendant(
+        of: find.byKey(const ValueKey('gridSizeRow')),
+        matching: find.byType(Slider),
+      );
+
   testWidgets('the pane fills the pane it is given instead of a centred cap',
       (tester) async {
     // Wider than the width class's 960 cap: capping inside the pane would
@@ -180,7 +193,7 @@ void main() {
     // sits against instead of 24 in from it.
     final toggles = tester.getRect(find.byType(Switch).first);
     expect(toggles.right, 1400 - 8 - SettingsRows.trailingInset);
-    expect(tester.getRect(find.text('100%')).right, toggles.right);
+    expect(tester.getRect(gridValue('100%')).right, toggles.right);
 
     expect(tester.takeException(), isNull);
   });
@@ -261,26 +274,26 @@ void main() {
     // The setting keeps its own label instead of one interpolated string.
     expect(find.text('Grid size'), findsOneWidget);
     expect(find.text('Grid size: 100%'), findsNothing);
-    expect(find.text('100%'), findsOneWidget);
+    expect(gridValue('100%'), findsOneWidget);
 
     // Name and value share a baseline; the slider is the line under them.
     final name = tester.getCenter(find.text('Grid size'));
-    final value = tester.getCenter(find.text('100%'));
+    final value = tester.getCenter(gridValue('100%'));
     expect((name.dy - value.dy).abs(), lessThan(2));
     expect(name.dx, lessThan(value.dx));
 
-    final slider = tester.getRect(find.byType(Slider));
+    final slider = tester.getRect(gridSlider());
     expect(slider.top, greaterThan(name.dy));
 
     // The value and the track end on the row's own trailing edge, which is the
     // edge the switches further down the pane sit their thumbs on.
     final toggles = tester.getRect(find.byType(Switch).first);
-    expect(tester.getRect(find.text('100%')).right, toggles.right);
+    expect(tester.getRect(gridValue('100%')).right, toggles.right);
     expect(slider.right, toggles.right);
 
     // And the track itself ends 16 short of the row's edge.
-    final sliderBox = tester.renderObject<RenderBox>(find.byType(Slider));
-    final sliderTheme = SliderTheme.of(tester.element(find.byType(Slider)));
+    final sliderBox = tester.renderObject<RenderBox>(gridSlider());
+    final sliderTheme = SliderTheme.of(tester.element(gridSlider()));
     expect(sliderTheme.padding, const EdgeInsets.only(right: 16));
     final track = const GappedSliderTrackShape().getPreferredRect(
       parentBox: sliderBox,

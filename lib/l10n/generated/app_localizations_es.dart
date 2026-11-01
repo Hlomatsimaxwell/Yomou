@@ -699,6 +699,9 @@ class AppLocalizationsEs extends AppLocalizations {
   String get appearanceGridSizeTitle => 'Tamaño de cuadrícula';
 
   @override
+  String get appearanceDisplaySizeTitle => 'Tamaño de pantalla';
+
+  @override
   String get appearanceQuickFilters => 'Mostrar filtros rápidos';
 
   @override

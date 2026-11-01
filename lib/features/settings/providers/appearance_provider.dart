@@ -170,7 +170,7 @@ class AppearanceSettings {
     required this.reduceMotion,
     required this.hapticsEnabled,
     required this.amoledBlack,
-    required this.textScale,
+    required this.uiScale,
     required this.readerWarmNight,
     required this.showSourcePreviewPane,
   });
@@ -214,7 +214,7 @@ class AppearanceSettings {
         reduceMotion: false,
         hapticsEnabled: true,
         amoledBlack: false,
-        textScale: 1.0,
+        uiScale: 1.0,
         readerWarmNight: false,
         showSourcePreviewPane: true,
       );
@@ -257,7 +257,10 @@ class AppearanceSettings {
   /// setting buys nothing and flattens the cards against the background.
   final bool amoledBlack;
   final bool readerWarmNight;
-  final double textScale;
+
+  /// Scales the whole interface -- text, padding, icons and covers -- the way
+  /// Android's own "Display size" does. 1.0 is the design size.
+  final double uiScale;
 
   /// Show the preview pane in the source grid on wide layouts.
   final bool showSourcePreviewPane;
@@ -289,7 +292,7 @@ class AppearanceSettings {
     bool? reduceMotion,
     bool? hapticsEnabled,
     bool? amoledBlack,
-    double? textScale,
+    double? uiScale,
     bool? readerWarmNight,
     bool? showSourcePreviewPane,
   }) =>
@@ -326,7 +329,7 @@ class AppearanceSettings {
         reduceMotion: reduceMotion ?? this.reduceMotion,
         hapticsEnabled: hapticsEnabled ?? this.hapticsEnabled,
         amoledBlack: amoledBlack ?? this.amoledBlack,
-        textScale: textScale ?? this.textScale,
+        uiScale: uiScale ?? this.uiScale,
         readerWarmNight: readerWarmNight ?? this.readerWarmNight,
         showSourcePreviewPane: showSourcePreviewPane ?? this.showSourcePreviewPane,
       );
@@ -394,7 +397,7 @@ class _AppearancePersistence {
   static const _haptics = '${_prefix}hapticsEnabled';
   static const _amoledBlack = '${_prefix}amoledBlack';
   static const _readerWarmNight = '${_prefix}readerWarmNight';
-  static const _textScale = '${_prefix}textScale';
+  static const _uiScale = '${_prefix}uiScale';
   static const _showSourcePreviewPane = '${_prefix}showSourcePreviewPane';
 
   static Future<AppearanceSettings> load() async {
@@ -432,7 +435,7 @@ class _AppearancePersistence {
       hapticsEnabled: p.getBool(_haptics) ?? true,
       amoledBlack: p.getBool(_amoledBlack) ?? false,
       readerWarmNight: p.getBool(_readerWarmNight) ?? false,
-      textScale: p.getDouble(_textScale) ?? 1.0,
+      uiScale: p.getDouble(_uiScale) ?? 1.0,
       showSourcePreviewPane: p.getBool(_showSourcePreviewPane) ?? true,
     );
   }
@@ -466,7 +469,7 @@ class _AppearancePersistence {
     await p.setBool(_haptics, s.hapticsEnabled);
     await p.setBool(_amoledBlack, s.amoledBlack);
     await p.setBool(_readerWarmNight, s.readerWarmNight);
-    await p.setDouble(_textScale, s.textScale);
+    await p.setDouble(_uiScale, s.uiScale);
     await p.setBool(_showSourcePreviewPane, s.showSourcePreviewPane);
   }
 
@@ -580,8 +583,8 @@ class AppearanceSettingsNotifier extends StateNotifier<AppearanceSettings> {
   Future<void> setReaderWarmNight(bool value) async =>
       set((s) => s.copyWith(readerWarmNight: value));
 
-  Future<void> setTextScale(double value) async =>
-      set((s) => s.copyWith(textScale: value));
+  Future<void> setUiScale(double value) async =>
+      set((s) => s.copyWith(uiScale: value));
 
   Future<void> setShowSourcePreviewPane(bool value) async =>
       set((s) => s.copyWith(showSourcePreviewPane: value));

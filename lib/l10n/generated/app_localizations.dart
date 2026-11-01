@@ -1322,6 +1322,12 @@ abstract class AppLocalizations {
   /// **'Grid size'**
   String get appearanceGridSizeTitle;
 
+  /// No description provided for @appearanceDisplaySizeTitle.
+  ///
+  /// In en, this message translates to:
+  /// **'Display size'**
+  String get appearanceDisplaySizeTitle;
+
   /// No description provided for @appearanceQuickFilters.
   ///
   /// In en, this message translates to:

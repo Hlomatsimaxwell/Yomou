@@ -327,6 +327,7 @@
     }
   },
   "appearanceGridSizeTitle": "Grid size",
+  "appearanceDisplaySizeTitle": "Display size",
   "appearanceQuickFilters": "Show quick filters",
   "appearanceQuickFiltersSubtitle": "Provides the ability to filter manga lists by certain parameters",
   "appearanceReadingProgress": "Show reading progress indicators",
