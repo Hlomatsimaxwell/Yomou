@@ -14,6 +14,7 @@ import 'package:yomou/features/whats_new/whats_new_sheet.dart';
 import 'package:yomou/features/settings/screens/appearance_settings_screen.dart';
 import 'package:yomou/features/settings/screens/manga_sources_settings_screen.dart';
 import 'package:yomou/features/settings/screens/backup_restore_screen.dart';
+import 'package:yomou/features/settings/screens/reset_settings_screen.dart';
 import 'package:yomou/features/settings/screens/notification_settings_screen.dart';
 import 'package:yomou/features/settings/screens/storage_settings_screen.dart';
 import 'package:yomou/features/settings/screens/downloads_settings_screen.dart';
@@ -205,6 +206,12 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
         title: l.settingsBackup,
         subtitle: l.settingsBackupSubtitle,
         screen: const BackupRestoreScreen(),
+      ),
+      _Category(
+        icon: 'ic_restore',
+        title: l.settingsReset,
+        subtitle: l.settingsResetSubtitle,
+        screen: const ResetSettingsScreen(),
       ),
     ];
 
