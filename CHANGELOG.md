@@ -7,11 +7,23 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [1.1.9] - 2026-11-01
+
 ### Added
 - **92 more sources, bundled** — a config-driven Madara engine now ships a validated catalogue of Madara sites (English, Spanish, Portuguese, Turkish, Arabic, Thai, Vietnamese and more) as ordinary sources. Each one was checked end to end before it was bundled: listing, series page, chapter list and reader all answered. They arrive **disabled**, so nothing joins global search or the updates refresh until you switch one on in Manage sources.
+- **Android home-screen widget ("Yomou")** — 4 most recently read manga as an overlapping, resizable deck with rounded cover corners (Kotatsu-Redo style). A setup screen (X / Yomou / Done / Background switch) lets each instance toggle a rounded background card; transparent by default. The picker preview shows the designed "Yomou" card.
+- **App-wide Display size** — an Appearance setting from 75% to 125% (100% centred) that zooms the whole interface, not just text.
+- **Reset settings restored** — the Reset category is back in the settings hub."
 
 ### Changed
 - **A new source no longer arrives switched on** — a source the app has never seen keeps the default it ships with, so a bundled catalogue cannot quietly turn itself on after an update.
+- **Continue FAB on every tab** — the Continue button is reachable from every tab, not just History.
+- **Widget renamed to "Yomou"** — the picker label now matches the app name.
+- **Nav pill / Continue FAB gap** tightened to 8px (Kotatsu spacing).
+- **"Disable NSFW" defaults to on** for fresh installs.
+- **Source count** now reads "{enabled} of {total}" (no trailing "on") and updates live when Disable NSFW is toggled.
+- **"Enable all sources"** turns off automatically when Disable NSFW is enabled.
+- **Explore list selection** now matches the chapter selection styling (wash + border).
 
 ### Fixed
 - **Some catalogue sources fetched an empty list ("No manga found")** — Madara listing parsing assumed every post-link contained /manga/. Sites that use a different post type (/comic/, /series/, /manhwa/) had every card skipped and returned nothing. Link discovery now also walks /comic/, /series/ and /manhwa/ paths and avoids counting tag/genre badges as the series link. Listing cache keys were also bumped, so an empty list cached before the fix no longer masks it for an hour.
