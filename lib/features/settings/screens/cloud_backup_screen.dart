@@ -1,8 +1,11 @@
 import 'dart:convert';
 
+import 'dart:io';
+
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:http/http.dart' as http;
+import 'package:intl/intl.dart';
 import 'package:yomou/core/backup/backup_restore.dart';
 import 'package:yomou/core/backup/kotatsu_backup.dart';
 import 'package:yomou/core/database/database_helper.dart';
@@ -31,7 +34,7 @@ class _CloudBackupScreenState extends ConsumerState<CloudBackupScreen> {
 
   bool _busy = false;
   String? _status;
-  List<String> _remoteFiles = const [];
+  List<_RemoteFile> _remoteFiles = const [];
 
   @override
   void dispose() {
@@ -84,14 +87,37 @@ class _CloudBackupScreenState extends ConsumerState<CloudBackupScreen> {
       final body = await streamed.stream.bytesToString();
       if (!mounted) return;
       if (streamed.statusCode >= 200 && streamed.statusCode < 300) {
-        // Pull hrefs out of the multistatus XML.
-        final files = RegExp(r'<d:href>([^<]+)</d:href>', caseSensitive: false)
-            .allMatches(body)
-            .map((m) => m.group(1)!)
-            .where((h) => !h.endsWith('/'))
-            .map((h) => h.split('/').last)
-            .where((n) => n.isNotEmpty)
-            .toList();
+        // Pull hrefs + last-modified out of the multistatus XML.
+        final responses = RegExp(
+          r'<d:response>(.*?)</d:response>',
+          caseSensitive: false,
+          dotAll: true,
+        ).allMatches(body);
+        final files = <_RemoteFile>[];
+        for (final r in responses) {
+          final chunk = r.group(1)!;
+          final hrefMatch =
+              RegExp(r'<d:href>([^<]+)</d:href>', caseSensitive: false)
+                  .firstMatch(chunk);
+          if (hrefMatch == null) continue;
+          final href = hrefMatch.group(1)!;
+          if (href.endsWith('/')) continue;
+          final name = href.split('/').last;
+          if (name.isEmpty) continue;
+          DateTime? modified;
+          final lmMatch = RegExp(
+            r'<d:getlastmodified>([^<]+)</d:getlastmodified>',
+            caseSensitive: false,
+          ).firstMatch(chunk);
+          if (lmMatch != null) {
+            try {
+              modified = HttpDate.parse(lmMatch.group(1)!.trim());
+            } catch (_) {
+              modified = null;
+            }
+          }
+          files.add(_RemoteFile(name: name, modified: modified));
+        }
         setState(() {
           _remoteFiles = files;
           _status = 'Found ${files.length} remote file(s)';
@@ -149,14 +175,14 @@ class _CloudBackupScreenState extends ConsumerState<CloudBackupScreen> {
     }
   }
 
-  Future<void> _restore(String name) async {
+  Future<void> _restore(_RemoteFile f) async {
     if (_base.isEmpty) return;
     setState(() {
       _busy = true;
       _status = null;
     });
     try {
-      final res = await http.get(Uri.parse('$_base/$name'), headers: _authHeaders);
+      final res = await http.get(Uri.parse('$_base/${f.name}'), headers: _authHeaders);
       if (res.statusCode < 200 || res.statusCode >= 300) {
         if (!mounted) return;
         setState(() => _status = 'Download failed (${res.statusCode})');
@@ -169,13 +195,17 @@ class _CloudBackupScreenState extends ConsumerState<CloudBackupScreen> {
       bumpHistoryRevision(container);
       bumpFavoritesRevision(container);
       if (!mounted) return;
-      setState(() => _status = 'Restored $name');
+      setState(() => _status = 'Restored ${f.name}');
     } catch (e) {
       if (!mounted) return;
       setState(() => _status = 'Restore error: $e');
     } finally {
       if (mounted) setState(() => _busy = false);
     }
+  }
+
+  String _formatDate(DateTime dt) {
+    return DateFormat('yyyy-MM-dd HH:mm').format(dt.toLocal());
   }
 
   @override
@@ -246,7 +276,16 @@ class _CloudBackupScreenState extends ConsumerState<CloudBackupScreen> {
               const SizedBox(height: 4),
               for (final f in _remoteFiles)
                 ListTile(
-                  title: Text(f),
+                  title: Text(f.name),
+                  subtitle: f.modified == null
+                      ? null
+                      : Text(
+                          _formatDate(f.modified!),
+                          style: TextStyle(
+                            fontSize: 12,
+                            color: color.onSurfaceVariant,
+                          ),
+                        ),
                   trailing: TextButton(
                     onPressed: _busy ? null : () => _restore(f),
                     child: const Text('Restore'),
@@ -259,4 +298,10 @@ class _CloudBackupScreenState extends ConsumerState<CloudBackupScreen> {
       ),
     );
   }
+}
+
+class _RemoteFile {
+  const _RemoteFile({required this.name, this.modified});
+  final String name;
+  final DateTime? modified;
 }

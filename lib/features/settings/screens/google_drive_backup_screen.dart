@@ -5,6 +5,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:google_sign_in/google_sign_in.dart';
 import 'package:googleapis/drive/v3.dart' as drive;
 import 'package:http/http.dart' as http;
+import 'package:intl/intl.dart';
 import 'package:yomou/core/backup/backup_restore.dart';
 import 'package:yomou/core/backup/kotatsu_backup.dart';
 import 'package:yomou/core/database/database_helper.dart';
@@ -216,6 +217,10 @@ class _GoogleDriveBackupScreenState
     }
   }
 
+  String _formatDate(DateTime dt) {
+    return DateFormat('yyyy-MM-dd HH:mm').format(dt.toLocal());
+  }
+
   @override
   Widget build(BuildContext context) {
     final l = AppLocalizations.of(context);
@@ -280,6 +285,15 @@ class _GoogleDriveBackupScreenState
                 for (final f in _remoteFiles)
                   ListTile(
                     title: Text(f.name ?? ''),
+                    subtitle: f.modifiedTime == null
+                        ? null
+                        : Text(
+                            _formatDate(f.modifiedTime!),
+                            style: TextStyle(
+                              fontSize: 12,
+                              color: color.onSurfaceVariant,
+                            ),
+                          ),
                     trailing: TextButton(
                       onPressed: _busy ? null : () => _restore(f),
                       child: const Text('Restore'),
