@@ -39,8 +39,28 @@ class _GoogleDriveBackupScreenState
   List<drive.File> _remoteFiles = const [];
 
   @override
+  void initState() {
+    super.initState();
+    _tryRestore();
+  }
+
+  Future<void> _tryRestore() async {
+    try {
+      final account = await _googleSignIn.signInSilently();
+      if (account == null || !mounted) return;
+      final client = _AuthedClient(account);
+      setState(() {
+        _account = account;
+        _drive = drive.DriveApi(client);
+        _status = 'Signed in as ${account.email}';
+      });
+    } catch (_) {
+      // Not signed in; leave the sign-in button visible.
+    }
+  }
+
+  @override
   void dispose() {
-    _googleSignIn.disconnect();
     super.dispose();
   }
 
