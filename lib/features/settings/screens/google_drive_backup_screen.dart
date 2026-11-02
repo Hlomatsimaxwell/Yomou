@@ -66,6 +66,21 @@ class _GoogleDriveBackupScreenState
     } catch (e) {
       if (!mounted) return;
       setState(() => _status = 'Sign-in error: $e');
+      // Surface the error so it is not missed (e.g. missing OAuth client
+      // config shows up as a PlatformException here).
+      showDialog<void>(
+        context: context,
+        builder: (ctx) => AlertDialog(
+          title: const Text('Sign-in failed'),
+          content: Text(e.toString()),
+          actions: [
+            TextButton(
+              onPressed: () => Navigator.pop(ctx),
+              child: const Text('OK'),
+            ),
+          ],
+        ),
+      );
     } finally {
       if (mounted) setState(() => _busy = false);
     }
