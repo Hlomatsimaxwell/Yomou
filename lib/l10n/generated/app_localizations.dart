@@ -4495,6 +4495,12 @@ abstract class AppLocalizations {
   /// **'Cloud backup'**
   String get cloudBackup;
 
+  /// No description provided for @googleDriveBackup.
+  ///
+  /// In en, this message translates to:
+  /// **'Google Drive backup'**
+  String get googleDriveBackup;
+
   /// No description provided for @enablePeriodicBackups.
   ///
   /// In en, this message translates to:

@@ -22,6 +22,7 @@ import 'package:yomou/features/settings/providers/cache_settings_provider.dart';
 import 'package:yomou/features/settings/screens/import_results_screen.dart';
 import 'package:yomou/features/settings/screens/periodic_backups_screen.dart';
 import 'package:yomou/features/settings/screens/cloud_backup_screen.dart';
+import 'package:yomou/features/settings/screens/google_drive_backup_screen.dart';
 import 'package:yomou/features/settings/widgets/tachiyomi_scan_progress.dart';
 import 'package:yomou/l10n/generated/app_localizations.dart';
 import 'package:yomou/widgets/m3_components.dart';
@@ -601,6 +602,19 @@ class _BackupRestoreScreenState extends ConsumerState<BackupRestoreScreen> {
               context,
               MaterialPageRoute(
                 builder: (context) => const CloudBackupScreen(),
+              ),
+            );
+          },
+        ),
+        _BuildButton(
+          icon: MdiIcons.googleDrive,
+          title: l.googleDriveBackup,
+          subtitle: 'Google account',
+          onTap: () {
+            Navigator.push(
+              context,
+              MaterialPageRoute(
+                builder: (context) => const GoogleDriveBackupScreen(),
               ),
             );
           },

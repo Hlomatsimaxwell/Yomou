@@ -41,8 +41,9 @@ dependencies:
   flutter_local_notifications: ^22.3.1
   workmanager: ^0.10.10
   battery_plus: ^7.1.1
-  # Pure-Dart zip read/write for the Kotatsu .bk.zip backup format.
-  archive: ^4.0.0
+  # Google Sign-In + Drive API for cloud backup (Google Drive).
+  google_sign_in: ^6.2.2
+  googleapis: ^13.2.0
   # AES encryption for the Yomou encrypted backup format.
   encrypt: ^5.0.3
   # SHA-256 / HMAC for PBKDF2 key derivation in encrypted backups.

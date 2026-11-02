@@ -2495,6 +2495,9 @@ class AppLocalizationsEs extends AppLocalizations {
   String get cloudBackup => 'Copia en la nube';
 
   @override
+  String get googleDriveBackup => 'Copia en Google Drive';
+
+  @override
   String get enablePeriodicBackups => 'Activar copias periódicas';
 
   @override

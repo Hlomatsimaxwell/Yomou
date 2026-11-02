@@ -1278,6 +1278,7 @@
   "kotatsuImportInvalid": "Invalid Kotatsu backup file",
   "periodicBackups": "Periodic backups",
   "cloudBackup": "Cloud backup",
+  "googleDriveBackup": "Google Drive backup",
   "enablePeriodicBackups": "Enable periodic backups",
   "backupsOutputDirectory": "Backups output directory",
   "backupsOutputDirectoryNone": "No directory chosen",
