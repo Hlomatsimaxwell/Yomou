@@ -2127,6 +2127,9 @@ class AppLocalizationsEs extends AppLocalizations {
   String get historyComingSoon => 'Próximamente';
 
   @override
+  String get comingSoon => 'Próximamente';
+
+  @override
   String historyFavoritedCount(int count) {
     return '$count añadidos a favoritos';
   }
@@ -2487,6 +2490,9 @@ class AppLocalizationsEs extends AppLocalizations {
 
   @override
   String get periodicBackups => 'Copias periódicas';
+
+  @override
+  String get cloudBackup => 'Copia en la nube';
 
   @override
   String get enablePeriodicBackups => 'Activar copias periódicas';

@@ -21,6 +21,7 @@ import 'package:yomou/features/library/providers/favorites_provider.dart';
 import 'package:yomou/features/settings/providers/cache_settings_provider.dart';
 import 'package:yomou/features/settings/screens/import_results_screen.dart';
 import 'package:yomou/features/settings/screens/periodic_backups_screen.dart';
+import 'package:yomou/features/settings/screens/cloud_backup_screen.dart';
 import 'package:yomou/features/settings/widgets/tachiyomi_scan_progress.dart';
 import 'package:yomou/l10n/generated/app_localizations.dart';
 import 'package:yomou/widgets/m3_components.dart';
@@ -581,14 +582,8 @@ class _BackupRestoreScreenState extends ConsumerState<BackupRestoreScreen> {
         _BuildButton(
           icon: MdiIcons.lockOutline,
           title: l.exportEncrypted,
-          subtitle: l.exportEncryptedSubtitle,
-          onTap: _exportEncrypted,
-        ),
-        _BuildButton(
-          icon: MdiIcons.lockOpenOutline,
-          title: l.importEncrypted,
-          subtitle: l.importEncryptedSubtitle,
-          onTap: _importEncrypted,
+          subtitle: l.comingSoon,
+          onTap: null,
         ),
         _BuildButton(
           icon: MdiIcons.contentCut,
@@ -597,6 +592,19 @@ class _BackupRestoreScreenState extends ConsumerState<BackupRestoreScreen> {
           onTap: _fixLibrary,
         ),
         const SizedBox(height: 8),
+        _BuildButton(
+          icon: MdiIcons.cloudOutline,
+          title: l.cloudBackup,
+          subtitle: 'WebDAV / Nextcloud',
+          onTap: () {
+            Navigator.push(
+              context,
+              MaterialPageRoute(
+                builder: (context) => const CloudBackupScreen(),
+              ),
+            );
+          },
+        ),
         _BuildButton(
           icon: MdiIcons.clockOutline,
           title: l.periodicBackups,
@@ -643,20 +651,22 @@ class _BuildButton extends StatelessWidget {
   final IconData icon;
   final String title;
   final String? subtitle;
-  final VoidCallback onTap;
+  final VoidCallback? onTap;
 
   const _BuildButton({
     required this.icon,
     required this.title,
     this.subtitle,
-    required this.onTap,
+    this.onTap,
   });
 
   @override
   Widget build(BuildContext context) {
     final color = Theme.of(context).colorScheme;
+    final disabled = onTap == null;
 
     return ListTile(
+      enabled: !disabled,
       leading: Padding(
         padding: const EdgeInsets.only(right: 12),
         child: Icon(icon, size: 26, color: color.onSurfaceVariant),

@@ -1047,6 +1047,7 @@
   "historyEdit": "Edit",
   "historyMarkCompleted": "Mark as completed",
   "historyComingSoon": "Coming soon",
+  "comingSoon": "Coming soon",
   "historyFavoritedCount": "{count} added to favorites",
   "@historyFavoritedCount": {
     "placeholders": {
@@ -1276,6 +1277,7 @@
   "kotatsuImportNone": "No compatible manga found to import",
   "kotatsuImportInvalid": "Invalid Kotatsu backup file",
   "periodicBackups": "Periodic backups",
+  "cloudBackup": "Cloud backup",
   "enablePeriodicBackups": "Enable periodic backups",
   "backupsOutputDirectory": "Backups output directory",
   "backupsOutputDirectoryNone": "No directory chosen",

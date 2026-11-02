@@ -812,6 +812,7 @@
   "historyEdit": "Editar",
   "historyMarkCompleted": "Marcar como completado",
   "historyComingSoon": "Próximamente",
+  "comingSoon": "Próximamente",
   "historyFavoritedCount": "{count} añadidos a favoritos",
   "@historyFavoritedCount": {
     "placeholders": {
@@ -1020,6 +1021,7 @@
   "kotatsuImportNone": "No se encontró manga compatible para importar",
   "kotatsuImportInvalid": "Archivo de copia de Kotatsu no válido",
   "periodicBackups": "Copias periódicas",
+  "cloudBackup": "Copia en la nube",
   "enablePeriodicBackups": "Activar copias periódicas",
   "backupsOutputDirectory": "Directorio de copias de seguridad",
   "backupsOutputDirectoryNone": "Ningún directorio seleccionado",

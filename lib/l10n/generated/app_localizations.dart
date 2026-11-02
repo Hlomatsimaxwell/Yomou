@@ -3889,6 +3889,12 @@ abstract class AppLocalizations {
   /// **'Coming soon'**
   String get historyComingSoon;
 
+  /// No description provided for @comingSoon.
+  ///
+  /// In en, this message translates to:
+  /// **'Coming soon'**
+  String get comingSoon;
+
   /// No description provided for @historyFavoritedCount.
   ///
   /// In en, this message translates to:
@@ -4482,6 +4488,12 @@ abstract class AppLocalizations {
   /// In en, this message translates to:
   /// **'Periodic backups'**
   String get periodicBackups;
+
+  /// No description provided for @cloudBackup.
+  ///
+  /// In en, this message translates to:
+  /// **'Cloud backup'**
+  String get cloudBackup;
 
   /// No description provided for @enablePeriodicBackups.
   ///

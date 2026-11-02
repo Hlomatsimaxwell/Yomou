@@ -2108,6 +2108,9 @@ class AppLocalizationsEn extends AppLocalizations {
   String get historyComingSoon => 'Coming soon';
 
   @override
+  String get comingSoon => 'Coming soon';
+
+  @override
   String historyFavoritedCount(int count) {
     return '$count added to favorites';
   }
@@ -2458,6 +2461,9 @@ class AppLocalizationsEn extends AppLocalizations {
 
   @override
   String get periodicBackups => 'Periodic backups';
+
+  @override
+  String get cloudBackup => 'Cloud backup';
 
   @override
   String get enablePeriodicBackups => 'Enable periodic backups';
