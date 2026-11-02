@@ -3335,4 +3335,24 @@ class AppLocalizationsEs extends AppLocalizations {
 
   @override
   String get settingsEraseButton => 'Borrar todo';
+
+  @override
+  String get privacyPolicy => 'Política de privacidad';
+
+  @override
+  String get privacyPolicySubtitle => 'Cómo Yomou gestiona tus datos';
+
+  @override
+  String get termsOfService => 'Términos de servicio';
+
+  @override
+  String get termsOfServiceSubtitle => 'Términos de uso de Yomou';
+
+  @override
+  String get privacyPolicyBody =>
+      'Yomou es un lector de manga. Guarda tu biblioteca, progreso de lectura, favoritos, marcadores y ajustes localmente en tu dispositivo. Yomou no recopila datos personales, no ejecuta analítica ni incluye publicidad.\n\nLas peticiones de red se hacen solo a las fuentes de manga que elijas y a los servicios opcionales que actives (copia en la nube, comprobación de actualizaciones). Las peticiones a fuentes usan los endpoints de la propia fuente.\n\nLa copia en la nube opcional (Google Drive / WebDAV) sube una copia de tu biblioteca a un lugar que elijas; Yomou no lee ni transmite nada más. Puedes desactivarla o borrarla en cualquier momento.\n\nPuedes exportar o borrar todos tus datos desde Ajustes → Restablecer. Desinstalar la app elimina todos los datos almacenados localmente.\n\nContacto: consulta el repositorio del proyecto para soporte.';
+
+  @override
+  String get termsOfServiceBody =>
+      'Al usar Yomou aceptas estos términos.\n\nYomou se ofrece tal cual, sin garantías. Es un lector de manga alojado en fuentes de terceros; eres responsable del contenido al que accedes y de cumplir los términos de esas fuentes y la ley aplicable.\n\nYomou no aloja, distribuye ni modifica contenido de manga. Las funciones de copia en la nube y sincronización son opcionales y usan tu propio almacenamiento (Google Drive / WebDAV); tú eres responsable de ese almacenamiento.\n\nPuedes exportar o borrar tus datos en cualquier momento. La app puede actualizarse para añadir o cambiar funciones.\n\nPara preguntas, consulta el repositorio del proyecto.';
 }

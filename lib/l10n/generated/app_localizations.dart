@@ -5958,6 +5958,42 @@ abstract class AppLocalizations {
   /// In en, this message translates to:
   /// **'Erase everything'**
   String get settingsEraseButton;
+
+  /// No description provided for @privacyPolicy.
+  ///
+  /// In en, this message translates to:
+  /// **'Privacy policy'**
+  String get privacyPolicy;
+
+  /// No description provided for @privacyPolicySubtitle.
+  ///
+  /// In en, this message translates to:
+  /// **'How Yomou handles your data'**
+  String get privacyPolicySubtitle;
+
+  /// No description provided for @termsOfService.
+  ///
+  /// In en, this message translates to:
+  /// **'Terms of service'**
+  String get termsOfService;
+
+  /// No description provided for @termsOfServiceSubtitle.
+  ///
+  /// In en, this message translates to:
+  /// **'Terms of use for Yomou'**
+  String get termsOfServiceSubtitle;
+
+  /// No description provided for @privacyPolicyBody.
+  ///
+  /// In en, this message translates to:
+  /// **'Yomou is a manga reader. It stores your library, reading progress, favorites, bookmarks and settings locally on your device. Yomou does not collect personal data, run analytics, or include advertising.\n\nNetwork requests are made only to the manga sources you choose and to optional services you enable (cloud backup, update checks). Source requests use the source\'s own endpoints.\n\nOptional cloud backup (Google Drive / WebDAV) uploads an encrypted or plain backup of your library to a location you choose; Yomou never reads or transmits anything else. You can disable or delete these at any time.\n\nYou can export or erase all your data from Settings → Reset. Uninstalling the app removes all locally stored data.\n\nContact: see the project repository for support.'**
+  String get privacyPolicyBody;
+
+  /// No description provided for @termsOfServiceBody.
+  ///
+  /// In en, this message translates to:
+  /// **'By using Yomou you agree to these terms.\n\nYomou is provided as-is, without warranty. It is a reader for manga hosted by third-party sources; you are responsible for the content you access and for complying with the terms of those sources and applicable law.\n\nYomou does not host, distribute or modify manga content. Cloud backup and sync features are optional and use your own storage (Google Drive / WebDAV); you are responsible for that storage.\n\nYou may export or delete your data at any time. The app may be updated to add or change features.\n\nFor questions, see the project repository.'**
+  String get termsOfServiceBody;
 }
 
 class _AppLocalizationsDelegate
