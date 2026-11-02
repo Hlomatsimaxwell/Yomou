@@ -596,15 +596,8 @@ class _BackupRestoreScreenState extends ConsumerState<BackupRestoreScreen> {
         _BuildButton(
           icon: MdiIcons.cloudOutline,
           title: l.cloudBackup,
-          subtitle: 'WebDAV / Nextcloud',
-          onTap: () {
-            Navigator.push(
-              context,
-              MaterialPageRoute(
-                builder: (context) => const CloudBackupScreen(),
-              ),
-            );
-          },
+          subtitle: l.comingSoon,
+          onTap: null,
         ),
         _BuildButton(
           icon: MdiIcons.googleDrive,
