@@ -2393,6 +2393,45 @@ class AppLocalizationsEn extends AppLocalizations {
       'Import favorites from a Kotatsu backup (.bk.zip)';
 
   @override
+  String get encryptedSectionTitle => 'Encrypted (Yomou)';
+
+  @override
+  String get exportEncrypted => 'Export encrypted backup';
+
+  @override
+  String get exportEncryptedSubtitle =>
+      'Encrypted Yomou backup (.yenc) protected by a password';
+
+  @override
+  String get importEncrypted => 'Import encrypted backup';
+
+  @override
+  String get importEncryptedSubtitle =>
+      'Restore from an encrypted Yomou backup (.yenc)';
+
+  @override
+  String get encryptedBackupPassword => 'Password';
+
+  @override
+  String get encryptedBackupPasswordHint => 'Enter a password';
+
+  @override
+  String get encryptedBackupNone => 'Nothing to export';
+
+  @override
+  String encryptedBackupDone(Object count) {
+    return '$count entries exported';
+  }
+
+  @override
+  String encryptedBackupImported(Object count) {
+    return '$count entries imported';
+  }
+
+  @override
+  String get encryptedBackupWrongPassword => 'Wrong password or corrupt backup';
+
+  @override
   String get kotatsuSectionTitle => 'Kotatsu';
 
   @override

@@ -3,9 +3,11 @@ import 'dart:io';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:file_picker/file_picker.dart';
+import 'package:sqflite/sqflite.dart';
 import 'package:flutter_material_design_icons/flutter_material_design_icons.dart';
 import 'package:yomou/core/backup/backup_picker.dart';
 import 'package:yomou/core/backup/backup_restore.dart';
+import 'package:yomou/core/backup/encrypted_backup.dart';
 import 'package:yomou/core/backup/kotatsu_backup.dart';
 import 'package:yomou/core/backup/tachiyomi_backup.dart';
 import 'package:yomou/core/database/database_helper.dart';
@@ -304,6 +306,163 @@ class _BackupRestoreScreenState extends ConsumerState<BackupRestoreScreen> {
     }
   }
 
+  Future<void> _importEncrypted() async {
+    final l = AppLocalizations.of(context);
+    final password = await _askPassword(l, import: true);
+    if (password == null) return;
+
+    final file = await pickBackupFile(extensions: ['yenc']);
+    if (file == null) return;
+
+    try {
+      final bytes = file.files.single.bytes ??
+          await File(file.files.single.path!).readAsBytes();
+      final parsed = EncryptedBackupCodec.import(bytes, password);
+
+      if (!mounted) return;
+      // Reuse the Tachiyomi restore path by treating the Yomou payload as
+      // already-resolved rows.
+      final container = ProviderScope.containerOf(context, listen: false);
+      // Apply directly through DatabaseHelper for favorites/bookmarks/progress.
+      await _applyEncryptedPayload(parsed);
+
+      bumpHistoryRevision(container);
+      bumpFavoritesRevision(container);
+      if (parsed.favorites.isEmpty &&
+          parsed.bookmarks.isEmpty &&
+          parsed.readingProgress.isEmpty) {
+        if (!mounted) return;
+        showIosToast(context, message: l.tachiyomiImportNone);
+        return;
+      }
+      final message = l.encryptedBackupImported(
+        parsed.favorites.length +
+            parsed.bookmarks.length +
+            parsed.readingProgress.length,
+      );
+      if (mounted) showIosToast(context, message: message);
+      unawaited(
+        NotificationService.instance.showBackupResultNotification(
+          id: NotificationService.importResultNotificationId,
+          title: l.importComplete,
+          body: message,
+        ),
+      );
+    } on FormatException {
+      if (!mounted) return;
+      showIosToast(context, message: l.encryptedBackupWrongPassword);
+    } catch (_) {
+      if (!mounted) return;
+      showIosToast(context, message: l.encryptedBackupWrongPassword);
+    }
+  }
+
+  Future<void> _applyEncryptedPayload(EncryptedBackupImportResult parsed) async {
+    final db = await DatabaseHelper.instance.database;
+    for (final row in parsed.favorites) {
+      await db.insert(
+        'manga',
+        Map<String, dynamic>.from(row),
+        conflictAlgorithm: ConflictAlgorithm.replace,
+      );
+    }
+    for (final row in parsed.bookmarks) {
+      await db.insert(
+        'bookmarks',
+        Map<String, dynamic>.from(row),
+        conflictAlgorithm: ConflictAlgorithm.replace,
+      );
+    }
+    for (final row in parsed.readingProgress) {
+      await db.insert(
+        'reading_progress',
+        Map<String, dynamic>.from(row),
+        conflictAlgorithm: ConflictAlgorithm.replace,
+      );
+    }
+  }
+
+  Future<String?> _askPassword(AppLocalizations l, {required bool import}) async {
+    final controller = TextEditingController();
+    final result = await showDialog<String>(
+      context: context,
+      builder: (context) => AlertDialog(
+        title: Text(l.encryptedBackupPassword),
+        content: TextField(
+          controller: controller,
+          obscureText: true,
+          autofocus: true,
+          decoration: InputDecoration(
+            hintText: l.encryptedBackupPasswordHint,
+          ),
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(context),
+            child: Text(MaterialLocalizations.of(context).cancelButtonLabel),
+          ),
+          TextButton(
+            onPressed: () => Navigator.pop(context, controller.text),
+            child: Text(MaterialLocalizations.of(context).okButtonLabel),
+          ),
+        ],
+      ),
+    );
+    if (result == null || result.isEmpty) return null;
+    return result;
+  }
+
+  Future<void> _exportEncrypted() async {
+    final l = AppLocalizations.of(context);
+    final favorites = await DatabaseHelper.instance.getFavorites();
+    final bookmarks = await DatabaseHelper.instance.getAllBookmarks();
+    final readingProgress =
+        await DatabaseHelper.instance.getAllReadingProgress();
+
+    final total = favorites.length + bookmarks.length + readingProgress.length;
+    if (total == 0) {
+      if (!mounted) return;
+      showIosToast(context, message: l.encryptedBackupNone);
+      return;
+    }
+
+    final password = await _askPassword(l, import: false);
+    if (password == null) return;
+
+    final bytes = EncryptedBackupCodec.export(
+      favorites: favorites,
+      bookmarks: bookmarks,
+      readingProgress: readingProgress,
+      password: password,
+    );
+
+    final fileName = 'yomou-encrypted-${DateTime.now().millisecondsSinceEpoch}.yenc';
+    final saved = await FilePicker.platform.saveFile(
+      type: FileType.custom,
+      allowedExtensions: ['yenc'],
+      fileName: fileName,
+      bytes: bytes,
+    );
+    if (saved == null) return;
+
+    final dir = saved.replaceAll(RegExp(r'[^/]*$'), '');
+    await ref.read(cacheSettingsProvider.notifier).setBackupsOutputDirectory(dir);
+    await ref
+        .read(cacheSettingsProvider.notifier)
+        .setLastBackupAt(DateTime.now().millisecondsSinceEpoch);
+
+    if (!mounted) return;
+    final message = l.encryptedBackupDone(total);
+    showIosToast(context, message: message);
+    unawaited(
+      NotificationService.instance.showBackupResultNotification(
+        id: NotificationService.exportResultNotificationId,
+        title: l.backupSaved,
+        body: message,
+      ),
+    );
+  }
+
   Future<void> _fixLibrary() async {
     final l = AppLocalizations.of(context);
     final db = DatabaseHelper.instance;
@@ -416,6 +575,20 @@ class _BackupRestoreScreenState extends ConsumerState<BackupRestoreScreen> {
           title: l.importTachiyomi,
           subtitle: l.importTachiyomiSubtitle,
           onTap: _importTachiyomi,
+        ),
+        const SizedBox(height: 8),
+        _AppSectionHeader(title: l.encryptedSectionTitle),
+        _BuildButton(
+          icon: MdiIcons.lockOutline,
+          title: l.exportEncrypted,
+          subtitle: l.exportEncryptedSubtitle,
+          onTap: _exportEncrypted,
+        ),
+        _BuildButton(
+          icon: MdiIcons.lockOpenOutline,
+          title: l.importEncrypted,
+          subtitle: l.importEncryptedSubtitle,
+          onTap: _importEncrypted,
         ),
         _BuildButton(
           icon: MdiIcons.contentCut,

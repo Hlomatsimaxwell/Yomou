@@ -4369,6 +4369,72 @@ abstract class AppLocalizations {
   /// **'Import favorites from a Kotatsu backup (.bk.zip)'**
   String get importKotatsuSubtitle;
 
+  /// No description provided for @encryptedSectionTitle.
+  ///
+  /// In en, this message translates to:
+  /// **'Encrypted (Yomou)'**
+  String get encryptedSectionTitle;
+
+  /// No description provided for @exportEncrypted.
+  ///
+  /// In en, this message translates to:
+  /// **'Export encrypted backup'**
+  String get exportEncrypted;
+
+  /// No description provided for @exportEncryptedSubtitle.
+  ///
+  /// In en, this message translates to:
+  /// **'Encrypted Yomou backup (.yenc) protected by a password'**
+  String get exportEncryptedSubtitle;
+
+  /// No description provided for @importEncrypted.
+  ///
+  /// In en, this message translates to:
+  /// **'Import encrypted backup'**
+  String get importEncrypted;
+
+  /// No description provided for @importEncryptedSubtitle.
+  ///
+  /// In en, this message translates to:
+  /// **'Restore from an encrypted Yomou backup (.yenc)'**
+  String get importEncryptedSubtitle;
+
+  /// No description provided for @encryptedBackupPassword.
+  ///
+  /// In en, this message translates to:
+  /// **'Password'**
+  String get encryptedBackupPassword;
+
+  /// No description provided for @encryptedBackupPasswordHint.
+  ///
+  /// In en, this message translates to:
+  /// **'Enter a password'**
+  String get encryptedBackupPasswordHint;
+
+  /// No description provided for @encryptedBackupNone.
+  ///
+  /// In en, this message translates to:
+  /// **'Nothing to export'**
+  String get encryptedBackupNone;
+
+  /// No description provided for @encryptedBackupDone.
+  ///
+  /// In en, this message translates to:
+  /// **'{count} entries exported'**
+  String encryptedBackupDone(Object count);
+
+  /// No description provided for @encryptedBackupImported.
+  ///
+  /// In en, this message translates to:
+  /// **'{count} entries imported'**
+  String encryptedBackupImported(Object count);
+
+  /// No description provided for @encryptedBackupWrongPassword.
+  ///
+  /// In en, this message translates to:
+  /// **'Wrong password or corrupt backup'**
+  String get encryptedBackupWrongPassword;
+
   /// No description provided for @kotatsuSectionTitle.
   ///
   /// In en, this message translates to:

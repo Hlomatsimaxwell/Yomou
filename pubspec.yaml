@@ -43,6 +43,10 @@ dependencies:
   battery_plus: ^7.1.1
   # Pure-Dart zip read/write for the Kotatsu .bk.zip backup format.
   archive: ^4.0.0
+  # AES encryption for the Yomou encrypted backup format.
+  encrypt: ^5.0.3
+  # SHA-256 / HMAC for PBKDF2 key derivation in encrypted backups.
+  crypto: ^3.0.7
 dev_dependencies:
   flutter_test:
     sdk: flutter
