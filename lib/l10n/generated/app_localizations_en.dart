@@ -2399,6 +2399,9 @@ class AppLocalizationsEn extends AppLocalizations {
   String get encryptedSectionTitle => 'Encrypted backup (coming soon)';
 
   @override
+  String get otherSectionTitle => 'Other';
+
+  @override
   String get exportEncrypted => 'Export encrypted backup';
 
   @override

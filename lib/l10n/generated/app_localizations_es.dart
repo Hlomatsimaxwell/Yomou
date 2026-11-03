@@ -2425,6 +2425,9 @@ class AppLocalizationsEs extends AppLocalizations {
   String get encryptedSectionTitle => 'Copia cifrada (próximamente)';
 
   @override
+  String get otherSectionTitle => 'Otros';
+
+  @override
   String get exportEncrypted => 'Exportar copia cifrada';
 
   @override

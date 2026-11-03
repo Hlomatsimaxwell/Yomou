@@ -4381,6 +4381,12 @@ abstract class AppLocalizations {
   /// **'Encrypted backup (coming soon)'**
   String get encryptedSectionTitle;
 
+  /// No description provided for @otherSectionTitle.
+  ///
+  /// In en, this message translates to:
+  /// **'Other'**
+  String get otherSectionTitle;
+
   /// No description provided for @exportEncrypted.
   ///
   /// In en, this message translates to:

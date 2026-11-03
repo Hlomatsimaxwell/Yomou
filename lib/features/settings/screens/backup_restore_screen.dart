@@ -447,13 +447,14 @@ class _BackupRestoreScreenState extends ConsumerState<BackupRestoreScreen> {
           subtitle: l.comingSoon,
           onTap: null,
         ),
+        const SizedBox(height: 8),
+        _AppSectionHeader(title: l.otherSectionTitle),
         _BuildButton(
           icon: MdiIcons.contentCut,
           title: l.backupFixLibrary,
           subtitle: l.backupFixLibrarySubtitle,
           onTap: _fixLibrary,
         ),
-        const SizedBox(height: 8),
         _BuildButton(
           icon: MdiIcons.clockOutline,
           title: l.periodicBackups,

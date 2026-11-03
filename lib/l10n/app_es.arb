@@ -989,6 +989,7 @@
   "importKotatsu": "Importar desde Kotatsu",
   "importKotatsuSubtitle": "Importar favoritos desde una copia de Kotatsu (.bk.zip)",
   "encryptedSectionTitle": "Copia cifrada (próximamente)",
+  "otherSectionTitle": "Otros",
   "exportEncrypted": "Exportar copia cifrada",
   "exportEncryptedSubtitle": "Copia Yomou cifrada (.yenc) protegida con contraseña",
   "importEncrypted": "Importar copia cifrada",

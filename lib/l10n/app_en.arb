@@ -1245,6 +1245,7 @@
   "importKotatsu": "Import from Kotatsu",
   "importKotatsuSubtitle": "Import favorites from a Kotatsu backup (.bk.zip)",
   "encryptedSectionTitle": "Encrypted backup (coming soon)",
+  "otherSectionTitle": "Other",
   "exportEncrypted": "Export encrypted backup",
   "exportEncryptedSubtitle": "Encrypted Yomou backup (.yenc) protected by a password",
   "importEncrypted": "Import encrypted backup",
