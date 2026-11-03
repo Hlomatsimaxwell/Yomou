@@ -575,6 +575,31 @@ class AppLocalizationsEn extends AppLocalizations {
   String get settingsAboutPlatform => 'Platform';
 
   @override
+  String get aboutCheckForUpdates => 'Check for updates';
+
+  @override
+  String get aboutCheckingForUpdates => 'Checking for updates…';
+
+  @override
+  String get aboutNoUpdate => 'You\'re on the latest version';
+
+  @override
+  String get aboutChangelog => 'Changelog';
+
+  @override
+  String get aboutChangelogSubtitle =>
+      'Changes history for recently released versions';
+
+  @override
+  String get aboutNoChangelog => 'No release notes for this version';
+
+  @override
+  String get aboutSourceCode => 'Source code';
+
+  @override
+  String get aboutReportBug => 'Report a bug';
+
+  @override
   String get settingsSearchHint => 'Search settings';
 
   @override

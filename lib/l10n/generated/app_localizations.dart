@@ -1094,6 +1094,54 @@ abstract class AppLocalizations {
   /// **'Platform'**
   String get settingsAboutPlatform;
 
+  /// No description provided for @aboutCheckForUpdates.
+  ///
+  /// In en, this message translates to:
+  /// **'Check for updates'**
+  String get aboutCheckForUpdates;
+
+  /// No description provided for @aboutCheckingForUpdates.
+  ///
+  /// In en, this message translates to:
+  /// **'Checking for updates…'**
+  String get aboutCheckingForUpdates;
+
+  /// No description provided for @aboutNoUpdate.
+  ///
+  /// In en, this message translates to:
+  /// **'You\'re on the latest version'**
+  String get aboutNoUpdate;
+
+  /// No description provided for @aboutChangelog.
+  ///
+  /// In en, this message translates to:
+  /// **'Changelog'**
+  String get aboutChangelog;
+
+  /// No description provided for @aboutChangelogSubtitle.
+  ///
+  /// In en, this message translates to:
+  /// **'Changes history for recently released versions'**
+  String get aboutChangelogSubtitle;
+
+  /// No description provided for @aboutNoChangelog.
+  ///
+  /// In en, this message translates to:
+  /// **'No release notes for this version'**
+  String get aboutNoChangelog;
+
+  /// No description provided for @aboutSourceCode.
+  ///
+  /// In en, this message translates to:
+  /// **'Source code'**
+  String get aboutSourceCode;
+
+  /// No description provided for @aboutReportBug.
+  ///
+  /// In en, this message translates to:
+  /// **'Report a bug'**
+  String get aboutReportBug;
+
   /// No description provided for @settingsSearchHint.
   ///
   /// In en, this message translates to:

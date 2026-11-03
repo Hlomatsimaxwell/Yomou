@@ -1,16 +1,13 @@
 import 'package:flutter/material.dart';
-import 'package:url_launcher/url_launcher.dart';
 import 'package:flutter_material_design_icons/flutter_material_design_icons.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:package_info_plus/package_info_plus.dart';
-import 'package:yomou/core/theme/amoled.dart';
 import 'package:yomou/core/theme/layout.dart';
-import 'package:yomou/core/changelog/changelog.dart';
 import 'package:yomou/core/notifications/notification_service.dart';
 import 'package:yomou/core/widgets/kotatsu_icon.dart';
 import 'package:yomou/core/widgets/responsive.dart';
 import 'package:yomou/l10n/generated/app_localizations.dart';
-import 'package:yomou/features/whats_new/whats_new_sheet.dart';
+import 'package:yomou/features/settings/screens/about_settings_screen.dart';
 import 'package:yomou/features/settings/screens/appearance_settings_screen.dart';
 import 'package:yomou/features/settings/screens/accounts_sync_screen.dart';
 import 'package:yomou/features/settings/screens/manga_sources_settings_screen.dart';
@@ -41,7 +38,6 @@ class _Category {
     required this.title,
     required this.subtitle,
     this.screen,
-    this.isAbout = false,
   });
 
   /// The heading this row sits under. Rows are listed group by group, so the
@@ -53,22 +49,15 @@ class _Category {
   final String title;
   final String subtitle;
 
-  /// Null for a category that is not a screen of its own: [About] opens a
-  /// dialog, and [Services] has nothing behind it yet.
+  /// Null for a category that is not a screen of its own: [Services] has
+  /// nothing behind it yet.
   final Widget? screen;
-
-  /// Whether this row opens the About dialog rather than a screen.
-  ///
-  /// A flag rather than an icon check: Terms of service reuses the same
-  /// `ic_info_outline` glyph, so matching on the icon would turn it into a
-  /// second About row.
-  final bool isAbout;
 
   bool get hasScreen => screen != null;
 }
 
-/// The one root row that opens a dialog instead of a screen, and so the one the
-/// pane has to keep tappable with nothing behind it.
+/// The About row's glyph. It is also used by Terms of service, so nothing may
+/// key behaviour off the icon alone.
 const _aboutIcon = 'ic_info_outline';
 
 class SettingsScreen extends ConsumerStatefulWidget {
@@ -122,10 +111,19 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
 
   final TextEditingController _searchQuery = TextEditingController();
 
+  /// The running build, shown as the About row's subtitle. Loaded once so the
+  /// hub does not rebuild a FutureBuilder on every keystroke of the search.
+  PackageInfo? _packageInfo;
+
   @override
   void initState() {
     super.initState();
     _detail = widget.initialDetail;
+    PackageInfo.fromPlatform().then((info) {
+      if (mounted) setState(() => _packageInfo = info);
+    }).catchError((_) {
+      // A platform without package info leaves the subtitle at "--".
+    });
   }
 
   @override
@@ -263,14 +261,14 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
         subtitle: l.termsOfServiceSubtitle,
         screen: const TermsOfServiceScreen(),
       ),
-      // The one root row that opens a dialog instead of a screen. Its subtitle
-      // is filled in from the package info by [_buildAboutTile].
       _Category(
         group: l.settingsGroupApp,
         icon: _aboutIcon,
         title: l.settingsAbout,
-        subtitle: '',
-        isAbout: true,
+        subtitle: _packageInfo == null
+            ? '--'
+            : '${l.settingsAboutVersion} ${_packageInfo!.version}',
+        screen: const AboutSettingsScreen(),
       ),
     ];
 
@@ -446,7 +444,9 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
                   padding: const EdgeInsets.fromLTRB(20, 24, 20, 0),
                   child: Text(
                     l.settingsSearchNoResults,
-                    style: TextStyle(color: Theme.of(context).hintColor),
+                    style: TextStyle(
+                      color: Theme.of(context).colorScheme.onSurfaceVariant,
+                    ),
                   ),
                 ),
               for (var i = 0; i < shown.length; i++) ...[
@@ -458,36 +458,28 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
                     shown[i].group,
                     showDivider: i != 0,
                   ),
-                if (shown[i].isAbout)
-                  _buildAboutTile(context: context, category: shown[i])
-                else
-                  _buildSettingTile(
-                    category: shown[i],
-                    selected: onSelect != null &&
-                        identical(shown[i], selected),
-                    onTap: () {
-                      final c = shown[i];
-                      if (c.hasScreen && onSelect != null) {
-                        onSelect(c);
-                        return;
-                      }
-                      if (!c.hasScreen) {
-                        if (c.isAbout) {
-                          _showAboutDialog(context);
-                        }
-                        return;
-                      }
-                      // A phone has no category pane, so tapping a row pushes
-                      // that category's own screen. [initialCategory] is
-                      // deliberately not honoured here: it is about which row
-                      // the *hub* opens on, and on a phone the hub is never on
-                      // screen by the time a row is tapped.
-                      Navigator.push(
-                        context,
-                        MaterialPageRoute(builder: (context) => c.screen!),
-                      );
-                    },
-                  ),
+                _buildSettingTile(
+                  category: shown[i],
+                  selected:
+                      onSelect != null && identical(shown[i], selected),
+                  onTap: () {
+                    final c = shown[i];
+                    if (c.hasScreen && onSelect != null) {
+                      onSelect(c);
+                      return;
+                    }
+                    if (!c.hasScreen) return;
+                    // A phone has no category pane, so tapping a row pushes
+                    // that category's own screen. [initialCategory] is
+                    // deliberately not honoured here: it is about which row
+                    // the *hub* opens on, and on a phone the hub is never on
+                    // screen by the time a row is tapped.
+                    Navigator.push(
+                      context,
+                      MaterialPageRoute(builder: (context) => c.screen!),
+                    );
+                  },
+                ),
               ],
             ],
           ),
@@ -530,149 +522,6 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
     );
   }
 
-  Future<void> _showAboutDialog(BuildContext context) async {
-    final info = await PackageInfo.fromPlatform();
-    if (!context.mounted) return;
-    _showAboutDialogWith(context, info);
-  }
-
-  void _showAboutDialogWith(BuildContext context, PackageInfo? info) {
-    final l = AppLocalizations.of(context);
-    final rows = <List<String>>[
-      [l.settingsAboutVersion, info?.version ?? '--'],
-      [l.settingsAboutBuild, info?.buildNumber ?? '--'],
-      [l.settingsAboutPackage, info?.packageName ?? '--'],
-    ];
-    showDialog<void>(
-      context: context,
-      builder: (dialogContext) {
-        final dark = Theme.of(dialogContext).brightness == Brightness.dark;
-        return AlertDialog(
-          backgroundColor: dark ? amoled(context, 0xFF2C2C2E) : Colors.white,
-          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(14)),
-          title: Text(
-            l.settingsAbout,
-            style: const TextStyle(fontSize: 17, fontWeight: FontWeight.w600),
-          ),
-          content: Column(
-            mainAxisSize: MainAxisSize.min,
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              for (final row in rows)
-                Padding(
-                  padding: const EdgeInsets.symmetric(vertical: 2),
-                  child: Text.rich(
-                    TextSpan(
-                      children: [
-                        TextSpan(
-                          text: '${row[0]}:  ',
-                          style: TextStyle(
-                            color: dark ? Colors.white54 : const Color(0xFF49454F),
-                          ),
-                        ),
-                        TextSpan(
-                          text: row[1],
-                          style: TextStyle(
-                            fontSize: 14,
-                            fontWeight: FontWeight.w600,
-                            color: dark ? Colors.white : const Color(0xFF1C1B1F),
-                          ),
-                        ),
-                      ],
-                    ),
-                  ),
-                ),
-              const SizedBox(height: 10),
-              SizedBox(
-                width: double.infinity,
-                child: TextButton.icon(
-                  icon: const Icon(Icons.bug_report_outlined),
-                  label: const Text('Report a bug'),
-                  onPressed: () async {
-                    final version = info?.version ?? '';
-                    final build = info?.buildNumber ?? '';
-                    final body = Uri.encodeComponent(
-                      'Version: $version+$build\n'
-                      'Platform: ${Theme.of(dialogContext).platform.name}\n'
-                      '\nDescribe the issue:\n',
-                    );
-                    final uri = Uri.parse(
-                      'https://github.com/Hlomatsimaxwell/Yomou/issues/new'
-                      '?title=Bug+report&body=$body',
-                    );
-                    if (await canLaunchUrl(uri)) {
-                      await launchUrl(
-                        uri,
-                        mode: LaunchMode.externalApplication,
-                      );
-                    }
-                  },
-                ),
-              ),
-            ],
-          ),
-          actions: [
-            TextButton(
-              onPressed: () {
-                Navigator.pop(dialogContext);
-                _openWhatsNew();
-              },
-              child: Text(
-                l.whatsNewTitle,
-                style: TextStyle(
-                  color: dark ? Colors.white70 : const Color(0xFF49454F),
-                ),
-              ),
-            ),
-            TextButton(
-              onPressed: () => Navigator.pop(dialogContext),
-              child: Text(
-                l.filterCancel,
-                style: TextStyle(
-                  color: dark ? Colors.white70 : const Color(0xFF49454F),
-                ),
-              ),
-            ),
-          ],
-        );
-      },
-    );
-  }
-
-  /// Opens the release notes on demand, matching the sheet shown automatically
-  /// after an update.
-  Future<void> _openWhatsNew() async {
-    final info = await PackageInfo.fromPlatform();
-    final release = await changelogReleaseFor(info.version);
-    if (!mounted || release == null || release.isEmpty) return;
-    await showWhatsNewSheet(context, release);
-  }
-
-  Widget _buildAboutTile({
-    required BuildContext context,
-    required _Category category,
-  }) {
-    return FutureBuilder<PackageInfo>(
-      future: PackageInfo.fromPlatform(),
-      builder: (context, snapshot) {
-        final info = snapshot.data;
-        final subtitle = info == null
-            ? '--'
-            : 'Version ${info.version} (${info.buildNumber})';
-        return _buildSettingTile(
-          category: _Category(
-            group: category.group,
-            icon: _aboutIcon,
-            title: category.title,
-            subtitle: subtitle,
-            isAbout: true,
-          ),
-          onTap: () => _showAboutDialogWith(context, info),
-        );
-      },
-    );
-  }
-
   Widget _buildSettingTile({
     required _Category category,
     required VoidCallback onTap,
@@ -682,7 +531,7 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
     final accent = Theme.of(context).colorScheme.primary;
     // Services has no screen behind it, so it reads as unavailable rather than
     // as a row that happens to do nothing.
-    final enabled = category.hasScreen || category.isAbout;
+    final enabled = category.hasScreen;
     final foreground = !enabled
         ? (dark ? Colors.white38 : Colors.black38)
         : (selected ? accent : null);
