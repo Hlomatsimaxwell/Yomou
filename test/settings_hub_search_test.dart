@@ -46,12 +46,15 @@ void main() {
 
     expect(find.text('Appearance'), findsOneWidget);
     expect(find.text('Reader settings'), findsOneWidget);
-    expect(find.text('READING'), findsOneWidget);
-    expect(find.text('FINDING MANGA'), findsOneWidget);
-    expect(find.text('YOUR DATA'), findsOneWidget);
-    expect(find.text('APP'), findsOneWidget);
+    expect(find.text('Reading'), findsOneWidget);
+    expect(find.text('Finding manga'), findsOneWidget);
+    expect(find.text('Your data'), findsOneWidget);
+    expect(find.text('App'), findsOneWidget);
     expect(find.text('Content preferences'), findsNothing);
     expect(find.text('Reset'), findsOneWidget);
+    // Terms of service shares the info-outline glyph with About; it must still
+    // be its own row rather than a second About tile.
+    expect(find.text('Terms of use for Yomou'), findsOneWidget);
 
     expect(tester.takeException(), isNull);
   });

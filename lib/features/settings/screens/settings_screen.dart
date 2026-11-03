@@ -41,6 +41,7 @@ class _Category {
     required this.title,
     required this.subtitle,
     this.screen,
+    this.isAbout = false,
   });
 
   /// The heading this row sits under. Rows are listed group by group, so the
@@ -55,6 +56,13 @@ class _Category {
   /// Null for a category that is not a screen of its own: [About] opens a
   /// dialog, and [Services] has nothing behind it yet.
   final Widget? screen;
+
+  /// Whether this row opens the About dialog rather than a screen.
+  ///
+  /// A flag rather than an icon check: Terms of service reuses the same
+  /// `ic_info_outline` glyph, so matching on the icon would turn it into a
+  /// second About row.
+  final bool isAbout;
 
   bool get hasScreen => screen != null;
 }
@@ -262,6 +270,7 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
         icon: _aboutIcon,
         title: l.settingsAbout,
         subtitle: '',
+        isAbout: true,
       ),
     ];
 
@@ -445,8 +454,11 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
                 // filtered list still shows the heading for whatever survived
                 // the search and never repeats one.
                 if (i == 0 || shown[i].group != shown[i - 1].group)
-                  _buildGroupHeader(shown[i].group),
-                if (shown[i].icon == _aboutIcon)
+                  _buildGroupHeader(
+                    shown[i].group,
+                    showDivider: i != 0,
+                  ),
+                if (shown[i].isAbout)
                   _buildAboutTile(context: context, category: shown[i])
                 else
                   _buildSettingTile(
@@ -460,7 +472,7 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
                         return;
                       }
                       if (!c.hasScreen) {
-                        if (c.icon == _aboutIcon) {
+                        if (c.isAbout) {
                           _showAboutDialog(context);
                         }
                         return;
@@ -485,19 +497,36 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
   }
 
   /// A short heading above each run of rows that share a [.._Category.group].
-  Widget _buildGroupHeader(String title) {
+  ///
+  /// Like Kotatsu-Redo's Material 3 preference categories, the heading is
+  /// separated from the section above it by a full-width hairline. The first
+  /// heading in the list has nothing above it to separate, so it omits the
+  /// line rather than drawing one just under the app bar.
+  Widget _buildGroupHeader(String title, {bool showDivider = true}) {
     final color = Theme.of(context).colorScheme;
-    return Padding(
-      padding: const EdgeInsets.fromLTRB(20, 14, 20, 4),
-      child: Text(
-        title.toUpperCase(),
-        style: TextStyle(
-          fontSize: 12,
-          fontWeight: FontWeight.w700,
-          letterSpacing: 0.6,
-          color: color.primary,
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.stretch,
+      children: [
+        if (showDivider)
+          Divider(
+            height: 1,
+            thickness: 1,
+            // Dimmer than the theme's outline so the sections read as one
+            // surface rather than as a stack of boxed cards.
+            color: color.outlineVariant.withValues(alpha: 0.4),
+          ),
+        Padding(
+          padding: const EdgeInsets.fromLTRB(20, 12, 20, 4),
+          child: Text(
+            title,
+            style: TextStyle(
+              fontSize: 14,
+              fontWeight: FontWeight.w500,
+              color: color.primary,
+            ),
+          ),
         ),
-      ),
+      ],
     );
   }
 
@@ -636,6 +665,7 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
             icon: _aboutIcon,
             title: category.title,
             subtitle: subtitle,
+            isAbout: true,
           ),
           onTap: () => _showAboutDialogWith(context, info),
         );
@@ -652,7 +682,7 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
     final accent = Theme.of(context).colorScheme.primary;
     // Services has no screen behind it, so it reads as unavailable rather than
     // as a row that happens to do nothing.
-    final enabled = category.hasScreen || category.icon == _aboutIcon;
+    final enabled = category.hasScreen || category.isAbout;
     final foreground = !enabled
         ? (dark ? Colors.white38 : Colors.black38)
         : (selected ? accent : null);
