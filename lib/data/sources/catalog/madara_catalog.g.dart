@@ -48,7 +48,7 @@ List<Map<String, dynamic>> get catalogSourceRows => [
       // scrapes this origin for the real logo.
       'siteUrl': raw['baseUrl'] as String,
       'isPinned': false,
-      'isEnabled': false,
+      'isEnabled': true,
       if (raw['nsfw'] == true) 'nsfw': true,
     },
 ];

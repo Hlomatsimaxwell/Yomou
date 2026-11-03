@@ -240,12 +240,6 @@ MangaSource getSourceByName(String name) {
       return _shared('apollcomics', ApollComicsSource.new);
     case 'Asia Lotuss':
       return _shared('asialotuss', AsiaLotussSource.new);
-    case 'Datgar Scanlation':
-      return getSourceByName('Datgar Scanlation');
-    case 'InManga':
-      return getSourceByName('InManga');
-    case 'InfraFandub':
-      return getSourceByName('InfraFandub');
     default:
       return _mangaBallByName(name) ??
           _shared(
@@ -1077,11 +1071,10 @@ class SourcesNotifier extends StateNotifier<List<Map<String, dynamic>>> {
       'iconUrl': '',
       'siteUrl': 'https://scan-inmortal.com/mg',
       'isPinned': false,
-      'isEnabled': false,
+      'isEnabled': true,
     },
-    // Bundled Madara catalog (see lib/data/sources/catalog/). These arrive
-    // disabled so 90+ extra sites do not join global search or the updates
-    // refresh until the reader turns one on.
+    // Bundled Madara catalog (see lib/data/sources/catalog/). These now
+    // ship enabled so a fresh install exposes every bundled source.
     ...catalogSourceRows,
   ];
 
