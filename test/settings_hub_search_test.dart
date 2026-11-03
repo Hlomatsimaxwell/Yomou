@@ -41,14 +41,17 @@ void main() {
     await tester.pumpAndSettle();
   }
 
-  testWidgets('the hub no longer offers Content preferences or Reset',
-      (tester) async {
+  testWidgets('the hub groups categories under headings', (tester) async {
     await pump(tester, const Size(500, 4000));
 
     expect(find.text('Appearance'), findsOneWidget);
     expect(find.text('Reader settings'), findsOneWidget);
+    expect(find.text('READING'), findsOneWidget);
+    expect(find.text('FINDING MANGA'), findsOneWidget);
+    expect(find.text('YOUR DATA'), findsOneWidget);
+    expect(find.text('APP'), findsOneWidget);
     expect(find.text('Content preferences'), findsNothing);
-    expect(find.text('Reset'), findsNothing);
+    expect(find.text('Reset'), findsOneWidget);
 
     expect(tester.takeException(), isNull);
   });
@@ -91,16 +94,16 @@ void main() {
       (tester) async {
     await pump(tester, const Size(1200, 1100));
 
-    // The detail pane opens on the first category, so the Appearance screen is
+    // The detail pane opens on the first category, so the Reader screen is
     // beside the category list.
-    expect(find.text('Color Scheme'), findsOneWidget);
+    expect(find.text('Default mode'), findsOneWidget);
 
-    await search(tester, 'reader');
+    await search(tester, 'appearance');
 
     // The list narrows; the pane keeps the selection it had, because a search
     // is a way to reach a row, not a selection of its own.
-    expect(find.text('Reader settings'), findsOneWidget);
-    expect(find.text('Color Scheme'), findsOneWidget);
+    expect(find.text('Appearance'), findsOneWidget);
+    expect(find.text('Default mode'), findsOneWidget);
 
     expect(tester.takeException(), isNull);
   });

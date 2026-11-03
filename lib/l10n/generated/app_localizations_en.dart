@@ -3267,6 +3267,18 @@ class AppLocalizationsEn extends AppLocalizations {
   String get settingsGroupSources => 'Sources';
 
   @override
+  String get settingsGroupReading => 'Reading';
+
+  @override
+  String get settingsGroupFinding => 'Finding manga';
+
+  @override
+  String get settingsGroupData => 'Your data';
+
+  @override
+  String get settingsGroupApp => 'App';
+
+  @override
   String get settingsResetSelected => 'Reset selected';
 
   @override

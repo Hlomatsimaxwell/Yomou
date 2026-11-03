@@ -5899,6 +5899,30 @@ abstract class AppLocalizations {
   /// **'Sources'**
   String get settingsGroupSources;
 
+  /// No description provided for @settingsGroupReading.
+  ///
+  /// In en, this message translates to:
+  /// **'Reading'**
+  String get settingsGroupReading;
+
+  /// No description provided for @settingsGroupFinding.
+  ///
+  /// In en, this message translates to:
+  /// **'Finding manga'**
+  String get settingsGroupFinding;
+
+  /// No description provided for @settingsGroupData.
+  ///
+  /// In en, this message translates to:
+  /// **'Your data'**
+  String get settingsGroupData;
+
+  /// No description provided for @settingsGroupApp.
+  ///
+  /// In en, this message translates to:
+  /// **'App'**
+  String get settingsGroupApp;
+
   /// No description provided for @settingsResetSelected.
   ///
   /// In en, this message translates to:

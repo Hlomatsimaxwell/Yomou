@@ -3300,6 +3300,18 @@ class AppLocalizationsEs extends AppLocalizations {
   String get settingsGroupSources => 'Fuentes';
 
   @override
+  String get settingsGroupReading => 'Lectura';
+
+  @override
+  String get settingsGroupFinding => 'Buscar manga';
+
+  @override
+  String get settingsGroupData => 'Tus datos';
+
+  @override
+  String get settingsGroupApp => 'App';
+
+  @override
   String get settingsResetSelected => 'Restablecer seleccionados';
 
   @override

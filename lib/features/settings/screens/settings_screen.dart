@@ -35,11 +35,16 @@ import 'package:yomou/widgets/m3_components.dart';
 /// selection replaced a route or a pane.
 class _Category {
   const _Category({
+    required this.group,
     required this.icon,
     required this.title,
     required this.subtitle,
     this.screen,
   });
+
+  /// The heading this row sits under. Rows are listed group by group, so the
+  /// hub reads as a handful of short sections instead of one long column.
+  final String group;
 
   /// A glyph from the set ported out of Kotatsu-Redo, by asset name.
   final String icon;
@@ -155,77 +160,100 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
     final totalCount = sourceList.length;
 
     final categories = <_Category>[
+      // Reading: how pages are shown and how the reader behaves.
       _Category(
-        icon: 'ic_appearance',
-        title: l.settingsAppearance,
-        subtitle: l.settingsAppearanceSubtitle,
-        screen: const AppearanceSettingsScreen(),
-      ),
-      _Category(
-        icon: 'ic_manga_source',
-        title: l.settingsMangaSources,
-        subtitle: l.settingsMangaSourcesSubtitle(enabledCount, totalCount),
-        screen: const MangaSourcesSettingsScreen(),
-      ),
-      _Category(
+        group: l.settingsGroupReading,
         icon: 'ic_book_page',
         title: l.settingsReader,
         subtitle: l.settingsReaderSubtitle,
         screen: const ReaderSettingsScreen(),
       ),
       _Category(
-        icon: 'ic_usage',
-        title: l.settingsStorage,
-        subtitle: l.settingsStorageSubtitle,
-        screen: const StorageSettingsScreen(),
+        group: l.settingsGroupReading,
+        icon: 'ic_appearance',
+        title: l.settingsAppearance,
+        subtitle: l.settingsAppearanceSubtitle,
+        screen: const AppearanceSettingsScreen(),
       ),
+      // Finding manga: where titles come from and how new chapters are found.
       _Category(
-        icon: 'ic_download',
-        title: l.settingsDownloads,
-        subtitle: l.settingsDownloadsSubtitle,
-        screen: const DownloadsSettingsScreen(),
+        group: l.settingsGroupFinding,
+        icon: 'ic_manga_source',
+        title: l.settingsMangaSources,
+        subtitle: l.settingsMangaSourcesSubtitle(enabledCount, totalCount),
+        screen: const MangaSourcesSettingsScreen(),
       ),
       // Notifications are a mobile feature (see [NotificationService.supported]):
       // offering the row on a desktop build would be a switch with nothing
       // behind it, so it is absent rather than dead.
       if (NotificationService.supported)
         _Category(
+          group: l.settingsGroupFinding,
           icon: 'ic_feed',
           title: l.settingsNewChapters,
           subtitle: l.settingsNewChaptersSubtitle,
           screen: const NotificationSettingsScreen(),
         ),
-      // No screen behind it: tapping this has always done nothing. Now that it
-      // can be a selection in a pane, a row that silently does nothing is worse
-      // than one that says why.
+      // Your data: what the app keeps and how to move or clear it.
       _Category(
-        icon: 'ic_services',
-        title: l.settingsServices,
-        subtitle: l.settingsServicesUnavailable,
+        group: l.settingsGroupData,
+        icon: 'ic_usage',
+        title: l.settingsStorage,
+        subtitle: l.settingsStorageSubtitle,
+        screen: const StorageSettingsScreen(),
       ),
       _Category(
+        group: l.settingsGroupData,
+        icon: 'ic_download',
+        title: l.settingsDownloads,
+        subtitle: l.settingsDownloadsSubtitle,
+        screen: const DownloadsSettingsScreen(),
+      ),
+      _Category(
+        group: l.settingsGroupData,
         icon: 'ic_backup_restore',
         title: l.settingsBackup,
         subtitle: l.settingsBackupSubtitle,
         screen: const BackupRestoreScreen(),
       ),
       _Category(
+        group: l.settingsGroupData,
+        icon: 'ic_restore',
+        title: l.settingsReset,
+        subtitle: l.settingsResetSubtitle,
+        screen: const ResetSettingsScreen(),
+      ),
+      // App: everything about the app itself rather than the library.
+      // No screen behind it: tapping this has always done nothing. Now that it
+      // can be a selection in a pane, a row that silently does nothing is worse
+      // than one that says why.
+      _Category(
+        group: l.settingsGroupApp,
+        icon: 'ic_services',
+        title: l.settingsServices,
+        subtitle: l.settingsServicesUnavailable,
+      ),
+      _Category(
+        group: l.settingsGroupApp,
         icon: 'ic_lock',
         title: l.privacyPolicy,
         subtitle: l.privacyPolicySubtitle,
         screen: const PrivacyPolicyScreen(),
       ),
       _Category(
+        group: l.settingsGroupApp,
         icon: 'ic_info_outline',
         title: l.termsOfService,
         subtitle: l.termsOfServiceSubtitle,
         screen: const TermsOfServiceScreen(),
       ),
+      // The one root row that opens a dialog instead of a screen. Its subtitle
+      // is filled in from the package info by [_buildAboutTile].
       _Category(
-        icon: 'ic_restore',
-        title: l.settingsReset,
-        subtitle: l.settingsResetSubtitle,
-        screen: const ResetSettingsScreen(),
+        group: l.settingsGroupApp,
+        icon: _aboutIcon,
+        title: l.settingsAbout,
+        subtitle: '',
       ),
     ];
 
@@ -357,7 +385,6 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
   }) {
     final l = AppLocalizations.of(context);
     final needle = _searchQuery.text.trim().toLowerCase();
-    final about = l.settingsAbout;
     // An empty needle is not a filter: opening the field and typing nothing
     // leaves the hub exactly as it was, rather than emptying it.
     final filtering = _searching && needle.isNotEmpty;
@@ -370,8 +397,6 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
                   c.subtitle.toLowerCase().contains(needle),
             )
             .toList();
-    final showAbout =
-        !filtering || about.toLowerCase().contains(needle);
 
     return Column(
       children: [
@@ -399,7 +424,7 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
           child: ListView(
             padding: const EdgeInsets.symmetric(vertical: 8),
             children: [
-              if (filtering && shown.isEmpty && !showAbout)
+              if (filtering && shown.isEmpty)
                 Padding(
                   padding: const EdgeInsets.fromLTRB(20, 24, 20, 0),
                   child: Text(
@@ -407,37 +432,64 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
                     style: TextStyle(color: Theme.of(context).hintColor),
                   ),
                 ),
-              for (final c in shown)
-                _buildSettingTile(
-                  category: c,
-                  selected: onSelect != null && identical(c, selected),
-                  onTap: () {
-                    if (c.hasScreen && onSelect != null) {
-                      onSelect(c);
-                      return;
-                    }
-                    if (!c.hasScreen) {
-                      if (c.icon == _aboutIcon) {
-                        _showAboutDialog(context);
+              for (var i = 0; i < shown.length; i++) ...[
+                // A heading is emitted only where the group changes, so a
+                // filtered list still shows the heading for whatever survived
+                // the search and never repeats one.
+                if (i == 0 || shown[i].group != shown[i - 1].group)
+                  _buildGroupHeader(shown[i].group),
+                if (shown[i].icon == _aboutIcon)
+                  _buildAboutTile(context: context, category: shown[i])
+                else
+                  _buildSettingTile(
+                    category: shown[i],
+                    selected: onSelect != null &&
+                        identical(shown[i], selected),
+                    onTap: () {
+                      final c = shown[i];
+                      if (c.hasScreen && onSelect != null) {
+                        onSelect(c);
+                        return;
                       }
-                      return;
-                    }
-                    // A phone has no category pane, so tapping a row pushes
-                    // that category's own screen. [initialCategory] is
-                    // deliberately not honoured here: it is about which row the
-                    // *hub* opens on, and on a phone the hub is never on screen
-                    // by the time a row is tapped.
-                    Navigator.push(
-                      context,
-                      MaterialPageRoute(builder: (context) => c.screen!),
-                    );
-                  },
-                ),
-              if (showAbout) _buildAboutTile(context: context),
+                      if (!c.hasScreen) {
+                        if (c.icon == _aboutIcon) {
+                          _showAboutDialog(context);
+                        }
+                        return;
+                      }
+                      // A phone has no category pane, so tapping a row pushes
+                      // that category's own screen. [initialCategory] is
+                      // deliberately not honoured here: it is about which row
+                      // the *hub* opens on, and on a phone the hub is never on
+                      // screen by the time a row is tapped.
+                      Navigator.push(
+                        context,
+                        MaterialPageRoute(builder: (context) => c.screen!),
+                      );
+                    },
+                  ),
+              ],
             ],
           ),
         ),
       ],
+    );
+  }
+
+  /// A short heading above each run of rows that share a [.._Category.group].
+  Widget _buildGroupHeader(String title) {
+    final color = Theme.of(context).colorScheme;
+    return Padding(
+      padding: const EdgeInsets.fromLTRB(20, 14, 20, 4),
+      child: Text(
+        title.toUpperCase(),
+        style: TextStyle(
+          fontSize: 12,
+          fontWeight: FontWeight.w700,
+          letterSpacing: 0.6,
+          color: color.primary,
+        ),
+      ),
     );
   }
 
@@ -559,7 +611,10 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
     await showWhatsNewSheet(context, release);
   }
 
-  Widget _buildAboutTile({required BuildContext context}) {
+  Widget _buildAboutTile({
+    required BuildContext context,
+    required _Category category,
+  }) {
     return FutureBuilder<PackageInfo>(
       future: PackageInfo.fromPlatform(),
       builder: (context, snapshot) {
@@ -569,8 +624,9 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
             : 'Version ${info.version} (${info.buildNumber})';
         return _buildSettingTile(
           category: _Category(
+            group: category.group,
             icon: _aboutIcon,
-            title: AppLocalizations.of(context).settingsAbout,
+            title: category.title,
             subtitle: subtitle,
           ),
           onTap: () => _showAboutDialogWith(context, info),
