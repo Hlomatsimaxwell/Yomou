@@ -2396,7 +2396,7 @@ class AppLocalizationsEn extends AppLocalizations {
       'Import favorites from a Kotatsu backup (.bk.zip)';
 
   @override
-  String get encryptedSectionTitle => 'Encrypted (Yomou)';
+  String get encryptedSectionTitle => 'Encrypted backup (coming soon)';
 
   @override
   String get exportEncrypted => 'Export encrypted backup';

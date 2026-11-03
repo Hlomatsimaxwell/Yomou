@@ -2422,7 +2422,7 @@ class AppLocalizationsEs extends AppLocalizations {
       'Importar favoritos desde una copia de Kotatsu (.bk.zip)';
 
   @override
-  String get encryptedSectionTitle => 'Cifrado (Yomou)';
+  String get encryptedSectionTitle => 'Copia cifrada (próximamente)';
 
   @override
   String get exportEncrypted => 'Exportar copia cifrada';

@@ -4378,7 +4378,7 @@ abstract class AppLocalizations {
   /// No description provided for @encryptedSectionTitle.
   ///
   /// In en, this message translates to:
-  /// **'Encrypted (Yomou)'**
+  /// **'Encrypted backup (coming soon)'**
   String get encryptedSectionTitle;
 
   /// No description provided for @exportEncrypted.
