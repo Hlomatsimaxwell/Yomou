@@ -59,6 +59,7 @@ none match Remix.
 | `ic_theme_mode.svg` | Kotatsu-Redo `res/drawable/ic_theme_mode.xml` | MDI `mdiCheckboxBlankCircleOutline` |
 | `ic_timelapse.svg` | Kotatsu-Redo `res/drawable/ic_timelapse.xml` | Material `timelapse` |
 | `ic_usage.svg` | Kotatsu-Redo `res/drawable/ic_usage.xml` | MDI `mdiChartDonut` |
+| `ic_user.svg` | Kotatsu-Redo `res/drawable/ic_user.xml` | MDI `mdiAccountOutline` |
 | `ic_badges.svg` | Material Design Icons | `mdiCircleMultipleOutline` |
 | `ic_blur.svg` | Material Design Icons | `mdiBlur` |
 | `ic_motion_pause.svg` | Material Design Icons | `mdiMotionPauseOutline` |

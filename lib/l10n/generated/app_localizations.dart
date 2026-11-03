@@ -1052,6 +1052,18 @@ abstract class AppLocalizations {
   /// **'Create or restore a backup, Periodic backups'**
   String get settingsBackupSubtitle;
 
+  /// No description provided for @settingsAccountsSync.
+  ///
+  /// In en, this message translates to:
+  /// **'Accounts and sync'**
+  String get settingsAccountsSync;
+
+  /// No description provided for @settingsAccountsSyncSubtitle.
+  ///
+  /// In en, this message translates to:
+  /// **'Cloud backup, Sign in'**
+  String get settingsAccountsSyncSubtitle;
+
   /// No description provided for @settingsAbout.
   ///
   /// In en, this message translates to:

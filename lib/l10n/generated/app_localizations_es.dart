@@ -558,6 +558,12 @@ class AppLocalizationsEs extends AppLocalizations {
       'Crear o restaurar copia, copias periódicas';
 
   @override
+  String get settingsAccountsSync => 'Cuentas y sincronización';
+
+  @override
+  String get settingsAccountsSyncSubtitle => 'Copia en la nube, Iniciar sesión';
+
+  @override
   String get settingsAbout => 'Acerca de';
 
   @override

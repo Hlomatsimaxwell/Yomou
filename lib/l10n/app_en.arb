@@ -275,6 +275,8 @@
   "settingsServicesUnavailable": "Nothing to configure yet",
   "settingsBackup": "Backup and restore",
   "settingsBackupSubtitle": "Create or restore a backup, Periodic backups",
+  "settingsAccountsSync": "Accounts and sync",
+  "settingsAccountsSyncSubtitle": "Cloud backup, Sign in",
   "settingsAbout": "About",
   "settingsAboutVersion": "Version",
   "settingsAboutBuild": "Build",

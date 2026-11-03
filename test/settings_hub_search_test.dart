@@ -94,16 +94,16 @@ void main() {
       (tester) async {
     await pump(tester, const Size(1200, 1100));
 
-    // The detail pane opens on the first category, so the Reader screen is
+    // The detail pane opens on the first category, so the Appearance screen is
     // beside the category list.
-    expect(find.text('Default mode'), findsOneWidget);
+    expect(find.text('Color Scheme'), findsOneWidget);
 
-    await search(tester, 'appearance');
+    await search(tester, 'reader');
 
     // The list narrows; the pane keeps the selection it had, because a search
     // is a way to reach a row, not a selection of its own.
-    expect(find.text('Appearance'), findsOneWidget);
-    expect(find.text('Default mode'), findsOneWidget);
+    expect(find.text('Reader settings'), findsOneWidget);
+    expect(find.text('Color Scheme'), findsOneWidget);
 
     expect(tester.takeException(), isNull);
   });

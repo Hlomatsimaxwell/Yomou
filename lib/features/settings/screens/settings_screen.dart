@@ -12,6 +12,7 @@ import 'package:yomou/core/widgets/responsive.dart';
 import 'package:yomou/l10n/generated/app_localizations.dart';
 import 'package:yomou/features/whats_new/whats_new_sheet.dart';
 import 'package:yomou/features/settings/screens/appearance_settings_screen.dart';
+import 'package:yomou/features/settings/screens/accounts_sync_screen.dart';
 import 'package:yomou/features/settings/screens/manga_sources_settings_screen.dart';
 import 'package:yomou/features/settings/screens/backup_restore_screen.dart';
 import 'package:yomou/features/settings/screens/privacy_policy_screen.dart';
@@ -163,17 +164,17 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
       // Reading: how pages are shown and how the reader behaves.
       _Category(
         group: l.settingsGroupReading,
-        icon: 'ic_book_page',
-        title: l.settingsReader,
-        subtitle: l.settingsReaderSubtitle,
-        screen: const ReaderSettingsScreen(),
-      ),
-      _Category(
-        group: l.settingsGroupReading,
         icon: 'ic_appearance',
         title: l.settingsAppearance,
         subtitle: l.settingsAppearanceSubtitle,
         screen: const AppearanceSettingsScreen(),
+      ),
+      _Category(
+        group: l.settingsGroupReading,
+        icon: 'ic_book_page',
+        title: l.settingsReader,
+        subtitle: l.settingsReaderSubtitle,
+        screen: const ReaderSettingsScreen(),
       ),
       // Finding manga: where titles come from and how new chapters are found.
       _Category(
@@ -215,6 +216,13 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
         title: l.settingsBackup,
         subtitle: l.settingsBackupSubtitle,
         screen: const BackupRestoreScreen(),
+      ),
+      _Category(
+        group: l.settingsGroupData,
+        icon: 'ic_user',
+        title: l.settingsAccountsSync,
+        subtitle: l.settingsAccountsSyncSubtitle,
+        screen: const AccountsSyncScreen(),
       ),
       _Category(
         group: l.settingsGroupData,

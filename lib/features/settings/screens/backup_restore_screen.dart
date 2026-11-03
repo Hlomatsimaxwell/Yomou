@@ -19,7 +19,7 @@ import 'package:yomou/features/library/providers/favorites_provider.dart';
 import 'package:yomou/features/settings/providers/cache_settings_provider.dart';
 import 'package:yomou/features/settings/screens/import_results_screen.dart';
 import 'package:yomou/features/settings/screens/periodic_backups_screen.dart';
-import 'package:yomou/features/settings/screens/google_drive_backup_screen.dart';
+import 'package:yomou/features/settings/widgets/settings_list_rows.dart';
 import 'package:yomou/features/settings/widgets/tachiyomi_scan_progress.dart';
 import 'package:yomou/l10n/generated/app_localizations.dart';
 import 'package:yomou/widgets/m3_components.dart';
@@ -391,71 +391,50 @@ class _BackupRestoreScreenState extends ConsumerState<BackupRestoreScreen> {
       body: CappedContentWidth(child: ListView(
       padding: const EdgeInsets.symmetric(vertical: 8),
       children: [
-        _AppSectionHeader(title: l.cloudBackup),
-        _BuildButton(
-          icon: Icons.cloud,
-          title: l.googleDriveBackup,
-          subtitle: 'Google account',
-          onTap: () {
-            Navigator.push(
-              context,
-              MaterialPageRoute(
-                builder: (context) => const GoogleDriveBackupScreen(),
-              ),
-            );
-          },
-        ),
-        _BuildButton(
-          icon: MdiIcons.cloudOutline,
-          title: 'WebDAV backup',
-          subtitle: l.comingSoon,
-          onTap: null,
-        ),
-        const SizedBox(height: 8),
-        _AppSectionHeader(title: l.kotatsuSectionTitle),
-        _BuildButton(
+        SettingsSectionHeader(title: l.kotatsuSectionTitle),
+        SettingsListRow(
           icon: MdiIcons.layersOutline,
           title: l.exportKotatsu,
           subtitle: l.exportKotatsuSubtitle,
           onTap: _exportKotatsu,
         ),
-        _BuildButton(
+        SettingsListRow(
           icon: MdiIcons.archiveOutline,
           title: l.importKotatsu,
           subtitle: l.importKotatsuSubtitle,
           onTap: _importKotatsu,
         ),
         const SizedBox(height: 8),
-        _AppSectionHeader(title: l.tachiyomiSectionTitle),
-        _BuildButton(
+        SettingsSectionHeader(title: l.tachiyomiSectionTitle),
+        SettingsListRow(
           icon: MdiIcons.uploadOutline,
           title: l.exportTachiyomi,
           subtitle: l.exportTachiyomiSubtitle,
           onTap: _exportTachiyomi,
         ),
-        _BuildButton(
+        SettingsListRow(
           icon: MdiIcons.downloadOutline,
           title: l.importTachiyomi,
           subtitle: l.importTachiyomiSubtitle,
           onTap: _importTachiyomi,
         ),
         const SizedBox(height: 8),
-        _AppSectionHeader(title: l.encryptedSectionTitle),
-        _BuildButton(
+        SettingsSectionHeader(title: l.encryptedSectionTitle),
+        SettingsListRow(
           icon: MdiIcons.lockOutline,
           title: l.exportEncrypted,
           subtitle: l.comingSoon,
           onTap: null,
         ),
         const SizedBox(height: 8),
-        _AppSectionHeader(title: l.otherSectionTitle),
-        _BuildButton(
+        SettingsSectionHeader(title: l.otherSectionTitle),
+        SettingsListRow(
           icon: MdiIcons.contentCut,
           title: l.backupFixLibrary,
           subtitle: l.backupFixLibrarySubtitle,
           onTap: _fixLibrary,
         ),
-        _BuildButton(
+        SettingsListRow(
           icon: MdiIcons.clockOutline,
           title: l.periodicBackups,
           onTap: () {
@@ -470,74 +449,6 @@ class _BackupRestoreScreenState extends ConsumerState<BackupRestoreScreen> {
         const SizedBox(height: 24),
       ],
     )),
-    );
-  }
-}
-
-class _AppSectionHeader extends StatelessWidget {
-  const _AppSectionHeader({required this.title});
-
-  final String title;
-
-  @override
-  Widget build(BuildContext context) {
-    final color = Theme.of(context).colorScheme;
-    return Padding(
-      padding: const EdgeInsets.fromLTRB(16, 8, 16, 6),
-      child: Text(
-        title,
-        style: TextStyle(
-          fontSize: 13,
-          fontWeight: FontWeight.w700,
-          letterSpacing: 0.4,
-          color: color.primary,
-        ),
-      ),
-    );
-  }
-}
-
-class _BuildButton extends StatelessWidget {
-  final IconData icon;
-  final String title;
-  final String? subtitle;
-  final VoidCallback? onTap;
-
-  const _BuildButton({
-    required this.icon,
-    required this.title,
-    this.subtitle,
-    this.onTap,
-  });
-
-  @override
-  Widget build(BuildContext context) {
-    final color = Theme.of(context).colorScheme;
-    final disabled = onTap == null;
-
-    return ListTile(
-      enabled: !disabled,
-      leading: Padding(
-        padding: const EdgeInsets.only(right: 12),
-        child: Icon(icon, size: 26, color: color.onSurfaceVariant),
-      ),
-      title: Text(
-        title,
-        style: const TextStyle(fontSize: 15, fontWeight: FontWeight.w600),
-      ),
-      subtitle: subtitle == null
-          ? null
-          : Padding(
-              padding: const EdgeInsets.only(top: 2),
-              child: Text(
-                subtitle!,
-                style: TextStyle(
-                  fontSize: 12,
-                  color: color.onSurfaceVariant,
-                ),
-              ),
-            ),
-      onTap: onTap,
     );
   }
 }

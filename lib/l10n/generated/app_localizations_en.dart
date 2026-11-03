@@ -554,6 +554,12 @@ class AppLocalizationsEn extends AppLocalizations {
       'Create or restore a backup, Periodic backups';
 
   @override
+  String get settingsAccountsSync => 'Accounts and sync';
+
+  @override
+  String get settingsAccountsSyncSubtitle => 'Cloud backup, Sign in';
+
+  @override
   String get settingsAbout => 'About';
 
   @override

@@ -81,6 +81,8 @@
   "settingsServicesUnavailable": "Todavía no hay nada que configurar",
   "settingsBackup": "Copia de seguridad y restauración",
   "settingsBackupSubtitle": "Crear o restaurar copia, copias periódicas",
+  "settingsAccountsSync": "Cuentas y sincronización",
+  "settingsAccountsSyncSubtitle": "Copia en la nube, Iniciar sesión",
   "settingsAbout": "Acerca de",
   "settingsAboutVersion": "Versión",
   "settingsAboutBuild": "Compilación",

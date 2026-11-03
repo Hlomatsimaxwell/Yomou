@@ -22,6 +22,8 @@ const List<String> kKotatsuIconNames = <String>[
   'ic_services',
   'ic_backup_restore',
   'ic_info_outline',
+  // Accounts and sync, mirroring Kotatsu-Redo's pref_root.xml.
+  'ic_user',
   // Our own root row: Kotatsu-Redo has no Reset category.
   'ic_restore',
   // Rows on our Appearance screen, mirroring its pref_appearance.xml.
