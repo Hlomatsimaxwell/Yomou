@@ -34,6 +34,7 @@ import '../sources/mangabat_source.dart';
 import '../sources/mangafire_source.dart';
 import '../sources/manhuaplus_source.dart';
 import '../sources/madara_source.dart';
+import '../models/madara_site_config.dart';
 import '../sources/catalog/madara_catalog.g.dart';
 
 // 1. THE SOURCE REGISTRY
@@ -112,6 +113,21 @@ MangaSource? _mangaBallByName(String name) {
     () => MangaBallSource(sourceId: id, displayName: name, langCode: code),
   );
 }
+
+
+const _inmortalScanConfig = MadaraSiteConfig(
+  id: 'scan-inmortal.com/mg',
+  name: 'Inmortal Scan',
+  baseUrl: 'https://scan-inmortal.com/mg',
+  language: 'Manga, Spanish',
+  iconUrl: '',
+  popularPath: '?m_orderby=views',
+  coverAttr: 'data-src',
+  mangaCardSelector: '.page-item-detail, .c-tabs-item__content',
+  chapterListSelector: 'ul.main li.wp-manga-chapter, li.wp-manga-chapter',
+  readerImageSelector: '.wp-manga-chapter-img, #reading-content img',
+  readerImageAttr: 'data-src',
+);
 
 MangaSource getSourceByName(String name) {
   // Bundled catalog sites (see lib/data/sources/catalog/). They are generic
@@ -216,6 +232,8 @@ MangaSource getSourceByName(String name) {
       return _shared('inmanga', InMangaSource.new);
     case 'InfraFandub':
       return _shared('infrafandub', InfraFandubSource.new);
+    case 'Inmortal Scan':
+      return _shared('scan-inmortal.com/mg', () => MadaraSource(_inmortalScanConfig));
     case 'Bega Translation':
       return _shared('begatranslation', BegaTranslationSource.new);
     case 'Apoll Comics':
@@ -321,6 +339,8 @@ MangaSource? getSourceBySourceId(String sourceId) {
       return getSourceByName('InManga');
     case 'infrafandub':
       return getSourceByName('InfraFandub');
+    case 'scan-inmortal.com/mg':
+      return getSourceByName('Inmortal Scan');
     default:
       return null;
   }
@@ -1048,6 +1068,16 @@ class SourcesNotifier extends StateNotifier<List<Map<String, dynamic>>> {
       'text': 'IF',
       'iconUrl': 'https://infrafandub.com/favicon.ico',
       'isPinned': false,
+    },
+    {
+      'name': 'Inmortal Scan',
+      'language': 'Manga, Spanish',
+      'bgColor': const Color(0xFF9C27B0),
+      'text': 'IS',
+      'iconUrl': '',
+      'siteUrl': 'https://scan-inmortal.com/mg',
+      'isPinned': false,
+      'isEnabled': false,
     },
     // Bundled Madara catalog (see lib/data/sources/catalog/). These arrive
     // disabled so 90+ extra sites do not join global search or the updates
