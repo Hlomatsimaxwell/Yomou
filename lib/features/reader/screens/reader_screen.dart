@@ -1508,9 +1508,14 @@ class _ReaderScreenState extends ConsumerState<ReaderScreen>
               expand: false,
               controller: _trayExtentController,
               initialChildSize: kReaderTrayInitialSize,
-              minChildSize: kReaderTraySizes.first,
+              // A pull that runs past the smallest snap size has nowhere to
+              // rest, so the sheet closes once it hits the floor instead of
+              // sitting as a thin strip. This is what makes "scroll to the
+              // top and keep going" dismiss the tray.
+              minChildSize: 0.0,
               maxChildSize: kReaderTraySizes.last,
               snap: true,
+              shouldCloseOnMinExtent: true,
               // The same const list the grabber's drag snaps against, so
               // there is one set of resting sizes rather than two that can
               // drift. Const also matters here: a list built in this builder
@@ -1608,7 +1613,7 @@ class _ReaderScreenState extends ConsumerState<ReaderScreen>
     if (height <= 0) return;
     _trayExtentController.jumpTo(
       (start - details.delta.dy / height).clamp(
-        kReaderTraySizes.first,
+        0.0,
         kReaderTraySizes.last,
       ),
     );
@@ -1625,7 +1630,9 @@ class _ReaderScreenState extends ConsumerState<ReaderScreen>
     // it to shrink to, so leave the way a bottom sheet leaves. The tray is a
     // chooser over the page, and dragging it down is how a reader expects to
     // be rid of it.
-    if (velocity > 300 && size <= kReaderTraySizes.first + 0.01) {
+    // Dragged all the way to the floor: there is nothing to keep showing, so
+    // dismiss it the way a pull-to-close gesture does.
+    if (size < 0.08 || (velocity > 300 && size <= kReaderTraySizes.first + 0.01)) {
       Navigator.of(context).maybePop();
       return;
     }
