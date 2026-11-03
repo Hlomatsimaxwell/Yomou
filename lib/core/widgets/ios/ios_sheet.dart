@@ -92,14 +92,9 @@ Future<T?> _showIosBottomSheet<T>(
   required bool isDismissible,
   required bool enableDrag,
 }) {
-  // A DraggableScrollableSheet is what makes a bottom sheet behave like the
-  // reader's tray: the content scrolls first, and once it reaches the top a
-  // continued pull slides the whole sheet down and eventually closes it. A plain
-  // modal bottom sheet swallows that gesture in its scrollable, which is why
-  // the tray gestures and these used to feel different.
   return showModalBottomSheet<T>(
     context: context,
-    isScrollControlled: true,
+    isScrollControlled: isScrollControlled,
     isDismissible: isDismissible,
     enableDrag: enableDrag,
     backgroundColor: Colors.transparent,
@@ -107,71 +102,49 @@ Future<T?> _showIosBottomSheet<T>(
     clipBehavior: Clip.none,
     useSafeArea: true,
     builder: (sheetContext) {
-      final dragController = DraggableScrollableController();
-      final contentKey = GlobalKey();
-
-      // Once the first frame has laid the content out, shrink (or grow) the
-      // sheet from its placeholder size to the size the content actually needs.
-      // Starting at a placeholder avoids having to guess a fraction before
-      // anything has been measured, and keeps short sheets from opening full
-      // height.
-      WidgetsBinding.instance.addPostFrameCallback((_) {
-        final box = contentKey.currentContext?.findRenderObject() as RenderBox?;
-        if (box == null || !dragController.isAttached) return;
-        final available = MediaQuery.sizeOf(sheetContext).height * 0.92;
-        if (available <= 0) return;
-        final fraction =
-            (box.size.height / available).clamp(0.12, 0.92).toDouble();
-        try {
-          dragController.animateTo(
-            fraction,
-            duration: const Duration(milliseconds: 180),
-            curve: Curves.easeOutCubic,
-          );
-        } catch (_) {
-          // The controller can still be unattached during a pop.
-        }
-      });
-
       return Align(
         alignment: Alignment.bottomCenter,
+        // Hug the panel rather than the window. A plain [Align] is greedy: it
+        // would take the whole height the sheet allows and paint the route's
+        // surface over the scrim, leaving a tap outside with nothing to hit --
+        // the sheet could only be closed by dragging it. `heightFactor: 1`
+        // keeps the box the height of the panel while still centring the
+        // width-capped panel horizontally.
         heightFactor: 1.0,
         child: SizedBox(
           width: maxWidth,
-          child: DraggableScrollableSheet(
-            controller: dragController,
-            expand: false,
-            initialChildSize: 0.2,
-            minChildSize: 0.0,
-            maxChildSize: 0.92,
-            snap: false,
-            shouldCloseOnMinExtent: true,
-            builder: (context, scrollController) {
-              return Material(
-                color: iosSheetBackground(sheetContext),
-                shape: const RoundedRectangleBorder(
-                  borderRadius: BorderRadius.vertical(top: Radius.circular(28)),
-                ),
-                clipBehavior: Clip.antiAlias,
-                child: SingleChildScrollView(
-                  controller: scrollController,
-                  child: Column(
-                    mainAxisSize: MainAxisSize.min,
-                    children: [
-                      const Padding(
-                        padding: EdgeInsets.only(top: 10, bottom: 6),
-                        child: _IosGrabber(),
-                      ),
-                      KeyedSubtree(
-                        key: contentKey,
-                        child: Builder(builder: builder),
-                      ),
-                      const SizedBox(height: 8),
-                    ],
+          child: Material(
+            // A [Material], not a coloured [Container]. A ListTile paints its
+            // background and its ink splash on the nearest Material ancestor, so
+            // anything coloured sitting between the tile and that Material hides
+            // both -- which is exactly what a BoxDecoration behind the sheet's
+            // content did. Every sheet with a row in it lost its press
+            // feedback, and debug builds reported it on every tap.
+            color: iosSheetBackground(sheetContext),
+            shape: const RoundedRectangleBorder(
+              borderRadius: BorderRadius.vertical(top: Radius.circular(28)),
+            ),
+            // The corners are rounded, so the splash has to be clipped to them
+            // or it washes over the sheet's outline.
+            clipBehavior: Clip.antiAlias,
+            child: ConstrainedBox(
+              constraints: isScrollControlled
+                  ? BoxConstraints(
+                      maxHeight: MediaQuery.sizeOf(sheetContext).height * 0.92,
+                    )
+                  : const BoxConstraints(),
+              child: Column(
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  const Padding(
+                    padding: EdgeInsets.only(top: 10, bottom: 6),
+                    child: _IosGrabber(),
                   ),
-                ),
-              );
-            },
+                  Flexible(child: Builder(builder: builder)),
+                  const SizedBox(height: 8),
+                ],
+              ),
+            ),
           ),
         ),
       );
