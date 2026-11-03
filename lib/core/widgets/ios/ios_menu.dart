@@ -112,35 +112,65 @@ Future<T?> showIosMenuPanel<T>(
     builder: (sheetContext) {
       return LayoutBuilder(
         builder: (context, constraints) {
+          final maxPanelHeight =
+              (constraints.maxHeight - 32 - kSheetOutsideGap)
+                  .clamp(1.0, double.infinity);
+          final maxSheetFraction =
+              (maxPanelHeight / constraints.maxHeight).clamp(0.05, 1.0);
+          final dragController = DraggableScrollableController();
+          final contentKey = GlobalKey();
+
+          WidgetsBinding.instance.addPostFrameCallback((_) {
+            final box =
+                contentKey.currentContext?.findRenderObject() as RenderBox?;
+            if (box == null || !dragController.isAttached) return;
+            final fraction =
+                (box.size.height / constraints.maxHeight)
+                    .clamp(0.05, maxSheetFraction)
+                    .toDouble();
+            try {
+              dragController.animateTo(
+                fraction,
+                duration: const Duration(milliseconds: 180),
+                curve: Curves.easeOutCubic,
+              );
+            } catch (_) {}
+          });
+
           return Align(
             alignment: Alignment.bottomCenter,
-            // As in the bottom sheet: an [Align] with no height factor is
-            // greedy, so the route's surface would cover the whole window and
-            // a tap beside the menu would have no scrim under it.
             heightFactor: 1.0,
-            child: Container(
-              width: 520,
-              margin: const EdgeInsets.fromLTRB(8, 8, 8, 24),
-              decoration: BoxDecoration(
-                color: iosSheetBackground(sheetContext),
-                borderRadius: BorderRadius.circular(20),
-              ),
-              child: ConstrainedBox(
-                // The 8 and 24 are the margin above, so the panel never claims
-                // height it cannot have. Scrolling below means a menu taller
-                // than a short viewport stays reachable instead of overflowing.
-                // The gap keeps a strip of scrim above the sheet, so a menu
-                // that does fill the viewport can still be dismissed by a tap
-                // outside it.
-                constraints: BoxConstraints(
-                  maxHeight:
-                      constraints.maxHeight - 32 - kSheetOutsideGap,
-                ),
-                child: SingleChildScrollView(
-                  child: Column(
-                    mainAxisSize: MainAxisSize.min,
-                    children: children,
-                  ),
+            child: Padding(
+              padding: const EdgeInsets.fromLTRB(8, 8, 8, 24),
+              child: SizedBox(
+                width: 520,
+                child: DraggableScrollableSheet(
+                  controller: dragController,
+                  expand: false,
+                  initialChildSize: 0.2,
+                  minChildSize: 0.0,
+                  maxChildSize: maxSheetFraction,
+                  shouldCloseOnMinExtent: true,
+                  snap: false,
+                  builder: (context, scrollController) {
+                    return Container(
+                      decoration: BoxDecoration(
+                        color: iosSheetBackground(sheetContext),
+                        borderRadius: BorderRadius.circular(20),
+                      ),
+                      clipBehavior: Clip.antiAlias,
+                      child: SingleChildScrollView(
+                        controller: scrollController,
+                        child: KeyedSubtree(
+                          key: contentKey,
+                          child: Column(
+                            mainAxisSize: MainAxisSize.min,
+                            children: children,
+                          ),
+                        ),
+                      ),
+                    );
+                  },
                 ),
               ),
             ),
@@ -150,6 +180,7 @@ Future<T?> showIosMenuPanel<T>(
     },
   );
 }
+
 
 /// A plain selectable row for [showIosMenuPanel]; dismisses the panel via
 /// [onTap].

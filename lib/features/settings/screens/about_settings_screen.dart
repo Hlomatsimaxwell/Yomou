@@ -7,6 +7,8 @@ import 'package:yomou/core/app_update/app_update_service.dart';
 import 'package:yomou/core/widgets/ios/ios_toast.dart';
 import 'package:yomou/core/widgets/responsive.dart';
 import 'package:yomou/features/settings/screens/changelog_screen.dart';
+import 'package:yomou/features/settings/screens/privacy_policy_screen.dart';
+import 'package:yomou/features/settings/screens/terms_of_service_screen.dart';
 import 'package:yomou/features/settings/widgets/settings_list_rows.dart';
 import 'package:yomou/l10n/generated/app_localizations.dart';
 import 'package:yomou/widgets/m3_components.dart';
@@ -128,6 +130,31 @@ class _AboutSettingsScreenState extends ConsumerState<AboutSettingsScreen> {
               title: l.aboutSourceCode,
               subtitle: _repoUrl,
               onTap: () => _openUrl(_repoUrl),
+            ),
+            const SizedBox(height: 8),
+            Divider(
+              height: 1,
+              thickness: 1,
+              color: color.outlineVariant.withValues(alpha: 0.4),
+            ),
+            const SizedBox(height: 8),
+            SettingsListRow(
+              icon: MdiIcons.shieldCheckOutline,
+              title: l.privacyPolicy,
+              subtitle: l.privacyPolicySubtitle,
+              onTap: () => SettingsPaneScope.openScreen(
+                context,
+                const PrivacyPolicyScreen(),
+              ),
+            ),
+            SettingsListRow(
+              icon: MdiIcons.scaleBalance,
+              title: l.termsOfService,
+              subtitle: l.termsOfServiceSubtitle,
+              onTap: () => SettingsPaneScope.openScreen(
+                context,
+                const TermsOfServiceScreen(),
+              ),
             ),
             SettingsListRow(
               icon: MdiIcons.bugOutline,
