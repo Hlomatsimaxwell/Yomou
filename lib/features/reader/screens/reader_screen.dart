@@ -1885,6 +1885,7 @@ class _ReaderScreenState extends ConsumerState<ReaderScreen>
     return ListView.builder(
       controller: controller,
       itemExtent: 72,
+      physics: const BouncingScrollPhysics(),
       padding: const EdgeInsets.only(bottom: 24),
       itemCount: widget.allChapters.length,
       itemBuilder: (context, index) {
