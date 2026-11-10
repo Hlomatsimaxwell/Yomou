@@ -155,31 +155,58 @@ class MadaraSource extends DioSource implements MangaSource {
   List<Manga> _parseCards(List<dynamic> cards) {
     final mangas = <Manga>[];
     for (final card in cards) {
-      final candidates = <dom.Element>[];
-      candidates.addAll(card.querySelectorAll(config.mangaTitleSelector));
-      candidates.addAll(card.querySelectorAll('.post-title a'));
-      candidates.addAll(card.querySelectorAll('h3 a, h4 a, h5 a'));
-      candidates.addAll(
-        card.querySelectorAll(
-          'a[href*="/manga/"], a[href*="/comic/"], a[href*="/series/"], a[href*="/manhwa/"]',
-        ),
+      final titleCandidates = <dom.Element>[];
+      titleCandidates.addAll(card.querySelectorAll(config.mangaTitleSelector));
+      titleCandidates.addAll(card.querySelectorAll('.post-title a'));
+      titleCandidates.addAll(card.querySelectorAll('h3 a, h4 a, h5 a'));
+      final fallbackCandidates = card.querySelectorAll(
+        'a[href*="/manga/"], a[href*="/comic/"], a[href*="/series/"], a[href*="/manhwa/"]',
       );
+
       dom.Element? link;
-      for (final a in candidates) {
+      // Prefer real title anchors over the preview chapter links that many
+      // Madara skins embed in the card: those carry longer labels and
+      // otherwise get scored as the title (and even replace the manga's
+      // id/url).
+      for (final a in titleCandidates) {
         final href = a.attributes['href'] ?? '';
         if (href.isEmpty) continue;
         if (href.contains('/tag/') ||
             href.contains('/category/') ||
-            href.contains('/genre/') ||
-            href.contains('/manga-tag/') ||
-            href.contains('/comic-tag/')) {
+            href.contains('/genre/')) {
           continue;
         }
         final text = a.text.trim();
         final attrTitle = (a.attributes['title'] ?? '').trim();
         if (text.isEmpty && attrTitle.isEmpty) continue;
-        if (link == null || text.length > link.text.trim().length) {
+        if (link == null ||
+            text.length +
+                    (text.isEmpty ? attrTitle.length : 0) >
+                (link.text.trim().length +
+                    (link.text.trim().isEmpty
+                        ? (link.attributes['title'] ?? '').trim().length
+                        : 0))) {
           link = a;
+        }
+      }
+      if (link == null) {
+        for (final a in fallbackCandidates) {
+          final href = a.attributes['href'] ?? '';
+          if (href.isEmpty) continue;
+          if (href.contains('/tag/') ||
+              href.contains('/category/') ||
+              href.contains('/genre/') ||
+              href.contains('/manga-tag/') ||
+              href.contains('/comic-tag/') ||
+              href.toLowerCase().contains('chapter')) {
+            continue;
+          }
+          final text = a.text.trim();
+          final attrTitle = (a.attributes['title'] ?? '').trim();
+          if (text.isEmpty && attrTitle.isEmpty) continue;
+          if (link == null || text.length > link.text.trim().length) {
+            link = a;
+          }
         }
       }
       final href = link?.attributes['href'] ?? '';
@@ -316,10 +343,15 @@ class MadaraSource extends DioSource implements MangaSource {
       // (`img`) would otherwise hand back as the cover.
       final coverEl =
           document.querySelector('.summary_image img') ??
+          document.querySelector('img.wp-post-image') ??
           document.querySelector(config.mangaCoverSelector);
       final attrCover = (coverEl?.attributes[config.coverAttr] ?? '').trim();
       final cover =
           attrCover.isNotEmpty ? attrCover : (coverEl?.attributes['src'] ?? '').trim();
+      final cleanCover = (cover.contains('404.png') ||
+              cover.contains('default-placeholder'))
+          ? ''
+          : cover;
       final description =
           document
               .querySelector(config.detailDescriptionSelector)
@@ -376,7 +408,7 @@ class MadaraSource extends DioSource implements MangaSource {
       return MangaDetails(
         id: mangaId,
         title: title,
-        coverUrl: cover,
+        coverUrl: cleanCover,
         sourceId: id,
         description: description,
         author: author,
