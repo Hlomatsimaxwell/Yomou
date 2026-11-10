@@ -20,7 +20,7 @@ class MgekoSource extends DioSource implements MangaSource {
   String get baseUrl => 'https://www.mgeko.cc';
 
   @override
-  String websiteMangaUrl(String mangaId) => '$websiteUrl/manga/$mangaId/';
+  String websiteMangaUrl(String mangaId) => '$websiteUrl/$mangaId/';
   @override
   String get readerBaseUrl => 'https://www.mgeko.cc';
   @override
@@ -88,7 +88,7 @@ class MgekoSource extends DioSource implements MangaSource {
   @override
   Future<MangaDetails?> getMangaDetails(String mangaId) async {
     try {
-      final html = await grabText('$baseUrl/manga/$mangaId/');
+      final html = await grabText('$baseUrl/$mangaId/');
       if (html.isEmpty) return null;
       final document = parser.parse(html);
 
@@ -118,7 +118,7 @@ class MgekoSource extends DioSource implements MangaSource {
         title: title,
         coverUrl: cover,
         description: document
-                .querySelector('.description.short')
+                .querySelector('.description')
                 ?.text
                 .trim() ??
             '',
@@ -134,7 +134,8 @@ class MgekoSource extends DioSource implements MangaSource {
   @override
   Future<List<Chapter>> getChapters(String mangaId) async {
     try {
-      final html = await grabText('$baseUrl/manga/$mangaId/');
+      final url = '$baseUrl/$mangaId/all-chapters/';
+      final html = await grabText(url);
       if (html.isEmpty) return [];
       final document = parser.parse(html);
       final chapters = <Chapter>[];
@@ -144,15 +145,26 @@ class MgekoSource extends DioSource implements MangaSource {
         if (href.isEmpty) continue;
         final path = href.replaceFirst(RegExp(r'^/+'), '');
         if (path.isEmpty) continue;
-        final numText = li.querySelector('.chapter-number')?.text.trim() ?? '';
+        final numText =
+            (li.querySelector('.chapter-title') ??
+                    li.querySelector('.chapter-number'))
+                ?.text
+                .trim() ??
+                '';
         final chapterNumber = numText.split('-').first.trim();
         if (chapterNumber.isEmpty) continue;
+        final releaseDate =
+            (li.querySelector('.chapter-update') ??
+                    li.querySelector('.chapter-stats'))
+                ?.text
+                .trim() ??
+                '';
         chapters.add(
           Chapter(
             id: path,
             title: 'Chapter $chapterNumber',
             chapterNumber: chapterNumber,
-            releaseDate: li.querySelector('.chapter-stats')?.text.trim() ?? '',
+            releaseDate: releaseDate,
             url: '$baseUrl/$path',
           ),
         );
