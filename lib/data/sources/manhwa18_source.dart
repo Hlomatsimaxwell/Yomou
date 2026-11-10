@@ -35,8 +35,11 @@ class Manhwa18Source extends DioSource implements MangaSource {
         '(KHTML, like Gecko) Chrome/126.0.0.0 Safari/537.36',
   };
 
-  String _idFromHref(String href) =>
-      href.replaceAll(RegExp(r'^/+'), '').replaceAll(RegExp(r'/$'), '');
+  String _idFromHref(String href) {
+    final uri = Uri.tryParse(href);
+    final path = (uri != null && uri.hasScheme) ? uri.path : href;
+    return path.replaceAll(RegExp(r'^/+'), '').replaceAll(RegExp(r'/$'), '');
+  }
 
   List<Manga> _parseCards(String html) {
     final document = parser.parse(html);
