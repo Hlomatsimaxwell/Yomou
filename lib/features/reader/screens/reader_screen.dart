@@ -1048,6 +1048,15 @@ class _ReaderScreenState extends ConsumerState<ReaderScreen>
     if (_isHorizontal && _pageController.positions.length == 1) {
       return _pageController.page?.round().clamp(0, _pages.length - 1) ?? 0;
     } else if (!_isHorizontal && _scrollController.hasClients) {
+      // Proportional over the whole scroll extent: real page heights vary
+      // hugely in webtoon mode, so a fixed per-page estimate drifts. floor(),
+      // never round(): the chapter must not read "full" before the end.
+      final max = _scrollController.position.maxScrollExtent;
+      if (max > 0 && _pages.length > 1) {
+        return ((_scrollController.offset / max) * (_pages.length - 1))
+            .floor()
+            .clamp(0, _pages.length - 1);
+      }
       const perPage = 600.0;
       return (_scrollController.offset / perPage).floor().clamp(
         0,
@@ -1074,8 +1083,12 @@ class _ReaderScreenState extends ConsumerState<ReaderScreen>
       if (_pageController.hasClients) _pageController.jumpToPage(idx);
     } else {
       if (_scrollController.hasClients) {
-        final extent = _scrollController.position.maxScrollExtent;
-        _scrollController.jumpTo((idx * 600.0).clamp(0.0, extent));
+        // The inverse of the proportional progress math above.
+        final max = _scrollController.position.maxScrollExtent;
+        final offset = (max > 0 && _pages.length > 1)
+            ? (idx / (_pages.length - 1)) * max
+            : (idx * 600.0);
+        _scrollController.jumpTo(offset.clamp(0.0, max).toDouble());
       }
     }
     setState(() {});
@@ -4707,8 +4720,14 @@ class _ReaderProgressTrackState extends State<_ReaderProgressTrack> {
       idx = page.round();
     } else {
       if (!widget.scrollController.hasClients) return;
-      const perPage = 600.0;
-      idx = (widget.scrollController.offset / perPage).floor();
+      final pos = widget.scrollController.position;
+      final max = pos.maxScrollExtent;
+      if (max > 0 && widget.totalPages > 1) {
+        idx = ((pos.pixels / max) * (widget.totalPages - 1)).floor();
+      } else {
+        const perPage = 600.0;
+        idx = (pos.pixels / perPage).floor();
+      }
     }
     // Absolute page index within the concatenated list.
     final absolute = idx.clamp(0, widget.totalPages - 1);
