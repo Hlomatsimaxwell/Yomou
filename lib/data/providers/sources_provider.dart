@@ -451,342 +451,13 @@ class SourcesNotifier extends StateNotifier<List<Map<String, dynamic>>> {
   /// The built-in source list used before the user customizes the registry
   /// (or when nothing was saved yet).
   static final List<Map<String, dynamic>> defaultSources = [
-    {
-      'name': 'MangaBall Arabic',
-      'language': 'Manga, Arabic',
-      'bgColor': const Color(0xFF1E88E5),
-      'text': 'MB',
-      'iconUrl': 'https://mangaball.com/images/favicon.png',
-      'isPinned': false,
-    },
-    {
-      'name': 'MangaBall Bulgarian',
-      'language': 'Manga, Bulgarian',
-      'bgColor': const Color(0xFF1E88E5),
-      'text': 'MB',
-      'iconUrl': 'https://mangaball.com/images/favicon.png',
-      'isPinned': false,
-    },
-    {
-      'name': 'MangaBall Bengali',
-      'language': 'Manga, Bengali',
-      'bgColor': const Color(0xFF1E88E5),
-      'text': 'MB',
-      'iconUrl': 'https://mangaball.com/images/favicon.png',
-      'isPinned': false,
-    },
-    {
-      'name': 'MangaBall Catalan',
-      'language': 'Manga, Catalan',
-      'bgColor': const Color(0xFF1E88E5),
-      'text': 'MB',
-      'iconUrl': 'https://mangaball.com/images/favicon.png',
-      'isPinned': false,
-    },
-    {
-      'name': 'MangaBall Czech',
-      'language': 'Manga, Czech',
-      'bgColor': const Color(0xFF1E88E5),
-      'text': 'MB',
-      'iconUrl': 'https://mangaball.com/images/favicon.png',
-      'isPinned': false,
-    },
-    {
-      'name': 'MangaBall Danish',
-      'language': 'Manga, Danish',
-      'bgColor': const Color(0xFF1E88E5),
-      'text': 'MB',
-      'iconUrl': 'https://mangaball.com/images/favicon.png',
-      'isPinned': false,
-    },
-    {
-      'name': 'MangaBall German',
-      'language': 'Manga, German',
-      'bgColor': const Color(0xFF1E88E5),
-      'text': 'MB',
-      'iconUrl': 'https://mangaball.com/images/favicon.png',
-      'isPinned': false,
-    },
-    {
-      'name': 'MangaBall Greek',
-      'language': 'Manga, Greek',
-      'bgColor': const Color(0xFF1E88E5),
-      'text': 'MB',
-      'iconUrl': 'https://mangaball.com/images/favicon.png',
-      'isPinned': false,
-    },
-    {
-      'name': 'MangaBall English',
-      'language': 'Manga, English',
-      'bgColor': const Color(0xFF1E88E5),
-      'text': 'MB',
-      'iconUrl': 'https://mangaball.com/images/favicon.png',
-      'isPinned': false,
-    },
-    {
-      'name': 'MangaBall Spanish',
-      'language': 'Manga, Spanish',
-      'bgColor': const Color(0xFF1E88E5),
-      'text': 'MB',
-      'iconUrl': 'https://mangaball.com/images/favicon.png',
-      'isPinned': false,
-    },
-    {
-      'name': 'MangaBall Persian',
-      'language': 'Manga, Persian',
-      'bgColor': const Color(0xFF1E88E5),
-      'text': 'MB',
-      'iconUrl': 'https://mangaball.com/images/favicon.png',
-      'isPinned': false,
-    },
-    {
-      'name': 'MangaBall Finnish',
-      'language': 'Manga, Finnish',
-      'bgColor': const Color(0xFF1E88E5),
-      'text': 'MB',
-      'iconUrl': 'https://mangaball.com/images/favicon.png',
-      'isPinned': false,
-    },
-    {
-      'name': 'MangaBall French',
-      'language': 'Manga, French',
-      'bgColor': const Color(0xFF1E88E5),
-      'text': 'MB',
-      'iconUrl': 'https://mangaball.com/images/favicon.png',
-      'isPinned': false,
-    },
-    {
-      'name': 'MangaBall Hebrew',
-      'language': 'Manga, Hebrew',
-      'bgColor': const Color(0xFF1E88E5),
-      'text': 'MB',
-      'iconUrl': 'https://mangaball.com/images/favicon.png',
-      'isPinned': false,
-    },
-    {
-      'name': 'MangaBall Hindi',
-      'language': 'Manga, Hindi',
-      'bgColor': const Color(0xFF1E88E5),
-      'text': 'MB',
-      'iconUrl': 'https://mangaball.com/images/favicon.png',
-      'isPinned': false,
-    },
-    {
-      'name': 'MangaBall Hungarian',
-      'language': 'Manga, Hungarian',
-      'bgColor': const Color(0xFF1E88E5),
-      'text': 'MB',
-      'iconUrl': 'https://mangaball.com/images/favicon.png',
-      'isPinned': false,
-    },
-    {
-      'name': 'MangaBall Indonesian',
-      'language': 'Manga, Indonesian',
-      'bgColor': const Color(0xFF1E88E5),
-      'text': 'MB',
-      'iconUrl': 'https://mangaball.com/images/favicon.png',
-      'isPinned': false,
-    },
-    {
-      'name': 'MangaBall Italian',
-      'language': 'Manga, Italian',
-      'bgColor': const Color(0xFF1E88E5),
-      'text': 'MB',
-      'iconUrl': 'https://mangaball.com/images/favicon.png',
-      'isPinned': false,
-    },
-    {
-      'name': 'MangaBall Icelandic',
-      'language': 'Manga, Icelandic',
-      'bgColor': const Color(0xFF1E88E5),
-      'text': 'MB',
-      'iconUrl': 'https://mangaball.com/images/favicon.png',
-      'isPinned': false,
-    },
-    {
-      'name': 'MangaBall Japanese',
-      'language': 'Manga, Japanese',
-      'bgColor': const Color(0xFF1E88E5),
-      'text': 'MB',
-      'iconUrl': 'https://mangaball.com/images/favicon.png',
-      'isPinned': false,
-    },
-    {
-      'name': 'MangaBall Korean',
-      'language': 'Manga, Korean',
-      'bgColor': const Color(0xFF1E88E5),
-      'text': 'MB',
-      'iconUrl': 'https://mangaball.com/images/favicon.png',
-      'isPinned': false,
-    },
-    {
-      'name': 'MangaBall Kannada',
-      'language': 'Manga, Kannada',
-      'bgColor': const Color(0xFF1E88E5),
-      'text': 'MB',
-      'iconUrl': 'https://mangaball.com/images/favicon.png',
-      'isPinned': false,
-    },
-    {
-      'name': 'MangaBall Malayalam',
-      'language': 'Manga, Malayalam',
-      'bgColor': const Color(0xFF1E88E5),
-      'text': 'MB',
-      'iconUrl': 'https://mangaball.com/images/favicon.png',
-      'isPinned': false,
-    },
-    {
-      'name': 'MangaBall Malay',
-      'language': 'Manga, Malay',
-      'bgColor': const Color(0xFF1E88E5),
-      'text': 'MB',
-      'iconUrl': 'https://mangaball.com/images/favicon.png',
-      'isPinned': false,
-    },
-    {
-      'name': 'MangaBall Nepali',
-      'language': 'Manga, Nepali',
-      'bgColor': const Color(0xFF1E88E5),
-      'text': 'MB',
-      'iconUrl': 'https://mangaball.com/images/favicon.png',
-      'isPinned': false,
-    },
-    {
-      'name': 'MangaBall Dutch',
-      'language': 'Manga, Dutch',
-      'bgColor': const Color(0xFF1E88E5),
-      'text': 'MB',
-      'iconUrl': 'https://mangaball.com/images/favicon.png',
-      'isPinned': false,
-    },
-    {
-      'name': 'MangaBall Norwegian',
-      'language': 'Manga, Norwegian',
-      'bgColor': const Color(0xFF1E88E5),
-      'text': 'MB',
-      'iconUrl': 'https://mangaball.com/images/favicon.png',
-      'isPinned': false,
-    },
-    {
-      'name': 'MangaBall Polish',
-      'language': 'Manga, Polish',
-      'bgColor': const Color(0xFF1E88E5),
-      'text': 'MB',
-      'iconUrl': 'https://mangaball.com/images/favicon.png',
-      'isPinned': false,
-    },
-    {
-      'name': 'MangaBall Portuguese',
-      'language': 'Manga, Portuguese',
-      'bgColor': const Color(0xFF1E88E5),
-      'text': 'MB',
-      'iconUrl': 'https://mangaball.com/images/favicon.png',
-      'isPinned': false,
-    },
-    {
-      'name': 'MangaBall Romanian',
-      'language': 'Manga, Romanian',
-      'bgColor': const Color(0xFF1E88E5),
-      'text': 'MB',
-      'iconUrl': 'https://mangaball.com/images/favicon.png',
-      'isPinned': false,
-    },
-    {
-      'name': 'MangaBall Russian',
-      'language': 'Manga, Russian',
-      'bgColor': const Color(0xFF1E88E5),
-      'text': 'MB',
-      'iconUrl': 'https://mangaball.com/images/favicon.png',
-      'isPinned': false,
-    },
-    {
-      'name': 'MangaBall Slovak',
-      'language': 'Manga, Slovak',
-      'bgColor': const Color(0xFF1E88E5),
-      'text': 'MB',
-      'iconUrl': 'https://mangaball.com/images/favicon.png',
-      'isPinned': false,
-    },
-    {
-      'name': 'MangaBall Slovenian',
-      'language': 'Manga, Slovenian',
-      'bgColor': const Color(0xFF1E88E5),
-      'text': 'MB',
-      'iconUrl': 'https://mangaball.com/images/favicon.png',
-      'isPinned': false,
-    },
-    {
-      'name': 'MangaBall Albanian',
-      'language': 'Manga, Albanian',
-      'bgColor': const Color(0xFF1E88E5),
-      'text': 'MB',
-      'iconUrl': 'https://mangaball.com/images/favicon.png',
-      'isPinned': false,
-    },
-    {
-      'name': 'MangaBall Serbian',
-      'language': 'Manga, Serbian',
-      'bgColor': const Color(0xFF1E88E5),
-      'text': 'MB',
-      'iconUrl': 'https://mangaball.com/images/favicon.png',
-      'isPinned': false,
-    },
-    {
-      'name': 'MangaBall Swedish',
-      'language': 'Manga, Swedish',
-      'bgColor': const Color(0xFF1E88E5),
-      'text': 'MB',
-      'iconUrl': 'https://mangaball.com/images/favicon.png',
-      'isPinned': false,
-    },
-    {
-      'name': 'MangaBall Tamil',
-      'language': 'Manga, Tamil',
-      'bgColor': const Color(0xFF1E88E5),
-      'text': 'MB',
-      'iconUrl': 'https://mangaball.com/images/favicon.png',
-      'isPinned': false,
-    },
-    {
-      'name': 'MangaBall Thai',
-      'language': 'Manga, Thai',
-      'bgColor': const Color(0xFF1E88E5),
-      'text': 'MB',
-      'iconUrl': 'https://mangaball.com/images/favicon.png',
-      'isPinned': false,
-    },
-    {
-      'name': 'MangaBall Turkish',
-      'language': 'Manga, Turkish',
-      'bgColor': const Color(0xFF1E88E5),
-      'text': 'MB',
-      'iconUrl': 'https://mangaball.com/images/favicon.png',
-      'isPinned': false,
-    },
-    {
-      'name': 'MangaBall Ukrainian',
-      'language': 'Manga, Ukrainian',
-      'bgColor': const Color(0xFF1E88E5),
-      'text': 'MB',
-      'iconUrl': 'https://mangaball.com/images/favicon.png',
-      'isPinned': false,
-    },
-    {
-      'name': 'MangaBall Vietnamese',
-      'language': 'Manga, Vietnamese',
-      'bgColor': const Color(0xFF1E88E5),
-      'text': 'MB',
-      'iconUrl': 'https://mangaball.com/images/favicon.png',
-      'isPinned': false,
-    },
-    {
-      'name': 'MangaBall Chinese',
-      'language': 'Manga, Chinese',
-      'bgColor': const Color(0xFF1E88E5),
-      'text': 'MB',
-      'iconUrl': 'https://mangaball.com/images/favicon.png',
-      'isPinned': false,
-    },
+    // MangaBall (all language variants) temporarily hidden from the
+    // discovery lists. The source class + resolvers stay so existing
+    // favorites still resolve; re-enable by uncommenting this block when
+    // the site is back.
+    // {
+    //   ... 42 MangaBall entries (see git history)
+    // },
     {
       'name': 'AnzMangasHd',
       'language': 'Manga, Spanish',
@@ -910,14 +581,13 @@ class SourcesNotifier extends StateNotifier<List<Map<String, dynamic>>> {
       'iconUrl': 'https://mgeko.cc/static/img/logo_200x200.png',
       'isPinned': false,
     },
-    {
-      'name': 'Like Manga',
-      'language': 'Manhwa, Manhua, English',
-      'bgColor': const Color(0xFFB4345C),
-      'text': 'L',
-      'iconUrl': 'https://likemanga.ink/favicon.ico',
-      'isPinned': false,
-    },
+    // Like Manga (likemanga.ink) is broken / rebranded; keep the source
+    // class and resolver so old favorites still resolve. Re-enable by
+    // uncommenting when the site returns.
+    // {
+    //   'name': 'Like Manga',
+    //   ...
+    // },
     {
       'name': 'ManhuaPlus',
       'language': 'Manhua, English',
@@ -1083,7 +753,19 @@ class SourcesNotifier extends StateNotifier<List<Map<String, dynamic>>> {
     final String? savedJson = prefs.getString(_prefsKey);
     if (savedJson == null) return;
 
-    final List<dynamic> decoded = jsonDecode(savedJson);
+    final rawDecoded = jsonDecode(savedJson) as List;
+    // MangaBall is kept out of the visible registry (site unreliable). The
+    // source class/resolvers remain, so existing favorites keep working.
+    final List<dynamic> decoded = rawDecoded
+        .where(
+          (item) =>
+              !(item['name'] as String).startsWith('MangaBall ') &&
+              (item['name'] as String) != 'Like Manga',
+        )
+        .toList();
+    if (decoded.length != rawDecoded.length) {
+      await prefs.setString(_prefsKey, jsonEncode(decoded));
+    }
     final pinnedMap = <String, bool>{};
     final enabledMap = <String, bool>{};
     final savedOrder = <String>[];

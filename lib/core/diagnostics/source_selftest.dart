@@ -144,7 +144,6 @@ class SourceSelfTest {
     'MangaFire Japanese',
     'MangaFire Portuguese',
     'MangaFire Portuguese Brazil',
-    'MangaBall English',
     'Mangago',
     'Atsumaru',
     'SeiManga',
