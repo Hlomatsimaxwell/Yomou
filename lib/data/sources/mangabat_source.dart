@@ -291,12 +291,13 @@ class MangaBatSource extends DioSource implements MangaSource {
         }
         final hasMore = pagination is Map && pagination['has_more'] == true;
         if (hasMore != true) break;
-        final next = pagination['offset'];
-        final total = pagination['total'];
+        // The API reports the current page's start as `offset`, so advance
+        // by the number of chapters actually received.
+        final total = pagination is Map ? pagination['total'] : null;
         final totalInt = total is int ? total : int.tryParse('$total') ?? 0;
-        final nextInt = next is int ? next : int.tryParse('$next') ?? 0;
-        if (nextInt <= offset && totalInt > 0) break;
-        offset = nextInt;
+        final nextOffset = offset + items.length;
+        if (items.isEmpty || nextOffset <= offset) break;
+        offset = nextOffset;
         if (totalInt > 0 && offset >= totalInt) break;
       }
       // The API lists newest-first; the app expects oldest-first.
