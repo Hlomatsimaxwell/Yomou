@@ -8,6 +8,7 @@ import 'dart:ui' show ImageFilter;
 import 'dart:ui' as ui show TextDirection;
 import 'package:battery_plus/battery_plus.dart';
 import 'package:flutter/material.dart';
+import 'package:flutter/rendering.dart';
 import 'package:flutter/gestures.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
@@ -132,6 +133,32 @@ class _ReaderScreenState extends ConsumerState<ReaderScreen>
   double _savedScrollOffset = 0;
   final List<String> _pages = [];
   final List<int> _loadedChapterIndices = [];
+
+  /// Live render objects of the vertical reader's page items, keyed by page
+  /// slot ([_PageAnchor] registers itself here while it is laid out).
+  ///
+  /// Only pages the list currently has built exist in it -- the window around
+  /// the viewport -- which is exactly what the measured progress math needs:
+  /// the page under the viewport is always in that window. Items are keyed by
+  /// slot rather than by page, so pages prepended/appended by the
+  /// adjacent-chapter loaders need no bookkeeping: a slot's box always
+  /// measures whatever page that index holds right now.
+  final Map<int, RenderBox> _pageAnchors = {};
+
+  /// Guards measured vertical seeks (see [_seekVerticalPage]): the generation
+  /// counter cancels a stale seek when the reader seeks again, and the flag
+  /// holds off the adjacent-chapter auto-loader while a seek is converging so
+  /// an estimate that overshoots never reads as "reached the end" and pulls
+  /// the next chapter in.
+  int _verticalSeekGeneration = 0;
+  bool _verticalSeekInFlight = false;
+
+  /// Page a completed vertical seek landed on, pinned briefly while the pages
+  /// above it finish decoding: each page holds a full-screen placeholder until
+  /// its image loads, so a page above changing height would otherwise leave
+  /// the viewport parked short of the page the seek chose.
+  int? _verticalSettleTarget;
+  int _verticalSettleGeneration = 0;
 
   int _currentChapterIndex = 0;
   bool _isLoadingNextChapter = false;
@@ -1043,25 +1070,171 @@ class _ReaderScreenState extends ConsumerState<ReaderScreen>
     ],
   );
 
+  // --- MEASURED VERTICAL PAGE GEOMETRY ---
+  //
+  // Webtoon pages vary hugely in height, so the vertical reader derives its
+  // progress from real geometry instead of guessing: every page item carries
+  // an anchor (see [_PageAnchor]) whose render box registers itself in
+  // [_pageAnchors], and the functions below read measured tops from the
+  // scroll content through RenderAbstractViewport.getOffsetToReveal. The
+  // measurements are always live -- the boxes are asked at query time, so
+  // heights that change when images decode are picked up without any
+  // re-measure bookkeeping.
+
+  /// The measured top of [box] within the vertical scroll content, or null
+  /// when it is not attached to a viewport right now.
+  double? _measuredTopOf(RenderBox box) {
+    // A freshly mounted anchor registers on attach, before its first layout;
+    // reading its geometry then would assert, and it has no meaningful top yet.
+    if (!box.attached || !box.hasSize) return null;
+    final viewport = RenderAbstractViewport.maybeOf(box);
+    if (viewport == null) return null;
+    return viewport.getOffsetToReveal(box, 0.0).offset;
+  }
+
+  /// The measured top of page [index] within the vertical scroll content, or
+  /// null when the list does not currently have that page built.
+  double? _measuredPageTop(int index) {
+    final box = _pageAnchors[index];
+    if (box == null) return null;
+    return _measuredTopOf(box);
+  }
+
+  /// The page a vertical scroll offset is reading: the page whose measured
+  /// top sits at or above the viewport's top edge.
+  ///
+  /// Pages the list currently has built (the viewport plus its cache extent)
+  /// are measured exactly, which always covers the page under the viewport.
+  /// Anything else falls back to a proportional estimate, so the number still
+  /// moves sensibly in the brief window before the list has laid pages out.
+  int _verticalPageForOffset(double offset) {
+    final count = _pages.length;
+    if (count <= 1) return 0;
+    // Reaching the bottom of the scroll has read every page, exactly like
+    // the last page of a paged chapter: the trailing page can be shorter than
+    // the viewport, so its top is unreachable and the "top edge" rule alone
+    // would never report it.
+    if (_scrollController.hasClients) {
+      final pos = _scrollController.position;
+      if (pos.maxScrollExtent > 0 && offset >= pos.maxScrollExtent - 2) {
+        return count - 1;
+      }
+    }
+    // The registry only holds pages the list currently has built, a small
+    // window, so a linear scan stays cheap on every scroll tick.
+    int? bestIndex;
+    var bestTop = double.negativeInfinity;
+    for (final entry in _pageAnchors.entries) {
+      if (entry.key >= count) continue;
+      final top = _measuredTopOf(entry.value);
+      if (top == null) continue;
+      // A couple of pixels of slop: image reflow can nudge a page's top a
+      // fraction below a seek that was pixel-exact, and without it the page
+      // under the viewport would flip back to the previous one.
+      if (top <= offset + 2.0 && top > bestTop) {
+        bestTop = top;
+        bestIndex = entry.key;
+      }
+    }
+    if (bestIndex != null) return bestIndex;
+    return _estimatedPageForOffset(offset, count);
+  }
+
+  /// Proportional fallback over the whole concatenated list when no page is
+  /// laid out yet. floor(), never round(): the chapter must not read "full"
+  /// before the end.
+  int _estimatedPageForOffset(double offset, int count) {
+    if (_scrollController.hasClients) {
+      final max = _scrollController.position.maxScrollExtent;
+      if (max > 0 && count > 1) {
+        return ((offset / max) * (count - 1)).floor().clamp(0, count - 1);
+      }
+    }
+    const perPage = 600.0;
+    return (offset / perPage).floor().clamp(0, count - 1);
+  }
+
+  /// The scroll offset that puts page [index] at the top of the viewport.
+  ///
+  /// The measured top is used when the list has the page built; otherwise the
+  /// target is interpolated between the nearest measured pages around it,
+  /// extrapolated by the measured average page height, and finally estimated
+  /// proportionally over the whole list. Once the list builds the pages
+  /// around a jump, every later read is exact.
+  double _verticalOffsetForPage(int index) {
+    final count = _pages.length;
+    if (count <= 1) return 0;
+    final idx = index.clamp(0, count - 1);
+    final exact = _measuredPageTop(idx);
+    if (exact != null) return exact;
+
+    // Snapshot the built window's geometry once: each lookup walks the live
+    // render tree, and the estimate below needs the same numbers several times.
+    final tops = <int, double>{};
+    final heights = <int, double>{};
+    var heightSum = 0.0;
+    for (final entry in _pageAnchors.entries) {
+      if (entry.key >= count) continue;
+      final top = _measuredTopOf(entry.value);
+      if (top == null) continue;
+      tops[entry.key] = top;
+      heights[entry.key] = entry.value.size.height;
+      heightSum += entry.value.size.height;
+    }
+    if (tops.isEmpty) {
+      if (_scrollController.hasClients) {
+        final max = _scrollController.position.maxScrollExtent;
+        if (max > 0) return (idx / (count - 1)) * max;
+      }
+      return idx * 600.0;
+    }
+    final avgHeight = heightSum / tops.length;
+
+    int? lowerIndex;
+    int? upperIndex;
+    for (final key in tops.keys) {
+      if (key <= idx && (lowerIndex == null || key > lowerIndex)) {
+        lowerIndex = key;
+      }
+      if (key > idx && (upperIndex == null || key < upperIndex)) {
+        upperIndex = key;
+      }
+    }
+    if (lowerIndex != null && upperIndex != null) {
+      // Measured pages bracket the target; interpolate between them.
+      final t = (idx - lowerIndex) / (upperIndex - lowerIndex);
+      return tops[lowerIndex]! +
+          (tops[upperIndex]! - tops[lowerIndex]!) * t;
+    }
+    if (lowerIndex != null) {
+      // Target is just past the built window's front edge. The next page's
+      // exact top is this one's bottom, which the list has already laid out,
+      // so a seek onto the adjacent page is pixel-accurate; only the pages
+      // beyond that need the average.
+      final next = lowerIndex + 1;
+      return tops[lowerIndex]! +
+          heights[lowerIndex]! +
+          (idx - next) * avgHeight;
+    }
+    if (upperIndex != null) {
+      return (tops[upperIndex]! - (upperIndex - idx) * avgHeight).clamp(
+        0.0,
+        double.infinity,
+      );
+    }
+    if (_scrollController.hasClients) {
+      final max = _scrollController.position.maxScrollExtent;
+      if (max > 0) return (idx / (count - 1)) * max;
+    }
+    return idx * 600.0;
+  }
+
   int get _currentPageIndex {
     if (_pages.isEmpty) return 0;
     if (_isHorizontal && _pageController.positions.length == 1) {
       return _pageController.page?.round().clamp(0, _pages.length - 1) ?? 0;
     } else if (!_isHorizontal && _scrollController.hasClients) {
-      // Proportional over the whole scroll extent: real page heights vary
-      // hugely in webtoon mode, so a fixed per-page estimate drifts. floor(),
-      // never round(): the chapter must not read "full" before the end.
-      final max = _scrollController.position.maxScrollExtent;
-      if (max > 0 && _pages.length > 1) {
-        return ((_scrollController.offset / max) * (_pages.length - 1))
-            .floor()
-            .clamp(0, _pages.length - 1);
-      }
-      const perPage = 600.0;
-      return (_scrollController.offset / perPage).floor().clamp(
-        0,
-        _pages.length - 1,
-      );
+      return _verticalPageForOffset(_scrollController.offset);
     }
     return 0;
   }
@@ -1081,40 +1254,163 @@ class _ReaderScreenState extends ConsumerState<ReaderScreen>
     final idx = pageIndex.clamp(0, _pages.length - 1);
     if (_isHorizontal) {
       if (_pageController.hasClients) _pageController.jumpToPage(idx);
-    } else {
-      if (_scrollController.hasClients) {
-        // The inverse of the proportional progress math above.
-        final max = _scrollController.position.maxScrollExtent;
-        final offset = (max > 0 && _pages.length > 1)
-            ? (idx / (_pages.length - 1)) * max
-            : (idx * 600.0);
-        _scrollController.jumpTo(offset.clamp(0.0, max).toDouble());
-      }
+    } else if (_scrollController.hasClients) {
+      _seekVerticalPage(idx);
     }
     setState(() {});
+  }
+
+  /// Jumps the vertical reader to page [target] and converges on its measured
+  /// top across a few frames.
+  ///
+  /// A page outside the list's built window has no measured top yet, so the
+  /// first jump is an extrapolation from the pages that are built. Webtoon
+  /// page heights vary wildly (one strip can be tens of screen-heights), so
+  /// that first estimate can miss badly. Each landed frame builds the pages
+  /// around wherever the jump landed, which measures better; re-jumping a
+  /// bounded number of times walks onto the exact top.
+  void _seekVerticalPage(int target, {int attempt = 0, double? at}) {
+    final generation = ++_verticalSeekGeneration;
+    _verticalSeekInFlight = true;
+    // A new seek owns the viewport now; drop any pin left by the old one.
+    _verticalSettleTarget = null;
+    _verticalSettleGeneration++;
+    final max = _scrollController.position.maxScrollExtent;
+    final offset = (at ?? _verticalOffsetForPage(target))
+        .clamp(0.0, max)
+        .toDouble();
+    _scrollController.jumpTo(offset);
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      if (!mounted || generation != _verticalSeekGeneration) return;
+      if (!_scrollController.hasClients) {
+        _verticalSeekInFlight = false;
+        return;
+      }
+      final current = _scrollController.offset;
+      final landed = _verticalPageForOffset(current);
+      final measured = _measuredPageTop(target);
+
+      // Destination: the viewport is inside the target page. The estimate can
+      // stop a hair short -- still mapping to the previous page -- so once the
+      // list has measured the page's top, settle exactly onto that pixel.
+      if (landed == target) {
+        if (measured == null ||
+            (current - measured).abs() <= 0.5 ||
+            attempt >= 5) {
+          _verticalSeekInFlight = false;
+          // The landing frame built the target's neighbours, so the reader's
+          // live page getter now points at [target]; rebuild so the slider and
+          // the page counter repaint in agreement.
+          if (mounted) setState(() {});
+          _settleVerticalPage(target);
+          return;
+        }
+        _seekVerticalPage(target, attempt: attempt + 1, at: measured);
+        return;
+      }
+
+      if (attempt >= 5) {
+        _verticalSeekInFlight = false;
+        if (mounted) setState(() {});
+        return;
+      }
+
+      final nextMax = _scrollController.position.maxScrollExtent;
+      var next = _verticalOffsetForPage(target).clamp(0.0, nextMax).toDouble();
+      if (next == current) {
+        // The estimate has stopped moving but the viewport still shows a
+        // neighbouring page: step one page height toward the target.
+        final forward = landed < target;
+        final step = _pageHeightAt(landed);
+        next = (current + (forward ? step : -step))
+            .clamp(0.0, nextMax)
+            .toDouble();
+        if (next == current) {
+          _verticalSeekInFlight = false;
+          if (mounted) setState(() {});
+          return;
+        }
+      }
+      _seekVerticalPage(target, attempt: attempt + 1, at: next);
+    });
+  }
+
+  /// Height of the built page at [index], used to step toward a page the
+  /// estimate cannot place yet.
+  double _pageHeightAt(int index) {
+    final box = _pageAnchors[index];
+    if (box == null || !box.attached || !box.hasSize) return 600.0;
+    return box.size.height;
+  }
+
+  /// Re-pins [target]'s top for a short window after a seek.
+  ///
+  /// Reader pages lay out with a full-screen placeholder until their image
+  /// decodes. When a page above [target] changes height, the list keeps its
+  /// pixel offset and the target's top slides out from under the viewport --
+  /// a few pixels in the common case, a whole screen when a tall strip
+  /// replaces a placeholder. The slider asked for this page, so follow it for
+  /// a moment; a real drag cancels the pin.
+  void _settleVerticalPage(int target) {
+    _verticalSettleTarget = target;
+    final generation = ++_verticalSettleGeneration;
+    for (final ms in const [200, 500, 1000, 1800]) {
+      Future<void>.delayed(Duration(milliseconds: ms), () {
+        if (!mounted ||
+            generation != _verticalSettleGeneration ||
+            _verticalSettleTarget != target ||
+            _verticalSeekInFlight) {
+          return;
+        }
+        if (!_scrollController.hasClients) return;
+        final pos = _scrollController.position;
+        if (pos.userScrollDirection != ScrollDirection.idle) {
+          _verticalSettleTarget = null;
+          return;
+        }
+        // The target itself may have been pushed out of the built window by a
+        // page above it growing, so ask the estimator (which can use the last
+        // built page's exact bottom edge) rather than the target's own anchor.
+        final targetOffset = _verticalOffsetForPage(target);
+        if ((pos.pixels - targetOffset).abs() <= 1.0) return;
+        // Same convergence a slider seek uses, so a page that only just fell
+        // out of the window is still pinned onto its exact top.
+        _seekVerticalPage(target);
+      });
+    }
+  }
+
+  /// The page range of the chapter under the reader, as
+  /// `(start, count)` slots into the concatenated [_pages] list. The slider,
+  /// the page counter and the stamped page numbers all count pages within
+  /// this range, so they agree with each other and reset when the chapter
+  /// changes, like the reference's per-chapter slider.
+  (int, int) _readChapterPageRange() {
+    var start = 0;
+    var count = _pages.length;
+    if (_pagesChapters.isNotEmpty) {
+      final chapterIndex = _readChapterIndex;
+      var s = -1;
+      var e = -1;
+      for (var i = 0; i < _pagesChapters.length; i++) {
+        if (_pagesChapters[i] == chapterIndex) {
+          if (s == -1) s = i;
+          e = i;
+        }
+      }
+      if (s != -1) {
+        start = s;
+        count = e - s + 1;
+      }
+    }
+    return (start, count);
   }
 
   Widget _buildProgressTrack() {
     // Show the slider against the chapter under the reader, not the whole
     // concatenated list (which grows when adjacent chapters are loaded).
-    final chapterIndex = _readChapterIndex;
     final accent = ref.watch(accentProvider);
-    int chapterStart = 0;
-    var chapterCount = _pages.length;
-    if (_pagesChapters.isNotEmpty) {
-      var start = -1;
-      var end = -1;
-      for (var i = 0; i < _pagesChapters.length; i++) {
-        if (_pagesChapters[i] == chapterIndex) {
-          if (start == -1) start = i;
-          end = i;
-        }
-      }
-      if (start != -1) {
-        chapterStart = start;
-        chapterCount = end - start + 1;
-      }
-    }
+    final (chapterStart, chapterCount) = _readChapterPageRange();
     return _ReaderProgressTrack(
       session: _trackSession,
       totalPages: _pages.length,
@@ -1123,6 +1419,7 @@ class _ReaderScreenState extends ConsumerState<ReaderScreen>
       isHorizontal: _isHorizontal,
       scrollController: _scrollController,
       pageController: _pageController,
+      offsetToIndex: _verticalPageForOffset,
       onSeek: _jumpToPage,
       accent: accent,
       reversed: _readingMode == ReadingMode.rightToLeft,
@@ -3092,8 +3389,10 @@ class _ReaderScreenState extends ConsumerState<ReaderScreen>
       _prefetchAnchorPage = -1;
 
       // The page under the reader moved forward by [inserted] slots; keep the
-      // view on it. Vertical mode estimates page height at 600 (matches the
-      // jump-to-page math used elsewhere).
+      // view on it. Wait a frame so the prepended pages are laid out, then run
+      // the same measured seek a slider jump uses: the first estimate moves the
+      // build window onto the target page, and the follow-up frames walk onto
+      // its exact measured top.
       WidgetsBinding.instance.addPostFrameCallback((_) {
         if (!mounted) return;
         if (_isHorizontal) {
@@ -3101,7 +3400,7 @@ class _ReaderScreenState extends ConsumerState<ReaderScreen>
             _pageController.jumpToPage(wasAt + inserted);
           }
         } else if (_scrollController.hasClients) {
-          _scrollController.jumpTo((wasAt + inserted) * 600.0);
+          _seekVerticalPage(wasAt + inserted);
         }
         if (mounted) _maybeShowToast();
       });
@@ -3254,7 +3553,8 @@ class _ReaderScreenState extends ConsumerState<ReaderScreen>
         !_isLoadingPreviousChapter) {
       _loadPreviousChapter();
     }
-    if (pos.pixels >= pos.maxScrollExtent - 800 &&
+    if (!_verticalSeekInFlight &&
+        pos.pixels >= pos.maxScrollExtent - 800 &&
         !_isLoadingNextChapter &&
         _hasMoreChapters) {
       _loadNextChapter();
@@ -4148,39 +4448,62 @@ class _ReaderScreenState extends ConsumerState<ReaderScreen>
     final zoomFraction = (100 - _webtoonZoomOut) / 100;
     return ScrollConfiguration(
       behavior: ScrollConfiguration.of(context).copyWith(scrollbars: false),
-      child: ListView.builder(
-        controller: _scrollController,
-        physics: const BouncingScrollPhysics(),
-        itemCount: _pages.length + 1,
-        itemBuilder: (context, index) {
-          if (index < _pages.length) {
-            final page = _buildPageImage(
-              _pages[index],
-              headers,
-              index: index,
-              localPath: _pageFiles[index],
-            );
-            if (zoomFraction >= 1 && !_webtoonGaps) return page;
-            // "Gaps in webtoon mode" separates panels so the eye can find the
-            // seam between two images, which otherwise run together on a long
-            // strip. The gap is drawn in the canvas colour, never over a page.
-            return Container(
-              margin: _webtoonGaps
-                  ? const EdgeInsets.symmetric(vertical: 4, horizontal: 2)
-                  : EdgeInsets.zero,
-              color: _webtoonGaps ? _canvasBackground : null,
-              child: zoomFraction >= 1
-                  ? page
-                  : Center(
-                      child: FractionallySizedBox(
-                        widthFactor: zoomFraction,
-                        child: page,
-                      ),
-                    ),
-            );
+      child: NotificationListener<ScrollStartNotification>(
+        onNotification: (notification) {
+          // A real drag means the reader has taken over from the seek's pin.
+          if (notification.dragDetails != null) {
+            _verticalSettleTarget = null;
+            _verticalSettleGeneration++;
           }
-          return _buildLoadingIndicator();
+          return false;
         },
+        child: ListView.builder(
+          controller: _scrollController,
+          physics: const BouncingScrollPhysics(),
+          itemCount: _pages.length + 1,
+          itemBuilder: (context, index) {
+            if (index < _pages.length) {
+              final page = _buildPageImage(
+                _pages[index],
+                headers,
+                index: index,
+                localPath: _pageFiles[index],
+              );
+              Widget item;
+              if (zoomFraction >= 1 && !_webtoonGaps) {
+                item = page;
+              } else {
+                // "Gaps in webtoon mode" separates panels so the eye can find
+                // the seam between two images, which otherwise run together on
+                // a long strip. The gap is drawn in the canvas colour, never
+                // over a page.
+                item = Container(
+                  margin: _webtoonGaps
+                      ? const EdgeInsets.symmetric(vertical: 4, horizontal: 2)
+                      : EdgeInsets.zero,
+                  color: _webtoonGaps ? _canvasBackground : null,
+                  child: zoomFraction >= 1
+                      ? page
+                      : Center(
+                          child: FractionallySizedBox(
+                            widthFactor: zoomFraction,
+                            child: page,
+                          ),
+                        ),
+                );
+              }
+              // The anchor exposes this page's laid-out geometry to the
+              // measured progress math (see _pageAnchors), which replaces the
+              // old fixed-height guess in vertical mode.
+              return _PageAnchor(
+                index: index,
+                registry: _pageAnchors,
+                child: item,
+              );
+            }
+            return _buildLoadingIndicator();
+          },
+        ),
       ),
     );
   }
@@ -4629,6 +4952,83 @@ class _ReaderScreenState extends ConsumerState<ReaderScreen>
   }
 }
 
+// --- VERTICAL PAGE ANCHOR ---
+//
+// A page item in the vertical reader that registers its render box with the
+// reader's anchor registry while it is laid out. The progress math reads each
+// page's measured top offset from the scroll content
+// (RenderAbstractViewport.getOffsetToReveal) instead of guessing a fixed page
+// height: real webtoon panels vary hugely in height, and each one grows from
+// the full-screen placeholder to its decoded height, so any fixed estimate
+// drifts.
+//
+// The registry is keyed by list slot, and a builder list rebuilds its items
+// positionally (adjacent chapters are prepended by inserting pages at index
+// 0), so a slot's box always measures whatever page that index holds right
+// now -- pages shifting need no bookkeeping here. Boxes unmount when the list
+// scrolls them away and remove themselves.
+class _PageAnchor extends SingleChildRenderObjectWidget {
+  const _PageAnchor({required this.index, required this.registry, super.child});
+
+  final int index;
+  final Map<int, RenderBox> registry;
+
+  @override
+  _PageAnchorBox createRenderObject(BuildContext context) =>
+      _PageAnchorBox(index, registry);
+
+  @override
+  void updateRenderObject(
+    BuildContext context,
+    covariant _PageAnchorBox renderObject,
+  ) {
+    renderObject
+      ..index = index
+      ..registry = registry;
+  }
+}
+
+class _PageAnchorBox extends RenderProxyBox {
+  _PageAnchorBox(this._index, this._registry);
+
+  int _index;
+  Map<int, RenderBox> _registry;
+
+  set index(int value) {
+    if (_index == value) return;
+    _unregister();
+    _index = value;
+    _register();
+  }
+
+  set registry(Map<int, RenderBox> value) {
+    if (identical(_registry, value)) return;
+    _unregister();
+    _registry = value;
+    _register();
+  }
+
+  void _register() => _registry[_index] = this;
+
+  void _unregister() {
+    // Only remove the entry this box owns; the slot may already have been
+    // re-registered by the box replacing it.
+    if (_registry[_index] == this) _registry.remove(_index);
+  }
+
+  @override
+  void attach(PipelineOwner owner) {
+    super.attach(owner);
+    _register();
+  }
+
+  @override
+  void detach() {
+    _unregister();
+    super.detach();
+  }
+}
+
 class _ReaderProgressTrack extends StatefulWidget {
   const _ReaderProgressTrack({
     required this.session,
@@ -4638,6 +5038,7 @@ class _ReaderProgressTrack extends StatefulWidget {
     required this.isHorizontal,
     required this.scrollController,
     required this.pageController,
+    required this.offsetToIndex,
     required this.onSeek,
     required this.accent,
     required this.reversed,
@@ -4650,6 +5051,11 @@ class _ReaderProgressTrack extends StatefulWidget {
   final bool isHorizontal;
   final ScrollController scrollController;
   final PageController pageController;
+
+  /// Maps a vertical scroll offset to the page it is reading. The reader owns
+  /// the measured geometry (see its `_verticalPageForOffset`); the track asks
+  /// so its thumb and the reader's page counter can never disagree.
+  final int Function(double offset) offsetToIndex;
   final ValueChanged<int> onSeek;
   final Color accent;
 
@@ -4710,28 +5116,32 @@ class _ReaderProgressTrackState extends State<_ReaderProgressTrack> {
     super.dispose();
   }
 
-  void _onMoved() {
-    if (widget.totalPages <= 0) return;
-    final int idx;
+  /// The page the reader is actually showing, read straight from the
+  /// controller.
+  ///
+  /// A measured vertical seek lands over a few frames, and the last jump can
+  /// finish without another scroll notification, so a cached index would keep
+  /// the thumb on the page the seek started from. Asking the reader's own
+  /// offset mapper on every build keeps the thumb honest -- and keeps it in
+  /// lockstep with the page counter, which reads the same geometry.
+  int _liveIndex() {
+    if (widget.totalPages <= 0) return _currentIndex;
     if (widget.isHorizontal) {
-      if (!widget.pageController.hasClients) return;
+      if (!widget.pageController.hasClients) return _currentIndex;
       final page = widget.pageController.page;
-      if (page == null) return;
-      idx = page.round();
-    } else {
-      if (!widget.scrollController.hasClients) return;
-      final pos = widget.scrollController.position;
-      final max = pos.maxScrollExtent;
-      if (max > 0 && widget.totalPages > 1) {
-        idx = ((pos.pixels / max) * (widget.totalPages - 1)).floor();
-      } else {
-        const perPage = 600.0;
-        idx = (pos.pixels / perPage).floor();
-      }
+      return page?.round().clamp(0, widget.totalPages - 1) ?? _currentIndex;
     }
-    // Absolute page index within the concatenated list.
-    final absolute = idx.clamp(0, widget.totalPages - 1);
-    if (absolute != _currentIndex) setState(() => _currentIndex = absolute);
+    if (!widget.scrollController.hasClients) return _currentIndex;
+    return widget.offsetToIndex(
+      widget.scrollController.offset,
+    ).clamp(0, widget.totalPages - 1);
+  }
+
+  void _onMoved() {
+    final absolute = _liveIndex();
+    if (absolute != _currentIndex) {
+      setState(() => _currentIndex = absolute);
+    }
   }
 
   @override
@@ -4739,10 +5149,8 @@ class _ReaderProgressTrackState extends State<_ReaderProgressTrack> {
     final relativeMax = widget.chapterPageCount > 1
         ? widget.chapterPageCount - 1
         : 0;
-    final relative = (_currentIndex - widget.chapterStart).clamp(
-      0,
-      relativeMax,
-    );
+    final index = _tracking ? _currentIndex : _liveIndex();
+    final relative = (index - widget.chapterStart).clamp(0, relativeMax);
     final double value = _dragValue ?? relative.toDouble();
 
     Widget slider = Slider(
