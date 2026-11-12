@@ -229,6 +229,13 @@ jobs:
           flutter build ios --release --no-codesign
           mkdir -p build/ios/ipa/Payload
           mv build/ios/iphoneos/Runner.app build/ios/ipa/Payload/
+          # Vendored binary frameworks (ScreenPreventerKit, embedded by
+          # screen_protector) arrive read-only. Sideload signers rewrite every
+          # Mach-O in place before signing and fail with EACCES on a read-only
+          # file, so give the whole bundle an owner-write bit. The iPhone does
+          # not care about these host permissions.
+          chmod -R u+rwX build/ios/ipa/Payload
+          ls -l build/ios/ipa/Payload/Runner.app/Frameworks/ScreenPreventerKit.framework/ || true
           # zipped from inside the folder so the archive contains "Payload/",
           # which is the layout an .ipa is required to have.
           ( cd build/ios/ipa && zip -qry unsigned.ipa Payload )
