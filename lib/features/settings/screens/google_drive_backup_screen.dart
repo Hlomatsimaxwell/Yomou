@@ -7,6 +7,7 @@ import 'package:googleapis/drive/v3.dart' as drive;
 import 'package:http/http.dart' as http;
 import 'package:intl/intl.dart';
 import 'package:yomou/core/backup/backup_restore.dart';
+import 'package:yomou/core/backup/google_drive_config.dart';
 import 'package:yomou/core/backup/kotatsu_backup.dart';
 import 'package:yomou/core/database/database_helper.dart';
 import 'package:yomou/features/history/providers/history_provider.dart';
@@ -35,17 +36,35 @@ class _GoogleDriveBackupScreenState
 
   GoogleSignInAccount? _account;
   drive.DriveApi? _drive;
-  bool _busy = false;
+
+  /// True until the native config check in [_init] has answered. Keeping the
+  /// button disabled across that gap stops a tap on iOS from reaching the
+  /// native SDK before we know a client ID exists.
+  bool _busy = true;
+  bool _signInConfigured = true;
   String? _status;
   List<drive.File> _remoteFiles = const [];
 
   @override
   void initState() {
     super.initState();
-    _tryRestore();
+    _init();
+  }
+
+  Future<void> _init() async {
+    final configured = await GoogleDriveConfig.isSignInConfigured();
+    if (!mounted) return;
+    setState(() {
+      _signInConfigured = configured;
+      _busy = false;
+    });
+    // Restoring a session also goes through the native SDK; skip it when the
+    // client is missing so it cannot raise the same uncatchable exception.
+    if (configured) await _tryRestore();
   }
 
   Future<void> _tryRestore() async {
+    if (!_signInConfigured) return;
     try {
       final account = await _googleSignIn.signInSilently();
       if (account == null || !mounted) return;
@@ -66,6 +85,10 @@ class _GoogleDriveBackupScreenState
   }
 
   Future<void> _signIn() async {
+    if (!_signInConfigured) {
+      await _showSetupRequired();
+      return;
+    }
     setState(() {
       _busy = true;
       _status = null;
@@ -105,6 +128,34 @@ class _GoogleDriveBackupScreenState
     } finally {
       if (mounted) setState(() => _busy = false);
     }
+  }
+
+  Future<void> _showSetupRequired() {
+    return showDialog<void>(
+      context: context,
+      builder: (ctx) => AlertDialog(
+        title: const Text('Google Sign-In needs setup'),
+        content: const SingleChildScrollView(
+          child: Text(
+            'This iOS build has no Google OAuth client, so the native SDK '
+            'would stop the app instead of opening the sign-in sheet.\n\n'
+            'Create an OAuth client ID of type iOS for bundle ID '
+            'com.hlomatsi.yomou in Google Cloud Console, then add these to '
+            'ios/Runner/Info.plist:\n\n'
+            'GIDClientID = your iOS client ID\n'
+            'CFBundleURLSchemes = com.googleusercontent.apps.<the part of '
+            'the client ID before .apps.googleusercontent.com>\n\n'
+            'See GOOGLE_DRIVE_SETUP.md for the full steps.',
+          ),
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(ctx),
+            child: const Text('OK'),
+          ),
+        ],
+      ),
+    );
   }
 
   Future<void> _signOut() async {
@@ -238,6 +289,21 @@ class _GoogleDriveBackupScreenState
               style: TextStyle(fontSize: 13, color: color.onSurfaceVariant),
             ),
             const SizedBox(height: 12),
+            if (!_signInConfigured) ...[
+              Container(
+                padding: const EdgeInsets.all(12),
+                decoration: BoxDecoration(
+                  color: color.errorContainer,
+                  borderRadius: BorderRadius.circular(12),
+                ),
+                child: Text(
+                  'Google Sign-In is not configured in this build. Tap the '
+                  'button for setup steps.',
+                  style: TextStyle(fontSize: 12, color: color.onErrorContainer),
+                ),
+              ),
+              const SizedBox(height: 12),
+            ],
             if (_account == null)
               FilledButton.icon(
                 onPressed: _busy ? null : _signIn,

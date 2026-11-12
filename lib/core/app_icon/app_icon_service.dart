@@ -1,3 +1,4 @@
+import 'package:flutter/foundation.dart';
 import 'package:flutter/services.dart';
 
 /// Maps the two supported app icon variants to their native alias names.
@@ -10,10 +11,12 @@ class AppIconService {
 
   static const _channel = MethodChannel('com.hlomatsi.yomou/app_icon');
 
-  /// Whether dynamic switching is supported on this device. Defaults to true
-  /// on Android (the platform channel is only wired for Android); iOS would
-  /// need its own implementation and is out of scope for now.
-  static bool get isSupported => true;
+  /// Whether dynamic switching is supported on this device. Only Android has
+  /// the activity-alias toggle; iOS ships the dark icon as its only icon, so
+  /// the selector is hidden there rather than offering a control that does
+  /// nothing.
+  static bool get isSupported =>
+      defaultTargetPlatform == TargetPlatform.android;
 
   static Future<AppIconVariant> current() async {
     try {

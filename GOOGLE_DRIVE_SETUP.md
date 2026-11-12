@@ -1,8 +1,11 @@
 # Google Drive backup — setup
 
 The in-app "Sign in with Google" button needs an OAuth client registered
-in Google Cloud Console. Without it, sign-in fails with
-`PlatformException(sign_in_failed, ...: 10, ...)` (DEVELOPER_ERROR).
+in Google Cloud Console. On Android, without it sign-in fails with
+`PlatformException(sign_in_failed, ...: 10, ...)` (DEVELOPER_ERROR). On iOS
+the native SDK cannot report the error: it raises an Objective-C exception
+that Dart cannot catch, so the app checks for the client before opening the
+flow and shows setup instructions instead of crashing.
 
 ## One-time setup
 
@@ -27,8 +30,13 @@ in Google Cloud Console. Without it, sign-in fails with
    `android/app/`. The `google_sign_in` plugin reads the client ID from it.
    (Alternatively pass `serverClientId` to `GoogleSignIn(...)`.)
 
-4. **iOS**: add the reversed client ID to `ios/Runner/Info.plist`:
+4. **iOS**: add the client ID and the reversed client ID to
+   `ios/Runner/Info.plist`. Both are required: without `GIDClientID` the
+   native SDK aborts the app, and without the URL scheme the browser cannot
+   hand the OAuth result back.
    ```xml
+   <key>GIDClientID</key>
+   <string><YOUR_IOS_CLIENT_ID>.apps.googleusercontent.com</string>
    <key>CFBundleURLTypes</key>
    <array>
      <dict>
@@ -39,6 +47,9 @@ in Google Cloud Console. Without it, sign-in fails with
      </dict>
    </array>
    ```
+   The URL scheme is the client ID reversed: take the part before
+   `.apps.googleusercontent.com` and prefix it with
+   `com.googleusercontent.apps.`.
 
 5. **OAuth consent screen**: set the app name and add your test users
    (while in "Testing" mode) so sign-in is allowed before verification.

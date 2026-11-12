@@ -10,6 +10,7 @@ import workmanager_apple
   /// to tear down deliberately.
   private var displayChannel: DisplayChannel?
   private var volumeChannel: VolumeChannel?
+  private var googleConfigChannel: GoogleConfigChannel?
 
   override func application(
     _ application: UIApplication,
@@ -47,5 +48,9 @@ import workmanager_apple
     let volume = VolumeChannel(messenger: messenger)
     volume.register()
     volumeChannel = volume
+
+    let googleConfig = GoogleConfigChannel()
+    googleConfig.register(with: messenger)
+    googleConfigChannel = googleConfig
   }
 }

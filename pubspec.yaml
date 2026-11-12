@@ -44,6 +44,10 @@ dependencies:
   # Google Sign-In + Drive API for cloud backup (Google Drive).
   google_sign_in: ^6.2.2
   googleapis: ^13.2.0
+  # iOS only: ScreenProtectorKit wraps the app window in a secure text field so
+  # screenshots and screen recordings come out blank, and it blurs the window
+  # for the app-switcher snapshot. Android keeps its own FLAG_SECURE channel.
+  screen_protector: ^1.5.3
   # AES encryption for the Yomou encrypted backup format.
   encrypt: ^5.0.3
   # SHA-256 / HMAC for PBKDF2 key derivation in encrypted backups.
@@ -81,3 +85,8 @@ flutter_launcher_icons:
   image_path: "logo_dark.png"
   adaptive_icon_background: "#000000"
   adaptive_icon_foreground: "logo_dark.png"
+  # iOS ships one icon and has no runtime switcher, so it gets the dark
+  # variant. The logo's corners are transparent; flatten them onto the same
+  # edge colour the artwork uses, since the App Store rejects alpha.
+  background_color_ios: "#181B1F"
+  remove_alpha_ios: true
