@@ -34,8 +34,20 @@ class _GoogleDriveBackupScreenState
     extends ConsumerState<GoogleDriveBackupScreen> {
   final _googleSignIn = GoogleSignIn(scopes: [drive.DriveApi.driveFileScope]);
 
+  static const _folderName = 'Yomou';
+  static const _folderMimeType = 'application/vnd.google-apps.folder';
+
   GoogleSignInAccount? _account;
   drive.DriveApi? _drive;
+
+  /// Id of the folder backups are written to, resolved lazily and cached for
+  /// the session. Reset when the account changes: Drive ids are per account,
+  /// and reusing one from a previous sign-in would fail with a 404.
+  String? _folderId;
+
+  /// Backups written before the folder existed sit in the root of My Drive.
+  /// Move them across once per session so the root does not stay cluttered.
+  bool _movedLegacyBackups = false;
 
   /// True until the native config check in [_init] has answered. Keeping the
   /// button disabled across that gap stops a tap on iOS from reaching the
@@ -105,6 +117,8 @@ class _GoogleDriveBackupScreenState
       setState(() {
         _account = account;
         _drive = driveApi;
+        _folderId = null;
+        _movedLegacyBackups = false;
         _status = 'Signed in as ${account.email}';
       });
     } catch (e) {
@@ -164,6 +178,8 @@ class _GoogleDriveBackupScreenState
     setState(() {
       _account = null;
       _drive = null;
+      _folderId = null;
+      _movedLegacyBackups = false;
       _remoteFiles = const [];
       _status = 'Signed out';
     });
@@ -178,7 +194,10 @@ class _GoogleDriveBackupScreenState
     });
     try {
       final res = await driveApi.files.list(
-        q: "name contains 'yomou' and trashed = false",
+        // Folders can match "contains 'yomou'" too, and offering one for
+        // restore would fail on download, so keep them out of the list.
+        q: "name contains 'yomou' "
+            "and mimeType != '$_folderMimeType' and trashed = false",
         spaces: 'drive',
         $fields: 'files(id,name,modifiedTime,size)',
       );
@@ -192,6 +211,66 @@ class _GoogleDriveBackupScreenState
       setState(() => _status = 'List error: $e');
     } finally {
       if (mounted) setState(() => _busy = false);
+    }
+  }
+
+  /// Returns the id of the folder backups live in, creating it on first use.
+  Future<String> _ensureFolder(drive.DriveApi driveApi) async {
+    final cached = _folderId;
+    if (cached != null) return cached;
+
+    // drive.file only exposes files this app created, so listing is enough to
+    // find a folder from an earlier session; no picker or broad scope needed.
+    final existing = await driveApi.files.list(
+      q: "name = '$_folderName' "
+          "and mimeType = '$_folderMimeType' and trashed = false",
+      spaces: 'drive',
+      $fields: 'files(id)',
+    );
+    final matches = existing.files ?? const <drive.File>[];
+    var id = matches.isEmpty ? null : matches.first.id;
+    id ??= (await driveApi.files.create(
+      drive.File()
+        ..name = _folderName
+        ..mimeType = _folderMimeType,
+      $fields: 'id',
+    ))
+        .id;
+    if (id == null) {
+      throw StateError('Drive did not return an id for the backup folder');
+    }
+    _folderId = id;
+    return id;
+  }
+
+  /// Moves backups from before the folder existed out of the Drive root.
+  Future<void> _moveLegacyBackups(
+    drive.DriveApi driveApi,
+    String folderId,
+  ) async {
+    if (_movedLegacyBackups) return;
+    _movedLegacyBackups = true;
+    try {
+      final res = await driveApi.files.list(
+        q: "name contains 'yomou' and mimeType != '$_folderMimeType' "
+            "and 'root' in parents and trashed = false",
+        spaces: 'drive',
+        $fields: 'files(id)',
+      );
+      for (final f in res.files ?? const <drive.File>[]) {
+        final id = f.id;
+        if (id == null) continue;
+        await driveApi.files.update(
+          drive.File(),
+          id,
+          addParents: folderId,
+          removeParents: 'root',
+          $fields: 'id',
+        );
+      }
+    } catch (_) {
+      // Best effort. A backup that cannot be moved stays where it is, which
+      // still restores fine; failing the upload over it would be worse.
     }
   }
 
@@ -224,7 +303,11 @@ class _GoogleDriveBackupScreenState
         result.bytes.length,
         contentType: 'application/zip',
       );
-      final file = drive.File()..name = name;
+      final folderId = await _ensureFolder(driveApi);
+      await _moveLegacyBackups(driveApi, folderId);
+      final file = drive.File()
+        ..name = name
+        ..parents = [folderId];
       await driveApi.files.create(file, uploadMedia: media);
       if (!mounted) return;
       setState(() => _status = 'Uploaded $name');
@@ -284,8 +367,9 @@ class _GoogleDriveBackupScreenState
           padding: const EdgeInsets.symmetric(vertical: 8, horizontal: 20),
           children: [
             Text(
-              'Sign in with your Google account. Backups are stored in your '
-              'own Drive (appDataFolder scope).',
+              'Sign in with your Google account. Backups are stored in a '
+              'Yomou folder in your own Drive, and Yomou can only see files '
+              'it created there.',
               style: TextStyle(fontSize: 13, color: color.onSurfaceVariant),
             ),
             const SizedBox(height: 12),
