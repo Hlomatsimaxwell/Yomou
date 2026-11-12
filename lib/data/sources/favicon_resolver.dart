@@ -48,12 +48,16 @@ class _DiskEntry {
 /// as empty for the session, the same shape as the reference's favicon disk
 /// cache holding a failure.
 ///
-/// The results also persist to [SharedPreferences] (`favicon:<host>`, 30-day
-/// freshness, matching the app's image-cache stale period), so a source's
-/// homepage is fetched once and every later session starts from disk like
-/// the reference's `LocalStorageCache` does. Homepage fetches run through a
-/// small gate (four at a time) so opening the sources wall never fires
-/// dozens of them at once.
+/// The results also persist to [SharedPreferences] (`favicon:<host>`), so a
+/// source's homepage is fetched once and every later session starts from disk
+/// like the reference's `LocalStorageCache` does. A *successful* discovery is
+/// trusted for ninety days -- a site's logo is stable, and long freshness
+/// keeps the wall from re-scraping 124 homepages every month. A *miss* (the
+/// homepage answered but named nothing) is only a guess, so it lives for a day
+/// instead of pinning the letter tile for months, and a *failed* scrape is not
+/// persisted at all: the old entry (if any) keeps serving and the next session
+/// simply tries again. Homepage fetches run through a small gate (four at a
+/// time) so opening the sources wall never fires dozens of them at once.
 class FaviconResolver {
   FaviconResolver._();
 
@@ -63,7 +67,13 @@ class FaviconResolver {
   /// Homepage lookups in flight, so N tiles of one source share one fetch.
   static final Map<String, Future<List<String>>> _inFlight = {};
 
-  static const Duration _stale = Duration(days: 30);
+  /// Freshness of a persisted discovery that actually found something.
+  static const Duration _freshLifetime = Duration(days: 90);
+
+  /// Freshness of a persisted miss. A failed scrape means "we could not see
+  /// the homepage just now", not "the site has no logo", so it expires long
+  /// before a real discovery does.
+  static const Duration _missLifetime = Duration(days: 1);
 
   /// How many homepage fetches may run at once.
   static const int _maxConcurrent = 4;
@@ -114,6 +124,35 @@ class FaviconResolver {
     return future;
   }
 
+  /// Marks the persisted discovery for [iconUrl]'s origin as stale after every
+  /// logo in the chain failed to load.
+  ///
+  /// The entry is kept rather than deleted: a re-discovery that also fails
+  /// still serves the old candidates for that session, so a transient outage
+  /// does not throw away a list that used to work. Expiring it only means the
+  /// next session scrapes the homepage again, which is how a site that moved
+  /// or changed its icon heals itself without waiting out the full freshness
+  /// window. The in-memory cache is left alone on purpose -- re-scraping
+  /// mid-session would turn a wall of broken logos into a burst of homepage
+  /// fetches.
+  static Future<void> invalidate(String iconUrl, {String? siteUrl}) async {
+    if (_underTest) return;
+    final origin = _originOf(siteUrl) ?? _originOf(iconUrl);
+    if (origin == null) return;
+    final entry = await _readDisk(origin);
+    // Nothing persisted, a miss that already expires tomorrow, or an entry
+    // another tile already expired (the sources wall renders many tiles of one
+    // source at once, and their failures arrive together).
+    if (entry == null || entry.urls.isEmpty) return;
+    if (entry.time.millisecondsSinceEpoch == 0) return;
+    await _writeDisk(
+      origin,
+      entry.urls,
+      // The epoch is "expired" for every lifetime this cache can have.
+      at: DateTime.fromMillisecondsSinceEpoch(0),
+    );
+  }
+
   /// The `scheme://host` of a homepage or asset URL, or null when it is not an
   /// absolute http(s) URL.
   static String? _originOf(String? url) {
@@ -143,8 +182,10 @@ class FaviconResolver {
     try {
       discovered = await _gated(() => _discover(origin));
     } on Exception {
-      // A dead homepage with a stale-but-present entry keeps it; without one
-      // the miss is recorded so the session stays consistent with the disk.
+      // A failed scrape is not a discovery. Keep a stale-but-present entry
+      // (its timestamp already marks it for a retry next session) and record
+      // nothing when there was none, so a timeout is retried rather than
+      // frozen into a cached miss.
       return _remember(origin, diskEntry?.urls ?? const <String>[]);
     }
     unawaited(_writeDisk(origin, discovered));
@@ -152,7 +193,8 @@ class FaviconResolver {
   }
 
   static bool _fresh(_DiskEntry entry) =>
-      DateTime.now().difference(entry.time) < _stale;
+      DateTime.now().difference(entry.time) <
+      (entry.urls.isEmpty ? _missLifetime : _freshLifetime);
 
   static List<String> _remember(String origin, List<String> urls) {
     _cache[origin] = urls;
@@ -180,11 +222,15 @@ class FaviconResolver {
     }
   }
 
-  static Future<void> _writeDisk(String origin, List<String> urls) async {
+  static Future<void> _writeDisk(
+    String origin,
+    List<String> urls, {
+    DateTime? at,
+  }) async {
     try {
       final prefs = await _sharedPrefs;
       final payload = jsonEncode({
-        't': DateTime.now().millisecondsSinceEpoch,
+        't': (at ?? DateTime.now()).millisecondsSinceEpoch,
         'urls': urls,
       });
       await prefs.setString('favicon:$origin', payload);
@@ -259,12 +305,15 @@ class FaviconResolver {
         '${ordered.take(3).join(', ')}',
       );
       return ordered;
-    } on Exception {
-      // A dead or Cloudflare-gated homepage: the reference rethrows only the
-      // Cloudflare kind up for human resolution; for a favicon probe a miss
-      // is simply finished for the session and the tile shows the letter
-      // tile.
-      return const <String>[];
+    } on Exception catch (error) {
+      // A dead or Cloudflare-gated homepage says nothing about whether the
+      // site has a logo, so this is not a discovery of "none". Rethrowing
+      // lets [_load] keep whatever the disk already had and skip writing a
+      // miss -- otherwise one timed-out scrape would replace a working list
+      // with an empty result that the session (and the next day) must live
+      // with.
+      diagSoon('favicons $origin -> failed: $error');
+      rethrow;
     }
   }
 

@@ -1,3 +1,5 @@
+import 'dart:async';
+
 import 'package:flutter/material.dart';
 import 'package:flutter_svg/flutter_svg.dart';
 import 'package:yomou/core/theme/amoled.dart';
@@ -127,6 +129,11 @@ class _SourceIconState extends State<SourceIcon> {
   /// nothing up; the declared URL gets its turn after that.
   List<String>? _recovered;
 
+  /// Set once the whole chain has failed and [FaviconResolver.invalidate] has
+  /// been asked to expire this source's persisted discovery. Without it every
+  /// rebuild that re-renders the error widget would queue another write.
+  bool _failureReported = false;
+
   @override
   void initState() {
     super.initState();
@@ -147,6 +154,7 @@ class _SourceIconState extends State<SourceIcon> {
   }
 
   void _discover() {
+    _failureReported = false;
     final chain = FaviconResolver.candidates(
       widget.iconUrl,
       siteUrl: widget.siteUrl,
@@ -154,6 +162,28 @@ class _SourceIconState extends State<SourceIcon> {
     chain?.then((candidates) {
       if (!mounted) return;
       setState(() => _recovered = candidates);
+    });
+  }
+
+  /// Expires this source's persisted discovery once every logo it offered has
+  /// failed to load and the declared fallback did too.
+  ///
+  /// A discovery that used to work but now 404s (the site moved its icon, or
+  /// changed hosts) would otherwise keep serving those dead URLs until the
+  /// long freshness window runs out. Expiring the timestamp means the next
+  /// session scrapes the homepage again; the current session keeps serving
+  /// what it has, so a transient outage does not turn into a fetch storm.
+  ///
+  /// Reported from a post-frame callback: the error widget is built during
+  /// layout, and the invalidate path touches [SharedPreferences].
+  void _reportTotalFailure() {
+    if (_failureReported) return;
+    _failureReported = true;
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      if (!mounted) return;
+      unawaited(
+        FaviconResolver.invalidate(widget.iconUrl, siteUrl: widget.siteUrl),
+      );
     });
   }
 
@@ -235,13 +265,20 @@ class _SourceIconState extends State<SourceIcon> {
 
     Widget primary() {
       if (widget.iconUrl.isEmpty) {
-        // Nothing to fall back on: the letter tile is the plate.
+        // Nothing to fall back on: the letter tile is the plate. Reaching this
+        // with candidates in hand means every one of them already failed, so
+        // the persisted list is worth expiring. An empty list means nothing
+        // was ever attempted and there is nothing to invalidate.
+        if (_recovered?.isNotEmpty ?? false) _reportTotalFailure();
         return fallback();
       }
       return load(
         widget.iconUrl,
         placeholder: (context, url) => fallback(),
-        errorWidget: (context, url, error) => fallback(),
+        errorWidget: (context, url, error) {
+          _reportTotalFailure();
+          return fallback();
+        },
       );
     }
 
