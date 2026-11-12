@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:flutter_material_design_icons/flutter_material_design_icons.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:google_sign_in/google_sign_in.dart';
 import 'package:googleapis/drive/v3.dart' as drive;
@@ -12,7 +13,8 @@ import 'package:yomou/features/history/providers/history_provider.dart';
 import 'package:yomou/features/library/providers/favorites_provider.dart';
 import 'package:yomou/core/widgets/responsive.dart';
 import 'package:yomou/features/settings/providers/cache_settings_provider.dart';
-import 'package:yomou/features/settings/widgets/automatic_backup_section.dart';
+import 'package:yomou/features/settings/screens/periodic_backups_screen.dart';
+import 'package:yomou/features/settings/widgets/settings_list_rows.dart';
 import 'package:yomou/l10n/generated/app_localizations.dart';
 import 'package:yomou/widgets/m3_components.dart';
 
@@ -353,7 +355,19 @@ class _GoogleDriveBackupScreenState
                   ),
               ],
             ],
-            AutomaticBackupSection(signedIn: _account != null),
+            SettingsListRow(
+              icon: MdiIcons.clockOutline,
+              title: l.periodicBackups,
+              subtitle: 'Automatic backups to Google Drive',
+              onTap: () {
+                Navigator.push(
+                  context,
+                  MaterialPageRoute(
+                    builder: (context) => const PeriodicBackupsScreen(),
+                  ),
+                );
+              },
+            ),
             const SizedBox(height: 24),
           ],
         ),
