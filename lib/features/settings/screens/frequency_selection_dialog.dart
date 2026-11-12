@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_material_design_icons/flutter_material_design_icons.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:yomou/core/backup/backup_schedule.dart';
 import 'package:yomou/features/settings/providers/cache_settings_provider.dart';
 import 'package:yomou/l10n/generated/app_localizations.dart';
 import 'package:yomou/widgets/m3_components.dart';
@@ -16,31 +17,22 @@ Future<void> showFrequencySelectionSheet(
   final current = ref.read(cacheSettingsProvider).backupFrequency;
   final notifier = ref.read(cacheSettingsProvider.notifier);
 
-  final options = <String, String>{
-    'Every 6 hours': '6h',
-    'Every day': '1d',
-    'Every 2 days': '2d',
-    'Once per week': '1w',
-    'Twice per month': '2w',
-    'Once per month': '1m',
-  };
-
   return showM3ModalSheet(
     context,
     title: l.backupCreationFrequency,
     maxHeightFactor: 0.5,
     children: [
-      for (final entry in options.entries)
+      for (final entry in backupFrequencyOptions.entries)
         ListTile(
-          title: Text(entry.key),
-          trailing: entry.value == current
+          title: Text(entry.value),
+          trailing: entry.key == current
               ? Icon(
                   MdiIcons.check,
                   color: Theme.of(context).colorScheme.primary,
                 )
               : null,
           onTap: () {
-            notifier.setBackupFrequency(entry.value);
+            notifier.setBackupFrequency(entry.key);
             Navigator.pop(context);
           },
         ),

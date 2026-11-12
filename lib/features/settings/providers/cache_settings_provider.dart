@@ -20,6 +20,7 @@ class CacheSettings {
     required this.deleteOldBackups,
     required this.maxNumberOfBackups,
     required this.lastBackupAt,
+    required this.lastBackupError,
     required this.disableNsfw,
     required this.sourceSortOrder,
     required this.showSourcesInGrid,
@@ -40,6 +41,7 @@ class CacheSettings {
         deleteOldBackups: true,
         maxNumberOfBackups: 8,
         lastBackupAt: 0,
+        lastBackupError: '',
         disableNsfw: true,
         sourceSortOrder: 'name',
         showSourcesInGrid: true,
@@ -59,9 +61,16 @@ class CacheSettings {
   final bool deleteOldBackups;
   final int maxNumberOfBackups;
 
-  /// Milliseconds since epoch of the last successful backup, or 0 when the
-  /// app has never completed one.
+  /// Milliseconds since epoch of the last successful backup to the configured
+  /// cloud target, or 0 when the app has never completed one. Exports to a
+  /// local folder deliberately do not update this: they are a different
+  /// destination, and counting them would starve the automatic Drive backup.
   final int lastBackupAt;
+
+  /// Why the last automatic backup failed, or '' when it did not. Kept in
+  /// preferences so a run that fails on launch still leaves a trace the Drive
+  /// screen can show: a schedule that silently stops is worse than an error.
+  final String lastBackupError;
 
   /// When true, sources flagged as NSFW are hidden from discovery surfaces.
   final bool disableNsfw;
@@ -99,6 +108,7 @@ class CacheSettings {
     bool? deleteOldBackups,
     int? maxNumberOfBackups,
     int? lastBackupAt,
+    String? lastBackupError,
     bool? disableNsfw,
     String? sourceSortOrder,
     bool? showSourcesInGrid,
@@ -117,6 +127,7 @@ class CacheSettings {
         deleteOldBackups: deleteOldBackups ?? this.deleteOldBackups,
         maxNumberOfBackups: maxNumberOfBackups ?? this.maxNumberOfBackups,
         lastBackupAt: lastBackupAt ?? this.lastBackupAt,
+        lastBackupError: lastBackupError ?? this.lastBackupError,
         disableNsfw: disableNsfw ?? this.disableNsfw,
         sourceSortOrder: sourceSortOrder ?? this.sourceSortOrder,
         showSourcesInGrid: showSourcesInGrid ?? this.showSourcesInGrid,
@@ -140,6 +151,7 @@ class _CacheSettingsPersistence {
   static const _deleteOld = '${_prefix}deleteOld';
   static const _maxBackups = '${_prefix}maxBackups';
   static const _lastBackup = '${_prefix}lastBackup';
+  static const _lastBackupError = '${_prefix}lastBackupError';
   static const _disableNsfw = '${_prefix}disableNsfw';
   static const _sourceSortOrder = '${_prefix}sourceSortOrder';
   static const _showSourcesInGrid = '${_prefix}showSourcesInGrid';
@@ -161,6 +173,7 @@ class _CacheSettingsPersistence {
       deleteOldBackups: p.getBool(_deleteOld) ?? true,
       maxNumberOfBackups: p.getInt(_maxBackups) ?? 8,
       lastBackupAt: p.getInt(_lastBackup) ?? 0,
+      lastBackupError: p.getString(_lastBackupError) ?? '',
       disableNsfw: p.getBool(_disableNsfw) ?? true,
       sourceSortOrder: p.getString(_sourceSortOrder) ?? 'name',
       showSourcesInGrid: p.getBool(_showSourcesInGrid) ?? true,
@@ -183,6 +196,7 @@ class _CacheSettingsPersistence {
     await p.setBool(_deleteOld, s.deleteOldBackups);
     await p.setInt(_maxBackups, s.maxNumberOfBackups);
     await p.setInt(_lastBackup, s.lastBackupAt);
+    await p.setString(_lastBackupError, s.lastBackupError);
     await p.setBool(_disableNsfw, s.disableNsfw);
     await p.setString(_sourceSortOrder, s.sourceSortOrder);
     await p.setBool(_showSourcesInGrid, s.showSourcesInGrid);
@@ -255,11 +269,22 @@ class CacheSettingsNotifier extends StateNotifier<CacheSettings> {
     await _persist();
   }
 
-  /// Records when a backup was last completed successfully. Pass the number
-  /// of milliseconds since the epoch (e.g. DateTime.now()).
-  Future<void> setLastBackupAt(int at) async {
+  /// Completes when the persisted settings have been read. The scheduler runs
+  /// outside the widget tree and needs real values, not the defaults a fresh
+  /// notifier starts with.
+  Future<void> ensureLoaded() => _ready;
+
+  /// A manual or automatic backup succeeded: move the clock forward and clear
+  /// the previous failure so the screen stops warning about it.
+  Future<void> recordBackupSuccess(int at) async {
     await _ready;
-    state = state.copyWith(lastBackupAt: at);
+    state = state.copyWith(lastBackupAt: at, lastBackupError: '');
+    await _persist();
+  }
+
+  Future<void> recordBackupFailure(String error) async {
+    await _ready;
+    state = state.copyWith(lastBackupError: error);
     await _persist();
   }
 

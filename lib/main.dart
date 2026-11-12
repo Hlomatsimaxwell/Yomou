@@ -20,6 +20,7 @@ import 'package:yomou/core/widgets/responsive.dart';
 import 'package:yomou/features/reader/screens/reader_screen.dart';
 import 'package:yomou/core/database/database_helper.dart';
 import 'package:yomou/services/widget_service.dart';
+import 'package:yomou/core/backup/periodic_backup_service.dart';
 import 'package:yomou/core/database/source_cache.dart';
 import 'package:yomou/core/notifications/background_tasks.dart';
 import 'package:yomou/core/notifications/notification_service.dart';
@@ -28,6 +29,7 @@ import 'package:shared_preferences/shared_preferences.dart';
 import 'package:yomou/data/models/chapter.dart';
 import 'package:yomou/data/providers/sources_provider.dart';
 import 'package:yomou/features/settings/providers/appearance_provider.dart';
+import 'package:yomou/features/settings/providers/cache_settings_provider.dart';
 import 'package:yomou/core/security/app_lock.dart';
 import 'package:yomou/core/security/pin_lock_screen.dart';
 import 'package:yomou/core/deep_links.dart';
@@ -269,11 +271,65 @@ void _handleLink(String raw) {
   );
 }
 
-class YomouApp extends ConsumerWidget {
+class YomouApp extends ConsumerStatefulWidget {
   const YomouApp({super.key});
 
   @override
-  Widget build(BuildContext context, WidgetRef ref) {
+  ConsumerState<YomouApp> createState() => _YomouAppState();
+}
+
+class _YomouAppState extends ConsumerState<YomouApp>
+    with WidgetsBindingObserver {
+  Timer? _backupTimer;
+
+  @override
+  void initState() {
+    super.initState();
+    WidgetsBinding.instance.addObserver(this);
+    // Off the launch path: a few seconds in, the first frame is painted and
+    // the upload is not competing with the initial source refresh.
+    _backupTimer = Timer(const Duration(seconds: 4), _runAutomaticBackup);
+  }
+
+  @override
+  void dispose() {
+    _backupTimer?.cancel();
+    WidgetsBinding.instance.removeObserver(this);
+    super.dispose();
+  }
+
+  @override
+  void didChangeAppLifecycleState(AppLifecycleState state) {
+    if (state == AppLifecycleState.resumed) {
+      _runAutomaticBackup();
+    }
+  }
+
+  /// Runs the automatic backup when one is due.
+  ///
+  /// The service re-checks the schedule before touching the network, so a
+  /// resume costs at most a preference read.
+  Future<void> _runAutomaticBackup() async {
+    if (!mounted) return;
+    final notifier = ref.read(cacheSettingsProvider.notifier);
+    await notifier.ensureLoaded();
+    if (!mounted) return;
+    final settings = ref.read(cacheSettingsProvider);
+    if (!settings.enablePeriodicBackups) return;
+
+    final result = await PeriodicBackupService.maybeRun(settings: settings);
+    if (!mounted) return;
+    if (result.uploaded) {
+      await notifier.recordBackupSuccess(
+        DateTime.now().millisecondsSinceEpoch,
+      );
+    } else if (result.outcome == PeriodicBackupOutcome.failed) {
+      await notifier.recordBackupFailure(result.error ?? 'Unknown error');
+    }
+  }
+
+  @override
+  Widget build(BuildContext context) {
     final theme = ref.watch(themeNotifierProvider);
     final language = ref.watch(appearanceSettingsProvider).language;
 

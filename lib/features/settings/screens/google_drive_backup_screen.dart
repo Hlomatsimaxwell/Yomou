@@ -1,27 +1,27 @@
-import 'dart:typed_data';
-
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:google_sign_in/google_sign_in.dart';
 import 'package:googleapis/drive/v3.dart' as drive;
-import 'package:http/http.dart' as http;
 import 'package:intl/intl.dart';
 import 'package:yomou/core/backup/backup_restore.dart';
 import 'package:yomou/core/backup/google_drive_config.dart';
+import 'package:yomou/core/backup/google_drive_service.dart';
 import 'package:yomou/core/backup/kotatsu_backup.dart';
 import 'package:yomou/core/database/database_helper.dart';
 import 'package:yomou/features/history/providers/history_provider.dart';
 import 'package:yomou/features/library/providers/favorites_provider.dart';
 import 'package:yomou/core/widgets/responsive.dart';
+import 'package:yomou/features/settings/providers/cache_settings_provider.dart';
+import 'package:yomou/features/settings/widgets/automatic_backup_section.dart';
 import 'package:yomou/l10n/generated/app_localizations.dart';
 import 'package:yomou/widgets/m3_components.dart';
 
 /// Cloud backup via Google Drive.
 ///
-/// Uses Google Sign-In (OAuth) to obtain a Drive-scoped token, then the
-/// Drive v3 REST API to upload/download backup files in the user's own
-/// Drive. Works on Android and iOS once the OAuth client is configured in
-/// Google Cloud Console.
+/// Signs in with Google, then uploads/downloads backup files in a `Yomou`
+/// folder in the user's own Drive. The Drive calls themselves live in
+/// [GoogleDriveService] so the automatic backup that runs on launch can use
+/// them without this screen being open.
 class GoogleDriveBackupScreen extends ConsumerStatefulWidget {
   const GoogleDriveBackupScreen({super.key});
 
@@ -32,22 +32,9 @@ class GoogleDriveBackupScreen extends ConsumerStatefulWidget {
 
 class _GoogleDriveBackupScreenState
     extends ConsumerState<GoogleDriveBackupScreen> {
-  final _googleSignIn = GoogleSignIn(scopes: [drive.DriveApi.driveFileScope]);
-
-  static const _folderName = 'Yomou';
-  static const _folderMimeType = 'application/vnd.google-apps.folder';
+  final _drive = GoogleDriveService.instance;
 
   GoogleSignInAccount? _account;
-  drive.DriveApi? _drive;
-
-  /// Id of the folder backups are written to, resolved lazily and cached for
-  /// the session. Reset when the account changes: Drive ids are per account,
-  /// and reusing one from a previous sign-in would fail with a 404.
-  String? _folderId;
-
-  /// Backups written before the folder existed sit in the root of My Drive.
-  /// Move them across once per session so the root does not stay cluttered.
-  bool _movedLegacyBackups = false;
 
   /// True until the native config check in [_init] has answered. Keeping the
   /// button disabled across that gap stops a tap on iOS from reaching the
@@ -78,22 +65,15 @@ class _GoogleDriveBackupScreenState
   Future<void> _tryRestore() async {
     if (!_signInConfigured) return;
     try {
-      final account = await _googleSignIn.signInSilently();
+      final account = await _drive.restoreSession();
       if (account == null || !mounted) return;
-      final client = _AuthedClient(account);
       setState(() {
         _account = account;
-        _drive = drive.DriveApi(client);
         _status = 'Signed in as ${account.email}';
       });
     } catch (_) {
       // Not signed in; leave the sign-in button visible.
     }
-  }
-
-  @override
-  void dispose() {
-    super.dispose();
   }
 
   Future<void> _signIn() async {
@@ -106,19 +86,14 @@ class _GoogleDriveBackupScreenState
       _status = null;
     });
     try {
-      final account = await _googleSignIn.signIn();
+      final account = await _drive.signIn();
       if (account == null) {
         if (mounted) setState(() => _status = 'Sign-in cancelled');
         return;
       }
-      final client = _AuthedClient(account);
-      final driveApi = drive.DriveApi(client);
       if (!mounted) return;
       setState(() {
         _account = account;
-        _drive = driveApi;
-        _folderId = null;
-        _movedLegacyBackups = false;
         _status = 'Signed in as ${account.email}';
       });
     } catch (e) {
@@ -173,38 +148,26 @@ class _GoogleDriveBackupScreenState
   }
 
   Future<void> _signOut() async {
-    await _googleSignIn.signOut();
+    await _drive.signOut();
     if (!mounted) return;
     setState(() {
       _account = null;
-      _drive = null;
-      _folderId = null;
-      _movedLegacyBackups = false;
       _remoteFiles = const [];
       _status = 'Signed out';
     });
   }
 
   Future<void> _listRemote() async {
-    final driveApi = _drive;
-    if (driveApi == null) return;
     setState(() {
       _busy = true;
       _status = null;
     });
     try {
-      final res = await driveApi.files.list(
-        // Folders can match "contains 'yomou'" too, and offering one for
-        // restore would fail on download, so keep them out of the list.
-        q: "name contains 'yomou' "
-            "and mimeType != '$_folderMimeType' and trashed = false",
-        spaces: 'drive',
-        $fields: 'files(id,name,modifiedTime,size)',
-      );
+      final files = await _drive.listBackups();
       if (!mounted) return;
       setState(() {
-        _remoteFiles = res.files ?? const [];
-        _status = 'Found ${_remoteFiles.length} remote file(s)';
+        _remoteFiles = files;
+        _status = 'Found ${files.length} remote file(s)';
       });
     } catch (e) {
       if (!mounted) return;
@@ -214,69 +177,7 @@ class _GoogleDriveBackupScreenState
     }
   }
 
-  /// Returns the id of the folder backups live in, creating it on first use.
-  Future<String> _ensureFolder(drive.DriveApi driveApi) async {
-    final cached = _folderId;
-    if (cached != null) return cached;
-
-    // drive.file only exposes files this app created, so listing is enough to
-    // find a folder from an earlier session; no picker or broad scope needed.
-    final existing = await driveApi.files.list(
-      q: "name = '$_folderName' "
-          "and mimeType = '$_folderMimeType' and trashed = false",
-      spaces: 'drive',
-      $fields: 'files(id)',
-    );
-    final matches = existing.files ?? const <drive.File>[];
-    var id = matches.isEmpty ? null : matches.first.id;
-    id ??= (await driveApi.files.create(
-      drive.File()
-        ..name = _folderName
-        ..mimeType = _folderMimeType,
-      $fields: 'id',
-    ))
-        .id;
-    if (id == null) {
-      throw StateError('Drive did not return an id for the backup folder');
-    }
-    _folderId = id;
-    return id;
-  }
-
-  /// Moves backups from before the folder existed out of the Drive root.
-  Future<void> _moveLegacyBackups(
-    drive.DriveApi driveApi,
-    String folderId,
-  ) async {
-    if (_movedLegacyBackups) return;
-    _movedLegacyBackups = true;
-    try {
-      final res = await driveApi.files.list(
-        q: "name contains 'yomou' and mimeType != '$_folderMimeType' "
-            "and 'root' in parents and trashed = false",
-        spaces: 'drive',
-        $fields: 'files(id)',
-      );
-      for (final f in res.files ?? const <drive.File>[]) {
-        final id = f.id;
-        if (id == null) continue;
-        await driveApi.files.update(
-          drive.File(),
-          id,
-          addParents: folderId,
-          removeParents: 'root',
-          $fields: 'id',
-        );
-      }
-    } catch (_) {
-      // Best effort. A backup that cannot be moved stays where it is, which
-      // still restores fine; failing the upload over it would be worse.
-    }
-  }
-
   Future<void> _backupNow() async {
-    final driveApi = _drive;
-    if (driveApi == null) return;
     setState(() {
       _busy = true;
       _status = null;
@@ -298,17 +199,20 @@ class _GoogleDriveBackupScreenState
       }
 
       final name = 'yomou-${DateTime.now().millisecondsSinceEpoch}.bk.zip';
-      final media = drive.Media(
-        Stream.value(result.bytes),
-        result.bytes.length,
-        contentType: 'application/zip',
-      );
-      final folderId = await _ensureFolder(driveApi);
-      await _moveLegacyBackups(driveApi, folderId);
-      final file = drive.File()
-        ..name = name
-        ..parents = [folderId];
-      await driveApi.files.create(file, uploadMedia: media);
+      await _drive.uploadBackup(bytes: result.bytes, name: name);
+
+      final settings = ref.read(cacheSettingsProvider);
+      if (settings.deleteOldBackups) {
+        try {
+          await _drive.pruneBackups(keep: settings.maxNumberOfBackups);
+        } catch (_) {
+          // Retention is housekeeping; the backup itself already succeeded.
+        }
+      }
+      await ref
+          .read(cacheSettingsProvider.notifier)
+          .recordBackupSuccess(DateTime.now().millisecondsSinceEpoch);
+
       if (!mounted) return;
       setState(() => _status = 'Uploaded $name');
     } catch (e) {
@@ -320,23 +224,15 @@ class _GoogleDriveBackupScreenState
   }
 
   Future<void> _restore(drive.File f) async {
-    final driveApi = _drive;
-    if (driveApi == null || f.id == null) return;
+    if (f.id == null) return;
     setState(() {
       _busy = true;
       _status = null;
     });
     try {
-      final media = await driveApi.files.get(
-        f.id!,
-        downloadOptions: drive.DownloadOptions.fullMedia,
-      ) as drive.Media;
-      final bytes = <int>[];
-      await for (final chunk in media.stream) {
-        bytes.addAll(chunk);
-      }
+      final bytes = await _drive.downloadBackup(f.id!);
       if (!mounted) return;
-      final parsed = KotatsuBackupCodec.import(Uint8List.fromList(bytes));
+      final parsed = KotatsuBackupCodec.import(bytes);
       final container = ProviderScope.containerOf(context, listen: false);
       await BackupRestore.applyTachiyomi(parsed);
       bumpHistoryRevision(container);
@@ -396,6 +292,7 @@ class _GoogleDriveBackupScreenState
               )
             else ...[
               ListTile(
+                contentPadding: EdgeInsets.zero,
                 leading: const Icon(Icons.account_circle),
                 title: Text(_account!.displayName ?? _account!.email),
                 subtitle: Text(_account!.email),
@@ -424,16 +321,21 @@ class _GoogleDriveBackupScreenState
               ),
               if (_status != null) ...[
                 const SizedBox(height: 8),
-                Text(_status!,
-                    style: TextStyle(color: color.onSurfaceVariant)),
+                Text(
+                  _status!,
+                  style: TextStyle(color: color.onSurfaceVariant),
+                ),
               ],
               if (_remoteFiles.isNotEmpty) ...[
                 const SizedBox(height: 12),
-                const Text('Remote backups',
-                    style: TextStyle(fontWeight: FontWeight.w600)),
+                const Text(
+                  'Remote backups',
+                  style: TextStyle(fontWeight: FontWeight.w600),
+                ),
                 const SizedBox(height: 4),
                 for (final f in _remoteFiles)
                   ListTile(
+                    contentPadding: EdgeInsets.zero,
                     title: Text(f.name ?? ''),
                     subtitle: f.modifiedTime == null
                         ? null
@@ -451,25 +353,11 @@ class _GoogleDriveBackupScreenState
                   ),
               ],
             ],
+            AutomaticBackupSection(signedIn: _account != null),
             const SizedBox(height: 24),
           ],
         ),
       ),
     );
-  }
-}
-
-/// http.Client that injects the signed-in account's auth headers.
-class _AuthedClient extends http.BaseClient {
-  _AuthedClient(this._account);
-
-  final GoogleSignInAccount _account;
-  final http.Client _inner = http.Client();
-
-  @override
-  Future<http.StreamedResponse> send(http.BaseRequest request) async {
-    final headers = await _account.authHeaders;
-    request.headers.addAll(headers);
-    return _inner.send(request);
   }
 }

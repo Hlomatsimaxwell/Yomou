@@ -18,7 +18,6 @@ import 'package:yomou/features/library/providers/downloads_provider.dart';
 import 'package:yomou/features/library/providers/favorites_provider.dart';
 import 'package:yomou/features/settings/providers/cache_settings_provider.dart';
 import 'package:yomou/features/settings/screens/import_results_screen.dart';
-import 'package:yomou/features/settings/screens/periodic_backups_screen.dart';
 import 'package:yomou/features/settings/widgets/settings_list_rows.dart';
 import 'package:yomou/features/settings/widgets/tachiyomi_scan_progress.dart';
 import 'package:yomou/l10n/generated/app_localizations.dart';
@@ -105,9 +104,6 @@ class _BackupRestoreScreenState extends ConsumerState<BackupRestoreScreen> {
     await ref
         .read(cacheSettingsProvider.notifier)
         .setBackupsOutputDirectory(dir);
-    await ref
-        .read(cacheSettingsProvider.notifier)
-        .setLastBackupAt(DateTime.now().millisecondsSinceEpoch);
 
     if (!mounted) return;
     final skipped =
@@ -159,9 +155,6 @@ class _BackupRestoreScreenState extends ConsumerState<BackupRestoreScreen> {
     await ref
         .read(cacheSettingsProvider.notifier)
         .setBackupsOutputDirectory(dir);
-    await ref
-        .read(cacheSettingsProvider.notifier)
-        .setLastBackupAt(DateTime.now().millisecondsSinceEpoch);
 
     if (!mounted) return;
     final skipped =
@@ -433,18 +426,6 @@ class _BackupRestoreScreenState extends ConsumerState<BackupRestoreScreen> {
           title: l.backupFixLibrary,
           subtitle: l.backupFixLibrarySubtitle,
           onTap: _fixLibrary,
-        ),
-        SettingsListRow(
-          icon: MdiIcons.clockOutline,
-          title: l.periodicBackups,
-          onTap: () {
-            Navigator.push(
-              context,
-              MaterialPageRoute(
-                builder: (context) => const PeriodicBackupsScreen(),
-              ),
-            );
-          },
         ),
         const SizedBox(height: 24),
       ],
