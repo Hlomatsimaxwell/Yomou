@@ -935,13 +935,16 @@ class _ReaderScreenState extends ConsumerState<ReaderScreen>
   }
 
   Widget _buildNextChapterButton(Color iconColor) {
+    final isLast = _currentChapterIndex >= widget.allChapters.length - 1;
     return IconButton(
       tooltip: AppLocalizations.of(context).readerNextChapter,
       padding: EdgeInsets.zero,
       icon: Icon(MdiIcons.skipNext, color: iconColor, size: 28),
-      onPressed: _currentChapterIndex < widget.allChapters.length - 1
-          ? () => _changeChapterExplicitly(_currentChapterIndex + 1)
-          : null,
+      onPressed: isLast
+          ? () {
+              if (mounted) _showLatestChapterToast();
+            }
+          : () => _changeChapterExplicitly(_currentChapterIndex + 1),
     );
   }
 
@@ -3578,6 +3581,10 @@ class _ReaderScreenState extends ConsumerState<ReaderScreen>
     _toastTimer?.cancel();
     _setToastOpacity(1);
     _scheduleToastDismiss();
+  }
+
+  void _showLatestChapterToast() {
+    showIosToast(context, message: AppLocalizations.of(context).readerReachedLatestChapter);
   }
 
   void _setToastOpacity(double value) {
