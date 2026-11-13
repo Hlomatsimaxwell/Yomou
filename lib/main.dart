@@ -44,6 +44,7 @@ import 'package:yomou/core/changelog/changelog.dart';
 import 'package:package_info_plus/package_info_plus.dart';
 import 'package:yomou/l10n/generated/app_localizations.dart';
 import 'package:flutter_material_design_icons/flutter_material_design_icons.dart';
+import 'package:intl/date_symbol_data_local.dart';
 
 /// Navigator handle used to route notification taps (deep link) after the
 /// widget tree is built.
@@ -54,6 +55,11 @@ GlobalKey<NavigatorState> appNavigatorKey = GlobalKey<NavigatorState>();
 
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();
+
+  // Chapter dates on multilingual sources (MangaThemesia and friends) are
+  // formatted with the site's own locale, so the month-name tables have to be
+  // registered before the first listing is parsed.
+  await initializeDateFormatting();
 
   // Draw edge-to-edge: the app's canvas runs under both system bars, so the
   // floating nav pill and the lists' bottom clearance (bottomBarClearance)

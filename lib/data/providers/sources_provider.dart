@@ -34,8 +34,10 @@ import '../sources/mangabat_source.dart';
 import '../sources/mangafire_source.dart';
 import '../sources/manhuaplus_source.dart';
 import '../sources/madara_source.dart';
+import '../sources/manga_themesia_source.dart';
 import '../models/madara_site_config.dart';
 import '../sources/catalog/madara_catalog.g.dart';
+import '../sources/catalog/manga_themesia_catalog.g.dart';
 
 // 1. THE SOURCE REGISTRY
 //
@@ -135,6 +137,13 @@ MangaSource getSourceByName(String name) {
   final catalogConfig = catalogMadaraByName[name];
   if (catalogConfig != null) {
     return _shared(catalogConfig.id, () => MadaraSource(catalogConfig));
+  }
+  final themesiaConfig = catalogMangaThemesiaByName[name];
+  if (themesiaConfig != null) {
+    return _shared(
+      themesiaConfig.id,
+      () => MangaThemesiaSource(themesiaConfig),
+    );
   }
   switch (name) {
     case 'MangaDex': // <--- 2. ADD THIS CASE
@@ -254,6 +263,13 @@ MangaSource? getSourceBySourceId(String sourceId) {
   final catalogConfig = catalogMadaraById[sourceId];
   if (catalogConfig != null) {
     return _shared(catalogConfig.id, () => MadaraSource(catalogConfig));
+  }
+  final themesiaConfig = catalogMangaThemesiaById[sourceId];
+  if (themesiaConfig != null) {
+    return _shared(
+      themesiaConfig.id,
+      () => MangaThemesiaSource(themesiaConfig),
+    );
   }
   if (sourceId.startsWith('mangaball-')) {
     // The map is keyed by code and holds the language name, so the code is
@@ -746,6 +762,8 @@ class SourcesNotifier extends StateNotifier<List<Map<String, dynamic>>> {
     // Bundled Madara catalog (see lib/data/sources/catalog/). These now
     // ship enabled so a fresh install exposes every bundled source.
     ...catalogSourceRows,
+    // Bundled MangaThemesia catalog: one generic source per site.
+    ...catalogMangaThemesiaSourceRows,
   ];
 
   Future<void> _loadFromPrefs() async {
