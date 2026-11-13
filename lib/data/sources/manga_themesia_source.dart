@@ -172,7 +172,7 @@ class MangaThemesiaSource extends DioSource implements MangaSource {
     final results = <Manga>[];
     final seen = <String>{};
     void addCard(dom.Element card) {
-      final img = card.querySelector('img');
+      final img = _coverImage(card);
       final cover = img == null ? '' : _imageUrl(img, base);
       final link = card.querySelector('a[href]');
       final href = link?.attributes['href'] ?? '';
@@ -206,7 +206,9 @@ class MangaThemesiaSource extends DioSource implements MangaSource {
         final mangaId = _fromPath(href);
         if (mangaId.isEmpty || !seen.add(mangaId)) continue;
         final container = _cardFor(link);
-        final img = container?.querySelector('img') ?? link.querySelector('img');
+        final img = container == null
+            ? link.querySelector('img')
+            : _coverImage(container);
         results.add(
           Manga(
             id: mangaId,
@@ -826,6 +828,24 @@ class MangaThemesiaSource extends DioSource implements MangaSource {
     return null;
   }
 
+  /// The card's cover, not its language flag or type badge.
+  ///
+  /// The default card markup puts a flag `<img>` inside `.limit` before the
+  /// real cover; Komik Station also tags its cover with `ts-post-image`.
+  dom.Element? _coverImage(dom.Element card) {
+    for (final selector in const [
+      'img.ts-post-image',
+      'img[itemprop="image"]',
+      'img.wp-post-image',
+      '.thumb img',
+      'img',
+    ]) {
+      final img = card.querySelector(selector);
+      if (img != null) return img;
+    }
+    return null;
+  }
+
   String _imageUrl(dom.Element img, String pageUrl) {
     for (final attr in const [
       'data-lazy-src',
@@ -892,6 +912,19 @@ class MangaThemesiaSource extends DioSource implements MangaSource {
     );
     final titleMatch = titleRe.firstMatch(title);
     if (titleMatch != null) return titleMatch.group(1)!;
+    // Thai ("ตอนที่ 214"), Japanese ("第214話") and Korean ("214화") titles
+    // carry no Latin marker, and without a number the detail screen cannot sort
+    // them numerically (an unstable sort then scrambles the list).
+    for (final localized in const [
+      r'ตอนที่\s*(\d+(?:[.\-]\d+)*)',
+      r'ตอน\s*(\d+(?:[.\-]\d+)*)',
+      r'第\s*(\d+(?:[.\-]\d+)*)\s*[話话回]',
+      r'(\d+(?:[.\-]\d+)*)\s*[話话화]',
+    ]) {
+      final match = RegExp(localized).firstMatch(title);
+      if (match != null) return match.group(1)!;
+    }
+    // Plenty of Madara sites title a chapter with nothing but its number.
     final bareNumber = RegExp(r'^\s*(\d+(?:[.\-]\d+)*)\s*$').firstMatch(title);
     if (bareNumber != null) return bareNumber.group(1)!;
     final pathRe = RegExp(
@@ -900,6 +933,10 @@ class MangaThemesiaSource extends DioSource implements MangaSource {
     );
     final pathMatch = pathRe.firstMatch(mangaId);
     if (pathMatch != null) return pathMatch.group(1)!;
+    // Custom skins put the number last in the slug (`...-capitulo-141`,
+    // `...-214`), possibly with a trailing slash on cross-host URLs.
+    final trailing = RegExp(r'[-_/](\d+(?:[.\-]\d+)*)/?$').firstMatch(mangaId);
+    if (trailing != null) return trailing.group(1)!;
     return '';
   }
 
