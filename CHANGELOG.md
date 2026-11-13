@@ -7,6 +7,17 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [1.2.0] - 2026-11-13
+
+### Added
+- **Generic MangaThemesia source for 114 catalog sites** — one engine (`MangaThemesiaSource`) driven by per-site config mirrors the Madara catalogue, so all 114 bundled MangaThemesia sites ship as ordinary sources (listing, series page, chapters, reader). Built from `.data/engines.json` + `.data/sources_catalog.json`; localized chapter dates parsed with `intl` after `initializeDateFormatting()`.
+
+### Fixed
+- **MangaThemesia listing covers** — cards that put a language-flag `` before the real cover (Komik Station, and the "Related manga" built from the same listing) now prefer `img.ts-post-image` / `img[itemprop="image"]` / `img.wp-post-image` before any ``.
+- **MangaThemesia non-Latin chapter numbers** — Thai (`ตอนที่ 214`), Japanese (`第N話`) and Korean (`N화`) markers plus trailing slug numbers are parsed, so the detail screen's chapter tray sorts numerically instead of scrambling on sort-key zero.
+- **MangaThemesia pagination past the last page** — the theme renders a normal page with an empty result list plus sidebar series links past the end; those links no longer masquerade as cards (Rakuen Translations showed 12 repeats after its 35 titles).
+- **Sushi-Scan covers and reader pages** — hotlink-protected images now carry `Referer: https://sushiscan.net/`; covers and `c*.sushiscan.net` page images return `200` instead of `403`.
+
 ## [1.1.9] - 2026-11-01
 
 ### Added
