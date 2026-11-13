@@ -30,6 +30,10 @@ class ImageReferer {
     // SeiManga keeps both its covers and its scans on this host, which 403s on
     // a missing or foreign referer and 200s when the mirror is sent.
     'sei.one-way.work': 'https://1.seimanga.me/',
+    // Sushi-Scan serves covers from the site host and reader pages from
+    // rotating `c*.sushiscan.net` subdomains; all of them 403 without the
+    // site root as referer.
+    'sushiscan.net': 'https://sushiscan.net/',
   };
 
   /// Path prefix -> the referer that host expects, for sources whose image host

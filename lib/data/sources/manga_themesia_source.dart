@@ -75,6 +75,11 @@ class MangaThemesiaSource extends DioSource implements MangaSource {
   Map<String, String>? get headers => {
     'User-Agent':
         'Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/126.0 Safari/537.36',
+    // Several themed sites hotlink-protect their images: the request must
+    // carry the site itself as `Referer` or the CDN answers 403 (Sushi-Scan's
+    // covers and its `c*.sushiscan.net` reader pages both do). The reader sends
+    // these headers on every page-image GET, so the origin is the safe value.
+    'Referer': '${config.baseUrl}/',
   };
 
   @override
@@ -193,6 +198,15 @@ class MangaThemesiaSource extends DioSource implements MangaSource {
     }
 
     if (cards.isEmpty) {
+      // WordPress returns an ordinary themed page for a page number past the
+      // last one, with an empty result list plus the sidebar's popular-series
+      // links. Those links look exactly like listing cards, so without this
+      // check every page past the end repeated the sidebar forever (Rakuen
+      // Translations: 35 series on 2 pages, then "list-mode" + 11 repeats).
+      if (document.querySelector('.noresult, .no-result, .noresults') !=
+          null) {
+        return [];
+      }
       // Skins move the card markup around; fall back to the series links.
       cards = document.querySelectorAll('a[href]');
       for (final link in cards) {
