@@ -31,7 +31,7 @@ https://raw.githubusercontent.com/Hlomatsimaxwell/yomou-fdroid-repo/main/repo/
 - **Full-featured reader** — paged, right-to-left, vertical and Webtoon modes, e-ink mode, zoom/crop/gap controls, gesture and volume-key paging
 - **Offline downloads** — download chapters and read them with no connection, or open your own CBZ/ZIP archives
 - **Library & history tools** — favorites, filters (downloaded / new chapters / completed), sorting, date-grouped lists and progress rings
-- **Backups** — export and restore your library and history, including Tachiyomi/Kotatsu backup import
+- **Backups** — export and restore your library and history, including Tachiyomi/Kotatsu backup import; automatic backups run on app launch and store to a `Yomou` folder in Google Drive (local file exports stay offline and don't count as a Drive backup)
 - **Reading statistics** — chapters read, time spent and per-manga progress
 - **Incognito mode** — read without adding anything to your history
 - **Built-in Cloudflare handling** — solves the challenge inside the app, so protected sources keep working
