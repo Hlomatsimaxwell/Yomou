@@ -1034,24 +1034,38 @@ class _ReaderScreenState extends ConsumerState<ReaderScreen>
       minimum: const EdgeInsets.only(top: 0),
       child: Transform.translate(
         offset: const Offset(0, -3),
-        child: Padding(
-          padding: const EdgeInsets.fromLTRB(12, 2, 12, 4),
+        child: ClipRRect(
+          borderRadius: BorderRadius.circular(20),
           child: _transparentInfoBar
-              // Transparent: the glyphs carry their own shadow, which is what
-              // keeps them legible over a white or bright full-bleed page.
-              ? row
-              // Opaque: a short scrim behind the strip, because a drop shadow
-              // alone washes out over a bright page.
+              // Transparent: a barely-there translucent pill keeps the
+              // shadowed glyphs legible over any page without a harsh black
+              // block.
+              ? DecoratedBox(
+                  decoration: BoxDecoration(
+                    color: Colors.black.withValues(alpha: 0.30),
+                  ),
+                  child: Padding(
+                    padding: const EdgeInsets.symmetric(
+                      horizontal: 10,
+                      vertical: 6,
+                    ),
+                    child: row,
+                  ),
+                )
+              // Opaque: a subtle translucent gradient pill for bright pages.
               : DecoratedBox(
                   decoration: const BoxDecoration(
                     gradient: LinearGradient(
                       begin: Alignment.topCenter,
                       end: Alignment.bottomCenter,
-                      colors: [Color(0xB3000000), Color(0x00000000)],
+                      colors: [Color(0x5A000000), Color(0x00000000)],
                     ),
                   ),
                   child: Padding(
-                    padding: const EdgeInsets.symmetric(vertical: 4),
+                    padding: const EdgeInsets.symmetric(
+                      horizontal: 10,
+                      vertical: 6,
+                    ),
                     child: row,
                   ),
                 ),
@@ -4306,21 +4320,37 @@ class _ReaderScreenState extends ConsumerState<ReaderScreen>
               // button: a back affordance at the bottom of the screen reads as
               // a footer control, and thumb-reach arguments for the bottom
               // apply to chapter navigation, not to leaving a chapter.
-              AnimatedPositioned(
-                duration: const Duration(milliseconds: 200),
-                // Fully off-screen when hidden: the capsule is taller than a
-                // fixed 100px once the notch/safe-area inset and 48px content
-                // are accounted for, so hide by (safe area + full card height)
-                // or its bottom lip stays visible on notched phones.
-                top: _showControls
-                    ? 0
-                    : -(MediaQuery.of(context).padding.top + 96),
-                left: _chromeSideInset(context),
-                right: _chromeSideInset(context),
-                child: Padding(
-                  padding: EdgeInsets.only(
-                    top: MediaQuery.of(context).padding.top + 8,
+              //
+              // A subtle dark gradient scrim covers the system status bar area
+              // (MediaQuery.of(context).padding.top) so the OS clock, Wi-Fi
+              // and battery icons stay readable over bright manga pages, and
+              // the pill is pushed below the status bar (top = padding.top,
+              // equivalent to SafeArea(bottom: false): honours the top safe
+              // area, not the bottom one) so nothing clashes with the artwork.
+              if (_showControls) ...[
+                if (MediaQuery.of(context).padding.top > 0)
+                  Positioned(
+                    top: 0,
+                    left: 0,
+                    right: 0,
+                    height: MediaQuery.of(context).padding.top,
+                    child: DecoratedBox(
+                      decoration: const BoxDecoration(
+                        gradient: LinearGradient(
+                          begin: Alignment.topCenter,
+                          end: Alignment.bottomCenter,
+                          colors: [Color(0x7A000000), Color(0x00000000)],
+                        ),
+                      ),
+                    ),
                   ),
+                AnimatedPositioned(
+                  duration: const Duration(milliseconds: 200),
+                  top: _showControls
+                      ? MediaQuery.of(context).padding.top
+                      : -(MediaQuery.of(context).padding.top + 96),
+                  left: _chromeSideInset(context),
+                  right: _chromeSideInset(context),
                   child: _buildChromeCapsule(
                     dark: dark,
                     frosted: frosted,
@@ -4363,7 +4393,7 @@ class _ReaderScreenState extends ConsumerState<ReaderScreen>
                           ),
                   ),
                 ),
-              ),
+              ],
 
               // --- PAGE THUMBNAIL STRIP (removed) ---
 
@@ -4378,9 +4408,13 @@ class _ReaderScreenState extends ConsumerState<ReaderScreen>
               // not just its text, so nothing is left floating over the page.
               if (_showInfoBar)
                 Positioned(
-                  top: 0,
-                  left: 0,
-                  right: 0,
+                  // Below the status bar area so the OS clock / Wi-Fi /
+                  // battery never clash with the pill, and inset from the
+                  // sides so it reads as a compact pill over the manga rather
+                  // than a full-width bar.
+                  top: MediaQuery.of(context).padding.top,
+                  left: 16,
+                  right: 16,
                   child: AnimatedSwitcher(
                     duration: const Duration(milliseconds: 200),
                     transitionBuilder: (child, animation) =>
