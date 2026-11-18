@@ -22,27 +22,21 @@ class AppearanceSettingsScreen extends ConsumerWidget {
       builder: (ctx) {
         return AlertDialog(
           title: const Text('App Icon'),
-          content: Row(
-            mainAxisAlignment: MainAxisAlignment.spaceEvenly,
+          content: Wrap(
+            alignment: WrapAlignment.center,
+            spacing: 20,
+            runSpacing: 16,
             children: [
-              _IconPreview(
-                label: 'Dark',
-                asset: 'assets/app_icons/app_icon_dark.png',
-                isSelected: current == AppIconVariant.dark,
-                onTap: () async {
-                  await AppIconService.set(AppIconVariant.dark);
-                  if (ctx.mounted) Navigator.pop(ctx);
-                },
-              ),
-              _IconPreview(
-                label: 'Light',
-                asset: 'assets/app_icons/app_icon_light.png',
-                isSelected: current == AppIconVariant.light,
-                onTap: () async {
-                  await AppIconService.set(AppIconVariant.light);
-                  if (ctx.mounted) Navigator.pop(ctx);
-                },
-              ),
+              for (final variant in AppIconVariant.values)
+                _IconPreview(
+                  label: variant.label,
+                  asset: variant.asset,
+                  isSelected: current == variant,
+                  onTap: () async {
+                    await AppIconService.set(variant);
+                    if (ctx.mounted) Navigator.pop(ctx);
+                  },
+                ),
             ],
           ),
           actions: [
@@ -174,14 +168,15 @@ class AppearanceSettingsScreen extends ConsumerWidget {
           subtitle: Text(_themeModeLabel(l, settings.themeMode)),
           onTap: () => _showThemeModeSelector(context, ref, settings, notifier),
         ),
-        // App Icon selector. Shows a row for each available icon (dark/light)
-        // with a live preview and the current selection marked. Only supported
-        // on Android for now; on other platforms the tile is hidden.
+        // App Icon selector. Shows a row for each bundled launcher icon
+        // (gold, blue, white, B&W) with a live preview and the current
+        // selection marked. Only supported on Android for now; on other
+        // platforms the tile is hidden.
         if (AppIconService.isSupported)
           ListTile(
             leading: const Icon(MdiIcons.application, size: 24),
             title: const Text('App Icon'),
-            subtitle: const Text('Choose light or dark launcher icon'),
+            subtitle: const Text('Choose the launcher icon artwork'),
             onTap: () => _showAppIconSelector(context),
           ),
         // Only meaningful against a dark background, so it is offered only

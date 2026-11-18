@@ -80,13 +80,12 @@ flutter:
     - CHANGELOG.md
 
 flutter_launcher_icons:
-  android: true
+  # Android icons come straight from the Icon Kitchen exports in icons/ via
+  # tool/sync_app_icons.sh (adaptive layers + per-variant aliases), so the
+  # generator only handles iOS here.
+  android: false
   ios: true
-  image_path: "logo_dark.png"
-  adaptive_icon_background: "#000000"
-  adaptive_icon_foreground: "logo_dark.png"
-  # iOS ships one icon and has no runtime switcher, so it gets the dark
-  # variant. The logo's corners are transparent; flatten them onto the same
-  # edge colour the artwork uses, since the App Store rejects alpha.
-  background_color_ios: "#181B1F"
+  image_path: "icons/gold/ios/AppIcon~ios-marketing.png"
+  # The gold master has no alpha; keep the flag as a guard since the App Store
+  # rejects icons with an alpha channel.
   remove_alpha_ios: true

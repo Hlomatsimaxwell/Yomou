@@ -46,15 +46,61 @@
                 <data android:scheme="yomou"/>
             </intent-filter>
         </activity>
-        <!-- Alternate (light) launcher icon. Disabled by default; rotated in
-             from the appearance settings via the FlutterDynamicIcon channel.
-             targetActivity points back to MainActivity so the app still runs. -->
+        <!-- Alternate launcher icons. Gold is the default and lives on
+             MainActivity itself; each alias below carries one of the other
+             variants. Exactly one component is enabled at a time, toggled
+             from Settings -> Appearance -> App Icon over the
+             com.hlomatsi.yomou/app_icon channel. targetActivity points back
+             to MainActivity so the app still runs. -->
+        <activity-alias
+            android:name=".AliasBlue"
+            android:enabled="false"
+            android:exported="true"
+            android:icon="@mipmap/ic_launcher_blue"
+            android:roundIcon="@mipmap/ic_launcher_blue"
+            android:label="Yomou"
+            android:targetActivity=".MainActivity">
+            <intent-filter>
+                <action android:name="android.intent.action.MAIN"/>
+                <category android:name="android.intent.category.LAUNCHER"/>
+            </intent-filter>
+        </activity-alias>
+        <activity-alias
+            android:name=".AliasWhite"
+            android:enabled="false"
+            android:exported="true"
+            android:icon="@mipmap/ic_launcher_white"
+            android:roundIcon="@mipmap/ic_launcher_white"
+            android:label="Yomou"
+            android:targetActivity=".MainActivity">
+            <intent-filter>
+                <action android:name="android.intent.action.MAIN"/>
+                <category android:name="android.intent.category.LAUNCHER"/>
+            </intent-filter>
+        </activity-alias>
+        <activity-alias
+            android:name=".AliasBW"
+            android:enabled="false"
+            android:exported="true"
+            android:icon="@mipmap/ic_launcher_bw"
+            android:roundIcon="@mipmap/ic_launcher_bw"
+            android:label="Yomou"
+            android:targetActivity=".MainActivity">
+            <intent-filter>
+                <action android:name="android.intent.action.MAIN"/>
+                <category android:name="android.intent.category.LAUNCHER"/>
+            </intent-filter>
+        </activity-alias>
+        <!-- Legacy alias from the old dark/light picker. Declared with the
+             white artwork and never offered in the picker, so an install that
+             had it enabled keeps a working launcher entry after the update.
+             Selecting any variant retires it. -->
         <activity-alias
             android:name=".AliasLight"
             android:enabled="false"
             android:exported="true"
-            android:icon="@mipmap/ic_launcher_light"
-            android:roundIcon="@mipmap/ic_launcher_light"
+            android:icon="@mipmap/ic_launcher_white"
+            android:roundIcon="@mipmap/ic_launcher_white"
             android:label="Yomou"
             android:targetActivity=".MainActivity">
             <intent-filter>

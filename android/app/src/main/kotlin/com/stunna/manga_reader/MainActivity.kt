@@ -308,44 +308,41 @@ class MainActivity : FlutterActivity() {
             "com.hlomatsi.yomou/app_icon"
         ).setMethodCallHandler { call, result ->
             when (call.method) {
-                // Toggle the launcher icon between dark (default, MAIN
-                // activity) and light (AliasLight alias). Some launchers
-                // cache the old icon for a while after the toggle, so the
-                // UI may take a few seconds or a launcher restart to catch
-                // up — that is an OS limitation, not a bug here.
+                // Toggle the launcher icon between gold (default, MAIN
+                // activity) and the blue / white / B&W aliases. Some launchers
+                // cache the old icon for a while after the toggle, so the UI
+                // may take a few seconds or a launcher restart to catch up --
+                // that is an OS limitation, not a bug here.
                 "setAlias" -> {
-                    val alias = call.argument<String>("alias")
-                    val pkg = packageName
-                    val mainName = "$pkg.MainActivity"
-                        .replace(pkg + ".", "com.stunna.manga_reader.")
-                    val aliasName = "$pkg.AliasLight"
-                        .replace(
-                            pkg + ".",
-                            "com.stunna.manga_reader."
-                        )
+                    val alias = call.argument<String>("alias") ?: "gold"
+                    val wanted = when (alias) {
+                        "blue" -> "com.stunna.manga_reader.AliasBlue"
+                        "white" -> "com.stunna.manga_reader.AliasWhite"
+                        "bw" -> "com.stunna.manga_reader.AliasBW"
+                        else -> "com.stunna.manga_reader.MainActivity"
+                    }
                     try {
                         val pm = packageManager
-                        val mainComp = ComponentName(
-                            pkg,
-                            "com.stunna.manga_reader.MainActivity"
-                        )
-                        val lightComp = ComponentName(
-                            pkg,
+                        // Every component that can own the launcher entry,
+                        // including the retired AliasLight, so exactly one is
+                        // enabled afterwards.
+                        val components = listOf(
+                            "com.stunna.manga_reader.MainActivity",
+                            "com.stunna.manga_reader.AliasBlue",
+                            "com.stunna.manga_reader.AliasWhite",
+                            "com.stunna.manga_reader.AliasBW",
                             "com.stunna.manga_reader.AliasLight"
                         )
-                        val wantLight = (alias == "light")
-                        pm.setComponentEnabledSetting(
-                            mainComp,
-                            if (wantLight) PackageManager.COMPONENT_ENABLED_STATE_DISABLED
-                            else PackageManager.COMPONENT_ENABLED_STATE_ENABLED,
-                            PackageManager.DONT_KILL_APP
-                        )
-                        pm.setComponentEnabledSetting(
-                            lightComp,
-                            if (wantLight) PackageManager.COMPONENT_ENABLED_STATE_ENABLED
-                            else PackageManager.COMPONENT_ENABLED_STATE_DISABLED,
-                            PackageManager.DONT_KILL_APP
-                        )
+                        for (name in components) {
+                            pm.setComponentEnabledSetting(
+                                ComponentName(packageName, name),
+                                if (name == wanted)
+                                    PackageManager.COMPONENT_ENABLED_STATE_ENABLED
+                                else
+                                    PackageManager.COMPONENT_ENABLED_STATE_DISABLED,
+                                PackageManager.DONT_KILL_APP
+                            )
+                        }
                         result.success(true)
                     } catch (e: Exception) {
                         result.error("app_icon", e.message, null)
@@ -353,16 +350,21 @@ class MainActivity : FlutterActivity() {
                 }
                 "getAlias" -> {
                     try {
-                        val pkg = packageName
-                        val lightComp = ComponentName(
-                            pkg,
-                            "com.stunna.manga_reader.AliasLight"
-                        )
-                        val state = packageManager
-                            .getComponentEnabledSetting(lightComp)
-                        val isLight =
-                            state == PackageManager.COMPONENT_ENABLED_STATE_ENABLED
-                        result.success(if (isLight) "light" else "dark")
+                        val pm = packageManager
+                        fun isEnabled(name: String) =
+                            pm.getComponentEnabledSetting(
+                                ComponentName(packageName, name)
+                            ) == PackageManager.COMPONENT_ENABLED_STATE_ENABLED
+                        val value = when {
+                            isEnabled("com.stunna.manga_reader.AliasBlue") -> "blue"
+                            isEnabled("com.stunna.manga_reader.AliasWhite") -> "white"
+                            isEnabled("com.stunna.manga_reader.AliasBW") -> "bw"
+                            // Legacy dark/light picker: treat the old light
+                            // alias as the white variant it now renders.
+                            isEnabled("com.stunna.manga_reader.AliasLight") -> "white"
+                            else -> "gold"
+                        }
+                        result.success(value)
                     } catch (e: Exception) {
                         result.error("app_icon", e.message, null)
                     }
