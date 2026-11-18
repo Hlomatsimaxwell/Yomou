@@ -319,6 +319,7 @@ class MainActivity : FlutterActivity() {
                         "blue" -> "com.stunna.manga_reader.AliasBlue"
                         "white" -> "com.stunna.manga_reader.AliasWhite"
                         "bw" -> "com.stunna.manga_reader.AliasBW"
+                        "white_blue" -> "com.stunna.manga_reader.AliasWhiteBlue"
                         else -> "com.stunna.manga_reader.MainActivity"
                     }
                     try {
@@ -331,6 +332,7 @@ class MainActivity : FlutterActivity() {
                             "com.stunna.manga_reader.AliasBlue",
                             "com.stunna.manga_reader.AliasWhite",
                             "com.stunna.manga_reader.AliasBW",
+                            "com.stunna.manga_reader.AliasWhiteBlue",
                             "com.stunna.manga_reader.AliasLight"
                         )
                         for (name in components) {
@@ -359,6 +361,7 @@ class MainActivity : FlutterActivity() {
                             isEnabled("com.stunna.manga_reader.AliasBlue") -> "blue"
                             isEnabled("com.stunna.manga_reader.AliasWhite") -> "white"
                             isEnabled("com.stunna.manga_reader.AliasBW") -> "bw"
+                            isEnabled("com.stunna.manga_reader.AliasWhiteBlue") -> "white_blue"
                             // Legacy dark/light picker: treat the old light
                             // alias as the white variant it now renders.
                             isEnabled("com.stunna.manga_reader.AliasLight") -> "white"

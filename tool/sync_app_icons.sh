@@ -26,7 +26,7 @@ ASSETS="$ROOT/assets/app_icons"
 RES="$ROOT/android/app/src/main/res"
 
 # Order matters only for readability: gold is the default launcher icon.
-VARIANTS=(gold blue white bw)
+VARIANTS=(gold blue white bw white_blue)
 
 variants=("$@")
 if [[ ${#variants[@]} -eq 0 ]]; then

@@ -91,6 +91,19 @@
                 <category android:name="android.intent.category.LAUNCHER"/>
             </intent-filter>
         </activity-alias>
+        <activity-alias
+            android:name=".AliasWhiteBlue"
+            android:enabled="false"
+            android:exported="true"
+            android:icon="@mipmap/ic_launcher_white_blue"
+            android:roundIcon="@mipmap/ic_launcher_white_blue"
+            android:label="Yomou"
+            android:targetActivity=".MainActivity">
+            <intent-filter>
+                <action android:name="android.intent.action.MAIN"/>
+                <category android:name="android.intent.category.LAUNCHER"/>
+            </intent-filter>
+        </activity-alias>
         <!-- Legacy alias from the old dark/light picker. Declared with the
              white artwork and never offered in the picker, so an install that
              had it enabled keeps a working launcher entry after the update.

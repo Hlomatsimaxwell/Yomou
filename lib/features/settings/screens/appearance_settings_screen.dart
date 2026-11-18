@@ -169,9 +169,9 @@ class AppearanceSettingsScreen extends ConsumerWidget {
           onTap: () => _showThemeModeSelector(context, ref, settings, notifier),
         ),
         // App Icon selector. Shows a row for each bundled launcher icon
-        // (gold, blue, white, B&W) with a live preview and the current
-        // selection marked. Only supported on Android for now; on other
-        // platforms the tile is hidden.
+        // (gold, blue, white, B&W, white/blue) with a live preview and the
+        // current selection marked. Only supported on Android for now; on
+        // other platforms the tile is hidden.
         if (AppIconService.isSupported)
           ListTile(
             leading: const Icon(MdiIcons.application, size: 24),
