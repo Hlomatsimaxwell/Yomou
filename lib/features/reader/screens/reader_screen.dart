@@ -29,6 +29,7 @@ import '../../../core/database/source_cache.dart';
 import 'package:yomou/core/widgets/ios/ios_toast.dart';
 import 'package:yomou/core/widgets/reader_side_panel.dart';
 import 'package:yomou/core/widgets/responsive.dart';
+import 'package:yomou/core/utils/task_slots.dart';
 import 'package:yomou/data/providers/sources_provider.dart';
 import 'package:yomou/data/models/chapter.dart';
 import 'package:yomou/data/models/manga_source.dart';
@@ -374,6 +375,12 @@ class _ReaderScreenState extends ConsumerState<ReaderScreen>
   // ticks don't spam the cache).
   final Set<String> _prefetchScheduled = {};
   int _prefetchAnchorPage = -1;
+
+  /// Reader-wide cap on prefetch downloads in flight, shared by the
+  /// nearby-page window and the next-chapter warm-up. Without it a fast scroll
+  /// (which re-centres the window every page) could stack several batches and
+  /// end up competing with the page the reader is actually looking at.
+  final TaskSlots _prefetchSlots = TaskSlots(3);
   bool _isPrecachingNextChapter = false;
   Map<String, String>? _activeRequestHeaders;
 
@@ -475,6 +482,9 @@ class _ReaderScreenState extends ConsumerState<ReaderScreen>
       _webtoonZoomOut = s.webtoonZoomOut;
       _webtoonGaps = s.webtoonGaps;
       _reduceMemory = s.reduceMemory;
+      _prefetchSlots.limit = MemoryProfile.forReduceMemory(
+        s.reduceMemory,
+      ).prefetchConcurrency;
       _keepScreenOn = s.keepScreenOn;
       _showInfoBar = s.showInfoBar;
       _transparentInfoBar = s.transparentInfoBar;
@@ -3435,11 +3445,11 @@ class _ReaderScreenState extends ConsumerState<ReaderScreen>
     // "Preload pages: Never" turns off every speculative fetch. Pages the
     // reader is actually looking at still load; nothing is warmed ahead.
     if (!_preloadAllowed) return;
-    // "Reduce memory consumption" is a real cap on how far ahead we are willing
-    // to hold pages, not just a cache ceiling, so low-memory readers stop
-    // pulling down pages they would only decode and throw away.
-    final ahead = lookahead ??
-        MemoryProfile.forReduceMemory(_reduceMemory).prefetchWindow;
+    // "Reduce memory consumption" shrinks the prefetch window and the number
+    // of downloads allowed at once, so a low-memory reader does not spend
+    // bandwidth on pages it is unlikely to reach.
+    final profile = MemoryProfile.forReduceMemory(_reduceMemory);
+    final ahead = lookahead ?? profile.prefetchWindow;
     final current = _currentPageIndex;
     // Re-center the window only when the anchor actually moved, otherwise a
     // busy scroll ticker would re-schedule the same downloads repeatedly.
@@ -3448,27 +3458,65 @@ class _ReaderScreenState extends ConsumerState<ReaderScreen>
 
     final start = (current - 2).clamp(0, _pages.length - 1);
     final end = (current + ahead).clamp(0, _pages.length - 1);
-    // Snapshot the URLs to prefetch up front: the loop below awaits downloads,
-    // and switching chapters mid-loop clears _pages, which would otherwise make
-    // _pages[i] throw a RangeError on the next iteration.
+    // Nearest first, forwards before backwards: the next page is what the
+    // reader sees in a second, the far end of the window is insurance, and the
+    // pages behind were just read. With bounded concurrency this order decides
+    // which pages are already on disk if the window is cut short.
+    //
+    // Snapshot the URLs up front: the downloads below run concurrently, and
+    // switching chapters mid-flight clears _pages.
     final targets = <String>[];
-    for (var i = start; i <= end && i < _pages.length; i++) {
-      final ref = _pages[i];
-      if (!ref.startsWith('http')) continue;
-      if (_prefetchScheduled.contains(ref)) continue;
+    void add(int index) {
+      final ref = _pages[index];
+      if (!ref.startsWith('http')) return;
+      if (_prefetchScheduled.contains(ref)) return;
       targets.add(ref);
     }
+
+    for (var i = current + 1; i <= end; i++) {
+      add(i);
+    }
+    for (var i = current - 1; i >= start; i--) {
+      add(i);
+    }
     _prefetchScheduled.addAll(targets);
-    for (final ref in targets) {
-      try {
-        await AppImageCache.instance.manager.getSingleFile(
-          ref,
-          headers: _activeRequestHeaders,
-        );
-      } catch (_) {
-        // Swallow: download failures are surfaced by the image widget itself.
+    await _downloadPages(targets, profile.prefetchConcurrency);
+  }
+
+  /// Downloads [urls] into the image cache with at most [concurrency] requests
+  /// in flight, on top of the reader-wide cap shared with the next-chapter
+  /// warm-up.
+  ///
+  /// A plain sequential loop made a full prefetch window cost one round trip
+  /// per page, so a cold chapter only started feeling warm seconds later;
+  /// awaiting them all at once would instead compete with the page the reader
+  /// is actually looking at.
+  Future<void> _downloadPages(List<String> urls, int concurrency) async {
+    if (urls.isEmpty) return;
+    final limit = concurrency < 1 ? 1 : concurrency;
+    var next = 0;
+    Future<void> worker() async {
+      while (next < urls.length) {
+        final url = urls[next++];
+        try {
+          await _prefetchSlots.run(
+            () => AppImageCache.instance.manager.getSingleFile(
+              url,
+              headers: _activeRequestHeaders,
+            ),
+          );
+        } catch (_) {
+          // Let a later tick retry a transient failure instead of writing the
+          // URL off for the rest of the chapter. The image widget surfaces
+          // real failures when the page is reached.
+          _prefetchScheduled.remove(url);
+        }
       }
     }
+
+    await Future.wait([
+      for (var i = 0; i < limit && i < urls.length; i++) worker(),
+    ]);
   }
 
   /// Gently warms the chapter AFTER the one the reader is currently finishing,
@@ -3526,18 +3574,14 @@ class _ReaderScreenState extends ConsumerState<ReaderScreen>
       // Warm the first handful of pages of the next chapter into the disk
       // cache so the chapter boundary reads like a normal page turn.
       final limit = pages.length < 6 ? pages.length : 6;
-      for (var i = 0; i < limit; i++) {
-        final url = pages[i];
-        if (!url.startsWith('http')) continue;
-        try {
-          await AppImageCache.instance.manager.getSingleFile(
-            url,
-            headers: _activeRequestHeaders,
-          );
-        } catch (_) {
-          // Swallow: the page widget surfaces any real failure when reached.
-        }
-      }
+      final targets = <String>[
+        for (var i = 0; i < limit; i++)
+          if (pages[i].startsWith('http')) pages[i],
+      ];
+      await _downloadPages(
+        targets,
+        MemoryProfile.forReduceMemory(_reduceMemory).prefetchConcurrency,
+      );
     } catch (e) {
       debugPrint('Error pre-caching chapter ${chapterIndex + 1}: $e');
     } finally {

@@ -3,6 +3,7 @@ import 'dart:io';
 import 'package:flutter_cache_manager/flutter_cache_manager.dart';
 import 'package:path/path.dart' as p;
 import 'package:path_provider/path_provider.dart';
+import 'package:yomou/core/cache/transcode_cache.dart';
 import 'package:yomou/core/storage/storage_stats.dart';
 
 /// App-wide image cache manager.
@@ -51,20 +52,23 @@ class AppImageCache {
     }
   }
 
-  /// Drops every cached page/cover file and its index entries.
+  /// Drops every cached page/cover file and its index entries, along with the
+  /// transcoded PNGs derived from them: keeping those would leave the user
+  /// with cache usage that "clear cache" cannot reclaim.
   Future<void> emptyCache() async {
     try {
       await manager.emptyCache();
     } catch (_) {}
+    await TranscodeCache.instance.clear();
   }
 
-  /// Total bytes currently held by the image cache folder.
+  /// Total bytes currently held by the image cache folder and its transcodes.
   Future<int> usageBytes() async {
+    var total = await TranscodeCache.instance.usageBytes();
     try {
       final base = await getTemporaryDirectory();
       final dir = Directory(p.join(base.path, key));
-      if (!await dir.exists()) return 0;
-      var total = 0;
+      if (!await dir.exists()) return total;
       await for (final entity in dir.list(recursive: true)) {
         if (entity is File) {
           total += await entity.length();
@@ -72,7 +76,7 @@ class AppImageCache {
       }
       return total;
     } catch (_) {
-      return 0;
+      return total;
     }
   }
 

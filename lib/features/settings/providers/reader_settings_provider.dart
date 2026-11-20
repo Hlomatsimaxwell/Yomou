@@ -203,17 +203,38 @@ class MemoryProfile {
   const MemoryProfile({
     required this.imageCacheBytes,
     required this.prefetchWindow,
+    required this.prefetchConcurrency,
   });
 
   final int imageCacheBytes;
 
   /// How many pages ahead the reader is willing to prefetch.
+  ///
+  /// This is a bandwidth/storage allowance rather than a RAM one: prefetching
+  /// only writes encoded files to the on-disk image cache and never decodes
+  /// them. [imageCacheBytes] is what bounds memory.
   final int prefetchWindow;
 
-  static const MemoryProfile normal =
-      MemoryProfile(imageCacheBytes: 160 << 20, prefetchWindow: 8);
-  static const MemoryProfile low =
-      MemoryProfile(imageCacheBytes: 48 << 20, prefetchWindow: 2);
+  /// How many of those pages may download at once.
+  ///
+  /// Prefetching only writes to the on-disk image cache, so the limit is
+  /// bandwidth and battery rather than RAM - but it still has to leave room
+  /// for the page the reader is looking at. One-at-a-time made a full window
+  /// cost one round trip per page, which is what made a cold chapter feel
+  /// slow; the low profile keeps a smaller allowance so an old device is not
+  /// competing with itself.
+  final int prefetchConcurrency;
+
+  static const MemoryProfile normal = MemoryProfile(
+    imageCacheBytes: 160 << 20,
+    prefetchWindow: 8,
+    prefetchConcurrency: 3,
+  );
+  static const MemoryProfile low = MemoryProfile(
+    imageCacheBytes: 48 << 20,
+    prefetchWindow: 4,
+    prefetchConcurrency: 2,
+  );
 
   static MemoryProfile forReduceMemory(bool reduce) =>
       reduce ? low : normal;

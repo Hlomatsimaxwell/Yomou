@@ -1,9 +1,11 @@
+import 'dart:async';
 import 'dart:io';
 
 import 'package:cached_network_image/cached_network_image.dart';
 import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:yomou/core/cache/app_cache.dart';
+import 'package:yomou/core/cache/transcode_cache.dart';
 import 'package:yomou/core/diagnostics/diag_log.dart';
 import 'package:yomou/data/sources/mf_scramble.dart';
 import 'package:image/image.dart' as img;
@@ -20,10 +22,24 @@ Uint8List? _unscrambleMfPage((Uint8List, int) message) {
 /// support for, e.g. lossless/animated WebP, HEIF or AVIF. PNG/JPEG are decoded
 /// by every Android version, so transcoding a problem image to PNG lets it
 /// render. Returns null when the bytes cannot be decoded at all.
-Uint8List? _transcodeToPng(Uint8List bytes) {
+///
+/// [message] carries the source bytes and an optional target width. The width
+/// bounds the decoded bitmap (and therefore the stored PNG) for callers that
+/// know they only need a thumbnail; reader pages pass null and keep every
+/// pixel they have.
+@visibleForTesting
+Uint8List? transcodeToPng((Uint8List, int?) message) {
+  final (bytes, targetWidth) = message;
   try {
-    final decoded = img.decodeImage(bytes);
+    var decoded = img.decodeImage(bytes);
     if (decoded == null) return null;
+    if (targetWidth != null && targetWidth > 0 && decoded.width > targetWidth) {
+      decoded = img.copyResize(
+        decoded,
+        width: targetWidth,
+        interpolation: img.Interpolation.average,
+      );
+    }
     return img.encodePng(decoded);
   } catch (_) {
     return null;
@@ -84,7 +100,48 @@ class SafeNetworkImage extends StatefulWidget {
 
 class _SafeNetworkImageState extends State<SafeNetworkImage> {
   bool _fallback = false;
+  bool _preflightDone = false;
   Future<Uint8List?>? _decoded;
+
+  String get _cacheKey => TranscodeCache.networkKey(widget.imageUrl);
+
+  @override
+  void initState() {
+    super.initState();
+    _preflight();
+  }
+
+  @override
+  void didUpdateWidget(covariant SafeNetworkImage oldWidget) {
+    super.didUpdateWidget(oldWidget);
+    if (oldWidget.imageUrl != widget.imageUrl) {
+      _fallback = false;
+      _preflightDone = false;
+      _decoded = null;
+      _preflight();
+    }
+  }
+
+  /// Looks for a transcode stored by an earlier session before the first
+  /// frame. When one exists the image goes straight to it: without this every
+  /// visit paid the failed engine decode, flashed the error box, and then ran
+  /// the same pure-Dart transcode again.
+  Future<void> _preflight() async {
+    final url = widget.imageUrl;
+    if (url.trim().isEmpty || MfScramble.offsetFromUrl(url) != null) {
+      _preflightDone = true;
+      return;
+    }
+    final cached = await TranscodeCache.instance.read(_cacheKey);
+    if (!mounted) return;
+    setState(() {
+      _preflightDone = true;
+      if (cached != null) {
+        _fallback = true;
+        _decoded = Future.value(cached);
+      }
+    });
+  }
 
   void _startFallback() {
     if (_fallback) return;
@@ -95,6 +152,10 @@ class _SafeNetworkImageState extends State<SafeNetworkImage> {
   }
 
   Future<Uint8List?> _loadTranscoded() async {
+    // A previous session already produced this PNG; it is deterministic for
+    // the URL, so there is nothing to recompute.
+    final cached = await TranscodeCache.instance.read(_cacheKey);
+    if (cached != null) return cached;
     try {
       // Reuses the bytes CachedNetworkImage already downloaded (when it did).
       final file = await AppImageCache.instance.manager.getSingleFile(
@@ -102,10 +163,13 @@ class _SafeNetworkImageState extends State<SafeNetworkImage> {
         headers: widget.httpHeaders,
       );
       final bytes = await file.readAsBytes();
-      final png = await compute(_transcodeToPng, bytes);
+      final png =
+          await compute(transcodeToPng, (bytes, widget.decodeWidth));
       if (png == null) {
         diagSoon('safeImage: ${bytes.length}b downloaded but undecodable '
             '(${_formatOf(bytes)}) ${widget.imageUrl}');
+      } else {
+        unawaited(TranscodeCache.instance.write(_cacheKey, png));
       }
       return png;
     } catch (e) {
@@ -217,6 +281,15 @@ class _SafeNetworkImageState extends State<SafeNetworkImage> {
     if (mfOffset != null) {
       return _buildScrambled(mfOffset);
     }
+    if (!_preflightDone) {
+      // At most one frame, while the transcode cache is checked. Showing the
+      // placeholder instead of CachedNetworkImage here is what spares a URL
+      // that is already known to need transcoding the doomed decode.
+      return _sized(
+        widget.placeholder?.call(context, widget.imageUrl) ??
+            const _CoverFallback(),
+      );
+    }
     if (!_fallback) {
       return CachedNetworkImage(
         imageUrl: widget.imageUrl,
@@ -305,7 +378,57 @@ class SafeFileImage extends StatefulWidget {
 
 class _SafeFileImageState extends State<SafeFileImage> {
   bool _fallback = false;
+  bool _preflightDone = false;
   Future<Uint8List?>? _decoded;
+  String? _cacheKey;
+
+  @override
+  void initState() {
+    super.initState();
+    _preflight();
+  }
+
+  @override
+  void didUpdateWidget(covariant SafeFileImage oldWidget) {
+    super.didUpdateWidget(oldWidget);
+    if (oldWidget.file.path != widget.file.path) {
+      _fallback = false;
+      _preflightDone = false;
+      _decoded = null;
+      _cacheKey = null;
+      _preflight();
+    }
+  }
+
+  /// Content key for this file: path plus size and mtime, so a chapter page
+  /// re-downloaded to the same path is transcoded again instead of serving the
+  /// previous file's pixels.
+  Future<String?> _keyForFile() async {
+    try {
+      final stat = await widget.file.stat();
+      return TranscodeCache.fileKey(
+        widget.file,
+        length: stat.size,
+        modifiedMs: stat.modified.millisecondsSinceEpoch,
+      );
+    } catch (_) {
+      return null;
+    }
+  }
+
+  Future<void> _preflight() async {
+    final key = await _keyForFile();
+    final cached = key == null ? null : await TranscodeCache.instance.read(key);
+    if (!mounted) return;
+    setState(() {
+      _preflightDone = true;
+      _cacheKey = key;
+      if (cached != null) {
+        _fallback = true;
+        _decoded = Future.value(cached);
+      }
+    });
+  }
 
   void _startFallback() {
     if (_fallback) return;
@@ -316,9 +439,18 @@ class _SafeFileImageState extends State<SafeFileImage> {
   }
 
   Future<Uint8List?> _loadTranscoded() async {
+    final key = _cacheKey ?? await _keyForFile();
+    if (key != null) {
+      final cached = await TranscodeCache.instance.read(key);
+      if (cached != null) return cached;
+    }
     try {
       final bytes = await widget.file.readAsBytes();
-      return await compute(_transcodeToPng, bytes);
+      final png = await compute(transcodeToPng, (bytes, widget.decodeWidth));
+      if (png != null && key != null) {
+        unawaited(TranscodeCache.instance.write(key, png));
+      }
+      return png;
     } catch (_) {
       return null;
     }
@@ -347,6 +479,11 @@ class _SafeFileImageState extends State<SafeFileImage> {
 
   @override
   Widget build(BuildContext context) {
+    if (!_preflightDone) {
+      // One frame at most, while the transcode cache is checked; see
+      // [_SafeNetworkImageState._preflight].
+      return _sized(const _CoverFallback());
+    }
     if (!_fallback) {
       return Image.file(
         widget.file,
