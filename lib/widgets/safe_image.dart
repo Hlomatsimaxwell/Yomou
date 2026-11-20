@@ -5,6 +5,7 @@ import 'package:cached_network_image/cached_network_image.dart';
 import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:yomou/core/cache/app_cache.dart';
+import 'package:yomou/core/cache/image_dimensions.dart';
 import 'package:yomou/core/cache/transcode_cache.dart';
 import 'package:yomou/core/diagnostics/diag_log.dart';
 import 'package:yomou/data/sources/mf_scramble.dart';
@@ -65,6 +66,7 @@ class SafeNetworkImage extends StatefulWidget {
     this.gaplessPlayback = false,
     this.alignment = Alignment.center,
     this.decodeWidth,
+    this.onImageSize,
   });
 
   final String imageUrl;
@@ -78,6 +80,15 @@ class SafeNetworkImage extends StatefulWidget {
   final Duration? placeholderFadeInDuration;
   final bool gaplessPlayback;
   final Alignment alignment;
+
+  /// Called once with the decoded image's own pixel dimensions, as soon as
+  /// they are known.
+  ///
+  /// The reader uses it to learn how tall a page is before it next lays that
+  /// page out, so a page that has been seen does not have to grow into place.
+  /// Nothing is decoded for it: the size is read from the image the widget was
+  /// already showing.
+  final void Function(int width, int height)? onImageSize;
 
   /// Physical-pixel width to decode at, or null to decode the image as-is.
   ///
@@ -102,6 +113,7 @@ class _SafeNetworkImageState extends State<SafeNetworkImage> {
   bool _fallback = false;
   bool _preflightDone = false;
   Future<Uint8List?>? _decoded;
+  bool _sizeReported = false;
 
   String get _cacheKey => TranscodeCache.networkKey(widget.imageUrl);
 
@@ -118,8 +130,45 @@ class _SafeNetworkImageState extends State<SafeNetworkImage> {
       _fallback = false;
       _preflightDone = false;
       _decoded = null;
+      _sizeReported = false;
       _preflight();
     }
+  }
+
+  /// Reports the dimensions of [provider] to [SafeNetworkImage.onImageSize].
+  ///
+  /// Resolving the provider the image widget is already using shares its cache
+  /// entry, so this costs a listener and nothing else -- no second download,
+  /// no second decode.
+  void _reportProviderSize(ImageProvider provider) {
+    final callback = widget.onImageSize;
+    if (callback == null || _sizeReported) return;
+    _sizeReported = true;
+    final stream = provider.resolve(ImageConfiguration.empty);
+    late final ImageStreamListener listener;
+    listener = ImageStreamListener(
+      (info, _) {
+        callback(info.image.width, info.image.height);
+        stream.removeListener(listener);
+      },
+      onError: (_, _) {
+        // Leave it unreported so a later attempt can try again.
+        _sizeReported = false;
+        stream.removeListener(listener);
+      },
+    );
+    stream.addListener(listener);
+  }
+
+  /// Reports the dimensions of already-decoded bytes, for the paths that do not
+  /// go through a provider (transcoded pages). Reads the header only.
+  void _reportEncodedSize(Uint8List bytes) {
+    final callback = widget.onImageSize;
+    if (callback == null || _sizeReported) return;
+    final size = imageDimensions(bytes);
+    if (size == null) return;
+    _sizeReported = true;
+    callback(size.$1, size.$2);
   }
 
   /// Looks for a transcode stored by an earlier session before the first
@@ -216,6 +265,7 @@ class _SafeNetworkImageState extends State<SafeNetworkImage> {
           }
           final bytes = snapshot.data;
           if (bytes == null) return _showError('Failed to decode image');
+          _reportEncodedSize(bytes);
 
           return Image.memory(
             bytes,
@@ -303,6 +353,24 @@ class _SafeNetworkImageState extends State<SafeNetworkImage> {
         placeholderFadeInDuration: widget.placeholderFadeInDuration,
         fadeInDuration: widget.fadeInDuration,
         alignment: widget.alignment,
+        // Only installed when the caller wants the image's dimensions: the
+        // builder replaces the default image widget, so it rebuilds the same
+        // Image from the provider the widget is already using. Everything the
+        // octo_image default passes is repeated here so nothing visual changes.
+        imageBuilder: widget.onImageSize == null
+            ? null
+            : (context, provider) {
+                _reportProviderSize(provider);
+                return Image(
+                  image: provider,
+                  width: widget.width,
+                  height: widget.height,
+                  fit: widget.fit,
+                  alignment: widget.alignment,
+                  gaplessPlayback: widget.gaplessPlayback,
+                  filterQuality: FilterQuality.low,
+                );
+              },
         errorWidget: (context, url, error) {
           WidgetsBinding.instance.addPostFrameCallback((_) {
             if (mounted) _startFallback();
@@ -322,6 +390,7 @@ class _SafeNetworkImageState extends State<SafeNetworkImage> {
           }
           final bytes = snapshot.data;
           if (bytes == null) return _showError('Failed to decode image');
+          _reportEncodedSize(bytes);
 
           return Image.memory(
             bytes,
@@ -357,6 +426,7 @@ class SafeFileImage extends StatefulWidget {
     this.gaplessPlayback = false,
     this.alignment = Alignment.center,
     this.decodeWidth,
+    this.onImageSize,
   });
 
   final File file;
@@ -372,6 +442,10 @@ class SafeFileImage extends StatefulWidget {
   /// source's own resolution.
   final int? decodeWidth;
 
+  /// Called once with the image's own pixel dimensions. Same contract as
+  /// [SafeNetworkImage.onImageSize].
+  final void Function(int width, int height)? onImageSize;
+
   @override
   State<SafeFileImage> createState() => _SafeFileImageState();
 }
@@ -381,6 +455,7 @@ class _SafeFileImageState extends State<SafeFileImage> {
   bool _preflightDone = false;
   Future<Uint8List?>? _decoded;
   String? _cacheKey;
+  bool _sizeReported = false;
 
   @override
   void initState() {
@@ -396,8 +471,40 @@ class _SafeFileImageState extends State<SafeFileImage> {
       _preflightDone = false;
       _decoded = null;
       _cacheKey = null;
+      _sizeReported = false;
       _preflight();
     }
+  }
+
+  /// See [_SafeNetworkImageState._reportProviderSize]: the provider is the same
+  /// one the image is drawn from, so this only adds a listener.
+  void _reportProviderSize(ImageProvider provider) {
+    final callback = widget.onImageSize;
+    if (callback == null || _sizeReported) return;
+    _sizeReported = true;
+    final stream = provider.resolve(ImageConfiguration.empty);
+    late final ImageStreamListener listener;
+    listener = ImageStreamListener(
+      (info, _) {
+        callback(info.image.width, info.image.height);
+        stream.removeListener(listener);
+      },
+      onError: (_, _) {
+        _sizeReported = false;
+        stream.removeListener(listener);
+      },
+    );
+    stream.addListener(listener);
+  }
+
+  /// See [_SafeNetworkImageState._reportEncodedSize].
+  void _reportEncodedSize(Uint8List bytes) {
+    final callback = widget.onImageSize;
+    if (callback == null || _sizeReported) return;
+    final size = imageDimensions(bytes);
+    if (size == null) return;
+    _sizeReported = true;
+    callback(size.$1, size.$2);
   }
 
   /// Content key for this file: path plus size and mtime, so a chapter page
@@ -493,6 +600,22 @@ class _SafeFileImageState extends State<SafeFileImage> {
         alignment: widget.alignment,
         cacheWidth: widget.decodeWidth,
         gaplessPlayback: widget.gaplessPlayback,
+        // A frame exists only once the file has decoded, and FileImage compares
+        // by path, so resolving it here shares the image the widget is drawing.
+        frameBuilder: widget.onImageSize == null
+            ? null
+            : (context, child, frame, wasSynchronouslyLoaded) {
+                if (frame != null) {
+                  _reportProviderSize(
+                    ResizeImage.resizeIfNeeded(
+                      widget.decodeWidth,
+                      null,
+                      FileImage(widget.file),
+                    ),
+                  );
+                }
+                return child;
+              },
         errorBuilder: (context, error, stack) {
           WidgetsBinding.instance.addPostFrameCallback((_) {
             if (mounted) _startFallback();
@@ -511,6 +634,7 @@ class _SafeFileImageState extends State<SafeFileImage> {
           }
           final bytes = snapshot.data;
           if (bytes == null) return _showError('Failed to decode image');
+          _reportEncodedSize(bytes);
 
           return Image.memory(
             bytes,

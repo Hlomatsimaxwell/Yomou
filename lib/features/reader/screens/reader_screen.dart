@@ -21,6 +21,7 @@ import 'package:yomou/widgets/safe_image.dart';
 import 'package:yomou/widgets/material_symbol.dart';
 import 'package:yomou/widgets/sheet_snap.dart';
 import 'package:yomou/core/cache/app_cache.dart';
+import 'package:yomou/core/cache/page_geometry.dart';
 import 'package:yomou/core/haptics.dart';
 import 'package:yomou/core/diagnostics/diag_log.dart';
 import 'package:yomou/core/storage/storage_stats.dart';
@@ -428,6 +429,13 @@ class _ReaderScreenState extends ConsumerState<ReaderScreen>
     _loadProgress();
     _loadDownloads().then((_) => _loadChapter(_currentChapterIndex));
 
+    // Remembered page heights come from the previous session: the first
+    // placeholder drawn for a page can then reserve the height that page will
+    // actually take instead of one screen.
+    PageGeometryCache.instance.ensureLoaded().then((_) {
+      if (mounted) setState(() {});
+    });
+
     _scrollController.addListener(_handleScrollTicker);
     WidgetsBinding.instance.addObserver(this);
     _startStatusTicker();
@@ -797,12 +805,20 @@ class _ReaderScreenState extends ConsumerState<ReaderScreen>
   }
 
   /// Kotatsu-style left-hand status text: "Ch. 26/205 Pg. 3/16 12%".
+  ///
+  /// The page counts are the chapter under the reader, not the whole
+  /// concatenated list: adjacent chapters are loaded into the same list, so
+  /// counting the list made the denominator grow as the next chapter arrived
+  /// and the first page of a chapter read as "Pg. 15/40". The slider already
+  /// counts within the chapter (see [_readChapterPageRange]); this is the same
+  /// range so the two can never disagree.
   String _immersiveStatusText(int chapterIndex, String chapterLabel) {
-    final page = _currentPageIndex;
-    final totalPages = _pages.length;
+    final (start, count) = _readChapterPageRange();
+    final totalPages = count > 0 ? count : 1;
+    final page = (_currentPageIndex - start).clamp(0, totalPages - 1);
     final progress = widget.totalChapters > 0
         ? (((chapterIndex + 1) / widget.totalChapters) * 100).round()
-        : (totalPages > 0 ? (((page + 1) / totalPages) * 100).round() : 0);
+        : (((page + 1) / totalPages) * 100).round();
     final ch = chapterLabel.isNotEmpty ? chapterLabel : '${chapterIndex + 1}';
     return 'Ch. $ch/${widget.totalChapters} Pg. ${page + 1}/$totalPages $progress%';
   }
@@ -4703,6 +4719,9 @@ class _ReaderScreenState extends ConsumerState<ReaderScreen>
     final key = ValueKey('$url#${_pageRetryTokens[index] ?? 0}');
     final fit = _pageFit;
     final decodeWidth = _pageDecodeWidth(context);
+    final geometryKey = url.isNotEmpty ? url : (localPath ?? '');
+    void rememberSize(int width, int height) =>
+        PageGeometryCache.instance.remember(geometryKey, width, height);
     final Widget image;
     if (localPath != null && File(localPath).existsSync()) {
       image = SafeFileImage(
@@ -4711,6 +4730,7 @@ class _ReaderScreenState extends ConsumerState<ReaderScreen>
         fit: fit,
         decodeWidth: decodeWidth,
         gaplessPlayback: true,
+        onImageSize: rememberSize,
         errorWidget: (context, path, error) =>
             _buildPageError(index: index, localPath: localPath),
       );
@@ -4721,19 +4741,78 @@ class _ReaderScreenState extends ConsumerState<ReaderScreen>
         fit: fit,
         decodeWidth: decodeWidth,
         httpHeaders: headers,
-        placeholder: (context, url) => SizedBox(
-          height: MediaQuery.sizeOf(context).height,
-          child: Center(
-            child: CircularProgressIndicator(
-              color: ref.watch(accentProvider),
-            ),
-          ),
-        ),
+        onImageSize: rememberSize,
+        placeholder: (context, url) =>
+            _buildPagePlaceholder(index, _rememberedPageRatio(index)),
         errorWidget: (context, url, error) =>
             _buildPageError(index: index, error: error),
       );
     }
     return _wrapKeepAtStart(_applyColorFilter(image));
+  }
+
+  /// The height-to-width ratio a page is expected to take, from when it (or a
+  /// neighbour) was last shown.
+  ///
+  /// A page's own ratio is exact. A neighbour's is a good guess in the mode
+  /// this matters for: webtoon panels are cut to similar heights within a
+  /// chapter, so an unloaded page beside a loaded one is almost always close,
+  /// and being close is all the layout needs to stop jumping.
+  double? _rememberedPageRatio(int index) {
+    final cache = PageGeometryCache.instance;
+    for (final i in [index, index - 1, index + 1]) {
+      if (i < 0 || i >= _pages.length) continue;
+      final ratio = cache.ratioFor(_pages[i]);
+      if (ratio != null && ratio > 0) return ratio;
+    }
+    return null;
+  }
+
+  /// What a page shows while its image is on its way.
+  ///
+  /// It reserves the height the image will actually take whenever that is
+  /// known, so the pages below it do not shift when the image arrives -- that
+  /// shift is what made a seek land somewhere other than the page it aimed at.
+  /// When nothing is known yet it reserves one screen and says which page it is
+  /// loading; the old full-screen black box with a lone spinner was
+  /// indistinguishable from a broken page.
+  Widget _buildPagePlaceholder(int index, double? ratio) {
+    final onCanvas = _canvasBackground.computeLuminance() > 0.5
+        ? Colors.black38
+        : Colors.white38;
+    return LayoutBuilder(
+      builder: (context, constraints) {
+        final width = constraints.maxWidth.isFinite && constraints.maxWidth > 0
+            ? constraints.maxWidth
+            : MediaQuery.sizeOf(context).width;
+        final height = ratio != null && ratio > 0
+            ? width * ratio
+            : MediaQuery.sizeOf(context).height;
+        return SizedBox(
+          height: height,
+          child: Center(
+            child: Column(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                SizedBox(
+                  width: 22,
+                  height: 22,
+                  child: CircularProgressIndicator(
+                    strokeWidth: 2,
+                    color: ref.watch(accentProvider),
+                  ),
+                ),
+                const SizedBox(height: 10),
+                Text(
+                  'Page ${index + 1}',
+                  style: TextStyle(color: onCanvas, fontSize: 11),
+                ),
+              ],
+            ),
+          ),
+        );
+      },
+    );
   }
 
   /// The width, in physical pixels, that a page image is decoded at.
@@ -4760,6 +4839,11 @@ class _ReaderScreenState extends ConsumerState<ReaderScreen>
   /// which page it is. Off by default: it covers part of the image.
   Widget _maybeStampPageNumber(Widget page) {
     if (!_numberedPages || _pages.isEmpty) return page;
+    // Same chapter-relative numbering as the status bar, so a screenshot of a
+    // page and the bar above it agree.
+    final (start, count) = _readChapterPageRange();
+    final total = count > 0 ? count : 1;
+    final number = (_currentPageIndex - start).clamp(0, total - 1) + 1;
     return Stack(
       children: [
         page,
@@ -4774,7 +4858,7 @@ class _ReaderScreenState extends ConsumerState<ReaderScreen>
                 borderRadius: BorderRadius.circular(6),
               ),
               child: Text(
-                '${_currentPageIndex + 1} / ${_pages.length}',
+                '$number / $total',
                 style: const TextStyle(
                   color: Colors.white,
                   fontSize: 11,
