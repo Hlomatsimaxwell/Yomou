@@ -746,6 +746,16 @@
     }
   },
   "readerFailedLoadPage": "Failed to load page",
+  "readerRedownloadPage": "Re-download page",
+  "readerRedownloadFailed": "Could not re-download page",
+  "readerRetryAllFailed": "Retry all failed ({count})",
+  "@readerRetryAllFailed": {
+    "placeholders": {
+      "count": {
+        "type": "int"
+      }
+    }
+  },
   "readerLoadingNextChapter": "Loading next chapter...",
   "readerReachedLatestChapter": "You have reached the latest chapter!",
   "readerPreviousChapter": "Previous chapter",

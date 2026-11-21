@@ -1553,6 +1553,18 @@ class AppLocalizationsEs extends AppLocalizations {
   String get readerFailedLoadPage => 'No se pudo cargar la página';
 
   @override
+  String get readerRedownloadPage => 'Volver a descargar';
+
+  @override
+  String get readerRedownloadFailed =>
+      'No se pudo volver a descargar la página';
+
+  @override
+  String readerRetryAllFailed(int count) {
+    return 'Reintentar fallidos ($count)';
+  }
+
+  @override
   String get readerLoadingNextChapter => 'Cargando el siguiente capítulo...';
 
   @override

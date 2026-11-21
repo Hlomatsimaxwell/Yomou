@@ -1536,6 +1536,17 @@ class AppLocalizationsEn extends AppLocalizations {
   String get readerFailedLoadPage => 'Failed to load page';
 
   @override
+  String get readerRedownloadPage => 'Re-download page';
+
+  @override
+  String get readerRedownloadFailed => 'Could not re-download page';
+
+  @override
+  String readerRetryAllFailed(int count) {
+    return 'Retry all failed ($count)';
+  }
+
+  @override
   String get readerLoadingNextChapter => 'Loading next chapter...';
 
   @override

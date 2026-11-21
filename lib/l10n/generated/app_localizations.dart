@@ -2858,6 +2858,24 @@ abstract class AppLocalizations {
   /// **'Failed to load page'**
   String get readerFailedLoadPage;
 
+  /// No description provided for @readerRedownloadPage.
+  ///
+  /// In en, this message translates to:
+  /// **'Re-download page'**
+  String get readerRedownloadPage;
+
+  /// No description provided for @readerRedownloadFailed.
+  ///
+  /// In en, this message translates to:
+  /// **'Could not re-download page'**
+  String get readerRedownloadFailed;
+
+  /// No description provided for @readerRetryAllFailed.
+  ///
+  /// In en, this message translates to:
+  /// **'Retry all failed ({count})'**
+  String readerRetryAllFailed(int count);
+
   /// No description provided for @readerLoadingNextChapter.
   ///
   /// In en, this message translates to:

@@ -370,6 +370,11 @@ class _ReaderScreenState extends ConsumerState<ReaderScreen>
   // page (the new value becomes part of the image widget's key).
   final Map<int, int> _pageRetryTokens = {};
 
+  // Pages currently showing an image error. Populated by the error widget and
+  // cleared once the image decodes, so "Retry all" only touches pages that have
+  // actually failed rather than every page in the chapter.
+  final Set<int> _failedPageIndices = {};
+
   // Proactive preloading: keeps the last 8 network URLs we asked the cache
   // manager to fetch so we don't schedule duplicate downloads, and remembers
   // which page the preload window was centered on (so chapter loads and scroll
@@ -1769,6 +1774,7 @@ class _ReaderScreenState extends ConsumerState<ReaderScreen>
       _pageFiles.clear();
       _loadedChapterIndices.clear();
       _pageRetryTokens.clear();
+      _failedPageIndices.clear();
       _hasMoreChapters = true;
       _lastPageIndex = -1;
       _prefetchScheduled.clear();
@@ -3428,6 +3434,10 @@ class _ReaderScreenState extends ConsumerState<ReaderScreen>
         _pagesChapters.insertAll(0, List.filled(inserted, prevIndex));
         _pageFiles.insertAll(0, locals ?? List.filled(inserted, null));
         _loadedChapterIndices.add(prevIndex);
+        // Every existing page index just shifted by [inserted]. Drop the
+        // failure list rather than remapping it: off-screen pages are not
+        // currently built, so a shifted index would point at a different page.
+        _failedPageIndices.clear();
       });
       _prefetchAnchorPage = -1;
 
@@ -4720,8 +4730,10 @@ class _ReaderScreenState extends ConsumerState<ReaderScreen>
     final fit = _pageFit;
     final decodeWidth = _pageDecodeWidth(context);
     final geometryKey = url.isNotEmpty ? url : (localPath ?? '');
-    void rememberSize(int width, int height) =>
-        PageGeometryCache.instance.remember(geometryKey, width, height);
+    void rememberSize(int width, int height) {
+      PageGeometryCache.instance.remember(geometryKey, width, height);
+      _markPageLoaded(index);
+    }
     final Widget image;
     if (localPath != null && File(localPath).existsSync()) {
       image = SafeFileImage(
@@ -5043,6 +5055,28 @@ class _ReaderScreenState extends ConsumerState<ReaderScreen>
     }
   }
 
+  /// Called from the error widget's build and from the successful-decode
+  /// callback. Both mutate a plain Set during build/frame work, so the rebuild
+  /// that drives the "Retry all" button is deferred to the next frame; the
+  /// `add`/`remove` result stops an error widget from scheduling itself again
+  /// on every rebuild.
+  void _markPageFailed(int index) {
+    if (!_failedPageIndices.add(index)) return;
+    _scheduleFailureListRefresh();
+  }
+
+  void _markPageLoaded(int index) {
+    if (!_failedPageIndices.remove(index)) return;
+    _scheduleFailureListRefresh();
+  }
+
+  void _scheduleFailureListRefresh() {
+    if (!mounted) return;
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      if (mounted) setState(() {});
+    });
+  }
+
   Future<void> _retryPage(int index, String? localPath) async {
     if (index < 0 || index >= _pages.length) return;
 
@@ -5059,11 +5093,68 @@ class _ReaderScreenState extends ConsumerState<ReaderScreen>
     });
   }
 
+  /// Re-fetches a downloaded page from the network and overwrites the stored
+  /// file. A plain retry can only re-read the same corrupt/truncated file.
+  Future<void> _redownloadPage(int index, String? localPath) async {
+    if (index < 0 || index >= _pages.length || localPath == null) return;
+    final url = _pages[index];
+    if (url.isEmpty) return;
+
+    final readerSource = widget.sourceId == null
+        ? null
+        : getSourceBySourceId(widget.sourceId!);
+    final ok = await ChapterDownloader.redownloadPage(
+      url: url,
+      localPath: localPath,
+      headers: _activeRequestHeaders ??
+          readerSource?.headers ??
+          ref.read(currentSourceProvider).headers,
+    );
+    if (!mounted) return;
+    diagSoon(
+      'reader re-download page ${index + 1} local=${localPath != null} '
+      'result=${ok ? "ok" : "failed"} url=$url',
+    );
+    if (!ok) {
+      showIosToast(
+        context,
+        message: AppLocalizations.of(context).readerRedownloadFailed,
+      );
+      return;
+    }
+    setState(() {
+      _pageRetryTokens[index] = (_pageRetryTokens[index] ?? 0) + 1;
+    });
+  }
+
+  /// Retries every page currently showing an error. Downloaded pages are
+  /// re-fetched from the network; network pages drop their cached copy and
+  /// request again.
+  Future<void> _retryAllFailedPages() async {
+    if (_failedPageIndices.isEmpty) return;
+    final indices = _failedPageIndices.toList()..sort();
+    diagSoon('reader retry-all ${indices.length} pages: $indices');
+    // Clear up front: anything that still fails re-adds itself via the error
+    // widget, while a success clears via onImageSize.
+    setState(() => _failedPageIndices.clear());
+    for (final i in indices) {
+      if (!mounted) return;
+      if (i < 0 || i >= _pages.length) continue;
+      final localPath = i < _pageFiles.length ? _pageFiles[i] : null;
+      if (localPath != null && File(localPath).existsSync()) {
+        await _redownloadPage(i, localPath);
+      } else {
+        await _retryPage(i, null);
+      }
+    }
+  }
+
   Widget _buildPageError({
     required int index,
     String? localPath,
     Object? error,
   }) {
+    _markPageFailed(index);
     // A page that will not load says only "Failed to load page" on screen, and
     // the reader's prefetch swallows the same failure silently, so a source
     // whose images the app cannot fetch looks identical to a flaky network.
@@ -5073,6 +5164,9 @@ class _ReaderScreenState extends ConsumerState<ReaderScreen>
       'local=${localPath != null} headers=${_activeRequestHeaders != null} '
       'err=$error url=${index < _pages.length ? _pages[index] : "?"}',
     );
+    final l = AppLocalizations.of(context);
+    final isLocal = localPath != null;
+    final failedCount = _failedPageIndices.length;
     return Container(
       height: 200,
       color: amoled(context, 0xFF1E1E20),
@@ -5082,15 +5176,35 @@ class _ReaderScreenState extends ConsumerState<ReaderScreen>
           const Icon(MdiIcons.imageMultipleOutline, color: Colors.white54, size: 32),
           const SizedBox(height: 8),
           Text(
-            AppLocalizations.of(context).readerFailedLoadPage,
+            l.readerFailedLoadPage,
             style: const TextStyle(color: Colors.white54, fontSize: 12),
           ),
           const SizedBox(height: 12),
-          TextButton.icon(
-            onPressed: () => _retryPage(index, localPath),
-            icon: const Icon(MdiIcons.refresh, size: 18),
-            label: Text(AppLocalizations.of(context).retry),
-            style: TextButton.styleFrom(foregroundColor: Colors.white),
+          // Offering both keeps the bulk action discoverable exactly when the
+          // user is looking at a failure, without a shortcut only in the menu.
+          Wrap(
+            alignment: WrapAlignment.center,
+            spacing: 4,
+            children: [
+              TextButton.icon(
+                onPressed: () => isLocal
+                    ? _redownloadPage(index, localPath)
+                    : _retryPage(index, null),
+                icon: Icon(
+                  isLocal ? MdiIcons.download : MdiIcons.refresh,
+                  size: 18,
+                ),
+                label: Text(isLocal ? l.readerRedownloadPage : l.retry),
+                style: TextButton.styleFrom(foregroundColor: Colors.white),
+              ),
+              if (failedCount > 1)
+                TextButton.icon(
+                  onPressed: _retryAllFailedPages,
+                  icon: const Icon(MdiIcons.refreshCircle, size: 18),
+                  label: Text(l.readerRetryAllFailed(failedCount)),
+                  style: TextButton.styleFrom(foregroundColor: Colors.white),
+                ),
+            ],
           ),
         ],
       ),

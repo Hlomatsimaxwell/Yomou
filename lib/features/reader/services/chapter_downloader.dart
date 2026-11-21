@@ -94,19 +94,12 @@ class ChapterDownloader {
       final file = File(p.join(dir.path, _pageFileName(i, url)));
       final exists = await file.exists();
       if (!exists) {
+        final bytes = await _fetchPageBytes(url, headers);
+        if (bytes == null) {
+          await dir.delete(recursive: true);
+          return null;
+        }
         try {
-          final response = await http.get(Uri.parse(url), headers: headers);
-          if (response.statusCode != 200) {
-            await dir.delete(recursive: true);
-            return null;
-          }
-          var bytes = response.bodyBytes;
-          final mfOffset = MfScramble.offsetFromUrl(url);
-          if (mfOffset != null) {
-            // Offline pages must be stored de-scrambled or the file is tiled.
-            final fixed = MfScramble.unscramble(bytes, mfOffset);
-            if (fixed != null) bytes = fixed;
-          }
           await file.writeAsBytes(bytes, flush: true);
         } catch (_) {
           await dir.delete(recursive: true);
@@ -117,6 +110,55 @@ class ChapterDownloader {
       onProgress?.call(i + 1, pages.length);
     }
     return saved;
+  }
+
+  /// Fetches one page, undoing any source-side scramble so the bytes are safe
+  /// to store on disk. Returns null on a non-200 response or a network error.
+  static Future<List<int>?> _fetchPageBytes(
+    String url,
+    Map<String, String>? headers,
+  ) async {
+    try {
+      final response = await http.get(Uri.parse(url), headers: headers);
+      if (response.statusCode != 200) return null;
+      var bytes = response.bodyBytes;
+      final mfOffset = MfScramble.offsetFromUrl(url);
+      if (mfOffset != null) {
+        final fixed = MfScramble.unscramble(bytes, mfOffset);
+        if (fixed != null) bytes = fixed;
+      }
+      return bytes;
+    } catch (_) {
+      return null;
+    }
+  }
+
+  /// Re-fetches a single downloaded page over the network and replaces the
+  /// local file. Used by the reader's per-page "Re-download" action when a
+  /// stored page is corrupt or truncated: plain retry only re-reads the same
+  /// broken file. Writes to a sibling temp file first so a failed fetch never
+  /// leaves a half-written page behind.
+  static Future<bool> redownloadPage({
+    required String url,
+    required String localPath,
+    Map<String, String>? headers,
+  }) async {
+    if (url.isEmpty) return false;
+    final bytes = await _fetchPageBytes(url, headers);
+    if (bytes == null) return false;
+
+    final temp = File('$localPath.tmp');
+    try {
+      await temp.writeAsBytes(bytes, flush: true);
+      await temp.rename(localPath);
+      return true;
+    } catch (_) {
+      // Leave the original file untouched; the user can retry.
+      try {
+        if (await temp.exists()) await temp.delete();
+      } catch (_) {}
+      return false;
+    }
   }
 
   static Future<void> removeChapterFiles(

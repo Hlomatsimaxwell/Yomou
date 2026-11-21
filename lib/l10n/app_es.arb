@@ -511,6 +511,9 @@
     }
   },
   "readerFailedLoadPage": "No se pudo cargar la página",
+  "readerRedownloadPage": "Volver a descargar",
+  "readerRedownloadFailed": "No se pudo volver a descargar la página",
+  "readerRetryAllFailed": "Reintentar fallidos ({count})",
   "readerLoadingNextChapter": "Cargando el siguiente capítulo...",
   "readerReachedLatestChapter": "¡Has llegado al último capítulo!",
   "readerPreviousChapter": "Capítulo anterior",
