@@ -35,9 +35,8 @@ final Map<String, MadaraSiteConfig> catalogMadaraById = {
   for (final config in catalogMadaraConfigs) config.id: config,
 };
 
-/// Source-list rows for the catalog. Disabled by default: 90+ extra sources
-/// would otherwise join every global search fan-out and updates refresh before
-/// the reader has asked for any of them.
+/// Source-list rows for the catalog. Enabled by default; a source the user
+/// never uses can be switched off in Manage sources.
 List<Map<String, dynamic>> get catalogSourceRows => [
   for (final raw in jsonDecode(kCatalogMadaraJson) as List)
     {
