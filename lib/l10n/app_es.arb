@@ -478,6 +478,12 @@
       "title": {}
     }
   },
+  "readerDownloadingChapter": "Descargando {title}",
+  "@readerDownloadingChapter": {
+    "placeholders": {
+      "title": {}
+    }
+  },
   "readerRemoveDownloadTitle": "¿Quitar descarga?",
   "readerThisChapter": "Este capítulo",
   "readerSavedFromChapter": "Guardado desde {title}",

@@ -713,6 +713,12 @@
       "title": {}
     }
   },
+  "readerDownloadingChapter": "Downloading {title}",
+  "@readerDownloadingChapter": {
+    "placeholders": {
+      "title": {}
+    }
+  },
   "readerRemoveDownloadTitle": "Remove download?",
   "readerThisChapter": "This chapter",
   "readerSavedFromChapter": "Saved from {title}",

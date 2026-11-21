@@ -428,6 +428,12 @@ class _MangaDetailScreenState extends ConsumerState<MangaDetailScreen> {
     _loadBookmarks();
     _loadDetailPreferences();
 
+    // A batch keeps running in the foreground service after this screen is
+    // left. Restore its row so navigating back to this manga shows the live
+    // banner and per-chapter indicators again, rather than only the device
+    // notification knowing that pages are still being written.
+    _restoreActiveJob();
+
     _sheetController.addListener(() {
       final currentSize = _sheetController.size;
       final isTop = currentSize > 0.8;
@@ -2463,6 +2469,16 @@ class _MangaDetailScreenState extends ConsumerState<MangaDetailScreen> {
     showIosToast(context, message: l.dlgQueuedDownload(result.queued));
   }
 
+  /// Reattaches to a batch for this series that was started from an earlier
+  /// screen instance. The job itself is owned by the foreground service and
+  /// lives in the database; only this screen's mirror of it was lost on dispose.
+  Future<void> _restoreActiveJob() async {
+    final job = await DownloadScheduler.openJobForManga(widget.mangaId);
+    if (!mounted || job == null || !job.status.isOpen) return;
+    setState(() => _activeJob = job);
+    _watchJob(job.jobId);
+  }
+
   /// Polls the job row so the banner and per-chapter rings stay live while this
   /// screen is on top. Stops itself once the job reaches a terminal state.
   void _watchJob(String? jobId) {
@@ -2483,7 +2499,11 @@ class _MangaDetailScreenState extends ConsumerState<MangaDetailScreen> {
         bumpDownloadsRevision(ref);
         return;
       }
+      final justFinished = job.doneChapters > (_activeJob?.doneChapters ?? 0);
       setState(() => _activeJob = job);
+      // Light up the SD badge for a chapter that completed while we were away
+      // (or between polls) instead of waiting for the whole batch to end.
+      if (justFinished) bumpDownloadsRevision(ref);
     });
   }
 

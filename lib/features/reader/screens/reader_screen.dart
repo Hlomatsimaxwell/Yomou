@@ -36,6 +36,7 @@ import 'package:yomou/data/models/chapter.dart';
 import 'package:yomou/data/models/manga_source.dart';
 import 'package:yomou/features/history/providers/history_provider.dart';
 import 'package:yomou/features/library/providers/downloads_provider.dart';
+import 'package:yomou/features/library/widgets/chapter_job_indicator.dart';
 import 'package:yomou/features/settings/providers/cache_settings_provider.dart';
 import 'package:yomou/features/settings/providers/download_settings_provider.dart';
 import 'package:yomou/features/settings/providers/reader_actions_provider.dart';
@@ -356,6 +357,12 @@ class _ReaderScreenState extends ConsumerState<ReaderScreen>
   final Set<String> _downloadedChapters = {};
   final Map<String, _ChapterDownloadTask> _activeDownloads = {};
 
+  /// The job for this series while it is live, restored from the database when
+  /// the reader opens so its chapter tray can mark chapters being downloaded
+  /// even if the batch was started from the detail screen or a previous visit.
+  DownloadJob? _activeJob;
+  Timer? _downloadJobPoll;
+
   // Chapter tray selection mode.
   final Set<String> _selectedIds = {};
   bool _selectionMode = false;
@@ -433,6 +440,7 @@ class _ReaderScreenState extends ConsumerState<ReaderScreen>
     _loadBookmarks();
     _loadProgress();
     _loadDownloads().then((_) => _loadChapter(_currentChapterIndex));
+    _restoreActiveDownloadJob();
 
     // Remembered page heights come from the previous session: the first
     // placeholder drawn for a page can then reserve the height that page will
@@ -715,6 +723,7 @@ class _ReaderScreenState extends ConsumerState<ReaderScreen>
     _sessionStopwatch.stop();
     WidgetsBinding.instance.removeObserver(this);
     _statusTimer?.cancel();
+    _downloadJobPoll?.cancel();
     // The immersive overlay on every exit path restores the normal system UI,
     // and the orientation the reader took goes back with it.
     _restoreSystemUi();
@@ -2260,6 +2269,7 @@ class _ReaderScreenState extends ConsumerState<ReaderScreen>
         final isCurrent = index == currentIndex;
         final isSelected = _selectedIds.contains(chapter.id);
         final isRead = _lastReadChapter >= 0 && (index + 1) <= _lastReadChapter;
+        final jobState = _downloadChapterState(chapter.id);
 
         return ListTile(
           key: ValueKey(chapter.id),
@@ -2322,22 +2332,33 @@ class _ReaderScreenState extends ConsumerState<ReaderScreen>
                   color: Theme.of(context).colorScheme.primary,
                   size: 18,
                 )
-              : _downloadedChapters.contains(chapter.id)
+              : jobState != ChapterJobState.none
                   ? Tooltip(
-                      message: AppLocalizations.of(context).readerDownloadedChapter(
+                      message: AppLocalizations.of(context).readerDownloadingChapter(
                         chapter.title.isEmpty
                             ? AppLocalizations.of(context).chapterNum(
                                 chapter.chapterNumber,
                               )
                             : chapter.title,
                       ),
-                      child: Icon(
-                        MdiIcons.sd,
-                        color: Theme.of(context).colorScheme.primary,
-                        size: 16,
-                      ),
+                      child: ChapterJobIndicator(state: jobState, isDark: dark),
                     )
-                  : null,
+                  : _downloadedChapters.contains(chapter.id)
+                      ? Tooltip(
+                          message: AppLocalizations.of(context).readerDownloadedChapter(
+                            chapter.title.isEmpty
+                                ? AppLocalizations.of(context).chapterNum(
+                                    chapter.chapterNumber,
+                                  )
+                                : chapter.title,
+                          ),
+                          child: Icon(
+                            MdiIcons.sd,
+                            color: Theme.of(context).colorScheme.primary,
+                            size: 16,
+                          ),
+                        )
+                      : null,
           onTap: () {
             if (_selectionMode) {
               _toggleSelection(chapter.id);
@@ -3905,6 +3926,49 @@ class _ReaderScreenState extends ConsumerState<ReaderScreen>
     return ref.read(currentSourceProvider);
   }
 
+  /// Reattaches to a batch for this series that was started from an earlier
+  /// screen instance. The worker and its notification keep running while the
+  /// reader is open; only the tray's mirror of that job had been lost.
+  Future<void> _restoreActiveDownloadJob() async {
+    final job = await DownloadScheduler.openJobForManga(widget.mangaId);
+    if (!mounted || job == null || !job.status.isOpen) return;
+    setState(() => _activeJob = job);
+    _refreshTray();
+
+    _downloadJobPoll?.cancel();
+    _downloadJobPoll = Timer.periodic(const Duration(milliseconds: 400), (_) async {
+      final live = await DownloadScheduler.load(job.jobId);
+      if (!mounted) {
+        _downloadJobPoll?.cancel();
+        return;
+      }
+      if (live == null || !live.status.isOpen) {
+        _downloadJobPoll?.cancel();
+        setState(() => _activeJob = null);
+        _refreshTray();
+        return;
+      }
+      setState(() => _activeJob = live);
+      _refreshTray();
+    });
+  }
+
+  /// Where a chapter sits in the live batch, so the tray can mark the chapter
+  /// being written, the ones queued behind it, and the ones already on disk.
+  ChapterJobState _downloadChapterState(String chapterId) {
+    final job = _activeJob;
+    if (job == null || !job.status.isOpen) return ChapterJobState.none;
+    final index = job.chapters.indexWhere((c) => c.id == chapterId);
+    if (index < 0) return ChapterJobState.none;
+    if (index < job.doneChapters) return ChapterJobState.saved;
+    if (index == job.doneChapters) {
+      return job.status == DownloadJobStatus.running
+          ? ChapterJobState.active
+          : ChapterJobState.pending;
+    }
+    return ChapterJobState.pending;
+  }
+
   /// Polls a job row until it reaches a terminal state, mirroring its page
   /// progress into the reader's inline indicator for [chapterId].
   ///
@@ -3913,6 +3977,9 @@ class _ReaderScreenState extends ConsumerState<ReaderScreen>
   /// keeps going and the notification keeps reporting.
   Future<bool> _awaitJob(String? jobId, String chapterId) async {
     if (jobId == null) return false;
+    // This loop now owns the live mirror; a restored poll on the same job would
+    // only fight it over _activeJob.
+    _downloadJobPoll?.cancel();
     final task = _ChapterDownloadTask()..jobId = jobId;
     setState(() => _activeDownloads[chapterId] = task);
     _refreshTray();
@@ -3921,7 +3988,10 @@ class _ReaderScreenState extends ConsumerState<ReaderScreen>
       final job = await DownloadScheduler.load(jobId);
       if (!mounted) break;
       if (job == null) {
-        setState(() => _activeDownloads.remove(chapterId));
+        setState(() {
+          _activeDownloads.remove(chapterId);
+          _activeJob = null;
+        });
         _refreshTray();
         return false;
       }
@@ -3929,12 +3999,15 @@ class _ReaderScreenState extends ConsumerState<ReaderScreen>
         ..done = job.donePages
         ..total = job.totalPages;
       if (job.status.isOpen) {
-        setState(() {});
+        setState(() => _activeJob = job);
         _refreshTray();
         await Future<void>.delayed(const Duration(milliseconds: 400));
         continue;
       }
-      setState(() => _activeDownloads.remove(chapterId));
+      setState(() {
+        _activeDownloads.remove(chapterId);
+        _activeJob = null;
+      });
       _refreshTray();
       return job.status == DownloadJobStatus.completed;
     }

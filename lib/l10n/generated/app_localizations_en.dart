@@ -1507,6 +1507,11 @@ class AppLocalizationsEn extends AppLocalizations {
   }
 
   @override
+  String readerDownloadingChapter(Object title) {
+    return 'Downloading $title';
+  }
+
+  @override
   String get readerRemoveDownloadTitle => 'Remove download?';
 
   @override

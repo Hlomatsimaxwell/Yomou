@@ -2816,6 +2816,12 @@ abstract class AppLocalizations {
   /// **'Downloaded {title}'**
   String readerDownloadedChapter(Object title);
 
+  /// No description provided for @readerDownloadingChapter.
+  ///
+  /// In en, this message translates to:
+  /// **'Downloading {title}'**
+  String readerDownloadingChapter(Object title);
+
   /// No description provided for @readerRemoveDownloadTitle.
   ///
   /// In en, this message translates to:
