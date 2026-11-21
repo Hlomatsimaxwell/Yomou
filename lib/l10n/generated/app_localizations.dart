@@ -4723,6 +4723,12 @@ abstract class AppLocalizations {
   /// **'Suggestions refresh rate'**
   String get suggestionsRefreshTitle;
 
+  /// No description provided for @suggestionsLoadMore.
+  ///
+  /// In en, this message translates to:
+  /// **'Load more'**
+  String get suggestionsLoadMore;
+
   /// No description provided for @sourceFilter.
   ///
   /// In en, this message translates to:

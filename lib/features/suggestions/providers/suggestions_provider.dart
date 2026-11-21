@@ -111,6 +111,30 @@ List<Manga> _mixSources(
   return out;
 }
 
+/// Appends [incoming] to [existing], dropping duplicates by source id or
+/// normalized title -- the same keys [_mixSources] uses within a single page.
+/// Without this, the same series surfacing on two different sources could show
+/// up once per page as the feed grows.
+List<Manga> _appendUnique(List<Manga> existing, List<Manga> incoming) {
+  final seenIds = <String>{
+    for (final m in existing) if (m.id.isNotEmpty) '${m.sourceId}:${m.id}',
+  };
+  final seenTitles = <String>{};
+  for (final m in existing) {
+    final key = _titleKey(m.title);
+    if (key.isNotEmpty) seenTitles.add(key);
+  }
+  final out = [...existing];
+  for (final m in incoming) {
+    if (m.id.isEmpty) continue;
+    if (!seenIds.add('${m.sourceId}:${m.id}')) continue;
+    final key = _titleKey(m.title);
+    if (key.isNotEmpty && !seenTitles.add(key)) continue;
+    out.add(m);
+  }
+  return out;
+}
+
 /// Runs a source fan-out that gives up on nothing.
 ///
 /// A pass that comes back empty is provisional, not final: every source is
@@ -151,52 +175,51 @@ List<T> spreadAcross<T>(List<T> items, int limit) {
   return [for (var i = 0; i < limit; i++) items[(i * step).floor()]];
 }
 
-Future<List<Manga>> _tags(MangaSource source, List<String> tags) {
+Future<List<Manga>> _tags(MangaSource source, List<String> tags,
+    {int page = 1}) {
   return SourceCache.mangaList(
     sourceId: source.id,
     kind: 'tags',
     arg: tags.join(',').toLowerCase(),
-    page: 1,
-    fetch: () => source.searchMangaByTags(tags),
+    page: page,
+    fetch: () => source.searchMangaByTags(tags, page: page),
   ).timeout(_sourceTimeout, onTimeout: () => const []);
 }
 
-Future<List<Manga>> _popular(MangaSource source) {
+Future<List<Manga>> _popular(MangaSource source, {int page = 1}) {
   return SourceCache.mangaList(
     sourceId: source.id,
     kind: 'popular',
-    page: 1,
-    fetch: () => source.getPopularManga(page: 1),
+    page: page,
+    fetch: () => source.getPopularManga(page: page),
   ).timeout(_sourceTimeout, onTimeout: () => const []);
 }
 
-/// Suggestion feed aggregated across every active source.
+/// Fetches one page of the aggregated suggestions feed.
 ///
 /// - A specific [genre] searches that genre on all sources; an empty result is
 ///   valid, so the UI can show a "no results for this genre" state.
 /// - With no genre, taste is derived from the tags of manga the user has
 ///   actually opened (history + favorites). A fresh install has no such tags,
 ///   so the feed starts as popular-across-sources and leans toward the user's
-///   genres as they read. Sources that match the taste tags contribute those
-///   first; the rest fill in with their popular list.
-final suggestionsProvider = FutureProvider.family<List<Manga>, String?>((
-  ref,
-  genre,
-) async {
-  // Re-roll the feed on a timer (recommendations + the Explore featured
-  // carousel) without any interaction.
-  ref.watch(periodicSuggestionsRefreshProvider);
-  final sources = boundVariantFamilies(
-    sourcesFromRows(ref.watch(visibleSourceRowsProvider)),
-  );
-  if (sources.isEmpty) return [];
+///   genres as they read.
+///
+/// Shared by the plain first-page [suggestionsProvider] (Explore carousel,
+/// selection bar) and the paginated [suggestionsFeedProvider] (Suggestions
+/// tab) so the two never disagree about what "page 1" means.
+Future<List<Manga>> _fetchSuggestionPage(
+  List<MangaSource> sources,
+  String? genre, {
+  required int page,
+}) async {
+  if (sources.isEmpty) return const [];
 
   if (genre != null) {
     final perSource = await WebViewFetcher.runBackground(
       () => _fanout(
         sources.map((source) async {
           try {
-            final res = await _tags(source, [genre]);
+            final res = await _tags(source, [genre], page: page);
             return res.take(_perSourceCap).toList();
           } catch (_) {
             return <Manga>[];
@@ -242,7 +265,8 @@ final suggestionsProvider = FutureProvider.family<List<Manga>, String?>((
       if (total > 0) {
         percent = (lastReadChapter.clamp(0.0, total.toDouble()) / total);
       }
-      final lastReadAt = DateTime.tryParse(row['lastReadAt']?.toString() ?? '');
+      final lastReadAt =
+          DateTime.tryParse(row['lastReadAt']?.toString() ?? '');
       if (isDropped(percent, lastReadAt, DateTime.now())) continue;
       seedRows.add(row);
     }
@@ -275,12 +299,12 @@ final suggestionsProvider = FutureProvider.family<List<Manga>, String?>((
       sources.map((source) async {
         try {
           if (rankedTags.isNotEmpty) {
-            final matched = await _tags(source, rankedTags);
+            final matched = await _tags(source, rankedTags, page: page);
             if (matched.isNotEmpty) {
               return matched.take(_perSourceCap).toList();
             }
           }
-          final pop = await _popular(source);
+          final pop = await _popular(source, page: page);
           return pop.take(_perSourceCap).toList();
         } catch (_) {
           return const <Manga>[];
@@ -292,9 +316,156 @@ final suggestionsProvider = FutureProvider.family<List<Manga>, String?>((
           _minResults.clamp(2, sources.length),
     ),
   );
-
   return _mixSources(perSource);
+}
+
+/// Fetches one page of the aggregated feed. Indirected through a provider so
+/// pagination can be exercised in tests without the source cache/WebView stack.
+typedef SuggestionPageFetcher = Future<List<Manga>> Function(
+  List<MangaSource> sources,
+  String? genre, {
+  required int page,
 });
+
+final suggestionPageFetcherProvider = Provider<SuggestionPageFetcher>((ref) {
+  return _fetchSuggestionPage;
+});
+
+/// Suggestion feed aggregated across every active source, first page only.
+///
+/// Kept as a plain [FutureProvider] so consumers that only need the manga list
+/// (Explore's featured carousel, the Suggestions selection bar, and tests) do
+/// not have to unwrap pagination state. The Suggestions tab itself uses
+/// [suggestionsFeedProvider] so it can append further pages.
+final suggestionsProvider = FutureProvider.family<List<Manga>, String?>((
+  ref,
+  genre,
+) async {
+  // Re-roll the feed on a timer (recommendations + the Explore featured
+  // carousel) without any interaction.
+  ref.watch(periodicSuggestionsRefreshProvider);
+  final sources = boundVariantFamilies(
+    sourcesFromRows(ref.watch(visibleSourceRowsProvider)),
+  );
+  return ref.watch(suggestionPageFetcherProvider)(sources, genre, page: 1);
+});
+
+/// One page of the paginated suggestions feed plus load-more state.
+class SuggestionsState {
+  const SuggestionsState({
+    required this.items,
+    required this.page,
+    required this.hasMore,
+    this.loadingMore = false,
+  });
+
+  /// The manga loaded so far, already de-duplicated and mixed across sources.
+  final List<Manga> items;
+  /// The last page that was loaded (1-based).
+  final int page;
+  /// Whether another page of results exists.
+  final bool hasMore;
+  /// True while a load-more pass is in flight.
+  final bool loadingMore;
+
+  SuggestionsState copyWith({
+    List<Manga>? items,
+    int? page,
+    bool? hasMore,
+    bool? loadingMore,
+  }) {
+    return SuggestionsState(
+      items: items ?? this.items,
+      page: page ?? this.page,
+      hasMore: hasMore ?? this.hasMore,
+      loadingMore: loadingMore ?? this.loadingMore,
+    );
+  }
+}
+
+/// Paginated suggestion feed used by the Suggestions tab.
+///
+/// Each call to [loadMore] fetches the next page from every source and appends
+/// it, so the feed grows as the user reads rather than resolving everything up
+/// front. [reload] re-loads page 1, discarding previously loaded pages.
+class SuggestionsFeedNotifier
+    extends FamilyAsyncNotifier<SuggestionsState, String?> {
+  int _page = 1;
+  bool _loading = false;
+
+  List<MangaSource> _sources({required bool watch}) {
+    final rows = watch
+        ? ref.watch(visibleSourceRowsProvider)
+        : ref.read(visibleSourceRowsProvider);
+    return boundVariantFamilies(sourcesFromRows(rows));
+  }
+
+  @override
+  Future<SuggestionsState> build(String? genre) async {
+    _page = 1;
+    // Re-roll the feed on the periodic refresh timer.
+    ref.watch(periodicSuggestionsRefreshProvider);
+    final fetch = ref.watch(suggestionPageFetcherProvider);
+    final items = await fetch(_sources(watch: true), genre, page: 1);
+    return SuggestionsState(
+      items: items,
+      page: 1,
+      hasMore: items.isNotEmpty,
+    );
+  }
+
+  /// Fetches the next page and appends it to the feed. No-op when already
+  /// loading or when no more results exist.
+  Future<void> loadMore() async {
+    if (_loading) return;
+    final current = state.valueOrNull;
+    if (current == null || !current.hasMore) return;
+
+    _loading = true;
+    state = AsyncValue.data(current.copyWith(loadingMore: true));
+    try {
+      final nextPage = _page + 1;
+      final fetch = ref.read(suggestionPageFetcherProvider);
+      final items = await fetch(_sources(watch: false), arg, page: nextPage);
+      _page = nextPage;
+      state = AsyncValue.data(SuggestionsState(
+        items: _appendUnique(current.items, items),
+        page: nextPage,
+        hasMore: items.isNotEmpty,
+        loadingMore: false,
+      ));
+    } catch (e) {
+      state = AsyncValue.data(current.copyWith(loadingMore: false));
+      rethrow;
+    } finally {
+      _loading = false;
+    }
+  }
+
+  /// Re-loads page 1, discarding any previously loaded pages (pull-to-refresh).
+  Future<void> reload() async {
+    _page = 1;
+    try {
+      final fetch = ref.read(suggestionPageFetcherProvider);
+      final items = await fetch(_sources(watch: false), arg, page: 1);
+      state = AsyncValue.data(SuggestionsState(
+        items: items,
+        page: 1,
+        hasMore: items.isNotEmpty,
+      ));
+    } catch (e, st) {
+      state = AsyncValue.error(e, st);
+    }
+  }
+}
+
+/// Paginated variant of [suggestionsProvider] backing the Suggestions tab's
+/// load-more button. Read `.value?.items` for the manga and `.value?.hasMore`
+/// / `.value?.loadingMore` for the load-more UI.
+final suggestionsFeedProvider = AsyncNotifierProvider.family<
+    SuggestionsFeedNotifier, SuggestionsState, String?>(
+  SuggestionsFeedNotifier.new,
+);
 
 /// Genre/theme chips unioned across the active sources, so the filter strip
 /// isn't limited to whichever source happens to be selected.

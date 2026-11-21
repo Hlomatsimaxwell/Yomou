@@ -1102,6 +1102,7 @@
   "refreshWeekly": "Cada semana",
   "suggestionsRefresh": "Actualizar sugerencias",
   "suggestionsRefreshTitle": "Frecuencia de sugerencias",
+  "suggestionsLoadMore": "Cargar más",
   "@descubrePick": {
     "placeholders": {
       "source": {

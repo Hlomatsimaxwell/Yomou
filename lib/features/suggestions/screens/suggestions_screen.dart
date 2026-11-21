@@ -68,6 +68,8 @@ class _SuggestionsScreenState extends ConsumerState<SuggestionsScreen> {
     if (!mounted) return;
     setState(() {
       _listMode = prefs.getString('suggestions_list_mode') ?? 'Grid';
+      final stored = prefs.getString('suggestions_selected_genre');
+      _selectedGenre = stored == null || stored.isEmpty ? null : stored;
     });
   }
 
@@ -79,6 +81,17 @@ class _SuggestionsScreenState extends ConsumerState<SuggestionsScreen> {
       await prefs.setDouble(key, value);
     } else if (value is bool) {
       await prefs.setBool(key, value);
+    }
+  }
+
+  /// Persists the selected genre chip so it survives closing and reopening the
+  /// tab. Removes the key when the personalised (no-genre) feed is selected.
+  Future<void> _saveSelectedGenre() async {
+    final prefs = await SharedPreferences.getInstance();
+    if (_selectedGenre == null) {
+      await prefs.remove('suggestions_selected_genre');
+    } else {
+      await prefs.setString('suggestions_selected_genre', _selectedGenre!);
     }
   }
 
@@ -102,8 +115,10 @@ class _SuggestionsScreenState extends ConsumerState<SuggestionsScreen> {
     }
     ref.invalidate(genreTagsProvider);
     ref.invalidate(suggestionsProvider(_selectedGenre));
+    ref.invalidate(suggestionsFeedProvider(_selectedGenre));
     try {
       await ref.read(suggestionsProvider(_selectedGenre).future);
+      await ref.read(suggestionsFeedProvider(_selectedGenre).future);
     } catch (_) {}
     _refreshing = false;
   }
@@ -224,8 +239,8 @@ class _SuggestionsScreenState extends ConsumerState<SuggestionsScreen> {
       );
     }
 
-    final suggestionsAsync = ref.read(suggestionsProvider(_selectedGenre));
-    final allManga = suggestionsAsync.valueOrNull ?? const <Manga>[];
+    final suggestionsAsync = ref.read(suggestionsFeedProvider(_selectedGenre));
+    final allManga = suggestionsAsync.valueOrNull?.items ?? const <Manga>[];
 
     final actions = <Widget>[
       navAction(
@@ -347,8 +362,9 @@ class _SuggestionsScreenState extends ConsumerState<SuggestionsScreen> {
   Widget build(BuildContext context) {
     _gridSize = ref.watch(appearanceSettingsProvider).gridSize;
     // Passing _selectedGenre as the family key; provider re-fetches when it changes.
-    final suggestionsAsync = ref.watch(suggestionsProvider(_selectedGenre));
+    final suggestionsAsync = ref.watch(suggestionsFeedProvider(_selectedGenre));
     final genreTagsAsync = ref.watch(genreTagsProvider);
+    final snapshot = suggestionsAsync.valueOrNull;
 
     return Scaffold(
       backgroundColor: Theme.of(context).scaffoldBackgroundColor,
@@ -383,7 +399,7 @@ class _SuggestionsScreenState extends ConsumerState<SuggestionsScreen> {
                 ),
               ),
               suggestionsAsync.when(
-                data: (mangaList) => _buildMangaList(mangaList),
+                data: (feed) => _buildMangaList(feed.items),
                 loading: () => SliverToBoxAdapter(
                   child: Padding(
                     padding: const EdgeInsets.symmetric(vertical: 60),
@@ -412,6 +428,16 @@ class _SuggestionsScreenState extends ConsumerState<SuggestionsScreen> {
                   ),
                 ),
               ),
+              // Load-more: a button while more pages exist, a spinner while the
+              // next page is in flight, nothing once the feed is exhausted.
+              if (snapshot != null && snapshot.hasMore && !snapshot.loadingMore)
+                SliverToBoxAdapter(
+                  child: _buildLoadMoreButton(),
+                ),
+              if (snapshot != null && snapshot.loadingMore)
+                const SliverToBoxAdapter(
+                  child: _LoadMoreIndicator(),
+                ),
               SliverPadding(
                 padding: EdgeInsets.only(bottom: bottomBarClearance(context)),
               ),
@@ -737,6 +763,7 @@ class _SuggestionsScreenState extends ConsumerState<SuggestionsScreen> {
                 setState(() {
                   _selectedGenre = isSelected ? null : tag;
                 });
+                _saveSelectedGenre();
               },
               child: Container(
                 padding: const EdgeInsets.symmetric(
@@ -801,6 +828,45 @@ class _SuggestionsScreenState extends ConsumerState<SuggestionsScreen> {
       'Details' => _buildDetailsList(context, items),
       _ => _buildMangaGrid(items),
     };
+  }
+
+  Widget _buildLoadMoreButton() {
+    final l = AppLocalizations.of(context);
+    final dark = Theme.of(context).brightness == Brightness.dark;
+    return Padding(
+      padding: const EdgeInsets.symmetric(vertical: 12),
+      child: Center(
+        child: GestureDetector(
+          onTap: () async {
+            try {
+              await ref
+                  .read(suggestionsFeedProvider(_selectedGenre).notifier)
+                  .loadMore();
+            } catch (_) {
+              // loadMore restores the previous state; the button reappears so
+              // the user can retry without a crash from an unawaited future.
+            }
+          },
+          child: Container(
+            padding: const EdgeInsets.symmetric(horizontal: 18, vertical: 8),
+            decoration: BoxDecoration(
+              color: dark ? Colors.white10 : Colors.black12,
+              borderRadius: BorderRadius.circular(20),
+              border: Border.all(
+                color: dark ? Colors.white24 : Colors.black26,
+              ),
+            ),
+            child: Text(
+              l.suggestionsLoadMore,
+              style: TextStyle(
+                color: dark ? Colors.white : const Color(0xFF1C1B1F),
+                fontWeight: FontWeight.w500,
+              ),
+            ),
+          ),
+        ),
+      ),
+    );
   }
 
   Widget _buildCompactList(BuildContext context, List<Manga> items) {
@@ -1187,6 +1253,23 @@ class _SuggestionsScreenState extends ConsumerState<SuggestionsScreen> {
             ),
           ),
         ],
+      ),
+    );
+  }
+}
+
+/// Spinner shown at the foot of the feed while the next page is in flight.
+class _LoadMoreIndicator extends StatelessWidget {
+  const _LoadMoreIndicator();
+
+  @override
+  Widget build(BuildContext context) {
+    return Padding(
+      padding: const EdgeInsets.symmetric(vertical: 16),
+      child: Center(
+        child: CircularProgressIndicator(
+          color: Theme.of(context).colorScheme.primary,
+        ),
       ),
     );
   }

@@ -2660,6 +2660,9 @@ class AppLocalizationsEs extends AppLocalizations {
   String get suggestionsRefreshTitle => 'Frecuencia de sugerencias';
 
   @override
+  String get suggestionsLoadMore => 'Cargar más';
+
+  @override
   String get sourceFilter => 'Filtro';
 
   @override
