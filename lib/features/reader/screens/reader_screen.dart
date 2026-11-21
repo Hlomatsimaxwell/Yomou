@@ -1158,16 +1158,14 @@ class _ReaderScreenState extends ConsumerState<ReaderScreen>
   int _verticalPageForOffset(double offset) {
     final count = _pages.length;
     if (count <= 1) return 0;
-    // Reaching the bottom of the scroll has read every page, exactly like
-    // the last page of a paged chapter: the trailing page can be shorter than
-    // the viewport, so its top is unreachable and the "top edge" rule alone
-    // would never report it.
-    if (_scrollController.hasClients) {
-      final pos = _scrollController.position;
-      if (pos.maxScrollExtent > 0 && offset >= pos.maxScrollExtent - 2) {
-        return count - 1;
-      }
-    }
+    // Do NOT short-circuit "at bottom" to count - 1. With several chapters
+    // concatenated, count - 1 is the newest *loaded* chapter, not the one the
+    // reader is on; while a newly appended chapter is being laid out the old
+    // extent is still the bottom, so this used to report chapter 30 while the
+    // reader was on chapter 2 -- the slider then seeked into that chapter.
+    // The measured-anchor scan below already handles a trailing page shorter
+    // than the viewport: getOffsetToReveal clamps its top to maxScrollExtent,
+    // so at the bottom that page is the best match.
     // The registry only holds pages the list currently has built, a small
     // window, so a linear scan stays cheap on every scroll tick.
     int? bestIndex;
@@ -1391,6 +1389,14 @@ class _ReaderScreenState extends ConsumerState<ReaderScreen>
     return box.size.height;
   }
 
+  /// Drops any pin left by an earlier seek. A real list drag already does this
+  /// in the ScrollStartNotification listener; a slider gesture must too, or
+  /// the pin keeps yanking the page back to its old target while the user drags.
+  void _cancelVerticalSettle() {
+    _verticalSettleGeneration++;
+    _verticalSettleTarget = null;
+  }
+
   /// Re-pins [target]'s top for a short window after a seek.
   ///
   /// Reader pages lay out with a full-screen placeholder until their image
@@ -1469,6 +1475,7 @@ class _ReaderScreenState extends ConsumerState<ReaderScreen>
       pageController: _pageController,
       offsetToIndex: _verticalPageForOffset,
       onSeek: _jumpToPage,
+      onGestureStart: _cancelVerticalSettle,
       accent: accent,
       reversed: _readingMode == ReadingMode.rightToLeft,
     );
@@ -2315,7 +2322,22 @@ class _ReaderScreenState extends ConsumerState<ReaderScreen>
                   color: Theme.of(context).colorScheme.primary,
                   size: 18,
                 )
-              : null,
+              : _downloadedChapters.contains(chapter.id)
+                  ? Tooltip(
+                      message: AppLocalizations.of(context).readerDownloadedChapter(
+                        chapter.title.isEmpty
+                            ? AppLocalizations.of(context).chapterNum(
+                                chapter.chapterNumber,
+                              )
+                            : chapter.title,
+                      ),
+                      child: Icon(
+                        MdiIcons.sd,
+                        color: Theme.of(context).colorScheme.primary,
+                        size: 16,
+                      ),
+                    )
+                  : null,
           onTap: () {
             if (_selectionMode) {
               _toggleSelection(chapter.id);
@@ -3255,8 +3277,10 @@ class _ReaderScreenState extends ConsumerState<ReaderScreen>
   // Active/current accent — resolved from the active color scheme preset.
   Color get _activeGreen => Theme.of(context).colorScheme.primary;
 
-  Future<void> _loadChapter(int chapterIndex) async {
-    if (_loadedChapterIndices.contains(chapterIndex)) return;
+  /// Appends one chapter's pages. Returns whether they were actually added, so
+  /// the auto-loader never advances its chapter cursor past a failed load.
+  Future<bool> _loadChapter(int chapterIndex) async {
+    if (_loadedChapterIndices.contains(chapterIndex)) return false;
 
     final chapter = widget.allChapters[chapterIndex];
     MangaSource? source;
@@ -3265,7 +3289,7 @@ class _ReaderScreenState extends ConsumerState<ReaderScreen>
     }
     source ??= ref.read(currentSourceProvider);
 
-    if (source == null) return;
+    if (source == null) return false;
     final src = source;
 
     try {
@@ -3298,7 +3322,7 @@ class _ReaderScreenState extends ConsumerState<ReaderScreen>
           fetch: () => src.getPageUrls(chapter.id),
         );
       }
-      if (!mounted) return;
+      if (!mounted) return false;
 
       List<String?>? locals;
       if (_downloadedChapters.contains(chapter.id)) {
@@ -3307,7 +3331,7 @@ class _ReaderScreenState extends ConsumerState<ReaderScreen>
           chapterId: chapter.id,
           pages: newPages,
         );
-        if (!mounted) return;
+        if (!mounted) return false;
       }
 
       setState(() {
@@ -3342,22 +3366,36 @@ class _ReaderScreenState extends ConsumerState<ReaderScreen>
           _maybeShowToast();
         }
       });
+      return true;
     } catch (e) {
       debugPrint('Error loading chapter: $e');
+      return false;
     }
   }
 
   Future<void> _loadNextChapter() async {
+    if (_isLoadingNextChapter) return;
+    // Only the chapter the reader is actually showing may pull in its
+    // successor. Offline, page URLs come from the database without a network
+    // wait, so keying this off _currentChapterIndex let one fling chain-load
+    // chapter after chapter (the log showed 11, 12, 13 while reading chapter 2).
+    if (_pagesChapters.isEmpty || _readChapterIndex != _currentChapterIndex) {
+      return;
+    }
     final nextIndex = _currentChapterIndex + 1;
     if (nextIndex >= widget.allChapters.length) {
       setState(() => _hasMoreChapters = false);
       return;
     }
     setState(() => _isLoadingNextChapter = true);
-    _currentChapterIndex = nextIndex;
-    await _loadChapter(_currentChapterIndex);
+    final loaded = await _loadChapter(nextIndex);
     if (mounted) {
-      setState(() => _isLoadingNextChapter = false);
+      setState(() {
+        // Advance only when the pages are really on the list. A failed fetch
+        // must not move the chapter cursor or the next-chapter button.
+        if (loaded) _currentChapterIndex = nextIndex;
+        _isLoadingNextChapter = false;
+      });
     }
   }
 
@@ -4563,8 +4601,7 @@ class _ReaderScreenState extends ConsumerState<ReaderScreen>
         onNotification: (notification) {
           // A real drag means the reader has taken over from the seek's pin.
           if (notification.dragDetails != null) {
-            _verticalSettleTarget = null;
-            _verticalSettleGeneration++;
+            _cancelVerticalSettle();
           }
           return false;
         },
@@ -5112,7 +5149,7 @@ class _ReaderScreenState extends ConsumerState<ReaderScreen>
     );
     if (!mounted) return;
     diagSoon(
-      'reader re-download page ${index + 1} local=${localPath != null} '
+      'reader re-download page ${index + 1} '
       'result=${ok ? "ok" : "failed"} url=$url',
     );
     if (!ok) {
@@ -5323,6 +5360,7 @@ class _ReaderProgressTrack extends StatefulWidget {
     required this.pageController,
     required this.offsetToIndex,
     required this.onSeek,
+    required this.onGestureStart,
     required this.accent,
     required this.reversed,
   });
@@ -5340,6 +5378,9 @@ class _ReaderProgressTrack extends StatefulWidget {
   /// so its thumb and the reader's page counter can never disagree.
   final int Function(double offset) offsetToIndex;
   final ValueChanged<int> onSeek;
+
+  /// Lets the reader drop a post-seek pin before the user takes over the slider.
+  final VoidCallback onGestureStart;
   final Color accent;
 
   /// Whether the series reads right to left, which flips the track like the
@@ -5360,7 +5401,12 @@ class _ReaderProgressTrackState extends State<_ReaderProgressTrack> {
   // which nobody is moving.
   double? _dragValue;
   bool _tracking = false;
-  bool _changed = false;
+
+  // The chapter range captured when the gesture began. Page geometry (and
+  // therefore chapterStart) can change while a seek is settling; seeking with
+  // a fresh value mid-touch is what threw the reader into another chapter.
+  int? _gestureChapterStart;
+  double? _tapValue;
 
   @override
   void initState() {
@@ -5427,6 +5473,15 @@ class _ReaderProgressTrackState extends State<_ReaderProgressTrack> {
     }
   }
 
+  /// Captures the chapter range once per touch, before any seek moves the
+  /// viewport. Later rebuilds may report a different chapterStart; ignoring it
+  /// keeps a drag from retargeting halfway through.
+  void _beginGesture() {
+    if (_gestureChapterStart != null) return;
+    _gestureChapterStart = widget.chapterStart;
+    widget.onGestureStart();
+  }
+
   @override
   Widget build(BuildContext context) {
     final relativeMax = widget.chapterPageCount > 1
@@ -5449,35 +5504,35 @@ class _ReaderProgressTrackState extends State<_ReaderProgressTrack> {
       label: '${value.round() + 1}',
       onChanged: relativeMax > 0
           ? (v) {
+              _beginGesture();
+              // The reference drags silently: the thumb moves, the chapter
+              // waits for the release. Seeking per tick made the strip jitter
+              // and could retarget to a different chapter mid-gesture.
               if (_tracking) {
-                // The reference drags silently: the thumb moves, the chapter
-                // waits for the release -- its ReaderActionsView only marks
-                // isSliderChanged while tracking and seeks in
-                // onStopTrackingTouch. Seeking per tick here would swim the
-                // pager beneath a moving thumb.
-                _changed = true;
                 setState(() => _dragValue = v);
               } else {
-                // A value change that never started a drag is a track tap:
-                // the reference's non-tracking branch of onValueChange jumps
-                // outright.
-                widget.onSeek(widget.chapterStart + v.round());
+                _tapValue = v;
               }
             }
           : null,
       onChangeStart: relativeMax > 0
           ? (v) {
+              _beginGesture();
               _tracking = true;
-              _changed = false;
               setState(() => _dragValue = v);
             }
           : null,
       onChangeEnd: relativeMax > 0
           ? (v) {
               _tracking = false;
-              if (!_changed) return; // A tap already seeked in onChanged.
+              final targetValue = _dragValue ?? _tapValue ?? v;
+              final start = _gestureChapterStart ?? widget.chapterStart;
+              _gestureChapterStart = null;
+              _tapValue = null;
               setState(() => _dragValue = null);
-              widget.onSeek(widget.chapterStart + v.round());
+              // Both drags and track taps seek exactly once, on release, with
+              // the chapter that was under the reader when the touch began.
+              widget.onSeek(start + targetValue.round());
             }
           : null,
     );
