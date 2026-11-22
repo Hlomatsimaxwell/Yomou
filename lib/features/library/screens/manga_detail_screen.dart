@@ -14,6 +14,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import 'package:url_launcher/url_launcher.dart';
 import 'package:yomou/core/database/database_helper.dart';
+import 'package:yomou/core/image/cover_accent.dart';
 import 'package:yomou/core/haptics.dart';
 import 'package:yomou/core/providers/incognito_provider.dart';
 import 'package:yomou/core/widgets/ios/ios_press.dart';
@@ -77,6 +78,12 @@ const double _kBackdropArtOpacity = 0.25;
 /// page at both ends. Lowering it shows the art across the whole plate, at the
 /// cost of the plate's bottom edge becoming a visible step rather than a fade.
 const double _kBackdropWashOpacity = 0.05;
+
+/// Strength of the cover-derived tint layered over the art plate.
+///
+/// Kept low on purpose: this is a hint of the cover's own colour, not a theme
+/// change. The wash still dissolves it into the page at the plate's edges.
+const double _kBackdropAccentOpacity = 0.10;
 
 /// The tray's halfway resting size, between the collapsed bar and full screen.
 ///
@@ -3888,6 +3895,7 @@ class _MangaDetailScreenState extends ConsumerState<MangaDetailScreen> {
     // The vignette is painted in the real page colour, so it lands on the
     // background exactly rather than on an approximation of it.
     final surface = Theme.of(context).scaffoldBackgroundColor;
+    final accent = ref.watch(coverAccentProvider(cover)).value;
 
     return IgnorePointer(
       child: RepaintBoundary(
@@ -3905,6 +3913,27 @@ class _MangaDetailScreenState extends ConsumerState<MangaDetailScreen> {
                 ),
               ),
             ),
+            // A hint of the cover's own colour, sampled once and cached by the
+            // provider. It sits under the wash so the same vignette dissolves
+            // it into the page; functional controls keep the app's accent.
+            if (accent != null)
+              Opacity(
+                opacity: _kBackdropAccentOpacity,
+                child: DecoratedBox(
+                  decoration: BoxDecoration(
+                    gradient: LinearGradient(
+                      begin: Alignment.topCenter,
+                      end: Alignment.bottomCenter,
+                      colors: [
+                        accent,
+                        accent.withValues(alpha: 0.35),
+                        Colors.transparent,
+                      ],
+                      stops: const [0, 0.55, 1],
+                    ),
+                  ),
+                ),
+              ),
             // The wash over the art. At full strength it is the reference's
             // vignette; dialled down, the art shows right across the plate and
             // the plate's bottom edge becomes a visible step instead of a fade.

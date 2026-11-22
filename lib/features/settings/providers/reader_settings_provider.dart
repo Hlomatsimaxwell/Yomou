@@ -274,6 +274,14 @@ Future<ReaderContext> resolveReaderContext(String? mangaId) async {
     mode = prefs.getString('${mangaId}_reader_mode');
     overridden.add('reader_mode');
   }
+  // Page fit is just as title-specific as the reading mode: a scanned manga
+  // wants fit-to-height while a webtoon wants fit-to-width, and setting one
+  // series should never reflow another.
+  String? scaleMode;
+  if (prefs.containsKey('${mangaId}_reader_scale_mode')) {
+    scaleMode = prefs.getString('${mangaId}_reader_scale_mode');
+    overridden.add('reader_scale_mode');
+  }
   // Legacy: orientation was a boolean landscape lock. `false` meant "don't
   // force rotation", which is the "Default" (keep as opened) value today.
   final rotate = prefs.getBool('${mangaId}_reader_rotate_screen');
@@ -290,6 +298,7 @@ Future<ReaderContext> resolveReaderContext(String? mangaId) async {
   if (rotate != null) overridden.add('reader_rotate_screen');
 
   if (mode == null &&
+      scaleMode == null &&
       rotate == null &&
       twoPages == null &&
       brightness == null) {
@@ -301,6 +310,7 @@ Future<ReaderContext> resolveReaderContext(String? mangaId) async {
   return ReaderContext(
     settings: settings.copyWith(
       readingMode: mode,
+      scaleMode: scaleMode,
       orientation: rotate == null
           ? null
           : (rotate ? kOrientLandscape : kOrientDefault),

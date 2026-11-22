@@ -19,6 +19,7 @@ import 'package:shared_preferences/shared_preferences.dart';
 import 'package:yomou/core/theme/amoled.dart';
 import 'package:yomou/widgets/safe_image.dart';
 import 'package:yomou/widgets/material_symbol.dart';
+import 'package:yomou/widgets/m3_components.dart';
 import 'package:yomou/widgets/sheet_snap.dart';
 import 'package:yomou/core/cache/app_cache.dart';
 import 'package:yomou/core/cache/page_geometry.dart';
@@ -494,7 +495,7 @@ class _ReaderScreenState extends ConsumerState<ReaderScreen>
         orElse: () => ReadingMode.webtoon,
       );
     _useTwoPagesLayout = prefs.getBool(_prefKey('reader_two_pages')) ?? s.twoPages;
-      _scaleMode = s.scaleMode;
+      _scaleMode = prefs.getString(_prefKey('reader_scale_mode')) ?? s.scaleMode;
       _fullscreen = s.fullscreen;
       _flashOnPageChange = s.flashOnPageChange;
       _flashWith = s.flashWith;
@@ -700,6 +701,11 @@ class _ReaderScreenState extends ConsumerState<ReaderScreen>
   void _saveBool(String key, bool value) async {
     final prefs = await SharedPreferences.getInstance();
     await prefs.setBool(key, value);
+  }
+
+  void _saveString(String key, String value) async {
+    final prefs = await SharedPreferences.getInstance();
+    await prefs.setString(key, value);
   }
 
   void _saveColorCorrection() async {
@@ -1554,6 +1560,15 @@ class _ReaderScreenState extends ConsumerState<ReaderScreen>
     setState(() => _rotateScreen = value);
     _applyOrientation(orientation);
     _saveBool(_prefKey('reader_rotate_screen'), value);
+  }
+
+  /// Page fit is remembered per title, like the reading mode. A scanned series
+  /// and a webtoon rarely want the same fit, and changing one must not reflow
+  /// the other.
+  void _setScaleMode(String value) {
+    if (value == _scaleMode) return;
+    setState(() => _scaleMode = value);
+    _saveString(_prefKey('reader_scale_mode'), value);
   }
 
   void _showColorCorrectionDialog() {
@@ -2921,7 +2936,39 @@ class _ReaderScreenState extends ConsumerState<ReaderScreen>
                           fontSize: 12,
                         ),
                       ),
-                      const SizedBox(height: 20),
+                      const SizedBox(height: 8),
+                      ListTile(
+                        contentPadding: const EdgeInsets.symmetric(
+                          horizontal: 4,
+                        ),
+                        leading: Icon(
+                          MdiIcons.aspectRatio,
+                          color: dark
+                              ? Colors.white
+                              : const Color(0xFF1C1B1F),
+                          size: 22,
+                        ),
+                        title: Text(
+                          l.rsetScaleMode,
+                          style: TextStyle(
+                            color: dark
+                                ? Colors.white
+                                : const Color(0xFF1C1B1F),
+                            fontSize: 15,
+                          ),
+                        ),
+                        subtitle: Text(
+                          _scaleModeLabel(l, _scaleMode),
+                          style: TextStyle(
+                            color: dark ? Colors.white70 : Colors.black54,
+                            fontSize: 13,
+                          ),
+                        ),
+                        onTap: () => _pickScaleMode(
+                          afterChange: () => setSheetState(() {}),
+                        ),
+                      ),
+                      const SizedBox(height: 12),
 
                       // Toggles.
                       SwitchListTile(
@@ -3088,70 +3135,6 @@ class _ReaderScreenState extends ConsumerState<ReaderScreen>
                           vertical: 2,
                         ),
                         leading: Icon(
-                          MdiIcons.checkCircleOutline,
-                          color: dark ? Colors.white : const Color(0xFF1C1B1F),
-                          size: 22,
-                        ),
-                        title: Text(
-                          'Mark current chapter as read',
-                          style: TextStyle(
-                            color: dark
-                                ? Colors.white
-                                : const Color(0xFF1C1B1F),
-                            fontSize: 15,
-                          ),
-                        ),
-                        onTap: () async {
-                          Navigator.pop(context);
-                          await _saveCascadingReadProgress();
-                          if (mounted) {
-                            ScaffoldMessenger.of(context).showSnackBar(
-                              const SnackBar(
-                                content: Text('Marked chapter as read'),
-                                duration: Duration(seconds: 2),
-                              ),
-                            );
-                          }
-                        },
-                      ),
-                      ListTile(
-                        contentPadding: const EdgeInsets.symmetric(
-                          horizontal: 4,
-                          vertical: 2,
-                        ),
-                        leading: Icon(
-                          MdiIcons.playlistCheck,
-                          color: dark ? Colors.white : const Color(0xFF1C1B1F),
-                          size: 22,
-                        ),
-                        title: Text(
-                          'Mark up to here as read',
-                          style: TextStyle(
-                            color: dark
-                                ? Colors.white
-                                : const Color(0xFF1C1B1F),
-                            fontSize: 15,
-                          ),
-                        ),
-                        onTap: () async {
-                          Navigator.pop(context);
-                          await _saveCascadingReadProgress();
-                          if (mounted) {
-                            ScaffoldMessenger.of(context).showSnackBar(
-                              const SnackBar(
-                                content: Text('Marked chapters up to here as read'),
-                                duration: Duration(seconds: 2),
-                              ),
-                            );
-                          }
-                        },
-                      ),
-                      ListTile(
-                        contentPadding: const EdgeInsets.symmetric(
-                          horizontal: 4,
-                          vertical: 2,
-                        ),
-                        leading: Icon(
                           MdiIcons.cogOutline,
                           color: dark ? Colors.white : const Color(0xFF1C1B1F),
                           size: 22,
@@ -3197,6 +3180,31 @@ class _ReaderScreenState extends ConsumerState<ReaderScreen>
         );
       },
     );
+  }
+
+  String _scaleModeLabel(AppLocalizations l, String value) => switch (value) {
+    kScaleFitHeight => l.rsetScaleFitHeight,
+    kScaleFitWidth => l.rsetScaleFitWidth,
+    kScaleKeepAtStart => l.rsetScaleKeepAtStart,
+    _ => l.rsetScaleFitCenter,
+  };
+
+  Future<void> _pickScaleMode({VoidCallback? afterChange}) async {
+    final l = AppLocalizations.of(context);
+    final picked = await showM3OptionSheet<String>(
+      context,
+      title: l.rsetScaleMode,
+      options: [
+        (kScaleFitCenter, l.rsetScaleFitCenter),
+        (kScaleFitHeight, l.rsetScaleFitHeight),
+        (kScaleFitWidth, l.rsetScaleFitWidth),
+        (kScaleKeepAtStart, l.rsetScaleKeepAtStart),
+      ],
+      selected: _scaleMode,
+    );
+    if (picked == null) return;
+    _setScaleMode(picked);
+    afterChange?.call();
   }
 
   Widget _buildReadModeSelector({VoidCallback? afterChange}) {
