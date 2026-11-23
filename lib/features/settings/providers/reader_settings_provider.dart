@@ -535,6 +535,30 @@ class ReaderPlatform {
     }
   }
 
+  static const MethodChannel _systemUiChannel =
+      MethodChannel('com.hlomatsi.yomou/systemUi');
+
+  /// Hides the platform system bars while the reader is genuinely immersive.
+  ///
+  /// Flutter's `SystemUiMode.immersiveSticky` is ignored from target SDK 36
+  /// (edge-to-edge is forced), so it cannot reclaim the strip where the status
+  /// bar used to sit. The native side hides the bars with WindowInsetsController
+  /// and re-applies insets, letting the page draw all the way to the top edge.
+  /// Every failure degrades to the old Flutter-only behaviour.
+  static Future<void> setReaderImmersive(bool immersive) async {
+    if (defaultTargetPlatform != TargetPlatform.android) return;
+    try {
+      await _systemUiChannel.invokeMethod<void>(
+        'setReaderImmersive',
+        {'immersive': immersive},
+      );
+    } on PlatformException {
+      // Native side does not implement this yet: keep Flutter's system UI mode.
+    } on MissingPluginException {
+      // Same, e.g. running on an older installed build.
+    }
+  }
+
   static const MethodChannel _volumeChannel =
       MethodChannel('com.hlomatsi.yomou/volume');
 

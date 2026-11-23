@@ -210,7 +210,7 @@ class _ReaderScreenState extends ConsumerState<ReaderScreen>
 
   // Kotatsu-style top info bar (shown while the system UI + controls are
   // hidden): live clock and battery percentage.
-  void _applySystemUiMode() {
+  Future<void> _applySystemUiMode() async {
     // Kotatsu behavior: while the controls are hidden the entire system UI is
     // immersive (nothing drawn by the OS), so the reader renders its own slim
     // status bar at the top edge. Tapping the controls restores the native
@@ -219,14 +219,13 @@ class _ReaderScreenState extends ConsumerState<ReaderScreen>
     // With "Fullscreen mode" off there is no immersive state at all: the
     // system bars stay on screen whatever the controls are doing.
     //
-    // System overlays are explicitly transparent in both states so the manga
-    // canvas and background draw all the way to the absolute top edge of the
-    // glass — there's never a reserved black strip where the status bar was.
-    SystemChrome.setEnabledSystemUIMode(
-      !_fullscreen || (_showControls && _showInfoBar)
-          ? SystemUiMode.edgeToEdge
-          : SystemUiMode.immersiveSticky,
-    );
+    // Flutter always stays in edge-to-edge: from target SDK 36 it is forced,
+    // and SystemUiMode.immersiveSticky is silently ignored. The actual hide is
+    // therefore done natively (WindowInsetsController + requestApplyInsets),
+    // which is what makes the page reclaim the status-bar strip instead of
+    // leaving a black band above it. Order matters: re-apply Flutter's mode
+    // first, then hide, so the insets Flutter reports settle at zero.
+    await SystemChrome.setEnabledSystemUIMode(SystemUiMode.edgeToEdge);
     SystemChrome.setSystemUIOverlayStyle(
       const SystemUiOverlayStyle(
         statusBarColor: Colors.transparent,
@@ -237,10 +236,14 @@ class _ReaderScreenState extends ConsumerState<ReaderScreen>
         systemNavigationBarIconBrightness: Brightness.light,
       ),
     );
+    await ReaderPlatform.setReaderImmersive(
+      _fullscreen && !(_showControls && _showInfoBar),
+    );
   }
 
   void _restoreSystemUi() {
     SystemChrome.setEnabledSystemUIMode(SystemUiMode.edgeToEdge);
+    unawaited(ReaderPlatform.setReaderImmersive(false));
   }
 
   /// `setPreferredOrientations` is app-wide, not screen-wide: whatever the
@@ -542,7 +545,7 @@ class _ReaderScreenState extends ConsumerState<ReaderScreen>
     _armVolumeKeys(s.volumeButtons);
     _applyKeepScreenOn();
     _resolvePreloadPolicy();
-    _applySystemUiMode();
+    unawaited(_applySystemUiMode());
   }
 
   /// "Keep screen on" holds the window awake for as long as the reader is
@@ -760,7 +763,7 @@ class _ReaderScreenState extends ConsumerState<ReaderScreen>
     setState(() {
       _showControls = !_showControls;
     });
-    _applySystemUiMode();
+    unawaited(_applySystemUiMode());
   }
 
   /// A press on the page can mean two different things depending on how long it
@@ -1060,7 +1063,7 @@ class _ReaderScreenState extends ConsumerState<ReaderScreen>
                     ? MdiIcons.battery
                     : MdiIcons.batteryLow,
                 color: Colors.white,
-                size: 14,
+                size: 12,
               ),
               const SizedBox(width: 4),
               Text('$_batteryLevel%', style: _infoTextStyle),
@@ -1072,51 +1075,45 @@ class _ReaderScreenState extends ConsumerState<ReaderScreen>
       ],
     );
 
-    return SafeArea(
+    // No SafeArea here on purpose: the bar is pinned to top: 0 by the caller
+    // and the platform bars are genuinely hidden, so any MediaQuery inset
+    // would only push it back down from the edge.
+    return ClipRRect(
       key: const ValueKey('immersiveStatusBar'),
-      top: true,
-      left: false,
-      right: false,
-      minimum: const EdgeInsets.only(top: 0),
-      child: Transform.translate(
-        offset: const Offset(0, -3),
-        child: ClipRRect(
-          borderRadius: BorderRadius.circular(20),
-          child: _transparentInfoBar
-              // Transparent: a barely-there translucent pill keeps the
-              // shadowed glyphs legible over any page without a harsh black
-              // block.
-              ? DecoratedBox(
-                  decoration: BoxDecoration(
-                    color: Colors.black.withValues(alpha: 0.30),
-                  ),
-                  child: Padding(
-                    padding: const EdgeInsets.symmetric(
-                      horizontal: 10,
-                      vertical: 6,
-                    ),
-                    child: row,
-                  ),
-                )
-              // Opaque: a subtle translucent gradient pill for bright pages.
-              : DecoratedBox(
-                  decoration: const BoxDecoration(
-                    gradient: LinearGradient(
-                      begin: Alignment.topCenter,
-                      end: Alignment.bottomCenter,
-                      colors: [Color(0x5A000000), Color(0x00000000)],
-                    ),
-                  ),
-                  child: Padding(
-                    padding: const EdgeInsets.symmetric(
-                      horizontal: 10,
-                      vertical: 6,
-                    ),
-                    child: row,
-                  ),
+      borderRadius: BorderRadius.circular(20),
+      child: _transparentInfoBar
+          // Transparent: a barely-there translucent pill keeps the
+          // shadowed glyphs legible over any page without a harsh black
+          // block.
+          ? DecoratedBox(
+              decoration: BoxDecoration(
+                color: Colors.black.withValues(alpha: 0.30),
+              ),
+              child: Padding(
+                padding: const EdgeInsets.symmetric(
+                  horizontal: 10,
+                  vertical: 6,
                 ),
-        ),
-      ),
+                child: row,
+              ),
+            )
+          // Opaque: a subtle translucent gradient pill for bright pages.
+          : DecoratedBox(
+              decoration: const BoxDecoration(
+                gradient: LinearGradient(
+                  begin: Alignment.topCenter,
+                  end: Alignment.bottomCenter,
+                  colors: [Color(0x5A000000), Color(0x00000000)],
+                ),
+              ),
+              child: Padding(
+                padding: const EdgeInsets.symmetric(
+                  horizontal: 10,
+                  vertical: 6,
+                ),
+                child: row,
+              ),
+            ),
     );
   }
 
@@ -1124,7 +1121,7 @@ class _ReaderScreenState extends ConsumerState<ReaderScreen>
   /// cannot rely on a surface behind it.
   static const TextStyle _infoTextStyle = TextStyle(
     color: Colors.white,
-    fontSize: 12.5,
+    fontSize: 11,
     fontWeight: FontWeight.w600,
     letterSpacing: 0.2,
     shadows: [
@@ -3856,7 +3853,7 @@ class _ReaderScreenState extends ConsumerState<ReaderScreen>
     }
     // Returning to a backgrounded immersive reader re-hides the system bars.
     if (state == AppLifecycleState.resumed && !_showControls) {
-      _applySystemUiMode();
+      unawaited(_applySystemUiMode());
     }
   }
 
@@ -4588,20 +4585,22 @@ class _ReaderScreenState extends ConsumerState<ReaderScreen>
 
               // --- KOTATSU-STYLE TOP STATUS BAR (immersive mode) ---
               // Rendered only while the reader controls are hidden. The native
-              // system status bar is hidden by SystemChrome, so this replaces it
-              // entirely: a full-width row inside the SafeArea (clear of notches
-              // / punch-holes) with the reading progress on the left and the
-              // battery + clock on the right. No card surface, no elevation,
-              // no back button, and it never intercepts taps toggling controls.
+              // system status bar is hidden on the platform side, so this
+              // replaces it entirely: a compact row pinned to the very top edge
+              // with the reading progress on the left and the battery + clock
+              // on the right. No card surface, no elevation, no back button,
+              // and it never intercepts taps toggling controls.
               // "Show information bar in reader" turns the whole overlay off,
               // not just its text, so nothing is left floating over the page.
               if (_showInfoBar)
                 Positioned(
-                  // Below the status bar area so the OS clock / Wi-Fi /
-                  // battery never clash with the pill, and inset from the
-                  // sides so it reads as a compact pill over the manga rather
-                  // than a full-width bar.
-                  top: MediaQuery.of(context).padding.top,
+                  // Pinned to the physical top edge, like Kotatsu: once the
+                  // bars are hidden natively the whole glass belongs to the
+                  // page, and this strip replaces the OS status bar. Using
+                  // MediaQuery.padding.top here would push it back down into
+                  // the reclaimed strip (and can double-inset via the SafeArea
+                  // inside the bar), leaving the top empty.
+                  top: 0,
                   left: 16,
                   right: 16,
                   child: AnimatedSwitcher(

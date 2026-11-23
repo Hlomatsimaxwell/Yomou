@@ -11,12 +11,16 @@ import android.net.ConnectivityManager
 import android.net.NetworkCapabilities
 import android.net.Uri
 import android.os.Build
+import android.os.Bundle
 import android.os.Environment
 import android.os.StatFs
 import android.provider.DocumentsContract
 import android.provider.MediaStore
 import android.provider.Settings
 import android.view.KeyEvent
+import android.view.View
+import android.view.WindowInsets
+import android.view.WindowInsetsController
 import android.view.WindowManager
 import io.flutter.embedding.android.FlutterActivity
 import io.flutter.embedding.engine.FlutterEngine
@@ -26,6 +30,19 @@ import java.io.File
 class MainActivity : FlutterActivity() {
     private val dirPickerRequestCode = 0xDA1
     private var dirPickerResult: MethodChannel.Result? = null
+
+    override fun onCreate(savedInstanceState: Bundle?) {
+        super.onCreate(savedInstanceState)
+        // Let the reader draw into notch / punch-hole corners as well as under
+        // the system bars. Without this some OEMs keep the window frame inset
+        // from the top even when Flutter reports edge-to-edge insets.
+        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.P) {
+            window.attributes = window.attributes.apply {
+                layoutInDisplayCutoutMode =
+                    WindowManager.LayoutParams.LAYOUT_IN_DISPLAY_CUTOUT_MODE_SHORT_EDGES
+            }
+        }
+    }
 
     /** Set by the reader while a chapter is open; see [dispatchKeyEvent]. */
     private lateinit var volumeChannel: MethodChannel
@@ -74,6 +91,19 @@ class MainActivity : FlutterActivity() {
                             window.clearFlags(WindowManager.LayoutParams.FLAG_SECURE)
                         }
                     }
+                    result.success(true)
+                }
+                else -> result.notImplemented()
+            }
+        }
+        MethodChannel(
+            flutterEngine.dartExecutor.binaryMessenger,
+            "com.hlomatsi.yomou/systemUi"
+        ).setMethodCallHandler { call, result ->
+            when (call.method) {
+                "setReaderImmersive" -> {
+                    val immersive = call.argument<Boolean>("immersive") ?: false
+                    runOnUiThread { setReaderImmersive(immersive) }
                     result.success(true)
                 }
                 else -> result.notImplemented()
@@ -375,6 +405,46 @@ class MainActivity : FlutterActivity() {
                 else -> result.notImplemented()
             }
         }
+    }
+
+    /**
+     * Hides or restores the platform system bars for the reader's immersive
+     * mode. Flutter's `SystemUiMode.immersiveSticky` is a no-op from target SDK
+     * 36, where edge-to-edge is enforced, so the strip where the status bar sat
+     * was left painted black. Hiding the bars here and re-applying insets lets
+     * the page reclaim that space. Mirrors Yomou-Lite's SystemUiController.
+     */
+    @Suppress("DEPRECATION")
+    private fun setReaderImmersive(immersive: Boolean) {
+        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.R) {
+            val controller = window.decorView.windowInsetsController
+            if (controller != null) {
+                if (immersive) {
+                    controller.systemBarsBehavior =
+                        WindowInsetsController.BEHAVIOR_SHOW_TRANSIENT_BARS_BY_SWIPE
+                    controller.hide(WindowInsets.Type.systemBars())
+                } else {
+                    controller.systemBarsBehavior = WindowInsetsController.BEHAVIOR_DEFAULT
+                    controller.show(WindowInsets.Type.systemBars())
+                }
+            }
+        } else {
+            val flags = window.decorView.systemUiVisibility
+            window.decorView.systemUiVisibility = if (immersive) {
+                flags or
+                    View.SYSTEM_UI_FLAG_LAYOUT_FULLSCREEN or
+                    View.SYSTEM_UI_FLAG_LAYOUT_HIDE_NAVIGATION or
+                    View.SYSTEM_UI_FLAG_HIDE_NAVIGATION or
+                    View.SYSTEM_UI_FLAG_FULLSCREEN or
+                    View.SYSTEM_UI_FLAG_IMMERSIVE_STICKY
+            } else {
+                flags and
+                    View.SYSTEM_UI_FLAG_HIDE_NAVIGATION.inv() and
+                    View.SYSTEM_UI_FLAG_FULLSCREEN.inv() and
+                    View.SYSTEM_UI_FLAG_IMMERSIVE_STICKY.inv()
+            }
+        }
+        window.decorView.requestApplyInsets()
     }
 
     /**
