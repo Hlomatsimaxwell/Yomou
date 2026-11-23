@@ -3,6 +3,7 @@ import 'package:yomou/data/providers/sources_provider.dart';
 import 'package:yomou/data/sources/catalog/madara_catalog.g.dart' as madara;
 import 'package:yomou/data/sources/catalog/manga_themesia_catalog.g.dart'
     as themesia;
+import 'package:yomou/data/sources/catalog/zeistmanga_catalog.g.dart' as zeist;
 
 /// Guards the hand-off between the generated catalogs and the runtime registry.
 ///
@@ -15,6 +16,7 @@ void main() {
   final catalogs = <String, List<dynamic>>{
     'madara': madara.catalogMadaraConfigs,
     'mangathemesia': themesia.catalogMangaThemesiaConfigs,
+    'zeistmanga': zeist.catalogZeistMangaConfigs,
   };
 
   test('generated catalogs are non-empty with unique ids and names', () {
@@ -61,6 +63,10 @@ void main() {
       expect(row['siteUrl'], isNotEmpty, reason: row['name'] as String);
     }
     for (final row in themesia.catalogMangaThemesiaSourceRows) {
+      expect(row['isEnabled'], true, reason: row['name'] as String);
+      expect(row['siteUrl'], isNotEmpty, reason: row['name'] as String);
+    }
+    for (final row in zeist.catalogZeistMangaSourceRows) {
       expect(row['isEnabled'], true, reason: row['name'] as String);
       expect(row['siteUrl'], isNotEmpty, reason: row['name'] as String);
     }

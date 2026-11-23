@@ -1,10 +1,10 @@
 # Source catalog generators
 
-The bundled generic sources (Madara + MangaThemesia) are generated from local,
-gitignored `.data/` JSON. The generated `.g.dart` files are **committed** — a
-commit ships the Dart, not the JSON.
+The bundled generic sources (Madara + MangaThemesia + ZeistManga) are generated
+from local, gitignored `.data/` JSON. The generated `.g.dart` files are
+**committed** — a commit ships the Dart, not the JSON.
 
-> Both `lib/data/sources/catalog/*.g.dart` files say "do not edit by hand".
+> Every `lib/data/sources/catalog/*.g.dart` file says "do not edit by hand".
 > Change the inputs or the generator, then regenerate.
 
 ## Commands
@@ -12,13 +12,15 @@ commit ships the Dart, not the JSON.
 From the repo root:
 
 ```bash
-# Regenerate both catalogs from current .data/ inputs.
+# Regenerate all catalogs from current .data/ inputs.
 python3 tool/catalog/gen_madara_catalog.py
 python3 tool/catalog/gen_manga_themesia_catalog.py
+python3 tool/catalog/gen_zeistmanga_catalog.py
 
 # Verify the committed output matches the inputs (safe in CI / pre-commit).
 python3 tool/catalog/gen_madara_catalog.py --check
 python3 tool/catalog/gen_manga_themesia_catalog.py --check
+python3 tool/catalog/gen_zeistmanga_catalog.py --check
 ```
 
 Then, because the payload feeds the runtime source registry:
@@ -29,7 +31,7 @@ flutter analyze
 ```
 
 `catalog_common.py` holds the language-code table and host normalisation shared
-by both generators. Teach a new language code there once.
+by all three generators. Teach a new language code there once.
 
 ## Inputs
 
@@ -37,8 +39,8 @@ All under `.data/` (local only, not in git):
 
 | File | Used by | Contents |
 |---|---|---|
-| `engines.json` | both | extension engines: `theme`, and `sources[]` with `id`, `language`, `homeUrl` |
-| `sources_catalog.json` | both | keyed by bare host: `name`, `langs`, `icon`, `nsfw` |
+| `engines.json` | all three | extension engines: `theme`, and `sources[]` with `id`, `language`, `homeUrl` |
+| `sources_catalog.json` | all three | keyed by bare host: `name`, `langs`, `icon`, `nsfw` |
 | `madara_validation.json` | Madara only | per-host sweep result: `verdict`, `listingPath`, … |
 
 The `.data/` host key is the bare host (`example.com`), while `engines.json`
@@ -62,6 +64,16 @@ No registry edit is needed: `sources_provider.dart` already spreads
 `catalogMangaThemesiaSourceRows` into the defaults and resolves every generated
 id/name. On a fresh install the row is enabled; existing installs keep their
 saved order/flags and pick up new rows as enabled.
+
+### ZeistManga (Blogger feeds, one generic driver)
+
+1. Add the usual `sources_catalog.json` row and a `theme: zeistmanga` engine.
+2. If the site publishes catalogue posts under a label other than `Series`, or
+   needs a special reader-image selector, add an entry to `OVERRIDES` keyed by
+   the lower-cased site name in `gen_zeistmanga_catalog.py`.
+3. Run `python3 tool/catalog/gen_zeistmanga_catalog.py`. Dat-Gar Scan is
+   intentionally skipped: it keeps its older hand-written source, which owns
+   the source id used by existing favorites.
 
 ### Madara
 

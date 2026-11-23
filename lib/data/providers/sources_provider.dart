@@ -35,9 +35,11 @@ import '../sources/mangafire_source.dart';
 import '../sources/manhuaplus_source.dart';
 import '../sources/madara_source.dart';
 import '../sources/manga_themesia_source.dart';
+import '../sources/zeistmanga_source.dart';
 import '../models/madara_site_config.dart';
 import '../sources/catalog/madara_catalog.g.dart';
 import '../sources/catalog/manga_themesia_catalog.g.dart';
+import '../sources/catalog/zeistmanga_catalog.g.dart';
 
 // 1. THE SOURCE REGISTRY
 //
@@ -144,6 +146,10 @@ MangaSource getSourceByName(String name) {
       themesiaConfig.id,
       () => MangaThemesiaSource(themesiaConfig),
     );
+  }
+  final zeistConfig = catalogZeistMangaByName[name];
+  if (zeistConfig != null) {
+    return _shared(zeistConfig.id, () => ZeistMangaSource(zeistConfig));
   }
   switch (name) {
     case 'MangaDex': // <--- 2. ADD THIS CASE
@@ -270,6 +276,10 @@ MangaSource? getSourceBySourceId(String sourceId) {
       themesiaConfig.id,
       () => MangaThemesiaSource(themesiaConfig),
     );
+  }
+  final zeistConfig = catalogZeistMangaById[sourceId];
+  if (zeistConfig != null) {
+    return _shared(zeistConfig.id, () => ZeistMangaSource(zeistConfig));
   }
   if (sourceId.startsWith('mangaball-')) {
     // The map is keyed by code and holds the language name, so the code is
@@ -764,6 +774,8 @@ class SourcesNotifier extends StateNotifier<List<Map<String, dynamic>>> {
     ...catalogSourceRows,
     // Bundled MangaThemesia catalog: one generic source per site.
     ...catalogMangaThemesiaSourceRows,
+    // Bundled ZeistManga catalog: Blogger-feed sites behind one generic parser.
+    ...catalogZeistMangaSourceRows,
   ];
 
   Future<void> _loadFromPrefs() async {
