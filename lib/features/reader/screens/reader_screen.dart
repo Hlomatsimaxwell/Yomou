@@ -1143,7 +1143,8 @@ class _ReaderScreenState extends ConsumerState<ReaderScreen>
         // Clear of the display's rounded corners / cutout, like Kotatsu's
         // status_bar_padding_start/end + corner-radius inset. At 8dp the
         // glyphs sat ~21px from the edge and the corners clipped them.
-        padding: const EdgeInsets.only(left: 32, right: 32, bottom: 2),
+        // A couple of dp at the top keeps the glyphs off the very first row.
+        padding: const EdgeInsets.only(top: 2, left: 32, right: 32, bottom: 2),
         child: row,
       ),
     );
