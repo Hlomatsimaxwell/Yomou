@@ -1057,7 +1057,7 @@ class _ReaderScreenState extends ConsumerState<ReaderScreen>
               color: null,
               foreground: Paint()
                 ..style = PaintingStyle.stroke
-                ..strokeWidth = 0.8
+                ..strokeWidth = 0.6
                 ..color = _infoOutlineColor,
               shadows: null,
             ),
@@ -1104,7 +1104,7 @@ class _ReaderScreenState extends ConsumerState<ReaderScreen>
                           ? MdiIcons.battery
                           : MdiIcons.batteryLow,
                       color: _infoOutlineColor,
-                      size: 12,
+                      size: 10,
                     ),
                   ),
                   Icon(
@@ -1112,7 +1112,7 @@ class _ReaderScreenState extends ConsumerState<ReaderScreen>
                         ? MdiIcons.battery
                         : MdiIcons.batteryLow,
                     color: _infoFillColor,
-                    size: 12,
+                    size: 10,
                   ),
                 ],
               ),
@@ -1132,15 +1132,15 @@ class _ReaderScreenState extends ConsumerState<ReaderScreen>
     //
     // Mirrors Kotatsu's ReaderInfoBarView: transparent mode draws no backing
     // at all (the shadowed glyphs carry their own contrast), while the other
-    // mode keeps a soft translucent strip. Text size/weight, opacity and
-    // padding follow the reference (12sp, w400, ~78%, 6dp bottom).
+    // mode keeps a soft translucent strip. The w400 / ~78% / outlined glyph
+    // treatment follows the reference; size and padding are dialled smaller.
     final content = Transform.translate(
       // Kotatsu centres the glyphs inside their own text bounds, so they touch
       // the first pixel row. Flutter's Text keeps ascent leading above them;
       // nudge it up so the two bars align at the top edge.
       offset: const Offset(0, -4),
       child: Padding(
-        padding: const EdgeInsets.only(left: 16, right: 16, bottom: 6),
+        padding: const EdgeInsets.only(left: 8, right: 8, bottom: 2),
         child: row,
       ),
     );
@@ -1168,11 +1168,11 @@ class _ReaderScreenState extends ConsumerState<ReaderScreen>
   }
 
   /// Kotatsu's info bar uses 12sp at normal weight, ~78% opacity, and a thin
-  /// contrasting outline instead of a background. Same numbers here; the
-  /// outline is added by [_outlinedInfoText].
+  /// contrasting outline instead of a background. Kept the weight, opacity and
+  /// outline treatment but dialled the size down to 10sp at the user's request.
   static const TextStyle _infoTextStyle = TextStyle(
     color: Color(0xC7FFFFFF),
-    fontSize: 12,
+    fontSize: 10,
     fontWeight: FontWeight.w400,
     letterSpacing: 0.2,
   );
