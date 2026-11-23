@@ -2,7 +2,7 @@ import 'package:flutter_material_design_icons/flutter_material_design_icons.dart
 import 'dart:async';
 import 'dart:convert';
 import 'dart:io';
-import 'dart:ui' show ImageFilter;
+import 'dart:ui' show ImageFilter, Paint, PaintingStyle;
 // intl exports its own TextDirection class, which would shadow dart:ui's
 // enum here; the seek bar needs the enum to flip itself for RTL series.
 import 'dart:ui' as ui show TextDirection;
@@ -1035,6 +1035,44 @@ class _ReaderScreenState extends ConsumerState<ReaderScreen>
     );
   }
 
+  /// Kotatsu draws its info-bar glyphs as a thin contrasting stroke behind a
+  /// translucent fill so they stay readable on both black and white pages
+  /// without a pill. Two stacked Texts do the same here: Flutter's foreground
+  /// stroke paint replaces the fill, so the outline needs its own layer.
+  Widget _outlinedInfoText(
+    String text, {
+    int? maxLines,
+    TextOverflow? overflow,
+  }) {
+    return Stack(
+      children: [
+        // Decorative outline: without this the screen reader reads every
+        // status value twice.
+        ExcludeSemantics(
+          child: Text(
+            text,
+            maxLines: maxLines,
+            overflow: overflow,
+            style: _infoTextStyle.copyWith(
+              color: null,
+              foreground: Paint()
+                ..style = PaintingStyle.stroke
+                ..strokeWidth = 0.8
+                ..color = _infoOutlineColor,
+              shadows: null,
+            ),
+          ),
+        ),
+        Text(
+          text,
+          maxLines: maxLines,
+          overflow: overflow,
+          style: _infoTextStyle,
+        ),
+      ],
+    );
+  }
+
   /// The overlay strip shown while the reader is fullscreen and the controls
   /// are hidden. Extracted so "Transparent reader information bar" can swap the
   /// backing without duplicating the whole row.
@@ -1046,9 +1084,8 @@ class _ReaderScreenState extends ConsumerState<ReaderScreen>
       crossAxisAlignment: CrossAxisAlignment.center,
       children: [
         Flexible(
-          child: Text(
+          child: _outlinedInfoText(
             _immersiveStatusText(chapterIndex, chapterLabel),
-            style: _infoTextStyle,
             maxLines: 1,
             overflow: TextOverflow.ellipsis,
           ),
@@ -1058,18 +1095,32 @@ class _ReaderScreenState extends ConsumerState<ReaderScreen>
           mainAxisSize: MainAxisSize.min,
           children: [
             if (_batteryLevel >= 0) ...[
-              Icon(
-                _batteryLevel > 20
-                    ? MdiIcons.battery
-                    : MdiIcons.batteryLow,
-                color: Colors.white,
-                size: 12,
+              Stack(
+                children: [
+                  Transform.scale(
+                    scale: 1.25,
+                    child: Icon(
+                      _batteryLevel > 20
+                          ? MdiIcons.battery
+                          : MdiIcons.batteryLow,
+                      color: _infoOutlineColor,
+                      size: 12,
+                    ),
+                  ),
+                  Icon(
+                    _batteryLevel > 20
+                        ? MdiIcons.battery
+                        : MdiIcons.batteryLow,
+                    color: _infoFillColor,
+                    size: 12,
+                  ),
+                ],
               ),
               const SizedBox(width: 4),
-              Text('$_batteryLevel%', style: _infoTextStyle),
+              _outlinedInfoText('$_batteryLevel%'),
               const SizedBox(width: 12),
             ],
-            Text(_clockText, style: _infoTextStyle),
+            _outlinedInfoText(_clockText),
           ],
         ),
       ],
@@ -1081,11 +1132,17 @@ class _ReaderScreenState extends ConsumerState<ReaderScreen>
     //
     // Mirrors Kotatsu's ReaderInfoBarView: transparent mode draws no backing
     // at all (the shadowed glyphs carry their own contrast), while the other
-    // mode keeps a soft translucent strip. Padding and text size match the
-    // reference's 6dp / 12sp.
-    final content = Padding(
-      padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 6),
-      child: row,
+    // mode keeps a soft translucent strip. Text size/weight, opacity and
+    // padding follow the reference (12sp, w400, ~78%, 6dp bottom).
+    final content = Transform.translate(
+      // Kotatsu centres the glyphs inside their own text bounds, so they touch
+      // the first pixel row. Flutter's Text keeps ascent leading above them;
+      // nudge it up so the two bars align at the top edge.
+      offset: const Offset(0, -4),
+      child: Padding(
+        padding: const EdgeInsets.only(left: 16, right: 16, bottom: 6),
+        child: row,
+      ),
     );
     if (_transparentInfoBar) {
       return KeyedSubtree(
@@ -1110,18 +1167,17 @@ class _ReaderScreenState extends ConsumerState<ReaderScreen>
     );
   }
 
-  /// Shadowed white text: the info bar sits directly on the artwork, so it
-  /// cannot rely on a surface behind it.
+  /// Kotatsu's info bar uses 12sp at normal weight, ~78% opacity, and a thin
+  /// contrasting outline instead of a background. Same numbers here; the
+  /// outline is added by [_outlinedInfoText].
   static const TextStyle _infoTextStyle = TextStyle(
-    color: Colors.white,
+    color: Color(0xC7FFFFFF),
     fontSize: 12,
-    fontWeight: FontWeight.w600,
+    fontWeight: FontWeight.w400,
     letterSpacing: 0.2,
-    shadows: [
-      Shadow(color: Colors.black, blurRadius: 1.5),
-      Shadow(color: Colors.black87, blurRadius: 5, offset: Offset(0, 1)),
-    ],
   );
+  static const Color _infoFillColor = Color(0xC7FFFFFF);
+  static const Color _infoOutlineColor = Color(0xC7000000);
 
   // --- MEASURED VERTICAL PAGE GEOMETRY ---
   //
