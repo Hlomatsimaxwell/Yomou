@@ -1078,42 +1078,35 @@ class _ReaderScreenState extends ConsumerState<ReaderScreen>
     // No SafeArea here on purpose: the bar is pinned to top: 0 by the caller
     // and the platform bars are genuinely hidden, so any MediaQuery inset
     // would only push it back down from the edge.
+    //
+    // Mirrors Kotatsu's ReaderInfoBarView: transparent mode draws no backing
+    // at all (the shadowed glyphs carry their own contrast), while the other
+    // mode keeps a soft translucent strip. Padding and text size match the
+    // reference's 6dp / 12sp.
+    final content = Padding(
+      padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 6),
+      child: row,
+    );
+    if (_transparentInfoBar) {
+      return KeyedSubtree(
+        key: const ValueKey('immersiveStatusBar'),
+        child: content,
+      );
+    }
+
     return ClipRRect(
       key: const ValueKey('immersiveStatusBar'),
       borderRadius: BorderRadius.circular(20),
-      child: _transparentInfoBar
-          // Transparent: a barely-there translucent pill keeps the
-          // shadowed glyphs legible over any page without a harsh black
-          // block.
-          ? DecoratedBox(
-              decoration: BoxDecoration(
-                color: Colors.black.withValues(alpha: 0.30),
-              ),
-              child: Padding(
-                padding: const EdgeInsets.symmetric(
-                  horizontal: 10,
-                  vertical: 6,
-                ),
-                child: row,
-              ),
-            )
-          // Opaque: a subtle translucent gradient pill for bright pages.
-          : DecoratedBox(
-              decoration: const BoxDecoration(
-                gradient: LinearGradient(
-                  begin: Alignment.topCenter,
-                  end: Alignment.bottomCenter,
-                  colors: [Color(0x5A000000), Color(0x00000000)],
-                ),
-              ),
-              child: Padding(
-                padding: const EdgeInsets.symmetric(
-                  horizontal: 10,
-                  vertical: 6,
-                ),
-                child: row,
-              ),
-            ),
+      child: DecoratedBox(
+        decoration: const BoxDecoration(
+          gradient: LinearGradient(
+            begin: Alignment.topCenter,
+            end: Alignment.bottomCenter,
+            colors: [Color(0x5A000000), Color(0x00000000)],
+          ),
+        ),
+        child: content,
+      ),
     );
   }
 
@@ -1121,7 +1114,7 @@ class _ReaderScreenState extends ConsumerState<ReaderScreen>
   /// cannot rely on a surface behind it.
   static const TextStyle _infoTextStyle = TextStyle(
     color: Colors.white,
-    fontSize: 11,
+    fontSize: 12,
     fontWeight: FontWeight.w600,
     letterSpacing: 0.2,
     shadows: [
@@ -4596,13 +4589,15 @@ class _ReaderScreenState extends ConsumerState<ReaderScreen>
                 Positioned(
                   // Pinned to the physical top edge, like Kotatsu: once the
                   // bars are hidden natively the whole glass belongs to the
-                  // page, and this strip replaces the OS status bar. Using
-                  // MediaQuery.padding.top here would push it back down into
-                  // the reclaimed strip (and can double-inset via the SafeArea
-                  // inside the bar), leaving the top empty.
+                  // page, and this strip replaces the OS status bar. Full
+                  // width like Kotatsu's match_parent info bar; the inset
+                  // lives inside it so the strip itself reaches both edges.
+                  // Using MediaQuery.padding.top here would push it back
+                  // down into the reclaimed strip (and can double-inset via
+                  // the SafeArea inside the bar), leaving the top empty.
                   top: 0,
-                  left: 16,
-                  right: 16,
+                  left: 0,
+                  right: 0,
                   child: AnimatedSwitcher(
                     duration: const Duration(milliseconds: 200),
                     transitionBuilder: (child, animation) =>
