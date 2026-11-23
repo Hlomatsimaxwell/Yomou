@@ -7,6 +7,27 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [1.3.0] - 2026-11-23
+
+### Added
+- **Generic ZeistManga source for 29 catalog sites** — one config-driven parser covers the Blogger-feed theme (catalogue/search feeds, chapter-label discovery, chapter feed, details, reader images), with per-site label and page-selector overrides in the generated catalog. Dat-Gar Scan keeps its existing dedicated source and id. Verified end to end on a Huawei ANE-LX1 with Aarlas.
+- **Four launcher icon variants** — Icon Kitchen artwork ships as Default, Blue, White and White/Blue, selectable from the in-app icon picker.
+- **Per-series reader page fit** — a series can override the global scale mode, with a reset-to-default action.
+- **Cover accent colour** — detail and reader headers derive an accent from the cover art.
+- **Reader page actions** — re-download and retry-all for failed pages.
+- **Suggestions** — the selected genre is persisted and the feed supports load-more pagination.
+- **Reproducible source catalogs** — the committed Madara (91), MangaThemesia (114) and ZeistManga (29) catalogs are generated from local inputs, with `--check` guards for CI.
+
+### Changed
+- **Reader info bar matches Kotatsu** — full-width top pin, 12sp w400 text at ~78% opacity with a thin outline, no pill in transparent mode, and clearance from the display corners.
+- **Cleaner reader menu** — fewer, better-grouped controls.
+
+### Fixed
+- **Black strip above reader pages** — target SDK 36 forces edge-to-edge and ignores `immersiveSticky`, so the system bars are now hidden natively; pages and the info bar draw into the top inset. Also resolves the earlier top bar / status bar overlap.
+- **Offline reader seeking** — jitter, scroll-back and chapter jumps, plus vertical seek drift, page counter and blank seeks.
+- **Download visibility** — a manga left while downloading restores its live progress instead of appearing idle.
+- **Transcoded images** — persisted on disk and prefetched in parallel, cutting repeat work in the reader.
+
 ## [1.2.0] - 2026-11-13
 
 ### Added
