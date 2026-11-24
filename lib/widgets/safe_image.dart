@@ -8,12 +8,18 @@ import 'package:yomou/core/cache/app_cache.dart';
 import 'package:yomou/core/cache/image_dimensions.dart';
 import 'package:yomou/core/cache/transcode_cache.dart';
 import 'package:yomou/core/diagnostics/diag_log.dart';
+import 'package:yomou/data/sources/giga_scramble.dart';
 import 'package:yomou/data/sources/mf_scramble.dart';
 import 'package:image/image.dart' as img;
 
 /// Background-isolate callback that de-scrambles a MangaFire chapter page.
 Uint8List? _unscrambleMfPage((Uint8List, int) message) {
   return MfScramble.unscramble(message.$1, message.$2);
+}
+
+/// Background-isolate callback for GigaViewer's 4x4 tile scramble.
+Uint8List? _unscrambleGigaPage(Uint8List bytes) {
+  return GigaScramble.unscramble(bytes);
 }
 
 /// Decodes an encoded image on a background isolate and re-encodes it as PNG.
@@ -177,7 +183,9 @@ class _SafeNetworkImageState extends State<SafeNetworkImage> {
   /// the same pure-Dart transcode again.
   Future<void> _preflight() async {
     final url = widget.imageUrl;
-    if (url.trim().isEmpty || MfScramble.offsetFromUrl(url) != null) {
+    if (url.trim().isEmpty ||
+        MfScramble.offsetFromUrl(url) != null ||
+        GigaScramble.isScrambledUrl(url)) {
       _preflightDone = true;
       return;
     }
@@ -296,6 +304,52 @@ class _SafeNetworkImageState extends State<SafeNetworkImage> {
     }
   }
 
+  // --- GigaViewer scrambled pages ---
+
+  /// GigaViewer serves some pages as a 4x4 tile grid marked with `#scramble`.
+  /// The fragment is only a marker: the bytes must be fetched and unshuffled
+  /// before the platform decoder ever sees them.
+  Widget _buildGigaScrambled() {
+    return _sized(
+      FutureBuilder<Uint8List?>(
+        future: _loadGigaScrambled(),
+        builder: (context, snapshot) {
+          if (snapshot.connectionState != ConnectionState.done) {
+            return widget.placeholder?.call(context, widget.imageUrl) ??
+                const _CoverFallback();
+          }
+          final bytes = snapshot.data;
+          if (bytes == null) return _showError('Failed to decode image');
+          _reportEncodedSize(bytes);
+
+          return Image.memory(
+            bytes,
+            width: widget.width,
+            height: widget.height,
+            fit: widget.fit,
+            alignment: widget.alignment,
+            cacheWidth: widget.decodeWidth,
+            gaplessPlayback: widget.gaplessPlayback,
+            errorBuilder: (context, error, stack) => _showError(error),
+          );
+        },
+      ),
+    );
+  }
+
+  Future<Uint8List?> _loadGigaScrambled() async {
+    try {
+      final file = await AppImageCache.instance.manager.getSingleFile(
+        widget.imageUrl,
+        headers: widget.httpHeaders,
+      );
+      final bytes = await file.readAsBytes();
+      return await compute(_unscrambleGigaPage, bytes);
+    } catch (_) {
+      return null;
+    }
+  }
+
   Widget _showError(Object error) {
     final builder = widget.errorWidget;
     if (builder != null) {
@@ -330,6 +384,9 @@ class _SafeNetworkImageState extends State<SafeNetworkImage> {
     final mfOffset = MfScramble.offsetFromUrl(widget.imageUrl);
     if (mfOffset != null) {
       return _buildScrambled(mfOffset);
+    }
+    if (GigaScramble.isScrambledUrl(widget.imageUrl)) {
+      return _buildGigaScrambled();
     }
     if (!_preflightDone) {
       // At most one frame, while the transcode cache is checked. Showing the

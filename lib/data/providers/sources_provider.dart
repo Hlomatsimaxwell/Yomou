@@ -36,10 +36,12 @@ import '../sources/manhuaplus_source.dart';
 import '../sources/madara_source.dart';
 import '../sources/manga_themesia_source.dart';
 import '../sources/zeistmanga_source.dart';
+import '../sources/gigaviewer_source.dart';
 import '../models/madara_site_config.dart';
 import '../sources/catalog/madara_catalog.g.dart';
 import '../sources/catalog/manga_themesia_catalog.g.dart';
 import '../sources/catalog/zeistmanga_catalog.g.dart';
+import '../sources/catalog/gigaviewer_catalog.g.dart';
 
 // 1. THE SOURCE REGISTRY
 //
@@ -150,6 +152,10 @@ MangaSource getSourceByName(String name) {
   final zeistConfig = catalogZeistMangaByName[name];
   if (zeistConfig != null) {
     return _shared(zeistConfig.id, () => ZeistMangaSource(zeistConfig));
+  }
+  final gigaConfig = catalogGigaViewerByName[name];
+  if (gigaConfig != null) {
+    return _shared(gigaConfig.id, () => GigaViewerSource(gigaConfig));
   }
   switch (name) {
     case 'MangaDex': // <--- 2. ADD THIS CASE
@@ -280,6 +286,10 @@ MangaSource? getSourceBySourceId(String sourceId) {
   final zeistConfig = catalogZeistMangaById[sourceId];
   if (zeistConfig != null) {
     return _shared(zeistConfig.id, () => ZeistMangaSource(zeistConfig));
+  }
+  final gigaConfig = catalogGigaViewerById[sourceId];
+  if (gigaConfig != null) {
+    return _shared(gigaConfig.id, () => GigaViewerSource(gigaConfig));
   }
   if (sourceId.startsWith('mangaball-')) {
     // The map is keyed by code and holds the language name, so the code is
@@ -776,6 +786,8 @@ class SourcesNotifier extends StateNotifier<List<Map<String, dynamic>>> {
     ...catalogMangaThemesiaSourceRows,
     // Bundled ZeistManga catalog: Blogger-feed sites behind one generic parser.
     ...catalogZeistMangaSourceRows,
+    // Bundled GigaViewer catalog: Japanese GraphQL sites, one generic parser.
+    ...catalogGigaViewerSourceRows,
   ];
 
   Future<void> _loadFromPrefs() async {

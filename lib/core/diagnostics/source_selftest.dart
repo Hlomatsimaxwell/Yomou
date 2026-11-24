@@ -131,9 +131,10 @@ class SourceSelfTest {
     return null;
   }
 
-  /// Every name the registry can build, discovered lazily through the public
-  /// lookup: names are stable, so probing the known variants is enough.
-  static const List<String> _allNames = [
+  /// Every name the registry can build. Deriving this from the default source
+  /// rows means a newly generated generic catalog can be self-tested by id
+  /// without editing this file again.
+  static final List<String> _allNames = <String>{
     'MangaDex',
     'MangaDex Español',
     'MangaDex Portuguese BR',
@@ -147,7 +148,8 @@ class SourceSelfTest {
     'Mangago',
     'Atsumaru',
     'SeiManga',
-  ];
+    ...SourcesNotifier.defaultSources.map((row) => row['name'] as String),
+  }.toList();
 
   /// Synchronous on purpose: the throttled printer drops lines when the app
   /// is also logging request failures, and a silent self-test is useless.

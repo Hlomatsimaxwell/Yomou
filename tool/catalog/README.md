@@ -1,6 +1,6 @@
 # Source catalog generators
 
-The bundled generic sources (Madara + MangaThemesia + ZeistManga) are generated
+The bundled generic sources (Madara + MangaThemesia + ZeistManga + GigaViewer) are generated
 from local, gitignored `.data/` JSON. The generated `.g.dart` files are
 **committed** — a commit ships the Dart, not the JSON.
 
@@ -16,11 +16,13 @@ From the repo root:
 python3 tool/catalog/gen_madara_catalog.py
 python3 tool/catalog/gen_manga_themesia_catalog.py
 python3 tool/catalog/gen_zeistmanga_catalog.py
+python3 tool/catalog/gen_gigaviewer_catalog.py
 
 # Verify the committed output matches the inputs (safe in CI / pre-commit).
 python3 tool/catalog/gen_madara_catalog.py --check
 python3 tool/catalog/gen_manga_themesia_catalog.py --check
 python3 tool/catalog/gen_zeistmanga_catalog.py --check
+python3 tool/catalog/gen_gigaviewer_catalog.py --check
 ```
 
 Then, because the payload feeds the runtime source registry:
@@ -31,7 +33,7 @@ flutter analyze
 ```
 
 `catalog_common.py` holds the language-code table and host normalisation shared
-by all three generators. Teach a new language code there once.
+by all four generators. Teach a new language code there once.
 
 ## Inputs
 
@@ -39,8 +41,8 @@ All under `.data/` (local only, not in git):
 
 | File | Used by | Contents |
 |---|---|---|
-| `engines.json` | all three | extension engines: `theme`, and `sources[]` with `id`, `language`, `homeUrl` |
-| `sources_catalog.json` | all three | keyed by bare host: `name`, `langs`, `icon`, `nsfw` |
+| `engines.json` | all four | extension engines: `theme`, and `sources[]` with `id`, `language`, `homeUrl` |
+| `sources_catalog.json` | all four | keyed by bare host: `name`, `langs`, `icon`, `nsfw` |
 | `madara_validation.json` | Madara only | per-host sweep result: `verdict`, `listingPath`, … |
 
 The `.data/` host key is the bare host (`example.com`), while `engines.json`
@@ -75,6 +77,17 @@ saved order/flags and pick up new rows as enabled.
    intentionally skipped: it keeps its older hand-written source, which owns
    the source id used by existing favorites.
 
+### GigaViewer (Japanese GraphQL viewer, one generic driver)
+
+1. Add the usual `sources_catalog.json` row and a `theme: gigaviewer` engine.
+2. Add a row to the committed `gigaviewer_sites.json`, keyed by bare host, with
+   its `seriesListIds` and `filterOptions` from the upstream
+   `keiyoushi/extensions-source` multisrc subclass. Sites that render their
+   catalogue in HTML (Comic Border, Shonen Jump+) use `catalogMode` /
+   `latestMode` instead of GraphQL ids; Zenon sets
+   `unavailableWhenStatusNull`.
+3. Run `python3 tool/catalog/gen_gigaviewer_catalog.py`.
+
 ### Madara
 
 1. Ensure the host has a `sources_catalog.json` row and a `theme: madara` engine
@@ -87,7 +100,7 @@ saved order/flags and pick up new rows as enabled.
 
 ### Other engines
 
-Sites with any other theme (`zeistmanga`, `comiciviewer`, `gigaviewer`, …) or no
+Sites with any other theme (`zeistmanga`, `comiciviewer`, `keyoapp`, …) or no
 theme cannot ride these drivers. They need a hand-written `MangaSource` class in
 `lib/data/sources/`, plus cases in both `getSourceByName` and
 `getSourceBySourceId` and a row in `SourcesNotifier.defaultSources` in

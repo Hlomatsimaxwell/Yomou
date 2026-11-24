@@ -1,6 +1,7 @@
 import 'dart:io';
 import 'package:http/http.dart' as http;
 import 'package:path/path.dart' as p;
+import 'package:yomou/data/sources/giga_scramble.dart';
 import 'package:yomou/data/sources/mf_scramble.dart';
 import 'package:yomou/data/sources/source_network.dart';
 import 'package:yomou/features/settings/providers/download_settings_provider.dart';
@@ -125,6 +126,9 @@ class ChapterDownloader {
       final mfOffset = MfScramble.offsetFromUrl(url);
       if (mfOffset != null) {
         final fixed = MfScramble.unscramble(bytes, mfOffset);
+        if (fixed != null) bytes = fixed;
+      } else if (GigaScramble.isScrambledUrl(url)) {
+        final fixed = GigaScramble.unscramble(bytes);
         if (fixed != null) bytes = fixed;
       }
       return bytes;

@@ -4,6 +4,7 @@ import 'package:yomou/data/sources/catalog/madara_catalog.g.dart' as madara;
 import 'package:yomou/data/sources/catalog/manga_themesia_catalog.g.dart'
     as themesia;
 import 'package:yomou/data/sources/catalog/zeistmanga_catalog.g.dart' as zeist;
+import 'package:yomou/data/sources/catalog/gigaviewer_catalog.g.dart' as giga;
 
 /// Guards the hand-off between the generated catalogs and the runtime registry.
 ///
@@ -17,6 +18,7 @@ void main() {
     'madara': madara.catalogMadaraConfigs,
     'mangathemesia': themesia.catalogMangaThemesiaConfigs,
     'zeistmanga': zeist.catalogZeistMangaConfigs,
+    'gigaviewer': giga.catalogGigaViewerConfigs,
   };
 
   test('generated catalogs are non-empty with unique ids and names', () {
@@ -70,5 +72,32 @@ void main() {
       expect(row['isEnabled'], true, reason: row['name'] as String);
       expect(row['siteUrl'], isNotEmpty, reason: row['name'] as String);
     }
+    for (final row in giga.catalogGigaViewerSourceRows) {
+      expect(row['isEnabled'], true, reason: row['name'] as String);
+      expect(row['siteUrl'], isNotEmpty, reason: row['name'] as String);
+    }
+  });
+
+  test('gigaviewer catalog keeps its 19 sites and their collection ids', () {
+    expect(giga.catalogGigaViewerConfigs.length, 19);
+    for (final config in giga.catalogGigaViewerConfigs) {
+      // Comic Border's front page is HTML, so it needs no GraphQL group ids.
+      if (config.catalogMode == 'graphql') {
+        expect(
+          config.seriesListIds +
+              config.filterOptions.expand((o) => o.ids).toList(),
+          isNotEmpty,
+          reason: config.name,
+        );
+      }
+      for (final option in config.filterOptions) {
+        expect(option.label, isNotEmpty, reason: config.name);
+      }
+    }
+    final action = giga.catalogGigaViewerByName['Comic Action']!;
+    expect(action.seriesListIds, contains('14079602755641808866'));
+    expect(action.filterOptions.first.label, '連載作品');
+    expect(giga.catalogGigaViewerByName['Zenon']!.unavailableWhenStatusNull,
+        isTrue);
   });
 }
