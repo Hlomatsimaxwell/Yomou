@@ -7,16 +7,6 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
-## [1.4.0] - 2026-11-24
-
-### Added
-- **Generic GigaViewer source for 19 Japanese sites** — one config-driven engine covers the GraphQL catalogue/search, details, chapter pagination and the `script#episode-json` reader. Per-site serial groups, filter collections and the Comic Border / Shonen Jump+ HTML collections live in the generated catalog, not in host checks. Verified end to end on Waydroid across seven sites.
-- **GigaViewer page de-scrambling** — pages marked with `#scramble` are unshuffled in the reader and in downloads, mirroring the upstream 4×4 tile interceptor.
-- **Reproducible GigaViewer catalog** — generated from local inputs with the same `--check` guard as the Madara, MangaThemesia and ZeistManga catalogs.
-
-### Changed
-- The source self-test resolves any bundled source by id from the default source rows, so a newly generated catalog can be probed without editing a hardcoded name list.
-
 ## [1.3.0] - 2026-11-23
 
 ### Added
